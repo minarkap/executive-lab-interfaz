@@ -106,7 +106,34 @@ Una fuente leída.
   return raiz;
 }
 
-module.exports = { montar };
+// La marca de la empresa, como la dejaría el asistente tras mirar su web.
+// Aparte de `montar` porque el caso por defecto —sin marca todavía, con la de
+// Executive Lab— también hay que poder probarlo.
+function montarMarca(raiz, { acento = '#0057b8', texto = '#1a1a1a', fondo = '#f7f5f2', logo = true } = {}) {
+  escribir(raiz, '02-DOCS/wiki/brand/marca.md', `---
+type: concept
+title: Marca de Ferretería Soler
+description: Los colores y el logotipo de la empresa, tomados de su web.
+resource: https://ferreteriasoler.es
+tags: [brand, marca]
+fondo: "${fondo}"
+texto: "${texto}"
+acento: "${acento}"
+logo: logo.svg
+---
+
+# Marca de Ferretería Soler
+
+Tomada de su web el ${HOY}.
+`);
+  if (logo) {
+    escribir(raiz, '02-DOCS/wiki/brand/logo.svg',
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" width="200" height="40">\n  <text x="0" y="28" font-family="serif" font-size="26" fill="${texto}">Ferretería <tspan fill="${acento}">Soler</tspan></text>\n</svg>\n`);
+  }
+  return path.join(raiz, '02-DOCS/wiki/brand');
+}
+
+module.exports = { montar, montarMarca };
 
 if (require.main === module) {
   const destino = process.argv[2];

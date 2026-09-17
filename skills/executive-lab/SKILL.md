@@ -110,7 +110,48 @@ La barra decide sola qué hacer con cada uno: si el verbo solo mira (`listar_`, 
 pide datos o cambia algo, te lo pide a ti, y entonces preguntas lo que falte y pides permiso. Así que
 **nombra los scripts con cuidado**: el verbo decide si el alumno puede pulsarlo sin riesgo.
 
-### 3. Si hay documentos esperando, léelos
+### 3. Cuando sepas cuál es su web, quédate con su marca
+
+En cuanto el alumno diga la web de su empresa —el wizard se la pregunta al montar la carpeta, y si no
+saldrá en la conversación— **míralas y escribe el récord de marca**. Desde ese momento el panel deja
+de llevar los colores de Executive Lab y lleva los suyos, y eso hace más por que se sienta en su casa
+que cualquier cosa que le digas.
+
+Va en `02-DOCS/wiki/brand/marca.md`, que es donde RSC guarda la identidad visual de un proyecto (la
+misma carpeta que leen `design`, `design-dna` y `brand-voice`):
+
+```markdown
+---
+type: concept
+title: Marca de Ferretería Soler
+description: Los colores y el logotipo de la empresa, tomados de su web.
+resource: https://ferreteriasoler.es
+tags: [brand, marca]
+fondo: "#f7f5f2"
+superficie: "#ffffff"
+texto: "#1a1a1a"
+acento: "#0057b8"
+logo: logo.svg
+---
+
+# Marca de Ferretería Soler
+
+De dónde sale cada color y qué se ha dejado fuera.
+```
+
+Cuatro colores, y solo cuatro: **fondo** (el de la página), **superficie** (tarjetas; si no lo pones,
+se calcula), **texto** y **acento** (el color de sus botones y enlaces). En `#rrggbb`, siempre. Coge
+el logotipo también: descárgalo a esa misma carpeta como `logo.svg` (o `.png`), y **en versión para
+fondo claro** — si el suyo es blanco sobre oscuro, recolorea el blanco al color de texto.
+
+**No toques la tipografía ni los tamaños.** Los colores de una web se pueden adoptar sin romper nada;
+una tipografía ajena, no, y esta gente no puede permitirse una interfaz que de pronto no se lee.
+
+Del contraste no te preocupes: el panel comprueba las cuentas y oscurece el acento solo si hace falta.
+Si el texto no se lee sobre el fondo, descarta la marca entera y se queda con la nuestra — así que
+coge los colores *reales* de la web, no los que te parezcan bonitos.
+
+### 4. Si hay documentos esperando, léelos
 
 Cuando haya ficheros sueltos en `02-DOCS/inbox/`, el alumno los ha dejado ahí con el botón *Darle
 documentos*. Procésalos con el barrido de bandeja de `harness` sin que tenga que pedírtelo dos veces,

@@ -48,6 +48,22 @@ async function preguntarObjetivo() {
   return escrito && escrito.trim() ? escrito.trim() : null;
 }
 
+// La web de la empresa. Es opcional y se puede dejar en blanco: de ella salen
+// los colores y el logotipo del panel, y lo primero que el asistente sabrá de
+// a qué se dedica. Quien no tenga web, sigue sin ella.
+async function preguntarWeb() {
+  const escrito = await vscode.window.showInputBox({
+    title: 'Empezar una empresa aquí',
+    prompt: '¿Tiene web tu empresa? Así cojo sus colores y su logotipo, y me entero de a qué os dedicáis.',
+    placeHolder: 'ferreteriasoler.es — o déjalo en blanco si no tenéis',
+    ignoreFocusOut: true,
+  });
+
+  const limpio = (escrito || '').trim();
+  if (!limpio) return null;
+  return /^https?:\/\//i.test(limpio) ? limpio : `https://${limpio}`;
+}
+
 // El arnés, en los dos pasos que RSC exige: primero enseña el plan y su
 // huella, y solo escribe cuando se le devuelve esa misma huella. La línea de
 // aceptación se reutiliza tal cual la imprime RSC —con el objetivo en base64 y
@@ -107,6 +123,8 @@ async function arrancar(contexto, salida) {
   const objetivo = await preguntarObjetivo();
   if (!objetivo) return { ok: false, cancelado: true };
 
+  const web = await preguntarWeb();
+
   return vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Preparando tu empresa', cancellable: false },
     async (progreso) => {
@@ -134,7 +152,7 @@ async function arrancar(contexto, salida) {
       progreso.report({ message: 'guardando el punto de partida…' });
       await guardar.guardar(`Punto de partida — ${guardar.fechaLarga()}`);
 
-      return { ok: true, objetivo, mensaje: 'Tu empresa ya está lista.' };
+      return { ok: true, objetivo, web, mensaje: 'Tu empresa ya está lista.' };
     },
   );
 }

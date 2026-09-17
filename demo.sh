@@ -5,8 +5,9 @@
 # modo desarrollo, sobre una empresa de mentira ya preparada con el arnés.
 #
 #   ./demo.sh                monta lo que falte y abre la demo
-#   ./demo.sh --con-datos    además siembra una herramienta, una wiki y
-#                            documentos, para ver las pantallas con contenido
+#   ./demo.sh --con-datos    además siembra una herramienta, una wiki,
+#                            documentos y la marca de la empresa, para ver las
+#                            pantallas con contenido
 #   ./demo.sh --reinstalar   vuelve a instalar las extensiones
 #   rm -rf .demo             para empezar de cero
 #
@@ -51,6 +52,9 @@ fi
 if [ "${1:-}" = "--con-datos" ]; then
   echo "Sembrando datos de mentira…"
   node "$R/extension/prueba/empresa-falsa.js" "$D/empresa" >/dev/null
+  # Y la marca de la empresa, como la dejaría el asistente tras mirar su web:
+  # el panel pasa a llevar sus colores y su logotipo, no los de Executive Lab.
+  node -e "require('$R/extension/prueba/empresa-falsa.js').montarMarca('$D/empresa')"
 fi
 
 # 2. El disfraz, escrito antes del primer arranque, como hará el instalador.

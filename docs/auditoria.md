@@ -210,3 +210,28 @@ pregunta concreta para esa mirada: si VS Code fusiona también `workbench.colorC
 colores de la marca se quedarían puestos en modo avanzado. Se ve a simple vista —barra lateral color
 crema con el editor completo— y se arregla igual que las listas de exclusión (F9). Y sigue
 pendiente el `.exe` en un Windows limpio, que es lo que de verdad bloquea sentar alumnos.
+
+---
+
+## Addendum — la marca de la empresa y el ajuste automático
+
+Dos peticiones de Jose al ver la demo: que el panel se ajuste al arnés conforme se monta, y que los
+colores y el logotipo sean los de la web de la empresa que se pregunta al principio. Decisiones §11 y
+§12.
+
+Antes de escribir nada se comprobó dónde guarda RSC la identidad visual: `design-dna` escribe el
+récord como artículo bajo `02-DOCS/wiki/brand/`, con `palette.colors: [{role, hex, name}]`. Se escribe
+en esa carpeta, no en una nueva.
+
+**Lo que se añadió:** `color.js` (luminancia, contraste y mezcla de la WCAG 2.1), `marca.js` (lee el
+récord, deriva superficie, línea y texto apagado del propio par fondo/texto, corrige el acento y
+descarta la marca si no hay quien la lea), el vigía del arnés en `extension.js`, la pregunta por la web
+en el wizard y la cuarta regla de la habilidad.
+
+**Comprobado** (32 comprobaciones, seis nuevas): sin récord manda la nuestra; con récord se pintan sus
+colores y su logotipo; un acento flojo (`#7bb8ff`, 1,9:1 con blanco) se oscurece hasta `#5078a6`
+(4,6:1); un texto que no se lee sobre el fondo descarta la marca entera; un logotipo que apunta fuera
+de su carpeta se ignora; y un comando recién creado aparece en la barra sin cerrar nada.
+
+**Sin probar:** que el asistente rellene bien el récord mirando una web de verdad. Es cosa de la
+habilidad, no del código, y se ve en la primera clase.

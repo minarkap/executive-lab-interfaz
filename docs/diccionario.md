@@ -41,6 +41,8 @@ jerga por goteo.
 | `rsc onboard` en una carpeta nueva | Empezar una empresa aquí |
 | quitar el disfraz en esta ventana | Ver el editor completo |
 | poner el disfraz en esta ventana | Volver al modo sencillo |
+| `02-DOCS/wiki/brand/marca.md` | La marca de tu empresa |
+| la web de la empresa del alumno | Tu web |
 
 ## Palabras prohibidas
 

@@ -37,6 +37,11 @@ pantalla si no está ahí.
 
 ![Las cuatro pantallas del panel](docs/panel.png)
 
+Y cuando el alumno cuenta cuál es la web de su empresa, el panel deja de llevar nuestra marca y lleva
+la suya — mismos botones, sus colores y su logotipo:
+
+![El mismo panel con la marca de Executive Lab y con la de la empresa del alumno](docs/marca.png)
+
 ## La regla que ordena el panel
 
 **No hay ni una herramienta, ni una tarea, ni un tema escritos en el código.** Todo lo que el alumno ve
@@ -45,7 +50,8 @@ sale de leer lo que RSC tenga montado en su carpeta: las conexiones de `01-TOOLS
 porque la habilidad `executive-lab` le dice a Claude que cree uno cuando una tarea se repite.
 
 Una gestoría acaba con botones de facturación y una empresa de contratos con botones de contratos, sin
-que nadie toque el código.
+que nadie toque el código. Y **aparecen solos**: la barra vigila lo que el arnés escribe, así que lo
+que le acabas de pedir al asistente sale sin cerrar nada.
 
 Las decisiones y lo que se descartó, con las pruebas, están en [docs/decisiones.md](docs/decisiones.md).
 

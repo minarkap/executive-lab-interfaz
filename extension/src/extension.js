@@ -20,6 +20,7 @@ const copias = require('./guardar');
 const soporte = require('./soporte');
 const disfraz = require('./disfraz');
 const arrancar = require('./arrancar');
+const marca = require('./marca');
 
 class Panel {
   constructor(contexto, salida) {
@@ -30,17 +31,30 @@ class Panel {
 
   resolveWebviewView(vista) {
     this.vista = vista;
-    const medios = vscode.Uri.joinPath(this.contexto.extensionUri, 'media');
-
-    vista.webview.options = { enableScripts: true, localResourceRoots: [medios] };
-    vista.webview.html = this.html(vista.webview, medios);
+    this.pintarPagina();
     vista.webview.onDidReceiveMessage((m) => this.manejar(m));
 
     // Al volver a mirar la barra lateral, la brújula se pone al día sola.
     vista.onDidChangeVisibility(() => { if (vista.visible) this.refrescar(); });
   }
 
-  html(webview, medios) {
+  // La página entera. Se rehace solo cuando cambia la marca de la empresa,
+  // porque eso cambia los colores y el logotipo; lo demás va por mensajes.
+  pintarPagina() {
+    if (!this.vista) return;
+    const medios = vscode.Uri.joinPath(this.contexto.extensionUri, 'media');
+    const suya = marca.leer();
+
+    // Al logotipo de la empresa se le da acceso de lectura a su carpeta, y a
+    // esa sola: no hace falta abrirle el resto del trabajo del alumno.
+    const raices = [medios];
+    if (suya && suya.carpeta) raices.push(vscode.Uri.file(suya.carpeta));
+
+    this.vista.webview.options = { enableScripts: true, localResourceRoots: raices };
+    this.vista.webview.html = this.html(this.vista.webview, medios, suya);
+  }
+
+  html(webview, medios, suya) {
     const nonce = crypto.randomBytes(16).toString('base64');
     const uri = (fichero) => webview.asWebviewUri(vscode.Uri.joinPath(medios, fichero));
     // Las fuentes y el logotipo viajan dentro de la extensión: la interfaz no
@@ -54,15 +68,21 @@ class Panel {
       `script-src 'nonce-${nonce}'`,
     ].join('; ');
 
+    // Si el alumno ha contado cuál es la web de su empresa, manda su marca.
+    const logo = suya && suya.logo
+      ? { src: webview.asWebviewUri(vscode.Uri.file(suya.logo)), alt: suya.nombre || 'Tu empresa' }
+      : { src: uri('logo.svg'), alt: 'Executive Lab' };
+
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${csp}">
 <link rel="stylesheet" href="${uri('panel.css')}">
+${marca.estilo(suya)}
 </head>
 <body>
-<img class="marca" src="${uri('logo.svg')}" alt="Executive Lab">
+<img class="marca" src="${logo.src}" alt="${logo.alt}">
 <div id="app" aria-live="polite"></div>
 <script nonce="${nonce}" src="${uri('panel.js')}"></script>
 </body>
@@ -254,7 +274,10 @@ class Panel {
     if (!hecho.ok) return this.enviar({ tipo: 'aviso', texto: hecho.mensaje, malo: true });
 
     await this.refrescar(true);
-    await puente.enviar(`Acabo de montar mi empresa aquí. Lo primero que quiero resolver: ${hecho.objetivo}. Empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
+    const conWeb = hecho.web
+      ? ` La web de mi empresa es ${hecho.web}: míralas y quédate con sus colores y su logotipo antes de nada.`
+      : '';
+    await puente.enviar(`Acabo de montar mi empresa aquí. Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb} Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
     return undefined;
   }
 
@@ -275,6 +298,41 @@ class Panel {
     await this.refrescar(true);
     await disfraz.proponerReabrir('Para que se aplique, hay que cerrar y abrir esta ventana.');
   }
+}
+
+// El panel se ajusta al arnés conforme se monta. Cuando el asistente conecta
+// una herramienta, crea un comando o escribe en la wiki, eso aparece solo: sin
+// esto, el alumno tendría que cerrar y abrir para ver lo que acaba de pedir.
+//
+// Lo que se vigila es exactamente lo que el panel lee (ver `decisiones.md` §7).
+const LO_QUE_MIRA = '{.rsc.json,.claude/commands/*.md,01-TOOLS/**,02-DOCS/wiki/index.md,02-DOCS/wiki/log.md,02-DOCS/wiki/gaps.md,02-DOCS/inbox/*,02-DOCS/wiki/brand/**}';
+
+function vigilarElArnes(contexto, panel) {
+  const carpetas = vscode.workspace.workspaceFolders;
+  if (!carpetas || !carpetas.length) return;
+
+  const vigia = vscode.workspace.createFileSystemWatcher(
+    new vscode.RelativePattern(carpetas[0], LO_QUE_MIRA),
+  );
+
+  // Una tanda de cambios (RSC escribe muchos ficheros de golpe) es un solo
+  // repintado, no veinte.
+  let reloj = null;
+  const alCambiar = (uri) => {
+    const esMarca = uri.fsPath.includes(`${marca.CARPETA.join('/')}/`) || uri.fsPath.includes(marca.FICHERO);
+    clearTimeout(reloj);
+    reloj = setTimeout(() => {
+      // La marca cambia los colores y el logotipo, así que hay que rehacer la
+      // página entera; lo demás se actualiza por mensaje.
+      if (esMarca) panel.pintarPagina();
+      panel.refrescar(true).catch(() => {});
+    }, 600);
+  };
+
+  vigia.onDidCreate(alCambiar);
+  vigia.onDidChange(alCambiar);
+  vigia.onDidDelete(alCambiar);
+  contexto.subscriptions.push(vigia, { dispose: () => clearTimeout(reloj) });
 }
 
 // El disfraz base se pone en el primer arranque. Las claves de Claude solo
@@ -329,6 +387,8 @@ function activate(contexto) {
     comando('executiveLab.verEditorCompleto', async () => { await panel.verEditorCompleto(); repintarModo(); }),
     comando('executiveLab.modoSencillo', async () => { await panel.modoSencillo(); repintarModo(); }),
   );
+
+  vigilarElArnes(contexto, panel);
 
   // La barra de actividad está oculta por el disfraz, así que si no forzamos
   // nuestra vista el alumno se encuentra el explorador de ficheros delante.

@@ -230,3 +230,43 @@ se queda en todo lo demás (bordes, foco, la marca, el hover del botón).
 También se marca la ventana entera con `workbench.colorCustomizations`, porque el marco del panel de
 Claude saca sus colores del tema: sin eso, la barra quedaba color Executive Lab y el resto gris de
 fábrica.
+
+## 11. La marca es la de la empresa del alumno, no la nuestra
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Petición de Jose: que el aspecto vaya acorde a la web de la empresa que se pregunta al principio. El
+wizard pregunta por ella, y el asistente la mira y deja el récord en `02-DOCS/wiki/brand/marca.md`
+—la carpeta donde RSC ya guarda la identidad visual de un proyecto, la que leen `design`,
+`design-dna` y `brand-voice`—. El panel lo lee y se pinta con sus colores y su logotipo.
+
+**Quién extrae la marca: el asistente, no la extensión.** Meter un extractor de webs en la extensión
+sería frágil, lento y otra cosa más que mantener. Claude ya sabe mirar una web, y así la marca es un
+dato del arnés como cualquier otro — igual que las conexiones o los botones (§7).
+
+**Cuatro colores, y nada de tipografía.** Fondo, superficie, texto y acento. Los colores de una web se
+pueden adoptar sin romper nada; una tipografía ajena, no, y este público no puede permitirse una
+interfaz que de pronto no se lee.
+
+**El contraste se comprueba aquí, no allí.** La web de una pyme casi nunca cumple: el acento se
+oscurece solo hasta que el texto de encima se lea (AA, 4,5:1), y si el texto no se lee sobre el fondo
+se descarta la marca entera y se queda la de Executive Lab. Mejor la nuestra que una ilegible.
+
+**El default correcto es la nuestra**: durante el curso, hasta que el alumno cuente de qué va su
+empresa, el panel lleva Executive Lab.
+
+## 12. El panel se ajusta al arnés conforme se monta
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Petición de Jose: *tiene que ajustarse al arnés que se vaya montando*. Un `FileSystemWatcher` sobre
+exactamente lo que el panel lee —`.rsc.json`, `.claude/commands/`, `01-TOOLS/`, el índice, el
+historial y los huecos de la wiki, la bandeja de documentos y la carpeta de marca— repinta la barra
+sola, con medio segundo de espera para que una tanda de escrituras de RSC sea un repintado y no
+veinte.
+
+Sin esto, el alumno le pedía al asistente que conectara su facturación, el asistente lo hacía, y la
+barra seguía igual hasta cerrar y abrir. Que la cosa que acabas de pedir aparezca sola es la mitad de
+la sensación de que esto funciona.
+
+Un cambio de marca rehace la página entera (cambian colores y logotipo); lo demás va por mensaje.

@@ -68,9 +68,25 @@ module.exports = {
     getCommands: async () => ['workbench.action.reloadWindow', ...guion.comandosDeClaude],
   },
 
+  RelativePattern: class { constructor(base, patron) { this.base = base; this.pattern = patron; registrado.vigilado = patron; } },
+
   workspace: {
     get workspaceFolders() { return guion.raiz ? [{ uri: uri(guion.raiz) }] : undefined; },
     onDidChangeConfiguration: () => ({ dispose() {} }),
+    createFileSystemWatcher: (patron) => {
+      const oyentes = { crear: null, cambiar: null, borrar: null };
+      registrado.vigia = {
+        patron: patron.pattern,
+        // Para poder disparar un cambio desde la prueba.
+        disparar: (ruta) => oyentes.cambiar && oyentes.cambiar(uri(ruta)),
+      };
+      return {
+        onDidCreate: (f) => { oyentes.crear = f; },
+        onDidChange: (f) => { oyentes.cambiar = f; },
+        onDidDelete: (f) => { oyentes.borrar = f; },
+        dispose() {},
+      };
+    },
     getConfiguration: () => ({
       inspect: (clave) => ({
         globalValue: registrado.ajustes.global[clave],

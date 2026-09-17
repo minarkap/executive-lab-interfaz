@@ -21,7 +21,7 @@ Module._resolveFilename = function (pedido, ...resto) {
 };
 
 const vscode = require('./vscode-falso');
-const { montar } = require('./empresa-falsa');
+const { montar, montarMarca } = require('./empresa-falsa');
 
 const RAIZ = path.join(__dirname, '..');
 const cargar = (m) => require(path.join(RAIZ, 'src', m));
@@ -240,6 +240,55 @@ async function main() {
     return 'portapapeles + foco';
   });
 
+  // ------------------------------------------- la marca de la empresa
+  const marca = cargar('marca');
+
+  await comprobar('sin récord de marca, manda la de Executive Lab', () => {
+    assert.equal(marca.leer(), null, 'sin fichero no hay marca que aplicar');
+    assert.equal(marca.estilo(null), '', 'y no se cuela ningún estilo');
+    return 'la nuestra';
+  });
+
+  await comprobar('con récord, el panel se pinta con los colores de la empresa', () => {
+    montarMarca(empresa);
+    const suya = marca.leer();
+    assert.equal(suya.nombre, 'Marca de Ferretería Soler');
+    assert.equal(suya.web, 'https://ferreteriasoler.es');
+    assert.ok(suya.logo && suya.logo.endsWith('logo.svg'), 'coge su logotipo');
+    assert.equal(suya.tokens['--crema'], '#f7f5f2');
+    assert.equal(suya.tokens['--rojo'], '#0057b8');
+    assert.match(marca.estilo(suya), /--crema: #f7f5f2;/);
+    return `${Object.keys(suya.tokens).length} colores`;
+  });
+
+  await comprobar('un acento flojo se oscurece hasta que se lee encima', () => {
+    const color = cargar('color');
+    montarMarca(empresa, { acento: '#7bb8ff' }); // azul claro: 1,9:1 con blanco
+    const suya = marca.leer();
+    assert.equal(suya.ajustado, true);
+    assert.equal(suya.tokens['--rojo'], '#7bb8ff', 'el de la web se queda para bordes y foco');
+    const relleno = suya.tokens['--rojo-fuerte'];
+    assert.ok(color.contraste('#ffffff', relleno) >= 4.5, `relleno ${relleno} sigue sin leerse`);
+    return `#7bb8ff → ${relleno}`;
+  });
+
+  await comprobar('si el texto no se lee sobre el fondo, se descarta la marca entera', () => {
+    montarMarca(empresa, { texto: '#cccccc', fondo: '#ffffff' });
+    const suya = marca.leer();
+    assert.ok(suya.descartada, 'mejor la nuestra que una interfaz ilegible');
+    assert.equal(marca.estilo(suya), '');
+    return suya.descartada;
+  });
+
+  await comprobar('un logotipo que apunta fuera de su carpeta se ignora', () => {
+    montarMarca(empresa);
+    const registro = path.join(empresa, '02-DOCS/wiki/brand/marca.md');
+    fs.writeFileSync(registro, fs.readFileSync(registro, 'utf8').replace('logo: logo.svg', 'logo: ../../../.env.svg'));
+    assert.equal(marca.leer().logo, null);
+    montarMarca(empresa);
+    return 'ignorado';
+  });
+
   // ---------------------------------------------- el disfraz y su interruptor
   const contexto = {
     extensionUri: { fsPath: RAIZ },
@@ -304,6 +353,24 @@ async function main() {
     assert.ok(vscode.registrado.vistas.includes('executiveLab.panel'));
     assert.ok(vscode.registrado.ejecutados.some((e) => e.id === 'executiveLab.panel.focus'), 'fuerza su vista');
     return `${manifiesto.length} comandos`;
+  });
+
+  await comprobar('el panel se ajusta al arnés conforme se monta', async () => {
+    const vigia = vscode.registrado.vigia;
+    assert.ok(vigia, 'hay que vigilar lo que el arnés escribe');
+    for (const trozo of ['.rsc.json', '.claude/commands', '01-TOOLS', '02-DOCS/wiki/index.md', '02-DOCS/inbox', 'brand']) {
+      assert.ok(vigia.patron.includes(trozo), `no se vigila ${trozo}`);
+    }
+
+    // Un comando nuevo, como el que crea el asistente cuando algo se repite.
+    fs.writeFileSync(path.join(empresa, '.claude/commands/cobrar.md'),
+      '---\ndescription: Reclamar cobros\nboton: Reclamar lo que me deben\n---\n\nInstrucciones.\n');
+    vigia.disparar(path.join(empresa, '.claude/commands/cobrar.md'));
+    await new Promise((listo) => setTimeout(listo, 900));
+
+    const etiquetas = cargar('acciones').acciones().map((a) => a.etiqueta);
+    assert.ok(etiquetas.includes('Reclamar lo que me deben'), 'el botón nuevo tiene que salir solo');
+    return `${etiquetas.length} botones, uno recién creado`;
   });
 
   await comprobar('en modo sencillo la barra de estado no molesta', () => {
