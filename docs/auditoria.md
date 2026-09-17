@@ -295,3 +295,22 @@ Seis fallos más, todos míos:
 | F19 | **La interfaz llamaba «empresa» a todo** | Dos nombres que pone el alumno (§16) |
 
 43 comprobaciones. El instalador compila con la página de nombres nueva.
+
+### Addendum — el reparto de ámbitos, cerrado
+
+Tres pasadas hicieron falta para que el disfraz no se comiera el VS Code de quien lo instala. El
+reparto final, que es el que va en el `.exe` de las 17:21:
+
+| Qué | Dónde se escribe | Por qué |
+|---|---|---|
+| Lo que se ve (28 ajustes) y el interruptor | `.vscode/settings.json` **de la carpeta** | Otra ventana con cualquier otra cosa no se entera |
+| El rótulo | La misma, con los nombres que puso el alumno | «Contabilidad · Nexus Consulting», no un genérico |
+| Confianza, actualizaciones, telemetría, recomendaciones | Los ajustes del editor | VS Code no admite otro ámbito, y ninguno cambia el aspecto |
+| **El zoom** | **En ningún sitio** | Es de ámbito de programa: agrandaría todas las ventanas. La letra grande la pone el panel en su CSS |
+
+F20: **`preparar.js` seguía escribiendo el disfraz en los ajustes del editor.** El arreglo de §15 se
+hizo en la extensión y se me quedó el instalador atrás, así que reinstalar habría reproducido el
+problema entero. Se vio al probar la instalación de punta a punta antes de dar el `.exe` por bueno.
+
+F21: **el zoom.** Era la última fuga entre ventanas. Fuera del disfraz, y la salida de emergencia
+tampoco lo borra: si alguien lo tenía puesto, es suyo.

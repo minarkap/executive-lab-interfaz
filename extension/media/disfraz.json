@@ -39,7 +39,6 @@
     "**/.*": true,
     "**/node_modules": true
   },
-  "window.zoomLevel": 1,
   "claudeCode.focusView": true,
   "workbench.colorCustomizations": {
     "sideBar.background": "#f4eee6",

@@ -38,7 +38,10 @@ for (const fichero of ficheros) {
     if (a !== c) mal(fichero, null, `${nombre} descuadradas: ${a} abren, ${c} cierran`);
   }
 
-  if ((texto.match(/"/g) || []).length % 2 !== 0) mal(fichero, null, 'comillas dobles impares');
+  // Las comillas dobles que viven dentro de una cadena simple no cuentan:
+  // `-replace '"', ''` es legítimo y hacía saltar un falso positivo.
+  const sinCadenasSimples = texto.replace(/'[^'\n]*'/g, "''");
+  if ((sinCadenasSimples.match(/"/g) || []).length % 2 !== 0) mal(fichero, null, 'comillas dobles impares');
 
   lineas.forEach((linea, i) => {
     if (/[áéíóúÁÉÍÓÚñÑ¿¡]/.test(linea)) mal(fichero, i + 1, 'lleva tildes: PowerShell 5.1 las destroza');

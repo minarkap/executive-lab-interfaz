@@ -192,6 +192,27 @@ function ponerLosNombres(destino, arnes, empresa) {
   anotar(`Nombres: ${arnes}${empresa ? ` · ${empresa}` : ''}`);
 }
 
+// Los dos nombres, al frontmatter del perfil del arnés: de ahí salen el rótulo
+// de la ventana y los textos del panel. Es el mismo sitio que usa el wizard
+// cuando se monta un arnés desde dentro del editor.
+function ponerLosNombres(destino, arnes, empresa) {
+  const perfil = path.join(destino, '02-DOCS', 'wiki', 'harness', 'user-profile.md');
+  if (!fs.existsSync(perfil)) return;
+
+  const texto = fs.readFileSync(perfil, 'utf8');
+  const bloque = texto.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!bloque) return;
+
+  let cabecera = bloque[1];
+  for (const [clave, valor] of [['arnes', arnes], ['empresa', empresa]]) {
+    if (!valor) continue;
+    const linea = new RegExp(`^${clave}:.*$`, 'm');
+    cabecera = linea.test(cabecera) ? cabecera.replace(linea, `${clave}: ${valor}`) : `${cabecera}\n${clave}: ${valor}`;
+  }
+  fs.writeFileSync(perfil, texto.replace(bloque[0], `---\n${cabecera}\n---`));
+  anotar(`Nombres: ${arnes}${empresa ? ` · ${empresa}` : ''}`);
+}
+
 // En la máquina de un alumno la vista sencilla va encendida desde el primer
 // arranque: es la única carpeta que hay y no tiene por qué saber que existe un
 // interruptor. En cualquier otra, se enciende a mano.
@@ -236,36 +257,74 @@ function vestirElEditor() {
   return bien;
 }
 
-// El disfraz, escrito en los ajustes de usuario de VS Code antes del primer
-// arranque. Sin esto, la primera vez VS Code pregunta si el alumno confía en
-// los autores de una carpeta que acaba de crear él mismo, antes de que la
-// extensión pueda quitar esa pregunta. La extensión lo vuelve a aplicar
-// después, así que si esto falla no se pierde nada.
-function vestirAntesDeAbrir() {
-  const disfraz = path.join(APP, 'disfraz.json');
-  if (!fs.existsSync(disfraz)) {
-    anotar('AVISO: no encuentro disfraz.json; el disfraz lo pondrá la extensión.');
+// Las que VS Code declara de ambito de programa: no admiten vivir en una
+// carpeta, asi que van a los ajustes del editor. Son pocas y no cambian el
+// aspecto de nada: confianza del workspace, actualizaciones, telemetria, zoom.
+const SOLO_DEL_EDITOR = [
+  'security.workspace.trust.enabled',
+  'update.mode',
+  'update.showReleaseNotes',
+  'telemetry.telemetryLevel',
+  'extensions.ignoreRecommendations',
+];
+
+// El disfraz, escrito antes del primer arranque para que la primera vez ya se
+// vea bien — si no, VS Code pregunta si confia en los autores de una carpeta
+// que acaba de crear el propio alumno.
+//
+// Casi todo va al .vscode/settings.json DE SU CARPETA, no a los del editor:
+// asi, si esa persona abre cualquier otra cosa con el mismo VS Code, se la
+// encuentra tal y como la tenia. Es el mismo reparto que hace la extension.
+function vestirAntesDeAbrir(destino) {
+  const plantilla = path.join(APP, 'disfraz.json');
+  if (!fs.existsSync(plantilla)) {
+    anotar('AVISO: no encuentro disfraz.json; el disfraz lo pondra la extension.');
     return;
   }
+  const disfraz = JSON.parse(fs.readFileSync(plantilla, 'utf8'));
+
+  // 1. Lo que se ve, en la carpeta. Con el interruptor encendido.
+  const deLaCarpeta = { 'executiveLab.vistaSencilla': true };
+  for (const [clave, valor] of Object.entries(disfraz)) {
+    if (!SOLO_DEL_EDITOR.includes(clave)) deLaCarpeta[clave] = valor;
+  }
+  // El rotulo lleva los nombres que puso el alumno, no el de la plantilla.
+  deLaCarpeta['window.title'] = argumento('arnes')
+    ? [argumento('arnes'), argumento('empresa')].filter(Boolean).join(' \u00b7 ')
+    : disfraz['window.title'];
+
+  escribirAjustes(path.join(destino, '.vscode', 'settings.json'), deLaCarpeta, 'la carpeta de trabajo');
+
+  // 2. Las cuatro de ambito de programa, en el editor.
   const usuario = ES_WINDOWS
     ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User')
     : process.platform === 'darwin'
       ? path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User')
       : path.join(os.homedir(), '.config', 'Code', 'User');
-  fs.mkdirSync(usuario, { recursive: true });
 
-  const fichero = path.join(usuario, 'settings.json');
+  const delEditor = {};
+  for (const clave of SOLO_DEL_EDITOR) {
+    if (clave in disfraz) delEditor[clave] = disfraz[clave];
+  }
+  escribirAjustes(path.join(usuario, 'settings.json'), delEditor, 'los ajustes del editor');
+}
+
+// Escribe sin pisar lo que ya hubiera. Si el fichero no es JSON valido (tiene
+// comentarios), no se toca: mejor sin disfraz que romperle los ajustes.
+function escribirAjustes(fichero, nuevos, donde) {
+  fs.mkdirSync(path.dirname(fichero), { recursive: true });
+
   let actuales = {};
   if (fs.existsSync(fichero)) {
     try {
       actuales = JSON.parse(fs.readFileSync(fichero, 'utf8'));
     } catch {
-      anotar('AVISO: el settings.json existente lleva comentarios o no es JSON; no lo toco.');
+      anotar(`AVISO: ${donde} no es JSON valido; no lo toco.`);
       return;
     }
   }
-  fs.writeFileSync(fichero, `${JSON.stringify({ ...actuales, ...JSON.parse(fs.readFileSync(disfraz, 'utf8')) }, null, 2)}\n`);
-  anotar(`Disfraz escrito en ${fichero}`);
+  fs.writeFileSync(fichero, `${JSON.stringify({ ...actuales, ...nuevos }, null, 2)}\n`);
+  anotar(`${Object.keys(nuevos).length} ajustes en ${donde}`);
 }
 
 // -------------------------------------------------------------------- main
@@ -285,17 +344,16 @@ function main() {
   if (bien) bien = comprobarElSuelo(destino);
   if (bien) ponerLosRailes(destino);
   if (bien) ponerLosNombres(destino, arnes, empresa);
-  if (bien) encenderVistaSencilla(destino);
   if (bien) primeraCopia(destino);
 
-  // --sin-editor: para probar todo lo demás en una máquina de desarrollo sin
-  // tocar el VS Code de quien prueba.
-  if (process.argv.includes('--sin-editor')) {
-    anotar('Editor: omitido (--sin-editor).');
-  } else {
-    bien = vestirElEditor() && bien;
-    vestirAntesDeAbrir();
-  }
+  // El disfraz de la carpeta es un fichero suyo: se escribe siempre, no
+  // depende de que haya editor.
+  if (bien) vestirAntesDeAbrir(destino);
+
+  // --sin-editor solo se salta instalar las extensiones, para poder probar
+  // todo lo demás sin tocar el VS Code de quien prueba.
+  if (process.argv.includes('--sin-editor')) anotar('Extensiones: omitidas (--sin-editor).');
+  else bien = vestirElEditor() && bien;
 
   const donde = path.join(destino, 'instalacion.log');
   try {

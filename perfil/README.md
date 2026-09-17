@@ -33,8 +33,9 @@ antes había que hacer a mano.
 ## Qué hace cada bloque
 
 **Identidad.** `window.title` pone *Mi Empresa — Executive Lab* en la barra de la ventana. Se quitan el
-centro de comandos y la barra de menús. `window.zoomLevel: 1` agranda todo un punto, también el panel
-de Claude: el público de este proyecto no tiene la vista de un programador de 25 años.
+centro de comandos y la barra de menús. El zoom **no** se toca: es de ámbito de programa y agrandaría todas las
+ventanas de VS Code, también las que no tengan nada que ver con esto. La letra grande la pone el
+panel en su propio CSS.
 
 **Quitar superficie.** Barra de actividad, barra de estado, pestañas, control de disposición y editor de
 bienvenida. Solo quedan dos zonas: nuestra barra a la izquierda y el chat de Claude a la derecha.

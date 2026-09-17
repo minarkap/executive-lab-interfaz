@@ -466,10 +466,14 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     // disfraz puesto en la carpeta y algo suelto en los ajustes de usuario.
     await disfraz.volverAModoSencillo(contexto, salida);
     vscode.registrado.ajustes.global['workbench.activityBar.location'] = 'hidden';
+    vscode.registrado.ajustes.global['workbench.statusBar.visible'] = false;
+    // El zoom es del usuario: no lo ponemos nosotros, así que tampoco se
+    // borra. Si alguien lo tenía a 1, se queda a 1.
     vscode.registrado.ajustes.global['window.zoomLevel'] = 1;
 
     const { quitadas } = await disfraz.quitar(contexto, salida);
-    assert.equal(Object.keys(vscode.registrado.ajustes.global).length, 0, 'fuera de los ajustes de usuario');
+    assert.deepEqual(Object.keys(vscode.registrado.ajustes.global), ['window.zoomLevel'],
+      'se va lo nuestro y se queda lo suyo');
     assert.equal(Object.keys(vscode.registrado.ajustes.workspace).length, 0, 'y de los de la carpeta');
     assert.equal(disfraz.quiereVistaSencilla(), false, 'y deja el interruptor apagado, o volvería en el siguiente arranque');
     assert.ok(quitadas > 20, `solo ha quitado ${quitadas}`);

@@ -40,7 +40,6 @@ const SOLO_DEL_INSTALADOR = [
   'update.showReleaseNotes',
   'telemetry.telemetryLevel',
   'extensions.ignoreRecommendations',
-  'window.zoomLevel',
 ];
 
 // Lo que el interruptor devuelve a fábrica: lo que se ve. El resto de la base
