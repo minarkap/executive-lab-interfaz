@@ -48,6 +48,17 @@ node skills/aplicar.js "~/Documentos/Mi Empresa IA"
 Se puede aplicar hoy a la cohorte actual. No pisa nada que el alumno haya escrito y se puede repetir
 las veces que haga falta.
 
+## Ver la interfaz aquí, en el Mac
+
+```bash
+./demo.sh
+```
+
+Abre un VS Code **aislado** (sus propios ajustes y extensiones, dentro de `.demo/`, sin tocar los
+tuyos) con la extensión de Claude y la nuestra instaladas de verdad, sobre una empresa de mentira ya
+preparada con el arnés. Es lo que verá un alumno tras el instalador, disfraz incluido. La primera vez
+tarda un par de minutos; después abre al instante. `rm -rf .demo` para empezar de cero.
+
 ## Comprobaciones
 
 ```bash

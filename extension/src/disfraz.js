@@ -37,9 +37,15 @@ async function aplicar(contexto, salida, { forzar = false } = {}) {
 
   const configuracion = vscode.workspace.getConfiguration();
   const pendientes = [];
+  let cambiadas = 0;
   for (const clave of claves) {
+    // Si el instalador ya lo dejó escrito, no hay nada que cambiar ni que
+    // reabrir: solo se escribe lo que falte o esté distinto.
+    const actual = configuracion.inspect(clave)?.globalValue;
+    if (JSON.stringify(actual) === JSON.stringify(todos[clave])) continue;
     try {
       await configuracion.update(clave, todos[clave], vscode.ConfigurationTarget.Global);
+      cambiadas += 1;
     } catch (error) {
       pendientes.push(clave);
       salida.appendLine(`[disfraz] no he podido escribir ${clave}: ${error.message}`);
@@ -47,7 +53,7 @@ async function aplicar(contexto, salida, { forzar = false } = {}) {
   }
 
   await contexto.globalState.update(CLAVE_ESTADO, { version: VERSION, pendientes, quitado: false });
-  return { primeraVez, aplicadas: claves.length - pendientes.length, pendientes };
+  return { primeraVez, aplicadas: cambiadas, pendientes };
 }
 
 // Modo avanzado: devuelve cada ajuste a su valor de fábrica.
