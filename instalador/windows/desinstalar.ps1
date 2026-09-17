@@ -53,4 +53,11 @@ $trabajo = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Mi Empresa I
 Write-Host "`nLo que NO he tocado, por si lo quieres:"
 if (Test-Path $trabajo) { Write-Host "  Tu carpeta de trabajo:  $trabajo" }
 Write-Host "  VS Code y sus extensiones: quitalos desde Configuracion > Aplicaciones si quieres"
-Write-Host "`nCierra y abre la sesion de Windows para que el PATH se refresque.`n"
+Write-Host ""
+Write-Host "Ya esta. Una cosa mas, y no corre prisa:"
+Write-Host "  Menu Inicio > tu nombre > Cerrar sesion, y vuelve a entrar."
+Write-Host "  (o reinicia, da igual)"
+Write-Host ""
+Write-Host "  Por que: el PATH se lee al arrancar tu sesion. Ya esta limpio, pero"
+Write-Host "  las ventanas que tenias abiertas siguen con el de antes. No rompe"
+Write-Host "  nada dejarlo para luego.`n"
