@@ -12,12 +12,20 @@
 
 set -euo pipefail
 
+# Si esto se ejecuta desde dentro de VS Code (una terminal integrada, un
+# agente), el entorno lleva ELECTRON_RUN_AS_NODE=1 y el binario de VS Code
+# arrancaría como Node a secas y moriría con "bad option". Fuera con todo eso.
+for v in $(env | grep -oE '^(ELECTRON|VSCODE)_[A-Z0-9_]+'); do unset "$v"; done
+
 R="$(cd "$(dirname "$0")" && pwd)"
 D="$R/.demo"
 CODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
 [ -x "$CODE" ] || { echo "No encuentro VS Code en /Applications." >&2; exit 1; }
 
-aislado=(--user-data-dir "$D/datos" --extensions-dir "$D/extensiones")
+# El directorio de datos va por un enlace corto: VS Code abre ahí un socket
+# Unix, y macOS limita su ruta a ~104 caracteres. La del repo ya los agota.
+ln -sfn "$D/datos" /tmp/executive-lab-demo
+aislado=(--user-data-dir /tmp/executive-lab-demo --extensions-dir "$D/extensiones")
 
 # 1. La empresa de mentira, preparada como lo haría el instalador (sin editor).
 if [ ! -f "$D/empresa/.rsc.json" ]; then
@@ -46,4 +54,9 @@ if [ ! -d "$D/extensiones" ] || ! ls -d "$D/extensiones"/anthropic.claude-code-*
   "$CODE" "${aislado[@]}" --install-extension anthropic.claude-code --install-extension "$R/extension/executive-lab.vsix" --force
 fi
 
-exec "$CODE" "${aislado[@]}" "$D/empresa"
+# La ventana se abre con el binario de la app, suelto (nohup + &), no con el
+# `code` de línea de comandos: ese la lanza como hija del shell y muere cuando
+# el shell termina, que es lo que pasa desde un script o desde un agente.
+nohup "/Applications/Visual Studio Code.app/Contents/MacOS/Code" "${aislado[@]}" "$D/empresa" >/dev/null 2>&1 &
+disown
+echo "Demo abierta. Si ves un aviso de confianza o de login, es de la extensión de Claude, no nuestro."

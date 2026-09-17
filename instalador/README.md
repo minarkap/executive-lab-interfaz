@@ -39,18 +39,23 @@ Los dos necesitan una carpeta `carga/` que **no está versionada** porque son bi
 | `VSCodeUserSetup-x64.exe` | Solo Windows, de code.visualstudio.com |
 
 ```bash
-# Windows, con Inno Setup 6.3+ (el .iss lleva acentos: guardarlo como UTF-8)
+# El instalador de Windows, desde el Mac, con Inno Setup bajo Wine (Docker/OrbStack).
+# Probado el 17-09-2026: 5 min 40 s, 291 MB → windows/Output/ExecutiveLab-Setup.exe
+docker run --rm --platform linux/amd64 -v "$PWD/instalador/windows:/work" amake/innosetup ExecutiveLab.iss
+
+# O en un Windows con Inno Setup 6.3+ (el .iss lleva acentos: guardarlo como UTF-8)
 iscc windows\ExecutiveLab.iss
 
-# macOS
+# El de macOS
 ./mac/construir.sh 0.1.0
 ```
 
 ## Lo que todavía no está probado
 
-**Nada de esto se ha ejecutado en una máquina limpia.** Se escribió en un Mac, y las dos rutas
-necesitan una máquina limpia de verdad antes de ponerlas delante de un alumno. Las preguntas 3, 4 y 5
-de [docs/spike.md](../docs/spike.md) son exactamente eso.
+**El `.exe` está compilado pero nunca se ha ejecutado en un Windows limpio.** `preparar.js` sí se
+ha probado de punta a punta en macOS (`--sin-editor`). Lo que falta es copiar
+`windows/Output/ExecutiveLab-Setup.exe` a una VM de Windows limpia con un usuario sin administrador,
+hacer doble clic y grabar la pantalla: preguntas 3, 4, 5 y 6 de [docs/spike.md](../docs/spike.md).
 
 Dónde espero que falle primero:
 

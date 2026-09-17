@@ -84,7 +84,7 @@ por el IT de su empresa — que en pyme es más gente de la que parece.
   traerlo; hay que confirmarlo con el zip concreto.
 - Un `rsc onboard` real (pregunta 3).
 
-**Respuesta (17-09-2026):** La carga está montada (455 MB): Node 24.21 portable, MinGit 2.55, arnés 1.4.1 preinstalado, `.vsix`, icono y el instalador de VS Code. **MinGit no trae `bash.exe`**, pero su `usr/bin/sh.exe` es GNU bash (comprobado en el binario): la extensión lo usa como último candidato. Tampoco trae `curl`; Windows 10+ lo lleva de serie. **Sin administrador sigue pendiente**: hay que ejecutarlo en Windows.
+**Respuesta (17-09-2026):** La carga está montada (455 MB): Node 24.21 portable, MinGit 2.55, arnés 1.4.1 preinstalado, `.vsix`, icono y el instalador de VS Code. **MinGit no trae `bash.exe`**, pero su `usr/bin/sh.exe` es GNU bash (comprobado en el binario): la extensión lo usa como último candidato. Tampoco trae `curl`; Windows 10+ lo lleva de serie. **El `.exe` ya está compilado** (`instalador/windows/Output/ExecutiveLab-Setup.exe`, 291 MB, con Inno bajo Wine desde el Mac). **Sin administrador sigue pendiente**: hay que ejecutarlo en Windows.
 
 ---
 

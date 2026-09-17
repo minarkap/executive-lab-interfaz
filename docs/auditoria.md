@@ -120,3 +120,16 @@ Leyendo el `package.json` y el código compilado de `anthropic.claude-code` 2.1.
 - **Nuevo:** el chat de Claude no se abría solo al arrancar; el alumno se encontraba el centro vacío. La extensión lo abre 1,5 s después
   de activarse.
 - **Verificado además:** `preparar.js` de punta a punta en macOS (`--sin-editor`), 0,6 s, `RSC_ONBOARDING_READY`, diales y raíles correctos.
+
+### Cierre de la tarde
+
+- **Instalador de Windows compilado** con Inno Setup bajo Wine (Docker, `amake/innosetup`): 336 s, 291 MB. Valida el `.iss` entero —
+  Pascal Script, `[Registry]`, `CurStepChanged`, `Spanish.isl`, UTF-8—. Falta ejecutarlo en Windows.
+- **Demo en el Mac** (`./demo.sh`): VS Code aislado con las dos extensiones instaladas de verdad y una empresa preparada por `preparar.js`.
+  El log del extension host confirma la activación de `executivelab.panel` y el canal de salida no registra ningún ajuste rechazado.
+  Dos trampas encontradas al montarla, ya blindadas en el script: el entorno del extension host lleva `ELECTRON_RUN_AS_NODE=1` (el binario
+  de VS Code arranca como Node y muere con `bad option`), y la ruta del directorio de datos dentro del repo supera los ~104 caracteres que
+  admite un socket Unix en macOS (se usa un enlace corto en `/tmp/executive-lab-demo`).
+- **B5 matiz:** con el disfraz pre-escrito, la extensión no vuelve a escribir las claves, así que las dos de VS Code que quedaban
+  dudosas siguen sin confirmar por esa vía. Se confirman mirando la interfaz de la demo: sin barra de estado, sin barra de actividad,
+  título propio.
