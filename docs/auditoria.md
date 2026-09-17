@@ -258,3 +258,21 @@ en vez del nombre de carpeta sin tildes, fecha en el historial, y huecos pulsabl
 
 36 comprobaciones; tres nuevas cubren que el frontmatter no llega al alumno, que el título no se
 repite y que la descripción del tema no se confunde con un artículo.
+
+### Addendum — la primera prueba con un usuario de verdad
+
+Jose montó un arnés desde cero en una carpeta vacía —objetivo: *llevar la operativa de mi empresa con
+mi ERP*— y el asistente conectó Odoo. Primera vez que alguien que no soy yo usa esto. Tres hallazgos,
+y los tres son míos:
+
+| | Qué | Cómo se arregló |
+|---|---|---|
+| F11 | **La guía no aparecía.** La habilidad dice que se titule `## Cómo conectarla`; el asistente escribió `## Qué hace falta`, en prosa, y el contenido era el bueno. Decirle cómo titularla no basta: hay que aceptar lo que escribe de verdad | Se aceptan varios títulos naturales, y si no hay lista numerada valen los párrafos de esa sección |
+| F12 | **`ODOO_DB` salía como «Db».** Las siglas cortas no se pueden humanizar | Etiquetas nuevas (base de datos, puerto, dirección, espacio de trabajo) y las siglas de tres letras o menos se dejan como están |
+| F13 | **Los raíles de su carpeta eran los viejos.** El wizard copia los que llevara la extensión instalada, así que una carpeta montada ayer no conoce las reglas de hoy | `aplicar.js` los actualiza sin tocar los diales. Queda pendiente decidir si el panel debe hacerlo solo al detectar raíles atrasados |
+
+**Lo que salió bien, y es lo que importa:** lo que el asistente escribió en `CREDENTIALS.md` es mejor
+que mi fixture. La ruta exacta dentro de Odoo, que la clave se ve una sola vez, que hereda los
+permisos del usuario, y que si se pierde no pasa nada. Las cuatro pistas de los campos salieron
+exactas sin tocar nada, y los cuatro scripts se clasificaron bien: tres de solo mirar y uno que pide
+datos. La apuesta de §7 —que el panel refleje lo que el arnés escriba— se sostiene con un caso real.

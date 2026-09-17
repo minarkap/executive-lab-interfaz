@@ -37,9 +37,12 @@ const SUFIJOS = [
   [/_(USER|USERNAME)$/, 'Usuario'],
   [/_(EMAIL|MAIL)$/, 'Correo'],
   [/_(ACCOUNT|ACCOUNT_ID|ACCOUNT_SID)$/, 'Cuenta'],
-  [/_(URL|BASE_URL|ENDPOINT)$/, 'Dirección'],
+  [/_(URL|BASE_URL|ENDPOINT|HOST)$/, 'Dirección'],
+  [/_(DB|DATABASE)$/, 'Base de datos'],
+  [/_PORT$/, 'Puerto'],
   [/_DOMAIN$/, 'Dominio'],
   [/_REGION$/, 'Región'],
+  [/_(WORKSPACE|TEAM|ORG|COMPANY)(_ID)?$/, 'Espacio de trabajo'],
   [/_ENV$/, 'Entorno (test o production)'],
 ];
 
@@ -54,8 +57,11 @@ function etiquetaDeClave(clave) {
   const mayus = clave.toUpperCase();
   const [, etiqueta] = SUFIJOS.find(([patron]) => patron.test(mayus)) || [];
   if (etiqueta) return etiqueta;
+
   const sinPrefijo = mayus.split('_').slice(1).join('_') || mayus;
-  return humanizar(sinPrefijo);
+  // Una sigla corta se queda como está: "Db" no es una palabra, "DB" sí se
+  // reconoce. Lo demás se humaniza.
+  return sinPrefijo.length <= 3 ? sinPrefijo : humanizar(sinPrefijo);
 }
 
 // Nunca se devuelve una clave entera a la interfaz: solo los últimos cuatro
@@ -134,15 +140,28 @@ function comoSeConecta(carpeta) {
     return [];
   }
 
-  const seccion = texto.split(/^##\s+/m).find((t) => /^c[oó]mo\s+(se\s+)?conect/i.test(t));
+  // El asistente no siempre titula igual: le decimos "Cómo conectarla" pero
+  // escribe "Qué hace falta" o "Antes de empezar" y el contenido es el bueno.
+  // Se aceptan los títulos naturales antes que quedarnos sin guía.
+  const TITULOS = /^(c[oó]mo\s+(se\s+)?conect|qu[eé]\s+(hace\s+falta|necesitas)|antes\s+de\s+empezar|pasos|puesta\s+en\s+marcha)/i;
+  const seccion = texto.split(/^##\s+/m).find((t) => TITULOS.test(t));
   if (!seccion) return [];
 
-  return seccion.split('\n')
+  const util = (linea) => linea && !/[{<]/.test(linea) && !/\bcp\b|chmod|\.env\b/.test(linea);
+
+  const pasos = seccion.split('\n')
     .map((l) => l.match(/^\s*(?:\d+[.)]|[-*])\s+(.*\S)\s*$/))
     .filter(Boolean)
-    .map((m) => m[1].replace(/`/g, '').trim())
-    .filter((paso) => paso && !/[{<]/.test(paso))
-    .slice(0, 8);
+    .map((m) => m[1].replace(/[`*]/g, '').trim())
+    .filter(util);
+  if (pasos.length) return pasos.slice(0, 8);
+
+  // Sin lista, los párrafos de esa sección. Son menos cómodos de seguir, pero
+  // dicen lo mismo y es mejor que una pantalla muda.
+  return seccion.split(/\n\s*\n/).slice(1)
+    .map((t) => t.replace(/\s*\n\s*/g, ' ').replace(/[`*]/g, '').trim())
+    .filter((t) => util(t) && t.length > 20 && t.length < 400 && !t.startsWith('#') && !t.startsWith('|'))
+    .slice(0, 4);
 }
 
 // Dónde se consigue la clave, si la carpeta lo dice. CREDENTIALS.md trae la

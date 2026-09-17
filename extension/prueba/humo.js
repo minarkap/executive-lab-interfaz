@@ -105,6 +105,40 @@ async function main() {
     return `${proveedor.pasos.length} pasos`;
   });
 
+  await comprobar('la guía vale aunque el asistente titule la sección a su manera', () => {
+    // Caso real: con "llevar la operativa con mi ERP", el asistente montó Odoo
+    // y tituló la sección "Qué hace falta", en prosa. Decirle cómo titularla no
+    // basta: hay que aceptar lo que escribe de verdad.
+    const carpeta = path.join(empresa, '01-TOOLS', 'ERP');
+    fs.mkdirSync(carpeta, { recursive: true });
+    fs.writeFileSync(path.join(carpeta, '.env.example'), 'ERP_URL=\nERP_DB=\nERP_API_KEY=\n');
+    fs.writeFileSync(path.join(carpeta, 'README.md'), `# Nuestro ERP
+
+## Qué hace falta
+
+Tres datos, que se piden una sola vez: la dirección de vuestro ERP, el nombre de la base de datos y
+una clave de acceso.
+
+La clave se genera dentro del ERP, en Preferencias y luego Seguridad de la cuenta. No es la
+contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuenta.
+
+## Scripts
+
+| Script | Qué hace | Ejemplo |
+|---|---|---|
+| \`listar_clientes.sh\` | Lista los clientes dados de alta | \`./listar_clientes.sh\` |
+`);
+    fs.writeFileSync(path.join(carpeta, 'listar_clientes.sh'), '#!/usr/bin/env bash\necho ok\n', { mode: 0o755 });
+
+    const { proveedor, claves } = conexiones.claves('ERP');
+    assert.equal(proveedor.pasos.length, 2, 'los párrafos de esa sección sirven de guía');
+    assert.match(proveedor.pasos[0], /^Tres datos/);
+    assert.equal(claves.find((c) => c.clave === 'ERP_DB').etiqueta, 'Base de datos', 'y no "Db"');
+
+    fs.rmSync(carpeta, { recursive: true, force: true });
+    return `${proveedor.pasos.length} párrafos como guía`;
+  });
+
   await comprobar('cada clave dice de dónde se saca', () => {
     const { claves } = conexiones.claves('HOLDED');
     const api = claves.find((c) => c.clave === 'HOLDED_API_KEY');
