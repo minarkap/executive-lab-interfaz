@@ -83,7 +83,7 @@ const olvidar = () => { ultimo = { cuando: 0, estado: null }; };
 
 async function calcular() {
   if (!proyecto.raiz()) {
-    return { listo: false, donde: 'No encuentro tu empresa', hiciste: null, aviso: 'No hay ninguna carpeta de trabajo abierta.' };
+    return { listo: false, sinCarpeta: true, donde: 'Elige con qué quieres trabajar', hiciste: null };
   }
 
   // Carpeta sin arnés: no está rota, es que aún no se ha montado.

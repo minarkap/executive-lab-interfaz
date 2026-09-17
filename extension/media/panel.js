@@ -10,6 +10,7 @@ let estado = null;
 let accionesDescubiertas = [];
 let modo = 'sencillo';
 let marcaPuesta = true;
+let comoSeLlama = 'tu trabajo';
 let aviso = null;
 
 const pedir = (tipo, extra = {}) => vscode.postMessage({ tipo, ...extra });
@@ -140,12 +141,27 @@ function pantallaSinArnes() {
       <p class="donde">${texto(estado.donde)}</p>
       <p class="hiciste">${texto(estado.aviso)}</p>
     </div>
-    ${boton({ etiqueta: 'Empezar una empresa aquí', icono: '✳', principal: true, accion: { tipo: 'arrancar' } })}
+    ${boton({ etiqueta: 'Preparar esta carpeta', icono: '✳', principal: true, accion: { tipo: 'arrancar' } })}
+    ${boton({ etiqueta: 'Elegir otra carpeta', icono: '📂', discreto: true, accion: { tipo: 'elegirCarpeta' } })}
+  `;
+}
+
+// Sin carpeta abierta no hay nada que enseñar salvo la puerta de entrada.
+function pantallaSinCarpeta() {
+  return `
+    ${bloqueAviso()}
+    <div class="brujula">
+      <h2>Por dónde empezamos</h2>
+      <p class="donde">Elige con qué quieres trabajar</p>
+      <p class="hiciste">Una carpeta cualquiera: la contabilidad, el personal, un proyecto. Si está vacía, la preparo.</p>
+    </div>
+    ${boton({ etiqueta: 'Elegir una carpeta', icono: '📂', principal: true, accion: { tipo: 'elegirCarpeta' } })}
   `;
 }
 
 function pantallaPrincipal() {
   if (!estado) return pantallaEsperando();
+  if (estado.sinCarpeta) return pantallaSinCarpeta();
   if (estado.sinArnes) return pantallaSinArnes();
 
   const detalle = [];
@@ -179,13 +195,14 @@ function pantallaPrincipal() {
     ${documentos}
     ${descubiertos ? `<h2>Qué quieres hacer</h2>${descubiertos}<hr class="separador">` : ''}
 
-    ${boton({ etiqueta: 'Lo que sabe de tu empresa', icono: '📚', accion: { tipo: 'verCerebro' } })}
+    ${boton({ etiqueta: `Lo que sabe de ${comoSeLlama}`, icono: '📚', accion: { tipo: 'verCerebro' } })}
     ${boton({ etiqueta: 'Mis conexiones', icono: '🔌', accion: { tipo: 'verConexiones' } })}
     ${boton({ etiqueta: 'Guardar copia de seguridad', icono: '💾', accion: { tipo: 'guardarCopia' } })}
     ${boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', accion: { tipo: 'verCopias' } })}
     ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
 
     <hr class="separador">
+    ${boton({ etiqueta: 'Cambiar de carpeta', icono: '📂', discreto: true, accion: { tipo: 'elegirCarpeta' } })}
     ${marcaPuesta ? '' : boton({
       etiqueta: 'Ponerle la cara de tu empresa',
       icono: '🎨',
@@ -292,7 +309,7 @@ function pantallaCerebro({ temas, aprendido, huecos, esperando, yaLeidos, hayPan
           <p class="pista">${texto(plural(t.articulos.length, '1 cosa que sabe', '{n} cosas que sabe'))}</p>
           ${boton({ etiqueta: 'Verlo', icono: '▸', accion: { tipo: 'verTema', tema: t.id } })}
         </div>`).join('')
-    : nada('Todavía no sabe nada de tu empresa. Dale documentos o cuéntaselo en la conversación.');
+    : nada('Todavía no sabe nada. Dale documentos o cuéntaselo en la conversación.');
 
   const ultimo = aprendido.length
     ? `<hr class="separador"><h2>Qué ha aprendido últimamente</h2><ul class="lista">` +
@@ -315,7 +332,7 @@ function pantallaCerebro({ temas, aprendido, huecos, esperando, yaLeidos, hayPan
 
   return `
     ${bloqueAviso(avisoLocal)}
-    <p class="titulo">Lo que sabe de tu empresa</p>
+    <p class="titulo">Lo que sabe de ${texto(comoSeLlama)}</p>
     ${porTemas}
 
     <hr class="separador">
@@ -417,6 +434,7 @@ window.addEventListener('message', ({ data }) => {
       accionesDescubiertas = data.acciones || [];
       modo = data.modo || 'sencillo';
       marcaPuesta = data.marcaPuesta !== false;
+      comoSeLlama = data.comoSeLlama || 'tu trabajo';
       return pintar(pantallaPrincipal());
     case 'conexiones': return pintar(pantallaConexiones(data));
     case 'conexion': return pintar(pantallaConexion(data));

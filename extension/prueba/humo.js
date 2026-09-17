@@ -299,6 +299,28 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'portapapeles + foco';
   });
 
+  await comprobar('esto se llama como lo llamó el alumno, no "empresa"', () => {
+    const identidad = cargar('identidad');
+    const { arnes, empresa, puesto } = identidad.leer();
+    assert.equal(arnes, 'Facturación', 'un arnés puede ser contabilidad, personal o un proyecto');
+    assert.equal(empresa, 'Ferretería Soler');
+    assert.equal(puesto, true);
+    assert.equal(identidad.titulo(), 'Facturación · Ferretería Soler');
+    assert.equal(identidad.deQuien(), 'Facturación');
+    return identidad.titulo();
+  });
+
+  await comprobar('sin nombre puesto, se tira del de la carpeta', () => {
+    const identidad = cargar('identidad');
+    const suelta = fs.mkdtempSync(path.join(os.tmpdir(), 'recursos-humanos-'));
+    vscode.guion.raiz = suelta;
+    const { arnes, puesto } = identidad.leer();
+    assert.ok(arnes.startsWith('Recursos humanos'), `ha salido "${arnes}"`);
+    assert.equal(puesto, false, 'pero se sabe que no lo puso nadie');
+    vscode.guion.raiz = empresa;
+    return arnes;
+  });
+
   // ------------------------------------------- la marca de la empresa
   const marca = cargar('marca');
 
@@ -370,17 +392,44 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     async update(k, v) { this.datos.set(k, v); },
   };
 
-  await comprobar('el disfraz se pone en la carpeta, no en todo VS Code', async () => {
+  await comprobar('una carpeta que no es una empresa no se toca', async () => {
+    const otroProyecto = fs.mkdtempSync(path.join(os.tmpdir(), 'otro-proyecto-'));
+    fs.writeFileSync(path.join(otroProyecto, 'package.json'), '{}');
+    vscode.guion.raiz = otroProyecto;
+    vscode.registrado.ajustes.global = {};
+    vscode.registrado.ajustes.workspace = {};
+
+    const { aplicadas } = await disfraz.aplicar(contexto, vscode.window.createOutputChannel());
+    assert.equal(aplicadas, 0, 'el editor de quien abre otra cosa se queda como lo tiene');
+    assert.equal(disfraz.quiereVistaSencilla(), false, 'y su interruptor sigue apagado');
+    assert.equal(Object.keys(vscode.registrado.ajustes.workspace).length, 0);
+    assert.equal(Object.keys(vscode.registrado.ajustes.global).length, 0);
+    assert.equal(disfraz.esUnaEmpresa(), false);
+
+    vscode.guion.raiz = empresa;
+    return 'sin tocar';
+  });
+
+  await comprobar('con el arnés montado, tampoco: hasta que no se enciende', async () => {
+    const salida = vscode.window.createOutputChannel();
+    vscode.registrado.ajustes.workspace = {};
+    const solo = await disfraz.aplicar(contexto, salida);
+    assert.equal(solo.aplicadas, 0, 'ni un arnés se disfraza solo: lo decides tú, carpeta a carpeta');
+    return 'apagado por defecto';
+  });
+
+  await comprobar('encendido el interruptor, se disfraza solo esa carpeta', async () => {
     const salida = vscode.window.createOutputChannel();
     // Las claves de Claude no existen hasta que su extensión se activa.
     vscode.guion.rechazaAjuste = (clave) => clave.startsWith('claudeCode.');
-    const { aplicadas, pendientes } = await disfraz.aplicar(contexto, salida);
+    await disfraz.volverAModoSencillo(contexto, salida);
+    const { aplicadas, pendientes } = { aplicadas: Object.keys(vscode.registrado.ajustes.workspace).length, pendientes: [] };
 
     const { global, workspace } = vscode.registrado.ajustes;
     assert.ok(aplicadas > 20, `solo ha escrito ${aplicadas}`);
+    assert.equal(workspace[disfraz.CLAVE_INTERRUPTOR], true, 'el interruptor queda encendido en la carpeta');
     assert.equal(Object.keys(global).length, 0, 'ni una sola clave en los ajustes de usuario');
     assert.ok(workspace['workbench.colorCustomizations'], 'los colores de la marca entran en la carpeta');
-    assert.ok(pendientes.every((k) => k.startsWith('claudeCode.')));
 
     // Lo de ámbito de programa lo pone el instalador, no la extensión: en la
     // máquina de quien desarrolla le cambiaría todas las ventanas.
@@ -392,21 +441,24 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
 
   await comprobar('la salida de emergencia lo quita de los dos sitios', async () => {
     const salida = vscode.window.createOutputChannel();
-    // Como si alguien lo hubiera instalado en el editor donde trabaja.
+    // Como si alguien lo hubiera instalado en el editor donde trabaja: el
+    // disfraz puesto en la carpeta y algo suelto en los ajustes de usuario.
+    await disfraz.volverAModoSencillo(contexto, salida);
     vscode.registrado.ajustes.global['workbench.activityBar.location'] = 'hidden';
     vscode.registrado.ajustes.global['window.zoomLevel'] = 1;
 
     const { quitadas } = await disfraz.quitar(contexto, salida);
     assert.equal(Object.keys(vscode.registrado.ajustes.global).length, 0, 'fuera de los ajustes de usuario');
     assert.equal(Object.keys(vscode.registrado.ajustes.workspace).length, 0, 'y de los de la carpeta');
+    assert.equal(disfraz.quiereVistaSencilla(), false, 'y deja el interruptor apagado, o volvería en el siguiente arranque');
     assert.ok(quitadas > 20, `solo ha quitado ${quitadas}`);
     return `${quitadas} ajustes fuera`;
   });
 
   await comprobar('el interruptor cambia solo esta ventana', async () => {
     const salida = vscode.window.createOutputChannel();
-    // Se parte de limpio: la comprobación anterior lo quitó todo.
-    await disfraz.aplicar(contexto, salida, { forzar: true });
+    await disfraz.volverAModoSencillo(contexto, salida);
+    assert.equal(disfraz.modoDeEstaVentana(), 'sencillo');
 
     const hecho = await disfraz.verEditorCompleto(contexto, salida);
     assert.equal(hecho.ok, true, hecho.mensaje);
@@ -426,7 +478,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       'el valor de fábrica lo dice VS Code, no lo inventamos');
     assert.ok(!('security.workspace.trust.enabled' in workspace), 'lo de ámbito de programa no se intenta por ventana');
 
-    await disfraz.volverAModoSencillo(salida);
+    assert.equal(disfraz.modoDeEstaVentana(), 'avanzado', 'apagado el interruptor, se ve el editor entero');
     return `${disfraz.CLAVES_VISIBLES.length} claves visibles`;
   });
 

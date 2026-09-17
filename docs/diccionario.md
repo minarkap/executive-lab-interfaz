@@ -18,7 +18,7 @@ jerga por goteo.
 | `rsc doctor` / `rsc repair` | Revisar y arreglar |
 | `rsc add <skill>` | Enseñarle a hacer algo nuevo |
 | skill | Habilidad |
-| `02-DOCS/wiki/` | Lo que sabe de tu empresa |
+| `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |
 | `01-TOOLS/` | Conexiones |
 | `rsc memory resume` | Seguir donde lo dejé |
 | sesión / contexto / conversación del agente | Conversación |
@@ -30,7 +30,7 @@ jerga por goteo.
 | una carpeta de `01-TOOLS/` | Una conexión |
 | los scripts de una herramienta | Qué puedes hacer con esto |
 | `.claude/commands/` con `boton:` | Qué quieres hacer |
-| `02-DOCS/wiki/` | Lo que sabe de tu empresa |
+| `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |
 | un tema de la wiki | Un tema |
 | un artículo de la wiki | Una cosa que sabe |
 | `02-DOCS/wiki/log.md` | Qué ha aprendido últimamente |
@@ -38,7 +38,8 @@ jerga por goteo.
 | `02-DOCS/inbox/` | Darle documentos |
 | `02-DOCS/inbox/_processed/` | Documentos que ya ha leído |
 | `02-DOCS/wiki/dashboard.html` | El panel completo |
-| `rsc onboard` en una carpeta nueva | Empezar una empresa aquí |
+| `rsc onboard` en una carpeta nueva | Preparar esta carpeta |
+| abrir otra carpeta | Elegir una carpeta · Cambiar de carpeta |
 | quitar el disfraz en esta ventana | Ver el editor completo |
 | poner el disfraz en esta ventana | Volver al modo sencillo |
 | `02-DOCS/wiki/brand/marca.md` | La marca de tu empresa |
@@ -81,3 +82,17 @@ de lo que el arnés tenga montado en esa empresa: sus conexiones, sus botones, s
 No hay una lista de herramientas ni de tareas en el código. Una gestoría verá facturación y bancos;
 una empresa de contratos verá plantillas y firmas. Si alguna vez hace falta escribir en la interfaz
 el nombre de una herramienta concreta, es que algo se ha hecho mal.
+
+## No se llama "empresa"
+
+Un arnés no es una empresa: puede ser la contabilidad, el personal, el marketing o un proyecto
+suelto, y **una empresa puede tener cuatro**. Por eso el alumno pone dos nombres cuando dice para qué
+va a ser: cómo se llama **esto** (Contabilidad) y cómo se llama **su empresa** (Nexus Consulting).
+
+Los dos viven en el frontmatter de `02-DOCS/wiki/harness/user-profile.md`, junto a los diales, y de
+ahí salen el rótulo de la ventana —«Contabilidad · Nexus Consulting»— y los textos del panel —«Lo que
+sabe de Contabilidad»—.
+
+Si no los ha puesto todavía, se tira del nombre de la carpeta. Si tampoco, la interfaz funciona igual
+sin nombrar nada: es preferible a llamarlo «tu empresa» cuando resulta que es el departamento de
+marketing.

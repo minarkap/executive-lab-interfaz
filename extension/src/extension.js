@@ -10,8 +10,11 @@
 
 const vscode = require('vscode');
 const crypto = require('node:crypto');
+const path = require('node:path');
 
+const proyecto = require('./proyecto');
 const brujula = require('./brujula');
+const identidad = require('./identidad');
 const puente = require('./puente');
 const acciones = require('./acciones');
 const conexiones = require('./conexiones');
@@ -130,6 +133,8 @@ ${cabecera}
       // Si la empresa aún no tiene cara puesta, el panel la ofrece en vez de
       // esperar a que el alumno caiga en contarlo.
       marcaPuesta: Boolean(suya && suya.tokens),
+      // Cómo llama el alumno a esto: sale en "lo que sabe de…".
+      comoSeLlama: identidad.deQuien(),
     });
   }
 
@@ -162,6 +167,7 @@ ${cabecera}
       algoVaMal: () => this.algoVaMal(),
       arreglar: () => this.arreglar(),
       arrancar: () => this.arrancar(),
+      elegirCarpeta: () => this.elegirCarpeta(),
       verEditorCompleto: () => this.verEditorCompleto(),
       modoSencillo: () => this.modoSencillo(),
     };
@@ -318,12 +324,40 @@ ${cabecera}
     if (hecho.cancelado) return this.refrescar();
     if (!hecho.ok) return this.enviar({ tipo: 'aviso', texto: hecho.mensaje, malo: true });
 
+    // Se pregunta, no se impone: puede ser la carpeta de un alumno o la de
+    // alguien que solo está mirando cómo funciona esto.
+    const sencilla = await vscode.window.showInformationMessage(
+      `${hecho.mensaje} ¿Dejo esta ventana en vista sencilla, sin barras ni ficheros a la vista?`,
+      'Sí, más sencillo',
+      'No, déjala como está',
+    );
+    if (sencilla === 'Sí, más sencillo') await this.modoSencillo();
     await this.refrescar(true);
     const conWeb = hecho.web
       ? ` La web de mi empresa es ${hecho.web}: míralas y quédate con sus colores y su logotipo antes de nada.`
       : '';
-    await puente.enviar(`Acabo de montar mi empresa aquí. Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb} Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
+    const deQuien = hecho.nombres.empresa ? ` Es para ${hecho.nombres.empresa}.` : '';
+    await puente.enviar(`Acabo de montar aquí un arnés que he llamado "${hecho.nombres.arnes}".${deQuien} Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb} Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
     return undefined;
+  }
+
+  // Elegir sobre qué carpeta se trabaja. Hace falta al arrancar —quien abre
+  // esto sin nada abierto no tiene por dónde empezar— y después, para cambiar
+  // de sitio sin tener que saber dónde está el menú de VS Code.
+  async elegirCarpeta() {
+    const elegida = await vscode.window.showOpenDialog({
+      canSelectFolders: true,
+      canSelectFiles: false,
+      canSelectMany: false,
+      openLabel: 'Trabajar aquí',
+      title: 'Elige la carpeta con la que quieres trabajar',
+      defaultUri: proyecto.raiz() ? vscode.Uri.file(path.dirname(proyecto.raiz())) : undefined,
+    });
+    if (!elegida || !elegida.length) return;
+
+    // Se abre en esta misma ventana: abrir otra deja al alumno con dos y sin
+    // saber cuál es la suya.
+    await vscode.commands.executeCommand('vscode.openFolder', elegida[0], { forceNewWindow: false });
   }
 
   // ------------------------------------------------------ interruptor
@@ -338,10 +372,21 @@ ${cabecera}
   }
 
   async modoSencillo() {
-    const { mensaje } = await disfraz.volverAModoSencillo(this.salida);
+    const { mensaje } = await disfraz.volverAModoSencillo(this.contexto, this.salida);
     this.enviar({ tipo: 'aviso', texto: mensaje });
     await this.refrescar(true);
     await disfraz.proponerReabrir('Para que se aplique, hay que cerrar y abrir esta ventana.');
+  }
+}
+
+// El disfraz base se pone en el primer arranque. Las claves de Claude solo
+// existen cuando su extensión ya está activa, así que lo que no entre se
+// reintenta una vez.
+async function vestir(contexto, salida) {
+  const { primeraVez, aplicadas, pendientes } = await disfraz.aplicar(contexto, salida);
+  if (pendientes.length) setTimeout(() => disfraz.aplicar(contexto, salida).catch(() => {}), 8000);
+  if (primeraVez && aplicadas) {
+    await disfraz.proponerReabrir('Ya está todo preparado. Para que se vea bien, hay que cerrar y abrir de nuevo.');
   }
 }
 
@@ -380,17 +425,6 @@ function vigilarElArnes(contexto, panel) {
   contexto.subscriptions.push(vigia, { dispose: () => clearTimeout(reloj) });
 }
 
-// El disfraz base se pone en el primer arranque. Las claves de Claude solo
-// existen cuando su extensión ya está activa, así que lo que no entre se
-// reintenta una vez.
-async function vestir(contexto, salida) {
-  const { primeraVez, aplicadas, pendientes } = await disfraz.aplicar(contexto, salida);
-  if (pendientes.length) setTimeout(() => disfraz.aplicar(contexto, salida).catch(() => {}), 8000);
-  if (primeraVez && aplicadas) {
-    await disfraz.proponerReabrir('Ya está todo preparado. Para que se vea bien, hay que cerrar y abrir de nuevo.');
-  }
-}
-
 // En modo avanzado nuestra barra puede no estar a la vista, así que la vuelta
 // al modo sencillo vive en la barra de estado, que sí se ve.
 function vigilarElModo(contexto) {
@@ -426,6 +460,7 @@ function activate(contexto) {
     comando('executiveLab.documentos', () => panel.anadirDocumentos()),
     comando('executiveLab.algoVaMal', () => panel.algoVaMal()),
     comando('executiveLab.empezarEmpresa', () => panel.arrancar()),
+    comando('executiveLab.elegirCarpeta', () => panel.elegirCarpeta()),
     comando('executiveLab.seguir', () => panel.pedir('Recuérdame en qué estábamos y sigamos por donde lo dejamos.')),
     comando('executiveLab.empezar', () => panel.pedir('Quiero empezar algo nuevo en mi empresa. Pregúntame qué necesito.')),
     comando('executiveLab.diagnosticoPuente', () => puente.diagnostico(salida)),

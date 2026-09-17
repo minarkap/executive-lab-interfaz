@@ -20,6 +20,8 @@
 const vscode = require('vscode');
 const fs = require('node:fs');
 const path = require('node:path');
+const proyecto = require('./proyecto');
+const identidad = require('./identidad');
 
 const CLAVE_ESTADO = 'disfraz';
 const VERSION = 2;
@@ -93,20 +95,28 @@ async function aplicar(contexto, salida, { forzar = false } = {}) {
   // escribirlo, y se deja estar.
   if (!hayCarpeta()) return { primeraVez: false, aplicadas: 0, pendientes: [] };
 
+  // Y solo si esta carpeta lo pide. Sin el interruptor encendido no se toca
+  // nada: es el editor de quien lo abre, no el nuestro.
+  if (!quiereVistaSencilla() && !forzar) return { primeraVez: false, aplicadas: 0, pendientes: [] };
+
   const configuracion = vscode.workspace.getConfiguration();
   const pendientes = [];
   let cambiadas = 0;
   for (const clave of claves) {
     if (SOLO_DEL_INSTALADOR.includes(clave)) continue;
 
+    // El rótulo de la ventana lo ponen los nombres que dio el alumno, no el
+    // genérico de la plantilla.
+    const valor = clave === 'window.title' ? identidad.titulo() : todos[clave];
+
     // Si ya está escrito —por el instalador o por una sesión anterior— no hay
     // nada que cambiar ni que reabrir.
     const visto = configuracion.inspect(clave);
     const puesto = visto?.workspaceValue !== undefined ? visto.workspaceValue : visto?.globalValue;
-    if (JSON.stringify(puesto) === JSON.stringify(todos[clave])) continue;
+    if (JSON.stringify(puesto) === JSON.stringify(valor)) continue;
 
     try {
-      await configuracion.update(clave, todos[clave], vscode.ConfigurationTarget.Workspace);
+      await configuracion.update(clave, valor, vscode.ConfigurationTarget.Workspace);
       cambiadas += 1;
     } catch (error) {
       pendientes.push(clave);
@@ -125,7 +135,9 @@ async function quitar(contexto, salida) {
   const configuracion = vscode.workspace.getConfiguration();
   let quitadas = 0;
 
-  for (const clave of Object.keys(ajustes(contexto))) {
+  // El interruptor va el primero: si se queda encendido, el siguiente arranque
+  // vuelve a poner todo lo que acabamos de quitar.
+  for (const clave of [CLAVE_INTERRUPTOR, ...Object.keys(ajustes(contexto))]) {
     for (const ambito of [vscode.ConfigurationTarget.Workspace, vscode.ConfigurationTarget.Global]) {
       try {
         const visto = configuracion.inspect(clave);
@@ -152,16 +164,24 @@ function hayCarpeta() {
   return Boolean(carpetas && carpetas.length);
 }
 
-// Esta ventana está en modo avanzado si alguna clave visible lleva una
-// anulación propia de la carpeta.
-function modoDeEstaVentana() {
-  const configuracion = vscode.workspace.getConfiguration();
-  const anulada = CLAVES_VISIBLES.some((clave) => {
-    const info = configuracion.inspect(clave);
-    return info?.workspaceValue !== undefined || info?.workspaceFolderValue !== undefined;
-  });
-  return anulada ? 'avanzado' : 'sencillo';
-}
+// Una carpeta es una empresa cuando tiene la declaración del arnés. Es lo
+// mismo que mira la brújula para saber si hay algo montado.
+const esUnaEmpresa = () => proyecto.existe('.rsc.json');
+
+// EL INTERRUPTOR. Un ajuste de la carpeta, `executiveLab.vistaSencilla`.
+//
+// Nada se disfraza solo, ni siquiera un arnés: se decide carpeta a carpeta.
+// Quien tenga la extensión puesta y abra cualquier otra cosa —o un arnés que
+// quiera ver entero— se encuentra su editor tal y como lo tiene.
+//
+// Lo enciende el instalador en la carpeta que crea (ahí el alumno no tiene
+// que saber que existe), o el propio alumno desde la barra.
+const CLAVE_INTERRUPTOR = 'executiveLab.vistaSencilla';
+
+const quiereVistaSencilla = () => vscode.workspace.getConfiguration().get(CLAVE_INTERRUPTOR) === true;
+
+// En qué está esta ventana, según el interruptor de la carpeta.
+const modoDeEstaVentana = () => (quiereVistaSencilla() ? 'sencillo' : 'avanzado');
 
 // Las listas de exclusión no se sustituyen entre ámbitos: VS Code fusiona el
 // valor de la carpeta con el del usuario. Escribir el de fábrica (vacío) no
@@ -176,13 +196,14 @@ function valorParaDestapar(contexto, clave, configuracion) {
   return Object.fromEntries(Object.keys(base).map((patron) => [patron, false]));
 }
 
-// Devuelve a fábrica lo que se ve, solo en esta ventana.
+// Apaga el interruptor de ESTA carpeta y devuelve a fábrica lo que se ve.
 async function verEditorCompleto(contexto, salida) {
   if (!hayCarpeta()) {
     return { ok: false, mensaje: 'Primero abre tu empresa; sin carpeta no puedo cambiar solo esta ventana.' };
   }
 
   const configuracion = vscode.workspace.getConfiguration();
+  await configuracion.update(CLAVE_INTERRUPTOR, false, vscode.ConfigurationTarget.Workspace);
   const rechazadas = [];
   for (const clave of CLAVES_VISIBLES) {
     // El valor de fábrica lo dice VS Code; no lo adivinamos ni lo copiamos.
@@ -200,8 +221,12 @@ async function verEditorCompleto(contexto, salida) {
   return { ok: true, rechazadas, mensaje: 'Ya ves el editor completo en esta ventana. Las demás siguen igual.' };
 }
 
-// Borra esas anulaciones: la ventana vuelve a la base.
-async function volverAModoSencillo(salida) {
+// Enciende el interruptor de ESTA carpeta y pone el disfraz.
+async function volverAModoSencillo(contexto, salida) {
+  if (!hayCarpeta()) {
+    return { ok: false, mensaje: 'Primero abre tu empresa; sin carpeta no puedo cambiar solo esta ventana.' };
+  }
+
   const configuracion = vscode.workspace.getConfiguration();
   for (const clave of CLAVES_VISIBLES) {
     try {
@@ -210,7 +235,9 @@ async function volverAModoSencillo(salida) {
       salida.appendLine(`[disfraz] no he podido devolver ${clave}: ${error.message}`);
     }
   }
-  return { ok: true, mensaje: 'Vuelves al modo sencillo en esta ventana.' };
+  await configuracion.update(CLAVE_INTERRUPTOR, true, vscode.ConfigurationTarget.Workspace);
+  await aplicar(contexto, salida, { forzar: true });
+  return { ok: true, mensaje: 'Esta ventana ya está en vista sencilla. Las demás siguen igual.' };
 }
 
 // Algunos ajustes (menú, centro de comandos) solo se ven tras reabrir.
@@ -221,6 +248,9 @@ async function proponerReabrir(mensaje) {
 
 module.exports = {
   aplicar,
+  esUnaEmpresa,
+  quiereVistaSencilla,
+  CLAVE_INTERRUPTOR,
   quitar,
   verEditorCompleto,
   volverAModoSencillo,

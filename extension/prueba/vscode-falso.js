@@ -88,6 +88,9 @@ module.exports = {
       };
     },
     getConfiguration: () => ({
+      get: (clave) => (clave in registrado.ajustes.workspace
+        ? registrado.ajustes.workspace[clave]
+        : registrado.ajustes.global[clave]),
       inspect: (clave) => ({
         globalValue: registrado.ajustes.global[clave],
         workspaceValue: registrado.ajustes.workspace[clave],

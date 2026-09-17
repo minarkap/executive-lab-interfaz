@@ -18,6 +18,7 @@ const proyecto = require('./proyecto');
 const procesos = require('./procesos');
 const rsc = require('./rsc');
 const guardar = require('./guardar');
+const identidad = require('./identidad');
 
 const OBJETIVOS = [
   'Poner orden en mis facturas',
@@ -46,6 +47,44 @@ async function preguntarObjetivo() {
     ignoreFocusOut: true,
   });
   return escrito && escrito.trim() ? escrito.trim() : null;
+}
+
+// Cómo se llama esto. Dos nombres, y los pone el alumno: para qué es esta
+// carpeta, y de quién es. Un arnés no es "una empresa" — una empresa puede
+// tener cuatro, uno para contabilidad, otro para el personal, otro para
+// marketing.
+async function preguntarNombres(objetivo) {
+  const arnes = await vscode.window.showInputBox({
+    title: 'Ponle nombre',
+    prompt: '¿Cómo llamamos a esto? Es el nombre que verás arriba cada vez que lo abras.',
+    placeHolder: 'Contabilidad · Personal · Marketing · Clientes · el proyecto que sea',
+    value: sugerirNombre(objetivo),
+    ignoreFocusOut: true,
+  });
+  if (!arnes || !arnes.trim()) return null;
+
+  const empresa = await vscode.window.showInputBox({
+    title: 'Ponle nombre',
+    prompt: '¿Y cómo se llama tu empresa? Para saber de quién es todo esto.',
+    placeHolder: 'Nexus Consulting — o déjalo en blanco',
+    ignoreFocusOut: true,
+  });
+
+  return { arnes: arnes.trim(), empresa: (empresa || '').trim() || null };
+}
+
+// Del objetivo elegido sale un nombre razonable, para no dejar la caja vacía.
+function sugerirNombre(objetivo) {
+  const porObjetivo = [
+    [/factur|cobr/i, 'Facturación'],
+    [/client/i, 'Clientes'],
+    [/document/i, 'Documentos'],
+    [/vender|venta|seguimiento/i, 'Ventas'],
+    [/repetitiv|tarea/i, 'Operativa'],
+    [/contrat|papeleo|gente|personal/i, 'Personal'],
+  ];
+  const [, nombre] = porObjetivo.find(([patron]) => patron.test(objetivo)) || [];
+  return nombre || '';
 }
 
 // La web de la empresa. Es opcional y se puede dejar en blanco: de ella salen
@@ -104,6 +143,29 @@ async function ponerLosRailes(contexto) {
   return codigo === 0;
 }
 
+// Los nombres van al frontmatter del perfil del arnés, junto a los diales:
+// es el fichero que RSC ya usa para el perfil y el que leen `orient` y la
+// barra lateral.
+function ponerLosNombres({ arnes, empresa }) {
+  const perfil = proyecto.ruta(...identidad.PERFIL);
+  if (!perfil || !fs.existsSync(perfil)) return false;
+
+  let texto = fs.readFileSync(perfil, 'utf8');
+  const bloque = texto.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!bloque) return false;
+
+  let cabecera = bloque[1];
+  for (const [clave, valor] of [['arnes', arnes], ['empresa', empresa]]) {
+    if (!valor) continue;
+    const linea = new RegExp(`^${clave}:.*$`, 'm');
+    const puesta = `${clave}: ${valor}`;
+    cabecera = linea.test(cabecera) ? cabecera.replace(linea, puesta) : `${cabecera}\n${puesta}`;
+  }
+
+  fs.writeFileSync(perfil, texto.replace(bloque[0], `---\n${cabecera}\n---`));
+  return true;
+}
+
 // Hace falta para que "Guardar copia de seguridad" tenga dónde guardar, y para
 // que la memoria del arnés se ancle a una rama.
 async function prepararHistorial() {
@@ -122,6 +184,9 @@ async function arrancar(contexto, salida) {
 
   const objetivo = await preguntarObjetivo();
   if (!objetivo) return { ok: false, cancelado: true };
+
+  const nombres = await preguntarNombres(objetivo);
+  if (!nombres) return { ok: false, cancelado: true };
 
   const web = await preguntarWeb();
 
@@ -149,10 +214,12 @@ async function arrancar(contexto, salida) {
       progreso.report({ message: 'poniendo los raíles…' });
       if (!(await ponerLosRailes(contexto))) salida.appendLine('[arrancar] no he podido poner los raíles');
 
+      ponerLosNombres(nombres);
+
       progreso.report({ message: 'guardando el punto de partida…' });
       await guardar.guardar(`Punto de partida — ${guardar.fechaLarga()}`);
 
-      return { ok: true, objetivo, web, mensaje: 'Tu empresa ya está lista.' };
+      return { ok: true, objetivo, web, nombres, mensaje: `${nombres.arnes} ya está listo.` };
     },
   );
 }

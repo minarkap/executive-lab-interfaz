@@ -145,7 +145,18 @@ Una fuente leída.
 ## [{YYYY-MM-DD}] ingest | {primary article title}
 `);
   escribir(raiz, '02-DOCS/wiki/gaps.md', '# Knowledge Gaps\n\n- Cómo se calculan los recargos por demora\n- Qué condiciones tiene el contrato marco con Talleres Ruiz\n- {Topic wanted but missing}\n');
-  escribirSiFalta(raiz, '02-DOCS/wiki/harness/user-profile.md', '---\ntechnical_level: non-technical\naccompaniment: L3\nlanguage: es\n---\n\n# User profile\n\nGoal: organizar mis facturas\n');
+  escribirSiFalta(raiz, '02-DOCS/wiki/harness/user-profile.md', `---
+technical_level: non-technical
+accompaniment: L3
+language: es
+arnes: Facturación
+empresa: Ferretería Soler
+---
+
+# User profile
+
+Goal: organizar mis facturas
+`);
 
   // --- documentos: uno esperando, uno ya leído ---
   escribir(raiz, '02-DOCS/inbox/README.md', '# Inbox\n\nSuelta aquí lo que quieras.\n');

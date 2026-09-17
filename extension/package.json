@@ -38,6 +38,10 @@
     },
     "commands": [
       {
+        "command": "executiveLab.elegirCarpeta",
+        "title": "Executive Lab: Elegir la carpeta con la que trabajar"
+      },
+      {
         "command": "executiveLab.seguir",
         "title": "Executive Lab: Seguir donde lo dejé"
       },
@@ -89,7 +93,18 @@
         "command": "executiveLab.quitarDeTodo",
         "title": "Executive Lab: Quitar el aspecto de todo VS Code"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Executive Lab",
+      "properties": {
+        "executiveLab.vistaSencilla": {
+          "type": "boolean",
+          "default": false,
+          "scope": "resource",
+          "description": "Esconde las barras, las pestañas y los ficheros de esta carpeta y la deja con el aspecto de Executive Lab. Se enciende y se apaga por carpeta: las demás ventanas no se enteran."
+        }
+      }
+    }
   },
   "scripts": {
     "empaquetar": "npx --yes @vscode/vsce package --out executive-lab.vsix --allow-missing-repository --skip-license",
