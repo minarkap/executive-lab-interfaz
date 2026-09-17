@@ -1,16 +1,16 @@
 {
   "name": "panel",
   "displayName": "Executive Lab",
-  "description": "La barra lateral de Executive Lab: la brújula y los seis botones.",
+  "description": "Convierte VS Code en una sola pantalla sencilla para trabajar con un arnés de IA, sin ver ficheros, rutas ni terminales.",
   "publisher": "executivelab",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.0",
   "license": "UNLICENSED",
   "engines": {
     "vscode": "^1.98.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Education"
   ],
   "main": "./src/extension.js",
   "activationEvents": [
@@ -120,5 +120,19 @@
       "description": "La barra lateral solo ejecuta cosas cuando el alumno pulsa un botón. El disfraz desactiva la confianza del workspace, así que esto solo importa en el primer arranque."
     },
     "virtualWorkspaces": false
-  }
+  },
+  "icon": "media/icono-marketplace.png",
+  "keywords": [
+    "executive lab",
+    "rsc",
+    "arnés",
+    "claude",
+    "codex",
+    "no-code"
+  ],
+  "galleryBanner": {
+    "color": "#f4eee6",
+    "theme": "light"
+  },
+  "qna": false
 }

@@ -123,6 +123,7 @@ async function calcular() {
   // desaparece en cuanto haya pasado algo.
   const quien = asistentes.elDeAhora();
   const sinEmpezar = !continuacion && !sabe && !conectados && !copias.length;
+  const conGit = await guardar.hayGit();
 
   return {
     listo: true,
@@ -131,6 +132,7 @@ async function calcular() {
     sabe,
     conectados,
     esperando,
+    faltaGit: !conGit,
     primerPaso: sinEmpezar ? {
       asistente: quien.nombre,
       instalado: asistentes.estaInstalado(quien),

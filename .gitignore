@@ -19,3 +19,7 @@ node_modules/
 
 # VS Code aislado para ver la demo sin tocar la configuración real
 .demo/
+
+# Lo que genera publicar.sh
+publicacion/
+extension/media/harness/

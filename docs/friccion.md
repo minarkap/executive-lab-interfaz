@@ -101,4 +101,9 @@ pequeño. Un *«Ayer dejaste X a medias»* arriba del todo valdría más.
 
 ## Si solo se pudiera hacer una cosa
 
-Firmar el código. Todo lo demás de esta lista afecta a alumnos que **ya han conseguido instalarlo**.
+**Distribuirlo como extensión y no como instalador** (decisión §20). Se lleva por delante los tres
+primeros puntos de esta lista de una vez: el peso, SmartScreen y los permisos. Y con ellos, la
+necesidad de firmar código, que era lo más caro.
+
+Lo que queda después: la cuenta de pago —que es tuya, no técnica— y el hueco de git en Windows, que
+solo cubre el instalador de escritorio.

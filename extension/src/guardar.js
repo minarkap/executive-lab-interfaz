@@ -23,6 +23,21 @@ function haceCuanto(iso) {
 
 const NO_PUEDO = 'No puedo guardar copias en este ordenador. Pulsa "Algo va mal".';
 
+// Sin git no hay copias de seguridad. Es el único hueco de instalar esto como
+// extensión: VS Code trae Node dentro, pero git no. macOS lo trae o lo ofrece;
+// en Windows hay que ponerlo.
+//
+// No se calla ni se rompe: se dice qué falta y quién lo arregla.
+let sabemosSiHayGit = null;
+
+async function hayGit() {
+  if (sabemosSiHayGit === null) {
+    const { codigo } = await git('--version');
+    sabemosSiHayGit = codigo === 0;
+  }
+  return sabemosSiHayGit;
+}
+
 // git se niega a guardar sin saber quién eres. En el ordenador de un alumno
 // nadie lo ha configurado nunca, así que se pone una identidad local y ya.
 async function asegurarIdentidad() {
@@ -33,6 +48,14 @@ async function asegurarIdentidad() {
 }
 
 async function guardar(mensaje) {
+  if (!(await hayGit())) {
+    return {
+      ok: false,
+      faltaGit: true,
+      mensaje: 'Para guardar copias hace falta una pieza que este ordenador no tiene. Pídesela a tu tutor: se llama git.',
+    };
+  }
+
   const cambios = await git('status', '--porcelain');
   if (cambios.codigo !== 0) return { ok: false, mensaje: NO_PUEDO };
   if (!cambios.salida.trim()) {
@@ -83,4 +106,4 @@ async function volverA(id) {
   return { ok: true, mensaje: 'Listo. Tu empresa ha vuelto a como estaba entonces.' };
 }
 
-module.exports = { guardar, copias, volverA, fechaLarga, haceCuanto };
+module.exports = { guardar, copias, volverA, fechaLarga, haceCuanto, hayGit };

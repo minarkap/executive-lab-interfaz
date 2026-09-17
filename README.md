@@ -23,6 +23,19 @@ Y el remate: la extensión `anthropic.claude-code` ya **es** una interfaz gráfi
 Code, gratis y mantenida por Anthropic, con **Focus view** — que esconde llamadas a herramientas,
 resultados y razonamiento. Es la vista para no técnicos, ya construida.
 
+## Cómo se reparte
+
+**El camino principal es la extensión.** VS Code lleva Node dentro y el arnés viaja dentro del
+`.vsix`, así que basta con instalarla: 6 MB, sin instalador de escritorio, sin SmartScreen, sin
+permisos de administrador y sin necesidad de firmar código.
+
+```bash
+./publicar.sh        # deja en publicacion/ el .vsix y las notas de la release
+```
+
+El **instalador de escritorio** sigue vivo como camino secundario, para quien llega con el portátil
+virgen: instala también VS Code, git y el asistente. Es lo único que cubre el hueco de git.
+
 ## Las cuatro piezas
 
 | Carpeta | Qué es |
