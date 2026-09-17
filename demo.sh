@@ -8,6 +8,8 @@
 #   ./demo.sh --con-datos    además siembra una herramienta, una wiki,
 #                            documentos y la marca de la empresa, para ver las
 #                            pantallas con contenido
+#   ./demo.sh --vacia        abre una carpeta vacía de verdad, para pulsar
+#                            "Empezar una empresa aquí" y ver el wizard
 #   ./demo.sh --reinstalar   vuelve a instalar las extensiones
 #   rm -rf .demo             para empezar de cero
 #
@@ -30,6 +32,30 @@ CODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
 # Unix, y macOS limita su ruta a ~104 caracteres. La del repo ya los agota.
 ln -sfn "$D/datos" /tmp/executive-lab-demo
 aislado=(--user-data-dir /tmp/executive-lab-demo --extensions-dir "$D/extensiones")
+
+# Como en la máquina de un alumno: el arnés ya instalado junto a la app, así el
+# wizard no depende de npx ni de la red. En macOS el Node y el git de esa carga
+# son de Windows, y entorno.js los descarta solos por sistema.
+if [ -d "$R/instalador/windows/carga/harness" ]; then
+  export EXECUTIVE_LAB_HOME="$R/instalador/windows/carga"
+fi
+
+# 0. Una carpeta vacía de verdad, para ver el wizard desde el principio.
+if [ "${1:-}" = "--vacia" ]; then
+  VACIA="$D/empresa-vacia"
+  rm -rf "$VACIA"
+  mkdir -p "$VACIA"
+  mkdir -p "$D/datos/User"
+  [ -f "$D/datos/User/settings.json" ] || cp "$R/extension/media/disfraz.json" "$D/datos/User/settings.json"
+  if [ ! -d "$D/extensiones" ] || ! ls -d "$D/extensiones"/anthropic.claude-code-* >/dev/null 2>&1; then
+    "$CODE" "${aislado[@]}" --install-extension anthropic.claude-code --install-extension "$R/extension/executive-lab.vsix" --force
+  fi
+  echo "Carpeta vacía: $VACIA"
+  nohup "/Applications/Visual Studio Code.app/Contents/MacOS/Code" "${aislado[@]}" "$VACIA" >/dev/null 2>&1 &
+  disown
+  echo 'Abierta. Pulsa "Empezar una empresa aquí" en la barra de la izquierda.'
+  exit 0
+fi
 
 # 1. La empresa de mentira, preparada como lo haría el instalador (sin editor).
 if [ ! -f "$D/empresa/.rsc.json" ]; then

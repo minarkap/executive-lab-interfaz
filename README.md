@@ -37,6 +37,11 @@ pantalla si no está ahí.
 
 ![Las cuatro pantallas del panel](docs/panel.png)
 
+Conectar una herramienta es un formulario guiado: los pasos que escribió el asistente al investigarla,
+y debajo de cada campo de dónde se saca esa clave en concreto.
+
+![La pantalla de una conexión, con su guía](docs/conexion.png)
+
 Y cuando el alumno cuenta cuál es la web de su empresa, el panel deja de llevar nuestra marca y lleva
 la suya — mismos botones, sus colores y su logotipo:
 

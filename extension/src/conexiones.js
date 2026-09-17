@@ -95,6 +95,56 @@ function leerEnv(fichero) {
   return valores;
 }
 
+// Qué es cada clave y dónde se saca, según la tabla de CREDENTIALS.md que
+// rellena el asistente:
+//
+//   | Variable | Tipo | Dónde se saca | Rotación |
+//   | `HOLDED_API_KEY` | secreta | Ajustes → Desarrolladores → API | ... |
+//
+// La tercera columna es lo que el alumno necesita leer justo encima del campo.
+function dondeSeSacaCadaClave(carpeta) {
+  const donde = new Map();
+  let texto;
+  try {
+    texto = fs.readFileSync(path.join(carpeta, 'CREDENTIALS.md'), 'utf8');
+  } catch {
+    return donde;
+  }
+
+  for (const linea of texto.split('\n')) {
+    const fila = linea.match(/^\|\s*`([A-Z][A-Z0-9_]*)`\s*\|[^|]*\|([^|]*)\|/);
+    if (!fila) continue;
+    const pista = fila[2].replace(/`/g, '').trim();
+    // Las plantillas de RSC traen filas de ejemplo con marcadores.
+    if (!pista || /[{<]/.test(pista)) continue;
+    donde.set(fila[1], pista);
+  }
+  return donde;
+}
+
+// Los pasos para conectarla, en cristiano. El asistente los escribe en una
+// sección "Cómo conectarla" del README de la herramienta cuando la investiga.
+// Los pasos técnicos de la plantilla de RSC (copiar el .env, dar permisos) no
+// se enseñan: eso lo hace el panel o el asistente, no el alumno.
+function comoSeConecta(carpeta) {
+  let texto;
+  try {
+    texto = fs.readFileSync(path.join(carpeta, 'README.md'), 'utf8');
+  } catch {
+    return [];
+  }
+
+  const seccion = texto.split(/^##\s+/m).find((t) => /^c[oó]mo\s+(se\s+)?conect/i.test(t));
+  if (!seccion) return [];
+
+  return seccion.split('\n')
+    .map((l) => l.match(/^\s*(?:\d+[.)]|[-*])\s+(.*\S)\s*$/))
+    .filter(Boolean)
+    .map((m) => m[1].replace(/`/g, '').trim())
+    .filter((paso) => paso && !/[{<]/.test(paso))
+    .slice(0, 8);
+}
+
 // Dónde se consigue la clave, si la carpeta lo dice. CREDENTIALS.md trae la
 // URL del panel del proveedor; .env.example, un "Generate at:".
 function dondeSeConsigue(carpeta) {
@@ -141,12 +191,21 @@ function claves(proveedorId) {
   const esperadas = leerEnv(path.join(carpeta, '.env.example'));
   const puestas = leerEnv(path.join(carpeta, '.env'));
   const nombres = [...new Set([...esperadas.keys(), ...puestas.keys()])];
+  const sacadaDe = dondeSeSacaCadaClave(carpeta);
 
   return {
-    proveedor: { id: proveedorId, etiqueta: etiquetaDeProveedor(proveedorId, carpeta), ayuda: dondeSeConsigue(carpeta) },
+    proveedor: {
+      id: proveedorId,
+      etiqueta: etiquetaDeProveedor(proveedorId, carpeta),
+      ayuda: dondeSeConsigue(carpeta),
+      pasos: comoSeConecta(carpeta),
+    },
     claves: nombres.map((clave) => ({
       clave,
       etiqueta: etiquetaDeClave(clave),
+      // De dónde se saca esta clave en concreto, tal y como lo escribió el
+      // asistente al investigar la herramienta.
+      donde: sacadaDe.get(clave) || null,
       secreta: ES_SECRETA.test(clave.toUpperCase()),
       puesta: Boolean(puestas.get(clave)),
       pista: enmascarar(puestas.get(clave)),

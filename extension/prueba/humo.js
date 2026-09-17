@@ -97,6 +97,23 @@ async function main() {
     return `${claves.length} claves`;
   });
 
+  await comprobar('la guía para conectarla sale de su propio README', () => {
+    const { proveedor } = conexiones.claves('HOLDED');
+    assert.equal(proveedor.pasos.length, 5, 'cinco pasos, y ninguno técnico');
+    assert.match(proveedor.pasos[0], /^Entra en app\.holded\.com/);
+    assert.ok(!proveedor.pasos.some((p) => /cp |chmod|\.env/.test(p)), 'los pasos de fichero no se enseñan');
+    return `${proveedor.pasos.length} pasos`;
+  });
+
+  await comprobar('cada clave dice de dónde se saca', () => {
+    const { claves } = conexiones.claves('HOLDED');
+    const api = claves.find((c) => c.clave === 'HOLDED_API_KEY');
+    assert.equal(api.donde, 'Configuración → Desarrolladores → API');
+    const entorno = claves.find((c) => c.clave === 'HOLDED_ENV');
+    assert.match(entorno.donde, /^Escribe test/);
+    return api.donde;
+  });
+
   await comprobar('el modo mixto decide bien qué se puede pulsar', () => {
     const cositas = conexiones.scripts('HOLDED');
     const listar = cositas.find((c) => c.fichero === 'listar_facturas.sh');

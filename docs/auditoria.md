@@ -235,3 +235,14 @@ de su carpeta se ignora; y un comando recién creado aparece en la barra sin cer
 
 **Sin probar:** que el asistente rellene bien el récord mirando una web de verdad. Es cosa de la
 habilidad, no del código, y se ve en la primera clase.
+
+### Addendum — conectar una herramienta, guiado
+
+Dos peticiones más de Jose sobre las herramientas: campos con etiqueta por variable, y guías de cómo
+conectarlas escritas por el arnés al investigarlas. Decisión §13.
+
+Nada de esto es código nuevo que adivine: sale de `README.md` y `CREDENTIALS.md` de cada herramienta,
+que es donde el protocolo de `harness` dice que viva, y la habilidad `executive-lab` le dice al
+asistente cómo escribirlo para quien lo va a leer. 35 comprobaciones; dos nuevas cubren que los pasos
+salen del README y que cada clave trae su pista, y que los pasos técnicos de la plantilla (copiar el
+`.env`, permisos) **no** se enseñan.

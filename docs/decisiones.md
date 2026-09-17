@@ -270,3 +270,31 @@ barra seguía igual hasta cerrar y abrir. Que la cosa que acabas de pedir aparez
 la sensación de que esto funciona.
 
 Un cambio de marca rehace la página entera (cambian colores y logotipo); lo demás va por mensaje.
+
+## 13. Conectar una herramienta es un formulario guiado, no un fichero
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Petición de Jose: para las herramientas, etiquetas y campos por variable en vez de un fichero, y
+guías de cómo conectarlas y sacar las claves, escritas por el arnés cuando investiga la herramienta.
+
+El panel ya enseñaba campos; lo que faltaba era **lo que hay que saber para rellenarlos**. Ahora saca
+tres cosas de los propios ficheros de la herramienta, que es donde `harness` dice que vivan:
+
+| Qué se enseña | De dónde sale |
+|---|---|
+| Los pasos numerados, arriba | `README.md` → `## Cómo conectarla` |
+| De dónde se saca **cada** clave, pegado a su campo | `CREDENTIALS.md` → tercera columna de `## Variables` |
+| El botón a la página del proveedor | `CREDENTIALS.md` → `## Provider dashboard → URL:` |
+
+**La pista va pegada a su campo, no al principio de la pantalla.** Una guía que se lee arriba ya se ha
+olvidado cuando llegas al tercer campo, y esta gente va a estar alternando entre esta ventana y la del
+proveedor.
+
+**Los pasos solo se enseñan mientras falte alguna clave.** Cuando está todo puesto, estorban.
+
+**Y si el asistente no los ha escrito**, el panel ofrece un botón para pedírselos, que además le dice
+que los deje escritos para la próxima. Mejor eso que una pantalla muda.
+
+Lo que el panel no enseña nunca son los pasos técnicos de la plantilla de RSC —copiar el `.env`, dar
+permisos—: eso lo hace el panel o el asistente, no el alumno.

@@ -141,12 +141,21 @@ function pantallaConexiones({ proveedores }) {
   `;
 }
 
-// Una herramienta: sus claves, su prueba y sus cositas.
+// Una herramienta: cómo se conecta, sus claves, su prueba y sus cositas.
 function pantallaConexion({ proveedor, claves, cositas, aviso: avisoLocal }) {
+  const faltaAlguna = claves.some((c) => !c.puesta);
+
+  // Los pasos los escribe el asistente al investigar la herramienta. Se
+  // enseñan mientras falte alguna clave: cuando ya está todo puesto, estorban.
+  const guia = proveedor.pasos && proveedor.pasos.length && faltaAlguna
+    ? `<ol class="guia">${proveedor.pasos.map((p) => `<li>${texto(p)}</li>`).join('')}</ol>`
+    : '';
+
   const formularios = claves.length
     ? claves.map((c) => `
         <div class="conexion" data-proveedor="${atributo(proveedor.id)}">
           <p class="nombre">${texto(c.etiqueta)}</p>
+          ${c.donde ? `<p class="donde">${texto(c.donde)}</p>` : ''}
           <p class="pista">${c.puesta ? `Puesta: ${texto(c.pista)}` : 'Todavía sin poner'}</p>
           <input type="${c.secreta ? 'password' : 'text'}" placeholder="${c.secreta ? 'Pega aquí la clave entera' : 'Escribe aquí el valor'}" data-clave="${atributo(c.clave)}">
           <div class="fila">
@@ -167,9 +176,13 @@ function pantallaConexion({ proveedor, claves, cositas, aviso: avisoLocal }) {
   return `
     ${bloqueAviso(avisoLocal)}
     <p class="titulo">${texto(proveedor.etiqueta)}</p>
+    ${guia ? `<h2>Cómo conectarla</h2>${guia}` : ''}
+    ${proveedor.ayuda && faltaAlguna ? boton({ etiqueta: 'Abrir su página para sacar la clave', icono: '↗', principal: true, accion: { tipo: 'abrir', url: proveedor.ayuda } }) : ''}
+    ${faltaAlguna ? '<hr class="separador">' : ''}
     <p class="detalle">Pega la clave entera. Los espacios y las comillas los quito yo.</p>
     ${formularios}
-    ${proveedor.ayuda ? boton({ etiqueta: '¿Dónde consigo la clave?', icono: '❓', accion: { tipo: 'abrir', url: proveedor.ayuda } }) : ''}
+    ${proveedor.ayuda && !faltaAlguna ? boton({ etiqueta: '¿Dónde consigo la clave?', icono: '❓', accion: { tipo: 'abrir', url: proveedor.ayuda } }) : ''}
+    ${!proveedor.pasos.length ? boton({ etiqueta: 'Explícame cómo conectarla', icono: '💬', accion: { tipo: 'pedir', prompt: `Explícame paso a paso cómo conectar ${proveedor.etiqueta}: dónde entro, dónde saco cada clave y qué pego dónde. Y deja los pasos escritos para la próxima vez.` } }) : ''}
     ${boton({ etiqueta: 'Probar la conexión', icono: '🔎', accion: { tipo: 'probar', proveedor: proveedor.id } })}
     ${lasCositas}
     <hr class="separador">

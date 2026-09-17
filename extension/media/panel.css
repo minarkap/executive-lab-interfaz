@@ -204,6 +204,29 @@ button.discreto:hover { background: var(--crema-2); color: var(--texto); }
 
 .conexion .pista { margin: 2px 0 9px; font-size: 13px; color: var(--apagado); }
 
+/* De dónde se saca esta clave en concreto, tal y como lo dejó escrito el
+   asistente al investigar la herramienta. Va pegado a su campo, que es donde
+   hace falta: una guía al principio de la pantalla ya se ha olvidado al
+   llegar aquí. */
+.conexion .donde {
+  margin: 2px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--rojo);
+  font-size: 13.5px;
+}
+
+/* Los pasos para conectarla. Numerados y con aire: se leen mientras se hace
+   otra cosa en otra ventana. */
+.guia {
+  margin: 0 0 16px;
+  padding: 2px 0 0 22px;
+}
+
+.guia li {
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+
 input[type="text"], input[type="password"] {
   width: 100%;
   min-height: 40px;

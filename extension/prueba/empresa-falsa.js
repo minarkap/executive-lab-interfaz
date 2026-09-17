@@ -39,10 +39,30 @@ function montar(raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-falsa-')))
   escribir(raiz, '01-TOOLS/_TEMPLATE/README.md', '# <TOOL_NAME>\n\n| Script | Qué hace | Ejemplo |\n|---|---|---|\n| `<verb_object>.sh` | <descripción> | `./<verb_object>.sh <args>` |\n');
   escribir(raiz, '01-TOOLS/HOLDED/.env.example', '# HOLDED\n# Generate at: https://app.holded.com/api\n\nHOLDED_API_KEY=\nHOLDED_ENV=test\n');
   escribir(raiz, '01-TOOLS/HOLDED/.env', 'HOLDED_API_KEY=abcd1234efgh5678\nHOLDED_ENV=test\n');
-  escribir(raiz, '01-TOOLS/HOLDED/CREDENTIALS.md', '# Credentials — Holded\n\n## Provider dashboard\n\n- URL: https://app.holded.com/api\n');
+  escribir(raiz, '01-TOOLS/HOLDED/CREDENTIALS.md', `# Credenciales — Holded
+
+## Provider dashboard
+
+- URL: https://app.holded.com/api
+
+## Variables
+
+| Variable | Tipo | Dónde se saca | Rotación |
+|---|---|---|---|
+| \`HOLDED_API_KEY\` | secreta | Configuración → Desarrolladores → API | Si se filtra, bórrala y crea otra |
+| \`HOLDED_ENV\` | ajuste | Escribe \`test\` para probar y \`production\` cuando vaya en serio | — |
+`);
   escribir(raiz, '01-TOOLS/HOLDED/README.md', `# Holded
 
 Facturación de la empresa.
+
+## Cómo conectarla
+
+1. Entra en app.holded.com con el usuario y la contraseña de la empresa.
+2. Arriba a la derecha, pulsa tu nombre y luego "Configuración".
+3. En el menú de la izquierda, baja hasta "Desarrolladores" y entra en "API".
+4. Pulsa "Crear clave nueva" y ponle de nombre "Executive Lab".
+5. Cópiala entera antes de cerrar la ventana: no se puede volver a ver.
 
 ## Scripts
 

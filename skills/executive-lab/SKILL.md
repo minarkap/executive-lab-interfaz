@@ -93,9 +93,41 @@ valor por defecto) para lo que le has enseñado. Dile en una línea que ya lo ti
 
 ### 2. Al conectar una herramienta, rellena su tabla de scripts
 
-Sigue el protocolo de `harness`: `cp -r 01-TOOLS/_TEMPLATE 01-TOOLS/<NOMBRE>` y completa `.env.example`,
-`CREDENTIALS.md` (con la URL real del panel del proveedor: de ahí sale el "¿dónde consigo la clave?")
-y `test_connection.sh`.
+Sigue el protocolo de `harness`: `cp -r 01-TOOLS/_TEMPLATE 01-TOOLS/<NOMBRE>` y completa
+`.env.example` y `test_connection.sh`. Y además **tres cosas que el panel enseña tal cual**, así que
+escríbelas pensando en quien las va a leer:
+
+**a) Los pasos, en el `README.md`, bajo `## Cómo conectarla`.** Salen numerados encima de los campos,
+y el alumno los va siguiendo con la web del proveedor abierta al lado. Investiga la herramienta de
+verdad antes de escribirlos — dónde se entra, qué menú, cómo se llama el botón — y escríbelos como
+se los dirías por teléfono:
+
+```markdown
+## Cómo conectarla
+
+1. Entra en app.holded.com con el usuario y la contraseña de la empresa.
+2. Arriba a la derecha, pulsa tu nombre y luego "Configuración".
+3. En el menú de la izquierda, baja hasta "Desarrolladores" y entra en "API".
+4. Pulsa "Crear clave nueva" y ponle de nombre "Executive Lab".
+5. Cópiala entera antes de cerrar la ventana: no se puede volver a ver.
+```
+
+Nada de `cp .env.example .env` ni permisos de fichero: eso lo hace el panel. Y si un paso solo se
+puede hacer una vez (una clave que no se vuelve a enseñar), **dilo en el paso**, que es donde se lee.
+
+**b) Dónde se saca cada clave, en la tabla de `CREDENTIALS.md`.** La tercera columna sale pegada a su
+campo, que es donde hace falta — una guía al principio de la pantalla ya se ha olvidado al llegar
+abajo:
+
+| Variable | Tipo | Dónde se saca | Rotación |
+|---|---|---|---|
+| `HOLDED_API_KEY` | secreta | Configuración → Desarrolladores → API | Si se filtra, bórrala y crea otra |
+
+**c) La URL del panel del proveedor**, en `## Provider dashboard → URL:`. De ahí sale el botón *Abrir
+su página para sacar la clave*.
+
+Mientras no escribas los pasos, el panel le ofrece al alumno un botón para que te los pida. Mejor
+escribirlos a la primera.
 
 Y **rellena la tabla de scripts del `README.md`**, porque de esa tabla salen los botones de esa
 conexión:
