@@ -131,7 +131,8 @@ ${cabecera}
 
       verCerebro: () => this.verCerebro(),
       verTema: () => this.verTema(mensaje.tema),
-      abrirArticulo: () => this.abrirArticulo(mensaje.ruta),
+      leerArticulo: () => this.leerArticulo(mensaje.ruta, mensaje.tema),
+      abrirFuera: () => this.abrirFuera(mensaje.ruta),
       cambiarArticulo: () => this.pedir(`Quiero cambiar lo que sabes sobre "${mensaje.titulo}". Ábrelo, enséñame qué dice y pregúntame qué hay que corregir.`),
       anadirDocumentos: () => this.anadirDocumentos(),
       abrirPanelCompleto: () => cerebro.abrirPanel(),
@@ -223,8 +224,16 @@ ${cabecera}
     return this.enviar({ tipo: 'tema', tema: encontrado });
   }
 
-  async abrirArticulo(ruta) {
-    const { ok, mensaje } = await cerebro.abrirArticulo(ruta);
+  // Se lee dentro del panel: la vista previa de VS Code enseña el frontmatter
+  // antes que el texto, y eso es justo lo que aquí no se enseña nunca.
+  leerArticulo(ruta, tema) {
+    const leido = cerebro.leerArticulo(ruta);
+    if (!leido.ok) return this.enviar({ tipo: 'aviso', texto: leido.mensaje, malo: true });
+    return this.enviar({ tipo: 'articulo', ...leido, tema });
+  }
+
+  async abrirFuera(ruta) {
+    const { ok, mensaje } = await cerebro.abrirFuera(ruta);
     if (!ok) this.enviar({ tipo: 'aviso', texto: mensaje, malo: true });
   }
 

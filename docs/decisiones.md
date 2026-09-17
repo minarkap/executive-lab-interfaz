@@ -298,3 +298,30 @@ que los deje escritos para la próxima. Mejor eso que una pantalla muda.
 
 Lo que el panel no enseña nunca son los pasos técnicos de la plantilla de RSC —copiar el `.env`, dar
 permisos—: eso lo hace el panel o el asistente, no el alumno.
+
+## 14. La wiki se lee dentro del panel, no en la vista previa de VS Code
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Al enseñarle a Jose cómo quedaba `02-DOCS` salió un fallo de los gordos: *Leerlo* abría la vista
+previa de markdown de VS Code, y lo primero que veía el alumno era el frontmatter del artículo —
+`type: article`, `status: draft`, `score: 7.0`—. Es exactamente lo que este proyecto existe para no
+enseñar, y estaba en la pantalla que más promete de todas.
+
+Ahora el artículo se lee **dentro del panel**, sin cabecera y sin repetir el título (ya va de rótulo),
+con un markdown mínimo escrito a mano: títulos, párrafos, listas, tablas, citas, negrita, código y
+enlaces. Se escapa todo primero y después se aplican los patrones, así que nada de lo que escriba el
+asistente puede convertirse en etiquetas.
+
+**No es un analizador completo a propósito.** Cubre lo que hay en un artículo de wiki y nada más; una
+biblioteca entera sería una dependencia que mantener para esto.
+
+De paso, tres cosas que estaban pobres:
+
+- **Los temas llevan la descripción** que RSC escribe bajo su título en `index.md`, en vez del nombre
+  de la carpeta. «Cómo se factura en esta empresa» en vez de «Facturacion», sin tilde.
+- **El historial lleva su fecha** en palabras: *hoy*, *ayer*, *hace 3 días*.
+- **Los huecos se pulsan.** Cada uno es algo que le falta y que el alumno puede contarle ahora mismo.
+  Una lista de carencias que no se puede tocar solo sirve para quedarse mal.
+
+Lo que no es markdown —un archivado en HTML, un original— sigue abriéndose fuera.

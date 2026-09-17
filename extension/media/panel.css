@@ -297,3 +297,90 @@ body.vscode-dark .codigo { background: var(--vscode-textBlockQuote-background, r
   border: 1px solid var(--borde);
   border-radius: var(--radio);
 }
+
+/* El historial: qué aprendió y cuándo. */
+.lista {
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.lista li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.lista li:last-child { border-bottom: 0; }
+
+.lista .cuando {
+  flex: none;
+  font-size: 12.5px;
+  color: var(--apagado);
+}
+
+/* Un artículo de la wiki, leído dentro del panel. Medida corta y aire: es
+   texto seguido en una columna estrecha y hay que poder leerlo del tirón. */
+.articulo {
+  margin-bottom: 4px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.articulo h3, .articulo h4, .articulo h5, .articulo h6 {
+  margin: 22px 0 8px;
+  font-family: var(--serif);
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--texto-fuerte);
+}
+
+.articulo h3 { font-size: 20px; }
+.articulo h4 { font-size: 17px; }
+.articulo h5, .articulo h6 { font-size: 15px; font-family: var(--sans); font-weight: 700; }
+
+.articulo p { margin: 0 0 12px; }
+
+.articulo ul, .articulo ol { margin: 0 0 12px; padding-left: 22px; }
+.articulo li { margin-bottom: 5px; }
+
+.articulo blockquote {
+  margin: 0 0 12px;
+  padding: 2px 0 2px 12px;
+  border-left: 3px solid var(--rojo);
+  color: var(--apagado);
+}
+
+.articulo table {
+  width: 100%;
+  margin: 0 0 14px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.articulo td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--borde);
+  vertical-align: top;
+}
+
+.articulo tr:first-child td { font-weight: 700; }
+
+.articulo code {
+  padding: 1px 5px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+  background: var(--crema-2);
+  border-radius: 5px;
+}
+
+.articulo a { color: var(--rojo-fuerte); }
+
+/* Un enlace a otro artículo de la wiki: se enseña como parte del texto, sin
+   prometer un clic que aquí todavía no lleva a ninguna parte. */
+.articulo .enlace-interno {
+  border-bottom: 1px dotted var(--apagado);
+}

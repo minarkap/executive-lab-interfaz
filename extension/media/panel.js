@@ -39,7 +39,90 @@ function bloqueAviso(cual = aviso) {
 }
 
 const volver = (accion = { tipo: 'volver' }) => boton({ etiqueta: 'Volver', icono: '←', accion });
+
+// --------------------------------------------------- leer un artículo
+
+// Un markdown mínimo, para enseñar los artículos de la wiki dentro del panel.
+// Se escapa todo primero y después se aplican los patrones, así que nada de lo
+// que haya escrito el asistente puede convertirse en etiquetas.
+//
+// No es un analizador completo a propósito: cubre lo que hay en un artículo de
+// la wiki —títulos, párrafos, listas, tablas, citas, negrita y enlaces— y nada
+// más. Una biblioteca entera para esto sería una dependencia que mantener.
+function enLinea(t) {
+  return texto(t)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
+    // Los enlaces a otros artículos navegan por dentro; los de fuera, fuera.
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, rotulo, destino) => (
+      /^https?:/.test(destino)
+        ? `<a href="${atributo(destino)}">${rotulo}</a>`
+        : `<span class="enlace-interno">${rotulo}</span>`
+    ));
+}
+
+function comoMarkdown(fuente) {
+  const salida = [];
+  let lista = null;
+  let tabla = null;
+
+  const cerrarLista = () => { if (lista) { salida.push(`</${lista}>`); lista = null; } };
+  const cerrarTabla = () => { if (tabla) { salida.push('</tbody></table>'); tabla = null; } };
+  const cerrar = () => { cerrarLista(); cerrarTabla(); };
+
+  for (const cruda of String(fuente).split('\n')) {
+    const linea = cruda.trimEnd();
+
+    if (!linea.trim()) { cerrar(); continue; }
+
+    const titulo = linea.match(/^(#{1,4})\s+(.*)$/);
+    if (titulo) { cerrar(); salida.push(`<h${titulo[1].length + 2}>${enLinea(titulo[2])}</h${titulo[1].length + 2}>`); continue; }
+
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(linea.trim())) { cerrar(); salida.push('<hr class="separador">'); continue; }
+
+    // Tablas: la fila de guiones se traga, las demás son filas.
+    if (/^\s*\|/.test(linea)) {
+      const celdas = linea.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+      if (celdas.every((c) => /^:?-{2,}:?$/.test(c))) continue;
+      if (!tabla) { cerrarLista(); salida.push('<table><tbody>'); tabla = true; }
+      salida.push(`<tr>${celdas.map((c) => `<td>${enLinea(c)}</td>`).join('')}</tr>`);
+      continue;
+    }
+    cerrarTabla();
+
+    const cita = linea.match(/^>\s?(.*)$/);
+    if (cita) { cerrarLista(); salida.push(`<blockquote>${enLinea(cita[1])}</blockquote>`); continue; }
+
+    const punto = linea.match(/^\s*[-*]\s+(.*)$/);
+    const numero = linea.match(/^\s*\d+[.)]\s+(.*)$/);
+    if (punto || numero) {
+      const quiere = punto ? 'ul' : 'ol';
+      if (lista !== quiere) { cerrarLista(); salida.push(`<${quiere}>`); lista = quiere; }
+      salida.push(`<li>${enLinea((punto || numero)[1])}</li>`);
+      continue;
+    }
+    cerrarLista();
+
+    salida.push(`<p>${enLinea(linea.trim())}</p>`);
+  }
+
+  cerrar();
+  return salida.join('\n');
+}
 const nada = (frase) => `<p class="cargando">${texto(frase)}</p>`;
+
+// La fecha de una entrada del historial, en palabras y por días de calendario.
+function cuando(iso) {
+  const entonces = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(entonces.getTime())) return '';
+  const dia = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dias = Math.round((dia(new Date()) - dia(entonces)) / 86400000);
+  if (dias <= 0) return 'hoy';
+  if (dias === 1) return 'ayer';
+  if (dias < 7) return `hace ${dias} días`;
+  return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' }).format(entonces);
+}
 const plural = (n, uno, varios) => (n === 1 ? uno : varios.replace('{n}', n));
 
 // ---------------------------------------------------------------- pantallas
@@ -203,21 +286,31 @@ function pantallaResultado({ titulo, texto: salida, proveedor }) {
 
 function pantallaCerebro({ temas, aprendido, huecos, esperando, yaLeidos, hayPanel, aviso: avisoLocal }) {
   const porTemas = temas.length
-    ? temas.map((t) => boton({
-      etiqueta: `${t.etiqueta} — ${plural(t.articulos.length, '1 cosa', '{n} cosas')}`,
-      icono: '▸',
-      accion: { tipo: 'verTema', tema: t.id },
-    })).join('')
+    ? temas.map((t) => `
+        <div class="conexion">
+          <p class="nombre">${texto(t.descripcion || t.etiqueta)}</p>
+          <p class="pista">${texto(plural(t.articulos.length, '1 cosa que sabe', '{n} cosas que sabe'))}</p>
+          ${boton({ etiqueta: 'Verlo', icono: '▸', accion: { tipo: 'verTema', tema: t.id } })}
+        </div>`).join('')
     : nada('Todavía no sabe nada de tu empresa. Dale documentos o cuéntaselo en la conversación.');
 
   const ultimo = aprendido.length
-    ? `<hr class="separador"><h2>Qué ha aprendido últimamente</h2>` +
-      aprendido.map((a) => `<p class="detalle">${texto(a.titulo)}</p>`).join('')
+    ? `<hr class="separador"><h2>Qué ha aprendido últimamente</h2><ul class="lista">` +
+      aprendido.map((a) => `<li>${texto(a.titulo)}<span class="cuando">${texto(cuando(a.fecha))}</span></li>`).join('') +
+      '</ul>'
     : '';
 
+  // Los huecos se pulsan: cada uno es algo que le falta y que el alumno puede
+  // contarle ahora mismo. Una lista de carencias que no se puede tocar solo
+  // sirve para quedarse mal.
   const pendiente = huecos.length
     ? `<hr class="separador"><h2>Lo que aún no sabe</h2>` +
-      huecos.map((h) => `<p class="detalle">${texto(h)}</p>`).join('')
+      `<p class="detalle">Pulsa cualquiera para contárselo.</p>` +
+      huecos.map((h) => boton({
+        etiqueta: h,
+        icono: '?',
+        accion: { tipo: 'pedir', prompt: `Quiero contarte lo que te falta saber: ${h}. Pregúntame lo que necesites y guárdalo.` },
+      })).join('')
     : '';
 
   return `
@@ -240,18 +333,33 @@ function pantallaCerebro({ temas, aprendido, huecos, esperando, yaLeidos, hayPan
 
 function pantallaTema({ tema }) {
   return `
-    <p class="titulo">${texto(tema.etiqueta)}</p>
+    <p class="titulo">${texto(tema.descripcion || tema.etiqueta)}</p>
     ${tema.articulos.map((a) => `
       <div class="conexion">
         <p class="nombre">${texto(a.titulo)}</p>
         ${a.resumen ? `<p class="pista">${texto(a.resumen)}</p>` : ''}
-        <div class="fila">
-          ${boton({ etiqueta: 'Leerlo', accion: { tipo: 'abrirArticulo', ruta: a.ruta } })}
-          ${boton({ etiqueta: 'Pídele que lo cambie', accion: { tipo: 'cambiarArticulo', titulo: a.titulo } })}
-        </div>
+        ${boton({
+          etiqueta: 'Leerlo',
+          icono: '▸',
+          accion: a.ruta.endsWith('.md')
+            ? { tipo: 'leerArticulo', ruta: a.ruta, tema: tema.id }
+            : { tipo: 'abrirFuera', ruta: a.ruta },
+        })}
       </div>`).join('')}
     <hr class="separador">
     ${volver({ tipo: 'verCerebro' })}
+  `;
+}
+
+// El artículo, dentro del panel. La vista previa de VS Code enseñaría primero
+// su cabecera técnica, que es justo lo que aquí no se enseña nunca.
+function pantallaArticulo({ titulo, cuerpo, tema }) {
+  return `
+    <p class="titulo">${texto(titulo)}</p>
+    <div class="articulo">${comoMarkdown(cuerpo)}</div>
+    <hr class="separador">
+    ${boton({ etiqueta: 'Pídele que lo cambie', icono: '✎', accion: { tipo: 'cambiarArticulo', titulo } })}
+    ${volver(tema ? { tipo: 'verTema', tema } : { tipo: 'verCerebro' })}
   `;
 }
 
@@ -315,6 +423,7 @@ window.addEventListener('message', ({ data }) => {
     case 'resultado': return pintar(pantallaResultado(data));
     case 'cerebro': return pintar(pantallaCerebro(data));
     case 'tema': return pintar(pantallaTema(data));
+    case 'articulo': return pintar(pantallaArticulo(data));
     case 'copias': return pintar(pantallaCopias(data));
     case 'incidencia': return pintar(pantallaIncidencia(data));
     case 'aviso':

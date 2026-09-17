@@ -181,18 +181,26 @@ async function main() {
     return '1 esperando · 1 leído';
   });
 
-  await comprobar('un artículo se abre en vista previa, nunca en el editor', async () => {
-    vscode.registrado.ejecutados.length = 0;
-    const hecho = await cerebro.abrirArticulo('facturacion/ciclo.md');
-    assert.equal(hecho.ok, true);
-    assert.equal(vscode.registrado.ejecutados.at(-1).id, 'markdown.showPreview');
-    return 'markdown.showPreview';
+  await comprobar('un artículo se lee sin su cabecera técnica', () => {
+    const leido = cerebro.leerArticulo('facturacion/ciclo.md');
+    assert.equal(leido.ok, true);
+    assert.equal(leido.titulo, 'Ciclo de facturación');
+    assert.ok(!/type:\s*article|score:|status:/.test(leido.cuerpo), 'el frontmatter no llega al alumno');
+    assert.ok(!leido.cuerpo.startsWith('# '), 'el título no se repite: ya va de rótulo');
+    assert.match(leido.cuerpo, /Plazos de cobro/);
+    return `${leido.cuerpo.split('\n').length} líneas de texto`;
   });
 
-  await comprobar('una ruta que se sale de la wiki se rechaza', async () => {
-    const hecho = await cerebro.abrirArticulo('../../.rsc.json');
-    assert.equal(hecho.ok, false);
-    return hecho.mensaje;
+  await comprobar('cada tema trae la descripción que RSC escribe en el índice', () => {
+    const [facturacion] = cerebro.catalogo();
+    assert.equal(facturacion.descripcion, 'Cómo se factura en esta empresa.');
+    assert.equal(facturacion.articulos.length, 2, 'la descripción no cuenta como artículo');
+    return facturacion.descripcion;
+  });
+
+  await comprobar('una ruta que se sale de la wiki se rechaza', () => {
+    assert.equal(cerebro.leerArticulo('../../.rsc.json').ok, false);
+    return 'rechazada';
   });
 
   await comprobar('los documentos elegidos se copian sin pisar nada', async () => {

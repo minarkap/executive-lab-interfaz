@@ -52,11 +52,19 @@ function catalogo() {
     const cabecera = linea.match(/^##\s+(.+?)\s*$/);
     if (cabecera) {
       if (ES_PLANTILLA(cabecera[1])) { actual = null; continue; }
-      actual = { id: cabecera[1], etiqueta: humanizar(cabecera[1]), articulos: [] };
+      actual = { id: cabecera[1], etiqueta: humanizar(cabecera[1]), descripcion: null, articulos: [] };
       temas.push(actual);
       continue;
     }
     if (!actual) continue;
+
+    // Bajo el título de cada tema, RSC deja una línea que lo describe. Es
+    // mejor rótulo que el nombre de la carpeta, que viene sin tildes.
+    const suelta = linea.trim();
+    if (suelta && !suelta.startsWith('|') && !suelta.startsWith('>') && !actual.descripcion && !actual.articulos.length) {
+      if (!ES_PLANTILLA(suelta)) actual.descripcion = suelta;
+      continue;
+    }
 
     const fila = linea.match(/^\|\s*\[([^\]]+)\]\(([^)]+)\)\s*\|([^|]*)\|([^|]*)\|/);
     if (!fila) continue;
@@ -82,20 +90,45 @@ function cuantoSabe() {
   return catalogo().reduce((total, tema) => total + tema.articulos.length, 0);
 }
 
-// Se abre en vista previa, nunca en el editor: el alumno lee el artículo, no
-// su markdown ni su frontmatter.
-async function abrirArticulo(rutaRelativa) {
-  // La ruta viene del índice, que escribe el asistente: se comprueba que no se
-  // sale de la wiki antes de abrir nada.
+// La ruta viene del índice, que escribe el asistente: se comprueba que no se
+// salga de la wiki antes de abrir nada.
+function dentroDeLaWiki(rutaRelativa) {
   const wiki = proyecto.ruta(...WIKI);
+  if (!wiki) return null;
   const completa = path.resolve(wiki, rutaRelativa);
-  if (!wiki || !completa.startsWith(wiki + path.sep) || !fs.existsSync(completa)) {
-    return { ok: false, mensaje: 'Ese documento ya no está donde decía el índice.' };
+  return completa.startsWith(wiki + path.sep) && fs.existsSync(completa) ? completa : null;
+}
+
+// El artículo se lee DENTRO del panel, no en la vista previa de VS Code: esa
+// enseña el frontmatter —`type: article`, `score: 7.0`— antes que el texto, y
+// eso es exactamente lo que este proyecto existe para no enseñar.
+function leerArticulo(rutaRelativa) {
+  const completa = dentroDeLaWiki(rutaRelativa);
+  if (!completa) return { ok: false, mensaje: 'Ese documento ya no está donde decía el índice.' };
+
+  let texto;
+  try {
+    texto = fs.readFileSync(completa, 'utf8');
+  } catch {
+    return { ok: false, mensaje: 'No he podido abrirlo. Prueba con "Algo va mal".' };
   }
 
-  const uri = vscode.Uri.file(completa);
-  if (completa.endsWith('.md')) await vscode.commands.executeCommand('markdown.showPreview', uri);
-  else await vscode.env.openExternal(uri);
+  // Fuera la cabecera técnica, y fuera el título repetido: ya va de rótulo.
+  const cuerpo = texto.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trimStart();
+  const titulo = (cuerpo.match(/^#\s+(.+)$/m) || [])[1] || path.basename(completa, '.md');
+
+  return {
+    ok: true,
+    titulo: titulo.trim(),
+    cuerpo: cuerpo.replace(/^#\s+.+\r?\n/, '').trimStart(),
+  };
+}
+
+// Lo que no es markdown (un archivado en HTML, un original) se abre fuera.
+async function abrirFuera(rutaRelativa) {
+  const completa = dentroDeLaWiki(rutaRelativa);
+  if (!completa) return { ok: false, mensaje: 'Ese documento ya no está donde decía el índice.' };
+  await vscode.env.openExternal(vscode.Uri.file(completa));
   return { ok: true };
 }
 
@@ -208,7 +241,8 @@ module.exports = {
   catalogo,
   articulos,
   cuantoSabe,
-  abrirArticulo,
+  leerArticulo,
+  abrirFuera,
   aprendidoUltimamente,
   loQueAunNoSabe,
   hayPanel,

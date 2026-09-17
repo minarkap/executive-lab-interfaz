@@ -37,6 +37,11 @@ pantalla si no está ahí.
 
 ![Las cuatro pantallas del panel](docs/panel.png)
 
+Lo que el arnés va aprendiendo de la empresa se lee dentro del panel — sin rutas, sin markdown y sin
+la cabecera técnica del artículo:
+
+![Lo que sabe de tu empresa, y un artículo leído dentro](docs/docs.png)
+
 Conectar una herramienta es un formulario guiado: los pasos que escribió el asistente al investigarla,
 y debajo de cada campo de dónde se saca esa clave en concreto.
 

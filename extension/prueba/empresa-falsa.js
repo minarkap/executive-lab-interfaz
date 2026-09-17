@@ -98,8 +98,38 @@ Quién es quién.
 | [Ferretería Soler](clientes/ferreteria-soler.md) | Cliente desde 2019, paga a 30 días | ${HOY} | 8.0 |
 | [{Article Title}]({topic}/{file}.md) | {One-line summary} | {YYYY-MM-DD} | {N.N} |
 `);
-  const articulo = (titulo) => `---\ntype: article\ntitle: ${titulo}\ntopic: facturacion\nstatus: draft\nscore: 7.0\n---\n\n# ${titulo}\n\n## Overview\n\nContenido de mentira.\n`;
-  escribir(raiz, '02-DOCS/wiki/facturacion/ciclo.md', articulo('Ciclo de facturación'));
+  const articulo = (titulo, cuerpo) => `---
+type: article
+title: ${titulo}
+topic: facturacion
+status: draft
+score: 7.0
+---
+
+# ${titulo}
+
+${cuerpo || 'Contenido de mentira.'}
+`;
+  escribir(raiz, '02-DOCS/wiki/facturacion/ciclo.md', articulo('Ciclo de facturación', `De presupuesto a cobro, tal y como se hace aquí.
+
+## Cuándo se factura
+
+A final de mes, **todas de golpe**. Las de obra, cuando el cliente firma el parte.
+
+## Plazos de cobro
+
+| Cliente | Plazo | Cómo paga |
+|---|---|---|
+| Ferretería Soler | 30 días | Transferencia |
+| Talleres Ruiz | 60 días | Pagaré |
+
+> Si pasan 15 días del plazo, se llama por teléfono antes de mandar nada por escrito.
+
+## Lo que hay que tener a mano
+
+- El número de pedido del cliente
+- El albarán firmado, si es obra
+- Ver [el contrato marco](../contratos/marco.md) cuando haya dudas`));
   escribir(raiz, '02-DOCS/wiki/facturacion/morosos.md', articulo('Clientes que pagan tarde'));
   escribir(raiz, '02-DOCS/wiki/clientes/ferreteria-soler.md', articulo('Ferretería Soler'));
   escribir(raiz, '02-DOCS/wiki/log.md', `# Wiki Log

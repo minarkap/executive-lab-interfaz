@@ -246,3 +246,15 @@ que es donde el protocolo de `harness` dice que viva, y la habilidad `executive-
 asistente cómo escribirlo para quien lo va a leer. 35 comprobaciones; dos nuevas cubren que los pasos
 salen del README y que cada clave trae su pista, y que los pasos técnicos de la plantilla (copiar el
 `.env`, permisos) **no** se enseñan.
+
+### Addendum — cómo se presenta 02-DOCS
+
+Pregunta de Jose. Al renderizar la pantalla para enseñársela salió **F10: *Leerlo* abría la vista
+previa de VS Code y el alumno veía el frontmatter del artículo antes que el texto** (`type: article`,
+`score: 7.0`). Corregido: se lee dentro del panel, con un markdown mínimo propio. Decisión §14.
+
+Con ello, tres mejoras que se veían pobres al lado de la pantalla de conexiones: descripción por tema
+en vez del nombre de carpeta sin tildes, fecha en el historial, y huecos pulsables para contárselos.
+
+36 comprobaciones; tres nuevas cubren que el frontmatter no llega al alumno, que el título no se
+repite y que la descripción del tema no se confunde con un artículo.
