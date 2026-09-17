@@ -126,6 +126,7 @@ function proveedores() {
         etiqueta: etiquetaDeProveedor(e.name, carpeta),
         faltan,
         tienePrueba: fs.readdirSync(carpeta).some((f) => f.startsWith('test_connection')),
+        cositas: scripts(e.name).length,
       };
     })
     .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta, 'es'));
@@ -183,6 +184,16 @@ function escribir(proveedorId, clave, valorBruto) {
 
 // Cada carpeta trae su propia prueba. Se ejecuta la que haya, con el
 // intérprete que le toque, y solo se traduce el resultado.
+// Cada script trae su intérprete. Los .sh de RSC piden bash —usan BASH_SOURCE
+// y pipefail—, no sh.
+async function lanzar(carpeta, fichero) {
+  const ruta = path.join(carpeta, fichero);
+  const opciones = { cwd: carpeta, tiempoMaximo: 45000 };
+  if (fichero.endsWith('.sh')) return procesos.bash(ruta, opciones);
+  if (fichero.endsWith('.py')) return procesos.ejecutar(entorno.ES_WINDOWS ? 'python' : 'python3', [ruta], opciones);
+  return procesos.node([ruta], opciones);
+}
+
 async function probar(proveedorId) {
   const carpeta = carpetaDe(proveedorId);
   if (!carpeta) return { ok: false, mensaje: 'Esa conexión ya no está.' };
@@ -190,12 +201,7 @@ async function probar(proveedorId) {
   const prueba = fs.readdirSync(carpeta).find((f) => /^test_connection\.(sh|py|js|mjs)$/.test(f));
   if (!prueba) return { ok: false, mensaje: 'Esta conexión no trae forma de comprobarse. Pregúntaselo al asistente.' };
 
-  const ruta = path.join(carpeta, prueba);
-  const opciones = { cwd: carpeta, tiempoMaximo: 45000 };
-  let resultado;
-  if (prueba.endsWith('.sh')) resultado = await procesos.bash(ruta, opciones);
-  else if (prueba.endsWith('.py')) resultado = await procesos.ejecutar(entorno.ES_WINDOWS ? 'python' : 'python3', [ruta], opciones);
-  else resultado = await procesos.node([ruta], opciones);
+  const resultado = await lanzar(carpeta, prueba);
 
   if (resultado.codigo === 0) return { ok: true, mensaje: 'Conectado. Funciona.' };
   if (/missing .*\.env/i.test(resultado.error)) return { ok: false, mensaje: 'Todavía no has puesto ninguna clave para esta conexión.' };
@@ -203,4 +209,81 @@ async function probar(proveedorId) {
   return { ok: false, mensaje: 'No conecta. Revisa que la clave esté bien pegada, entera y sin espacios.' };
 }
 
-module.exports = { proveedores, claves, escribir, probar, etiquetaDeClave, enmascarar };
+// ------------------------------------------------------ las cositas
+
+// Verbos que solo miran. Se ejecutan directos porque no pueden romper nada, y
+// porque esperar a que el asistente te lea una lista es justo la fricción que
+// sobra. Se admiten en español y en inglés: la tabla la escribe el asistente,
+// pero la plantilla de RSC viene en inglés.
+const SOLO_MIRAN = /^(listar|ver|consultar|comprobar|mostrar|leer|test|list|show|check|get)[_-]/i;
+const EJECUTABLES = /\.(sh|py|js|mjs)$/;
+
+// El README de cada herramienta trae una tabla de scripts. No se busca por el
+// título de la sección —nuestros raíles hacen que Claude la escriba en
+// español— sino por las filas: primera celda con un nombre de fichero entre
+// comillas invertidas que además existe en la carpeta.
+function scripts(proveedorId) {
+  const carpeta = carpetaDe(proveedorId);
+  if (!carpeta) return [];
+
+  let readme;
+  try {
+    readme = fs.readFileSync(path.join(carpeta, 'README.md'), 'utf8');
+  } catch {
+    return [];
+  }
+  const hay = new Set(fs.readdirSync(carpeta));
+
+  const encontrados = [];
+  for (const linea of readme.split('\n')) {
+    const fila = linea.match(/^\|\s*`([^`]+)`\s*\|([^|]*)\|([^|]*)\|/);
+    if (!fila) continue;
+
+    const fichero = fila[1].trim();
+    // Las plantillas de RSC traen filas de ejemplo con marcadores.
+    if (!EJECUTABLES.test(fichero) || /[{<]/.test(fichero) || !hay.has(fichero)) continue;
+    if (fichero.startsWith('test_connection')) continue; // ese ya es "Probar la conexión"
+
+    const queHace = fila[2].replace(/`/g, '').trim();
+    const ejemplo = fila[3].replace(/`/g, '').trim();
+
+    encontrados.push({
+      fichero,
+      // Sin descripción usable en el README, el nombre del fichero ya dice bastante.
+      etiqueta: queHace && !/[{<]/.test(queHace) ? queHace : humanizar(fichero.replace(EJECUTABLES, '')),
+      // Pide datos si el ejemplo lleva marcadores de argumento, o si el verbo
+      // no es de los que solo miran.
+      pideDatos: /[<{[]/.test(ejemplo) || !SOLO_MIRAN.test(fichero),
+    });
+  }
+  return encontrados;
+}
+
+// Ejecuta uno de los que solo miran y devuelve su salida, recortada. Los que
+// piden datos o tocan cosas no pasan por aquí: los pide el asistente, que
+// pregunta lo que falte y pide permiso antes de cambiar nada.
+async function ejecutar(proveedorId, fichero) {
+  const carpeta = carpetaDe(proveedorId);
+  if (!carpeta) return { ok: false, mensaje: 'Esa conexión ya no está.' };
+
+  const permitido = scripts(proveedorId).find((s) => s.fichero === fichero && !s.pideDatos);
+  if (!permitido) return { ok: false, mensaje: 'Esto se lo tengo que pedir al asistente.' };
+
+  const { codigo, salida, error } = await lanzar(carpeta, fichero);
+  if (codigo !== 0) {
+    if (/missing .*\.env/i.test(error)) return { ok: false, mensaje: 'Primero pon las claves de esta conexión.' };
+    if (/not set/i.test(error)) return { ok: false, mensaje: 'Falta alguna clave por rellenar.' };
+    return { ok: false, mensaje: 'No ha salido bien. Prueba a comprobar la conexión.' };
+  }
+
+  const texto = salida.trim();
+  const lineas = texto.split('\n');
+  return {
+    ok: true,
+    titulo: permitido.etiqueta,
+    texto: lineas.length > 40 ? `${lineas.slice(0, 40).join('\n')}\n…` : texto,
+    mensaje: texto ? null : 'Hecho, pero no ha devuelto nada.',
+  };
+}
+
+module.exports = { proveedores, claves, escribir, probar, scripts, ejecutar, etiquetaDeClave, enmascarar };

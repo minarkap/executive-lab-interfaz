@@ -46,6 +46,14 @@
         "title": "Executive Lab: Empezar algo nuevo"
       },
       {
+        "command": "executiveLab.cerebro",
+        "title": "Executive Lab: Lo que sabe de tu empresa"
+      },
+      {
+        "command": "executiveLab.documentos",
+        "title": "Executive Lab: Darle documentos"
+      },
+      {
         "command": "executiveLab.conexiones",
         "title": "Executive Lab: Mis conexiones"
       },
@@ -58,16 +66,20 @@
         "title": "Executive Lab: Algo va mal"
       },
       {
+        "command": "executiveLab.empezarEmpresa",
+        "title": "Executive Lab: Empezar una empresa aquí"
+      },
+      {
         "command": "executiveLab.refrescar",
         "title": "Executive Lab: Actualizar la brújula"
       },
       {
-        "command": "executiveLab.modoAvanzado",
-        "title": "Executive Lab: Modo avanzado (ver el editor completo)"
+        "command": "executiveLab.verEditorCompleto",
+        "title": "Executive Lab: Ver el editor completo (solo esta ventana)"
       },
       {
         "command": "executiveLab.modoSencillo",
-        "title": "Executive Lab: Volver al modo sencillo"
+        "title": "Executive Lab: Volver al modo sencillo (solo esta ventana)"
       },
       {
         "command": "executiveLab.diagnosticoPuente",
@@ -76,7 +88,8 @@
     ]
   },
   "scripts": {
-    "empaquetar": "npx --yes @vscode/vsce package --out executive-lab.vsix --allow-missing-repository --skip-license"
+    "empaquetar": "npx --yes @vscode/vsce package --out executive-lab.vsix --allow-missing-repository --skip-license",
+    "probar": "node prueba/humo.js"
   },
   "capabilities": {
     "untrustedWorkspaces": {

@@ -4,8 +4,11 @@
 # .demo/) con la extensión de Claude y la nuestra instaladas de verdad, no en
 # modo desarrollo, sobre una empresa de mentira ya preparada con el arnés.
 #
-#   ./demo.sh            monta lo que falte y abre la demo
-#   rm -rf .demo         para empezar de cero
+#   ./demo.sh                monta lo que falte y abre la demo
+#   ./demo.sh --con-datos    además siembra una herramienta, una wiki y
+#                            documentos, para ver las pantallas con contenido
+#   ./demo.sh --reinstalar   vuelve a instalar las extensiones
+#   rm -rf .demo             para empezar de cero
 #
 # Cuando cambies la extensión: cd extension && npm run empaquetar, y después
 #   ./demo.sh --reinstalar
@@ -41,6 +44,13 @@ if [ ! -f "$D/empresa/.rsc.json" ]; then
   fi
   node "$D/app/preparar.js" --destino "$D/empresa" --objetivo "organizar mis facturas" --asistente claude --sin-editor \
     || { echo "preparar.js ha fallado; mira $D/empresa/instalacion.log" >&2; exit 1; }
+fi
+
+# 1b. Con --con-datos, una herramienta conectada, una wiki y documentos sin
+#     leer. No pisa nada de lo que escribió el arnés.
+if [ "${1:-}" = "--con-datos" ]; then
+  echo "Sembrando datos de mentira…"
+  node "$R/extension/prueba/empresa-falsa.js" "$D/empresa" >/dev/null
 fi
 
 # 2. El disfraz, escrito antes del primer arranque, como hará el instalador.

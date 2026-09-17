@@ -133,3 +133,65 @@ Leyendo el `package.json` y el código compilado de `anthropic.claude-code` 2.1.
 - **B5 matiz:** con el disfraz pre-escrito, la extensión no vuelve a escribir las claves, así que las dos de VS Code que quedaban
   dudosas siguen sin confirmar por esa vía. Se confirman mirando la interfaz de la demo: sin barra de estado, sin barra de actividad,
   título propio.
+
+---
+
+# Fase 2 — el panel como espejo del arnés (17 de septiembre, tarde)
+
+Tres peticiones de Jose: ajustarlo a RSC (claves y botones por herramienta, poder revisar los archivos
+y la wiki), un interruptor por ventana, y el diseño de executivelab.ai. La regla que lo gobierna todo
+es suya: *no predefinido, porque a lo mejor el arnés no es de facturas sino de contratos y recursos
+humanos*.
+
+## Qué se leyó antes de escribir nada
+
+La skill `harness` de RSC, instalada en este mismo repo, y sus referencias: `wiki-protocol.md`,
+`providers.yaml`, `tools-readme-template.md`, `wiki-index-template.md`. De ahí salen las estructuras
+que el panel lee: la tabla de scripts del README de cada herramienta, el índice por temas de
+`wiki/index.md`, el historial de `log.md`, los huecos de `gaps.md`, la bandeja de `inbox/`. **No se ha
+inventado ninguna forma nueva**; si RSC cambia la suya, se cambia aquí y no al revés.
+
+## Lo que se construyó
+
+| Módulo | Qué hace |
+|---|---|
+| `acciones.js` | Los botones de "Qué quieres hacer", leídos de `.claude/commands/*.md` con `boton:` |
+| `cerebro.js` | Temas, artículos, historial, huecos, bandeja de documentos y panel de RSC |
+| `arrancar.js` | El wizard dentro del editor para una carpeta que aún no es una empresa |
+| `frontmatter.js` | Lo justo para leer cabeceras YAML; un YAML de verdad sería dependencia para nada |
+| `conexiones.js` | Ampliado: la tabla de scripts de cada herramienta y el modo mixto |
+| `disfraz.js` | Rehecho: base en ajustes de usuario, interruptor en ajustes de carpeta |
+| `brujula.js` | Lee el historial de la wiki; las sugerencias fijas se van a `acciones.js` |
+
+Más la marca (fuentes empaquetadas, logotipo recoloreado, paleta, colores de toda la ventana) y una
+prueba de humo de 25 comprobaciones que ahora vive en el repo (`extension/prueba/`), con un `vscode`
+de mentira y una empresa de mentira con la forma que deja RSC.
+
+## Hallazgos de esta fase
+
+| | Qué | Cómo salió |
+|---|---|---|
+| F1 | **El enlace profundo se tragaba el mensaje en silencio.** `openExternal` devuelve `true` en cuanto entrega la URI, mire o no si alguien la recoge: sin la extensión de Claude instalada, el puente creía haber enviado y el portapapeles no entraba nunca | Lo pilló la prueba de humo al quitar el comando interno. Ahora se comprueba `extensions.getExtension` antes |
+| F2 | **Blanco sobre el rojo de marca da 3,87:1**, no los 4,6 que yo había escrito en el plan. AA solo en texto grande | Calculado antes de escribir el CSS. Relleno de botón a `#e03014` (4,56:1); el rojo de marca se queda en todo lo demás |
+| F3 | **El título de pantalla salía como etiqueta diminuta en mayúsculas** — "HOLDED" — porque reusaba el estilo de las etiquetas de sección | Se vio al renderizar el panel con Chrome sin interfaz. Clase `.titulo` aparte |
+| F4 | **"Dónde estás" con dos zonas ocupaba tres líneas** en serif de 21 px sobre una barra estrecha | Lo mismo. Si no cabe en 42 caracteres, una sola zona |
+| F5 | La prueba de humo **no esperaba a las comprobaciones asíncronas**, así que se solapaban y los fallos salían en la comprobación equivocada | Un fallo aparecía en la barra de estado y venía del interruptor |
+| F6 | La empresa de mentira **pisaba `.rsc.json` y el perfil del alumno** al sembrar sobre una carpeta ya preparada | Se vio al montar `demo.sh --con-datos`. Ahora esas dos no se sobrescriben |
+
+## Verificación ejecutada
+
+| Prueba | Resultado |
+|---|---|
+| `npm run probar` (25 comprobaciones) | Botones descubiertos y orden; herramientas y claves enmascaradas; modo mixto; ejecución real de un script y negativa del otro; escritura de clave sin pisar las demás; wiki, historial, huecos y recuento de documentos; ruta fuera de la wiki rechazada; copia de documentos sin sobrescribir; los tres caminos del puente; disfraz base y interruptor por ventana; comandos = manifiesto |
+| `node docs/comprobar-diccionario.js` | 16 ficheros, sin incumplimientos, con 16 palabras nuevas en el diccionario |
+| `npm run empaquetar` | 36 ficheros, 103 KB, sin la carpeta de pruebas |
+| `./demo.sh --con-datos` | La extensión se activa sin errores y el canal de salida no registra ningún ajuste rechazado |
+| Renderizado del panel con Chrome sin interfaz | Cuatro pantallas revisadas a ojo: principal, una conexión, el cerebro y la carpeta sin arnés |
+| Contraste de la paleta | Tinta sobre crema 15,1:1 · botón 4,56:1 · enlace 5,57:1 · todo AA |
+
+## Lo que sigue sin probar
+
+Lo mismo que en la fase 1, más lo nuevo: **el wizard `arrancar.js` no se ha ejecutado de verdad**
+(monta un arnés entero, tarda minutos y necesita una carpeta limpia y una sesión de editor), y **el
+interruptor por ventana no se ha visto con dos ventanas abiertas a la vez**. Y sigue pendiente el
+`.exe` en un Windows limpio, que es lo que de verdad bloquea sentar alumnos.

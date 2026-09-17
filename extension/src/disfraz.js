@@ -1,14 +1,21 @@
 // El disfraz: los ajustes que hacen que VS Code deje de parecer VS Code.
 //
-// Los aplica la extensión, no el instalador. Importar un perfil sin interfaz
-// no es posible, y las extensiones instaladas desde la línea de comandos van
-// al perfil por defecto; la API de configuración escribe cualquier ámbito en
-// los ajustes de usuario y funciona igual en todos los sistemas.
+// Dos capas, y la distinción importa:
 //
-// Regalo añadido: si una clave no la ha registrado ninguna extensión, VS Code
-// la rechaza. Así sabemos qué claves del disfraz no existen sin probarlas a
-// mano — quedan anotadas en el canal de salida y se reintentan, porque las de
-// Claude solo existen cuando su extensión ya se ha activado.
+//   · La BASE va a los ajustes de usuario. La escribe el instalador antes del
+//     primer arranque y la extensión la repasa. Ahí viven las cosas que solo
+//     se pueden fijar para todo el programa: la confianza del workspace, las
+//     actualizaciones, la telemetría, el zoom.
+//
+//   · El INTERRUPTOR es por ventana. "Ver el editor completo" escribe, en el
+//     .vscode/settings.json de la carpeta abierta, los valores de fábrica de
+//     lo que se ve — barra de actividad, barra de estado, pestañas, menú,
+//     ficheros ocultos, colores— y así esa ventana deja de estar disfrazada
+//     sin tocar las demás. "Modo sencillo" los borra.
+//
+// Regalo añadido: si una clave no la ha registrado ninguna extensión, o no
+// admite el ámbito que le pedimos, VS Code la rechaza. Lo anotamos en el canal
+// de salida en vez de suponer.
 
 const vscode = require('vscode');
 const fs = require('node:fs');
@@ -16,6 +23,28 @@ const path = require('node:path');
 
 const CLAVE_ESTADO = 'disfraz';
 const VERSION = 1;
+
+// Lo que el interruptor devuelve a fábrica: lo que se ve. El resto de la base
+// (confianza, actualizaciones, telemetría, zoom) es de ámbito de programa y
+// ninguna ventana puede cambiarlo por su cuenta.
+const CLAVES_VISIBLES = [
+  'window.title',
+  'window.commandCenter',
+  'window.menuBarVisibility',
+  'workbench.activityBar.location',
+  'workbench.statusBar.visible',
+  'workbench.editor.showTabs',
+  'workbench.layoutControl.enabled',
+  'workbench.colorTheme',
+  'workbench.colorCustomizations',
+  'breadcrumbs.enabled',
+  'editor.minimap.enabled',
+  'editor.lineNumbers',
+  'files.exclude',
+  'search.exclude',
+  'git.decorations.enabled',
+  'scm.diffDecorations',
+];
 
 function ajustes(contexto) {
   return JSON.parse(fs.readFileSync(path.join(contexto.extensionPath, 'media', 'disfraz.json'), 'utf8'));
@@ -25,7 +54,9 @@ function estado(contexto) {
   return contexto.globalState.get(CLAVE_ESTADO) || { version: 0, pendientes: null, quitado: false };
 }
 
-// Aplica lo que falte. Devuelve cuántas claves entraron y cuáles no pudieron.
+// ------------------------------------------------------------------- la base
+
+// Aplica lo que falte. Devuelve cuántas claves cambiaron y cuáles no pudieron.
 async function aplicar(contexto, salida, { forzar = false } = {}) {
   const antes = estado(contexto);
   if (antes.quitado && !forzar) return { primeraVez: false, aplicadas: 0, pendientes: [] };
@@ -56,7 +87,7 @@ async function aplicar(contexto, salida, { forzar = false } = {}) {
   return { primeraVez, aplicadas: cambiadas, pendientes };
 }
 
-// Modo avanzado: devuelve cada ajuste a su valor de fábrica.
+// Quita la base entera. Es la salida de emergencia, no el interruptor diario.
 async function quitar(contexto, salida) {
   const configuracion = vscode.workspace.getConfiguration();
   for (const clave of Object.keys(ajustes(contexto))) {
@@ -69,10 +100,75 @@ async function quitar(contexto, salida) {
   await contexto.globalState.update(CLAVE_ESTADO, { version: VERSION, pendientes: [], quitado: true });
 }
 
+// ------------------------------------------------ el interruptor, por ventana
+
+function hayCarpeta() {
+  const carpetas = vscode.workspace.workspaceFolders;
+  return Boolean(carpetas && carpetas.length);
+}
+
+// Esta ventana está en modo avanzado si alguna clave visible lleva una
+// anulación propia de la carpeta.
+function modoDeEstaVentana() {
+  const configuracion = vscode.workspace.getConfiguration();
+  const anulada = CLAVES_VISIBLES.some((clave) => {
+    const info = configuracion.inspect(clave);
+    return info?.workspaceValue !== undefined || info?.workspaceFolderValue !== undefined;
+  });
+  return anulada ? 'avanzado' : 'sencillo';
+}
+
+// Devuelve a fábrica lo que se ve, solo en esta ventana.
+async function verEditorCompleto(salida) {
+  if (!hayCarpeta()) {
+    return { ok: false, mensaje: 'Primero abre tu empresa; sin carpeta no puedo cambiar solo esta ventana.' };
+  }
+
+  const configuracion = vscode.workspace.getConfiguration();
+  const rechazadas = [];
+  for (const clave of CLAVES_VISIBLES) {
+    // El valor de fábrica lo dice VS Code; no lo adivinamos ni lo copiamos.
+    const porDefecto = configuracion.inspect(clave)?.defaultValue;
+    try {
+      await configuracion.update(clave, porDefecto, vscode.ConfigurationTarget.Workspace);
+    } catch (error) {
+      rechazadas.push(clave);
+      salida.appendLine(`[disfraz] ${clave} no admite ámbito de carpeta: ${error.message}`);
+    }
+  }
+
+  if (rechazadas.length === CLAVES_VISIBLES.length) {
+    return { ok: false, mensaje: 'No he podido cambiar solo esta ventana. Prueba con "Algo va mal".' };
+  }
+  return { ok: true, rechazadas, mensaje: 'Ya ves el editor completo en esta ventana. Las demás siguen igual.' };
+}
+
+// Borra esas anulaciones: la ventana vuelve a la base.
+async function volverAModoSencillo(salida) {
+  const configuracion = vscode.workspace.getConfiguration();
+  for (const clave of CLAVES_VISIBLES) {
+    try {
+      await configuracion.update(clave, undefined, vscode.ConfigurationTarget.Workspace);
+    } catch (error) {
+      salida.appendLine(`[disfraz] no he podido devolver ${clave}: ${error.message}`);
+    }
+  }
+  return { ok: true, mensaje: 'Vuelves al modo sencillo en esta ventana.' };
+}
+
 // Algunos ajustes (menú, centro de comandos) solo se ven tras reabrir.
 async function proponerReabrir(mensaje) {
   const eleccion = await vscode.window.showInformationMessage(mensaje, 'Hacerlo ahora', 'Más tarde');
   if (eleccion === 'Hacerlo ahora') await vscode.commands.executeCommand('workbench.action.reloadWindow');
 }
 
-module.exports = { aplicar, quitar, proponerReabrir, estado };
+module.exports = {
+  aplicar,
+  quitar,
+  verEditorCompleto,
+  volverAModoSencillo,
+  modoDeEstaVentana,
+  proponerReabrir,
+  estado,
+  CLAVES_VISIBLES,
+};

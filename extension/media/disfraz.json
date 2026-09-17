@@ -40,5 +40,36 @@
     "**/node_modules": true
   },
   "window.zoomLevel": 1,
-  "claudeCode.focusView": true
+  "claudeCode.focusView": true,
+  "workbench.colorCustomizations": {
+    "sideBar.background": "#f4eee6",
+    "sideBar.border": "#e5ddd2",
+    "sideBar.foreground": "#1a1a1a",
+    "sideBarSectionHeader.background": "#f4eee6",
+    "sideBarSectionHeader.border": "#e5ddd2",
+    "editor.background": "#ffffff",
+    "editorGroup.border": "#e5ddd2",
+    "editorGroupHeader.tabsBackground": "#f4eee6",
+    "panel.background": "#ffffff",
+    "panel.border": "#e5ddd2",
+    "titleBar.activeBackground": "#f4eee6",
+    "titleBar.activeForeground": "#0a0a0a",
+    "titleBar.inactiveBackground": "#e9e1d9",
+    "titleBar.border": "#e5ddd2",
+    "focusBorder": "#ec4429",
+    "button.background": "#e03014",
+    "button.foreground": "#ffffff",
+    "button.hoverBackground": "#ec4429",
+    "progressBar.background": "#ec4429",
+    "textLink.foreground": "#c72a10",
+    "textLink.activeForeground": "#e03014",
+    "list.activeSelectionBackground": "#e9e1d9",
+    "list.activeSelectionForeground": "#0a0a0a",
+    "list.hoverBackground": "#e9e1d9",
+    "input.background": "#ffffff",
+    "input.border": "#e5ddd2",
+    "quickInput.background": "#f4eee6",
+    "notifications.background": "#ffffff",
+    "notifications.border": "#e5ddd2"
+  }
 }

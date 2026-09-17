@@ -152,3 +152,81 @@ de desarrollo sin la app) pasa por `cmd.exe` a propósito.
 
 Efecto secundario bueno: la instalación no necesita red hacia npm. Solo hacia el marketplace de
 extensiones y hacia el login de Claude.
+
+---
+
+## 7. El panel no trae nada predefinido: refleja el arnés
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Con las palabras de Jose: *no predefinido, porque a lo mejor el arnés no es de facturas sino de
+contratos y recursos humanos*. De ahí sale la regla que gobierna toda la fase 2: **en el código no hay
+ni una herramienta, ni una tarea, ni un tema**. Todo lo que el alumno ve sale de leer lo que RSC tenga
+montado en esa carpeta:
+
+| Lo que lee el panel | De dónde |
+|---|---|
+| Las conexiones y sus claves | `01-TOOLS/<X>/.env.example`, `.env`, `CREDENTIALS.md` |
+| Lo que se puede hacer con cada una | La tabla de scripts del `README.md` de esa carpeta |
+| Los botones de "Qué quieres hacer" | `.claude/commands/*.md` con `boton:` en el frontmatter |
+| Los temas y lo que sabe | `02-DOCS/wiki/index.md` |
+| Qué aprendió y qué le falta | `02-DOCS/wiki/log.md`, `gaps.md` |
+
+Y la otra mitad de la decisión: **los botones crecen con el uso**. La habilidad `executive-lab` le
+dice a Claude que, cuando una tarea se repite, ofrezca crear un comando con `boton:`. Así una gestoría
+acaba con botones de facturación y una empresa de contratos con botones de contratos, sin que nadie
+toque el código.
+
+**Consecuencia incómoda, y asumida:** si Claude no rellena la tabla de scripts del README, esa
+conexión no tiene botones. La calidad del panel depende de lo que el asistente deje escrito. Por eso
+las tres reglas nuevas de la habilidad son tan concretas.
+
+## 8. Los scripts de una herramienta: modo mixto
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Un script que solo mira (`listar_`, `ver_`, `consultar_`, `comprobar_`, `mostrar_`) y cuyo ejemplo no
+lleva argumentos se ejecuta desde el botón y se enseña su salida. Cualquier otro se le pide al
+asistente, que pregunta lo que falte y pide permiso antes de tocar nada.
+
+Esperar a que el asistente te lea una lista es fricción que sobra; dejar que un botón cree una factura
+sin preguntar es un accidente esperando. **El verbo del nombre del fichero decide**, así que la
+habilidad le dice a Claude que los nombre con cuidado.
+
+## 9. El disfraz se apaga por ventana, no por instalación
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Jose lo pidió así: poder activarlo y desactivarlo en cada ventana. Se resuelve con los dos ámbitos de
+configuración de VS Code: la **base** vive en los ajustes de usuario, y *Ver el editor completo*
+escribe en el `.vscode/settings.json` de la carpeta abierta los **valores de fábrica** de lo que se ve
+—barra de actividad, barra de estado, pestañas, menú, ficheros ocultos, colores—. Volver al modo
+sencillo los borra.
+
+Los valores de fábrica no se copian a mano: se leen de `inspect(clave).defaultValue`, así que no
+envejecen cuando VS Code cambie alguno.
+
+**Lo que no se puede por ventana**, porque VS Code los declara de ámbito de programa: el zoom, la
+confianza del workspace, las actualizaciones y la telemetría. Se quedan en la base. El zoom es el
+único que se nota, y se nota poco.
+
+Como en modo avanzado nuestra barra puede no estar a la vista, la vuelta vive también en la barra de
+estado, que sí se ve.
+
+## 10. La marca de executivelab.ai, con una corrección de contraste
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Tipografías (Lato y DM Serif Display, ambas OFL) empaquetadas dentro de la extensión: la interfaz no
+pide nada a la red, así que funciona igual sin conexión o con el IT de la empresa bloqueando dominios.
+Paleta y radios tomados de la hoja de estilos de la web; el logotipo, recoloreado de blanco a tinta
+para fondo claro, y su asterisco final sirve de marca cuadrada para el icono.
+
+**La corrección:** blanco sobre el rojo de marca `#EC4429` da **3,87:1**, que pasa AA solo en texto
+grande. La web lo usa así en sus botones de 15 px. Para este público —gente que puede tener poca
+vista— no vale: el relleno de botón usa `#e03014`, un 12 % más oscuro, que da 4,56:1. El rojo de marca
+se queda en todo lo demás (bordes, foco, la marca, el hover del botón).
+
+También se marca la ventana entera con `workbench.colorCustomizations`, porque el marco del panel de
+Claude saca sus colores del tema: sin eso, la barra quedaba color Executive Lab y el resto gris de
+fábrica.

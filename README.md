@@ -29,11 +29,21 @@ resultados y razonamiento. Es la vista para no técnicos, ya construida.
 |---|---|
 | [instalador/](instalador/) | Un doble clic: Node, VS Code, extensiones, perfil, RSC y la carpeta de trabajo |
 | [perfil/](perfil/) | El disfraz para probar a mano; el de verdad lo aplica la extensión |
-| [extension/](extension/) | La barra lateral Executive Lab: brújula + seis botones grandes |
+| [extension/](extension/) | La barra lateral: brújula, herramientas, wiki y los botones que el arnés tenga |
 | [skills/](skills/) | Los raíles conversacionales sobre RSC (configuración, no código) |
 
 Y [docs/diccionario.md](docs/diccionario.md), que gobierna **todos** los textos: nada aparece en
 pantalla si no está ahí.
+
+## La regla que ordena el panel
+
+**No hay ni una herramienta, ni una tarea, ni un tema escritos en el código.** Todo lo que el alumno ve
+sale de leer lo que RSC tenga montado en su carpeta: las conexiones de `01-TOOLS/`, los comandos de
+`.claude/commands/` que lleven `boton:`, los temas de `02-DOCS/wiki/`. Y los botones crecen con el uso,
+porque la habilidad `executive-lab` le dice a Claude que cree uno cuando una tarea se repite.
+
+Una gestoría acaba con botones de facturación y una empresa de contratos con botones de contratos, sin
+que nadie toque el código.
 
 Las decisiones y lo que se descartó, con las pruebas, están en [docs/decisiones.md](docs/decisiones.md).
 
@@ -51,20 +61,23 @@ las veces que haga falta.
 ## Ver la interfaz aquí, en el Mac
 
 ```bash
-./demo.sh
+./demo.sh --con-datos
 ```
 
 Abre un VS Code **aislado** (sus propios ajustes y extensiones, dentro de `.demo/`, sin tocar los
 tuyos) con la extensión de Claude y la nuestra instaladas de verdad, sobre una empresa de mentira ya
 preparada con el arnés. Es lo que verá un alumno tras el instalador, disfraz incluido. La primera vez
-tarda un par de minutos; después abre al instante. `rm -rf .demo` para empezar de cero.
+tarda un par de minutos; después abre al instante. Con `--con-datos` siembra además una herramienta
+conectada, una wiki y documentos sin leer, para ver las pantallas con contenido. `rm -rf .demo` para
+empezar de cero.
 
 ## Comprobaciones
 
 ```bash
+cd extension && npm run probar       # 25 comprobaciones con un vscode de mentira
 node docs/comprobar-diccionario.js   # ningún texto de pantalla usa palabra prohibida
-node perfil/construir-perfil.js      # .code-profile para probar el disfraz a mano
 cd extension && npm run empaquetar   # valida el manifiesto y genera el .vsix
+node perfil/construir-perfil.js      # .code-profile para probar el disfraz a mano
 ```
 
 ## Estado

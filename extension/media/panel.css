@@ -1,60 +1,131 @@
 /* La barra lateral Executive Lab.
-   Pensada para alguien que puede tener poca soltura con el ordenador: texto
-   más grande que el de VS Code, botones altos, foco muy visible y ningún icono
-   sin su palabra al lado. */
+   Marca tomada de executivelab.ai: Lato y DM Serif Display, crema, tinta y
+   rojo. Pensada para alguien que puede tener poca soltura con el ordenador y
+   poca vista: texto grande, botones altos, foco muy visible y ningún icono sin
+   su palabra al lado. */
+
+@font-face {
+  font-family: 'Lato EL';
+  src: url('fuentes/lato-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lato EL';
+  src: url('fuentes/lato-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'DM Serif EL';
+  src: url('fuentes/dm-serif-display-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
 
 :root {
+  --crema: #f4eee6;
+  --crema-2: #e9e1d9;
+  --papel: #ffffff;
+  --tinta: #0a0a0a;
+  --tinta-texto: #1a1a1a;
+  --gris: #6b6b6b;      /* 4.62:1 sobre crema — AA */
+  --linea: #e5ddd2;
+  --rojo: #ec4429;      /* el de la marca: bordes, foco, la marca */
+  --rojo-fuerte: #e03014; /* relleno de botón: 4.56:1 con blanco — AA a 15 px */
+
+  --sans: 'Lato EL', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --serif: 'DM Serif EL', Georgia, 'Times New Roman', serif;
+
+  --fondo: var(--crema);
+  --superficie: var(--papel);
+  --texto: var(--tinta-texto);
+  --texto-fuerte: var(--tinta);
+  --apagado: var(--gris);
+  --borde: var(--linea);
+
   --alto-boton: 46px;
   --radio: 10px;
-  --hueco: 12px;
+  --radio-lg: 16px;
+  --hueco: 10px;
+  --sombra: 0 1px 2px rgba(0, 0, 0, .06);
+}
+
+/* Si el alumno ha pasado a modo avanzado con un tema oscuro, la marca se
+   queda en los acentos y las superficies las pone VS Code: mejor eso que una
+   isla color crema dentro de un editor negro. */
+body.vscode-dark, body.vscode-high-contrast {
+  --fondo: var(--vscode-sideBar-background);
+  --superficie: var(--vscode-editor-background);
+  --texto: var(--vscode-foreground);
+  --texto-fuerte: var(--vscode-foreground);
+  --apagado: var(--vscode-descriptionForeground, #9d9d9d);
+  --borde: var(--vscode-panel-border, rgba(255, 255, 255, .15));
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  padding: 16px 14px 24px;
-  font-family: var(--vscode-font-family);
+  padding: 14px 14px 24px;
+  font-family: var(--sans);
   font-size: 15px;
-  line-height: 1.5;
-  color: var(--vscode-foreground);
-  background: var(--vscode-sideBar-background);
+  line-height: 1.55;
+  color: var(--texto);
+  background: var(--fondo);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* La cabecera: el logotipo, y nada más. */
+.marca {
+  display: block;
+  width: 132px;
+  max-width: 62%;
+  height: auto;
+  margin: 2px 0 18px;
+}
+
+/* El título de la pantalla en la que estás. La etiqueta de sección (h2) es
+   otra cosa: va en mayúsculas diminutas y agrupa lo que viene debajo. */
+.titulo {
+  margin: 0 0 12px;
+  font-family: var(--serif);
+  font-size: 21px;
+  line-height: 1.2;
+  color: var(--texto-fuerte);
 }
 
 h2 {
-  margin: 0 0 4px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  margin: 0 0 8px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
   text-transform: uppercase;
-  opacity: 0.65;
+  color: var(--apagado);
 }
 
 /* La brújula: dónde estás y qué acabas de hacer. */
 .brujula {
-  padding: 14px;
-  margin-bottom: 20px;
-  border-radius: var(--radio);
-  background: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-panel-border, transparent);
+  padding: 15px 16px 16px;
+  margin-bottom: 22px;
+  border-radius: var(--radio-lg);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra);
 }
 
 .brujula .donde {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 6px 0 0;
+  margin: 2px 0 0;
+  font-family: var(--serif);
+  font-size: 23px;
+  line-height: 1.2;
+  color: var(--texto-fuerte);
 }
 
-.brujula .hiciste {
-  margin: 8px 0 0;
-  opacity: 0.75;
-}
+.brujula .hiciste { margin: 10px 0 0; color: var(--apagado); font-size: 14px; }
 
-.brujula .detalle {
-  margin: 10px 0 0;
-  font-size: 13px;
-  opacity: 0.6;
-}
+.brujula .detalle { margin: 10px 0 0; font-size: 12.5px; color: var(--apagado); }
 
 /* Botones. Todos del mismo tamaño para que ninguno parezca el peligroso. */
 button {
@@ -68,61 +139,74 @@ button {
   font-family: inherit;
   font-size: 15px;
   text-align: left;
-  color: var(--vscode-foreground);
-  background: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
   border-radius: var(--radio);
+  box-shadow: var(--sombra);
   cursor: pointer;
+  transition: transform .18s cubic-bezier(.22, 1, .36, 1), background .18s;
 }
 
-button:hover { background: var(--vscode-list-hoverBackground); }
+button:hover { background: var(--crema-2); transform: translateY(-1px); }
+body.vscode-dark button:hover { background: var(--vscode-list-hoverBackground); }
 
-button:focus-visible {
-  outline: 3px solid var(--vscode-focusBorder);
-  outline-offset: 2px;
-}
+button:focus-visible { outline: 3px solid var(--rojo); outline-offset: 2px; }
 
-button[disabled] { opacity: 0.45; cursor: default; }
+button[disabled] { opacity: .45; cursor: default; transform: none; }
 
 button.principal {
-  color: var(--vscode-button-foreground);
-  background: var(--vscode-button-background);
+  color: #fff;
+  background: var(--rojo-fuerte);
   border-color: transparent;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 2px rgba(0, 0, 0, .1), 0 8px 22px rgba(236, 68, 41, .28);
 }
 
-button.principal:hover { background: var(--vscode-button-hoverBackground); }
+button.principal:hover { background: var(--rojo); }
 
-button .icono { font-size: 18px; line-height: 1; }
+button .icono { flex: none; font-size: 17px; line-height: 1; }
 
-/* Formulario de conexiones. */
+button .texto { flex: 1; }
+
+/* Un botón discreto, para lo que no es la tarea de hoy. */
+button.discreto {
+  min-height: 38px;
+  font-size: 13.5px;
+  color: var(--apagado);
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+button.discreto:hover { background: var(--crema-2); color: var(--texto); }
+
+/* Formularios de conexiones. */
 .conexion {
-  padding: 12px;
+  padding: 13px 14px;
   margin-bottom: var(--hueco);
   border-radius: var(--radio);
-  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  background: var(--superficie);
+  border: 1px solid var(--borde);
 }
 
-.conexion .nombre { font-weight: 600; }
+.conexion .nombre { margin: 0; font-weight: 700; }
 
-.conexion .pista {
-  font-size: 13px;
-  opacity: 0.6;
-  margin: 2px 0 8px;
-}
+.conexion .pista { margin: 2px 0 9px; font-size: 13px; color: var(--apagado); }
 
 input[type="text"], input[type="password"] {
   width: 100%;
   min-height: 40px;
-  padding: 8px 10px;
+  padding: 8px 11px;
   margin-bottom: 8px;
   font-family: inherit;
   font-size: 15px;
-  color: var(--vscode-input-foreground);
-  background: var(--vscode-input-background);
-  border: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.4));
+  color: var(--texto);
+  background: var(--papel);
+  border: 1px solid var(--borde);
   border-radius: 8px;
 }
+body.vscode-dark input { background: var(--vscode-input-background); color: var(--vscode-input-foreground); }
+input:focus-visible { outline: 3px solid var(--rojo); outline-offset: 1px; }
 
 .fila { display: flex; gap: 8px; }
 .fila button { margin-bottom: 0; }
@@ -132,30 +216,50 @@ input[type="text"], input[type="password"] {
   padding: 12px 14px;
   margin-bottom: 16px;
   border-radius: var(--radio);
-  border-left: 4px solid var(--vscode-charts-green, #2ea043);
-  background: var(--vscode-editor-background);
+  border-left: 4px solid #2e7d32;
+  background: var(--superficie);
+  box-shadow: var(--sombra);
 }
 
-.aviso.malo { border-left-color: var(--vscode-charts-red, #f85149); }
+.aviso.malo { border-left-color: var(--rojo); }
 
 .codigo {
   display: block;
   margin: 12px 0;
-  padding: 14px;
-  font-family: var(--vscode-editor-font-family), monospace;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 0.22em;
+  padding: 16px;
+  font-family: var(--serif);
+  font-size: 30px;
+  letter-spacing: .2em;
   text-align: center;
+  color: var(--texto-fuerte);
   border-radius: var(--radio);
-  background: var(--vscode-textBlockQuote-background, rgba(128, 128, 128, 0.12));
+  background: var(--crema-2);
 }
+body.vscode-dark .codigo { background: var(--vscode-textBlockQuote-background, rgba(255, 255, 255, .08)); }
 
-.cargando { padding: 24px 0; text-align: center; opacity: 0.7; }
+.cargando { padding: 26px 0; text-align: center; color: var(--apagado); }
 
 .separador {
   height: 1px;
   margin: 20px 0 16px;
-  background: var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+  background: var(--borde);
   border: 0;
+}
+
+/* La salida de una cosita. Monoespaciada porque casi siempre es una lista o
+   una tabla, y con scroll propio para no empujar los botones fuera. */
+.salida {
+  max-height: 340px;
+  margin: 0 0 var(--hueco);
+  padding: 12px 14px;
+  overflow: auto;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
 }

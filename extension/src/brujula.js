@@ -1,20 +1,24 @@
-// La brújula: dónde estás, qué acabas de hacer, qué puedes hacer ahora.
+// La brújula: dónde estás, qué acabas de hacer, qué sabe ya de tu empresa.
 //
 // Decisión importante: esto NO se lee de la conversación de Claude. Se deriva
-// del disco — el checkpoint de RSC, la última copia de seguridad y lo que haya
-// en 02-DOCS. Así la barra lateral no depende de la interfaz de Anthropic y
-// sigue funcionando cuando ellos cambien su panel.
+// del disco — el checkpoint de RSC, el historial de la wiki, la última copia
+// de seguridad y lo que haya montado en el arnés. Así la barra lateral no
+// depende de la interfaz de Anthropic y sigue funcionando cuando ellos cambien
+// su panel.
 //
 // La skill `orient` de RSC hace lo mismo dentro de la conversación. Aquí se
 // repite fuera, en forma de pantalla, porque leer un párrafo y ver un botón no
 // cuestan lo mismo cuando no sabes qué estás haciendo.
+//
+// Los botones ya no están aquí: los descubre `acciones.js` de los comandos del
+// proyecto, porque el arnés de una gestoría no lleva los mismos que el de una
+// empresa de contratos.
 
-const fs = require('node:fs');
-const path = require('node:path');
 const proyecto = require('./proyecto');
 const rsc = require('./rsc');
 const guardar = require('./guardar');
 const conexiones = require('./conexiones');
+const cerebro = require('./cerebro');
 
 // Nombres del diccionario para las dos carpetas del arnés.
 const ZONAS = { '02-DOCS': 'Lo que sabe de tu empresa', '01-TOOLS': 'Conexiones' };
@@ -24,25 +28,8 @@ function humanizar(texto) {
   return limpio.charAt(0).toUpperCase() + limpio.slice(1);
 }
 
-function cuantoSabeDeTuEmpresa() {
-  const wiki = proyecto.ruta('02-DOCS', 'wiki');
-  if (!wiki || !fs.existsSync(wiki)) return 0;
-
-  let cuenta = 0;
-  const recorrer = (carpeta) => {
-    for (const entrada of fs.readdirSync(carpeta, { withFileTypes: true })) {
-      if (entrada.name.startsWith('.') || entrada.name === 'harness') continue;
-      const completa = path.join(carpeta, entrada.name);
-      if (entrada.isDirectory()) recorrer(completa);
-      else if (entrada.name.endsWith('.md') && entrada.name !== 'index.md') cuenta += 1;
-    }
-  };
-  try { recorrer(wiki); } catch { /* si no se puede leer, cero y a otra cosa */ }
-  return cuenta;
-}
-
-// Las rutas que tocó la última sesión, traducidas a zonas del diccionario.
-// Una ruta cruda no aparece nunca en pantalla.
+// Las rutas que tocó la última sesión, traducidas a zonas del diccionario. Una
+// ruta en crudo no aparece nunca en pantalla.
 function zonasTocadas(rutas) {
   const zonas = new Set();
   for (const ruta of rutas) {
@@ -73,19 +60,13 @@ function interpretar(continuacion) {
   }
   const rutas = campos.files && campos.files !== 'none' ? campos.files.split(', ') : [];
   const zonas = zonasTocadas(rutas);
-  return zonas.length ? zonas.slice(0, 2).join(' · ') : null;
+  if (!zonas.length) return null;
+
+  // Dos zonas informan más, pero en una barra estrecha y en serif grande se
+  // comen tres líneas y dejan de leerse. Si no cabe, una.
+  const dos = zonas.slice(0, 2).join(' · ');
+  return dos.length <= 42 ? dos : zonas[0];
 }
-
-const SUGERENCIAS_DE_ARRANQUE = [
-  { etiqueta: 'Cuéntale a qué se dedica tu empresa', prompt: 'Quiero que sepas a qué se dedica mi empresa. Pregúntame lo que necesites, de una pregunta en una pregunta.' },
-  { etiqueta: 'Conectar el correo', prompt: 'Quiero conectar mi correo para que puedas trabajar con él. Guíame paso a paso.' },
-  { etiqueta: 'Organizar mis facturas', prompt: 'Quiero organizar las facturas de mi empresa. Empieza preguntándome cómo las llevo ahora.' },
-];
-
-const SUGERENCIAS_HABITUALES = [
-  { etiqueta: 'Seguir donde lo dejé', prompt: 'Recuérdame en qué estábamos y sigamos por donde lo dejamos.' },
-  { etiqueta: 'Enseñarle algo nuevo', prompt: 'Quiero que aprendas a hacer algo nuevo para mi empresa. Pregúntame qué necesito y propón cómo hacerlo.' },
-];
 
 // Calcular el estado lanza procesos; no hace falta repetirlo cada vez que la
 // barra parpadea. Veinte segundos de memoria bastan.
@@ -98,9 +79,22 @@ async function estado({ fresco = false } = {}) {
   return calculado;
 }
 
+const olvidar = () => { ultimo = { cuando: 0, estado: null }; };
+
 async function calcular() {
   if (!proyecto.raiz()) {
-    return { listo: false, donde: 'No encuentro tu empresa', hiciste: null, aviso: 'No hay ninguna carpeta de trabajo abierta.', siguiente: [] };
+    return { listo: false, donde: 'No encuentro tu empresa', hiciste: null, aviso: 'No hay ninguna carpeta de trabajo abierta.' };
+  }
+
+  // Carpeta sin arnés: no está rota, es que aún no se ha montado.
+  if (!proyecto.existe('.rsc.json')) {
+    return {
+      listo: false,
+      sinArnes: true,
+      donde: 'Aquí todavía no hay nada',
+      hiciste: null,
+      aviso: 'Puedo montar tu empresa en esta carpeta. Tarda unos minutos y te pregunto una sola cosa.',
+    };
   }
 
   if (!proyecto.arnesCompleto()) {
@@ -109,23 +103,27 @@ async function calcular() {
       donde: 'Tu espacio está a medio preparar',
       hiciste: null,
       aviso: 'Falta parte de la preparación inicial. Pulsa "Algo va mal" y lo dejo listo.',
-      siguiente: [],
     };
   }
 
   const [continuacion, copias] = await Promise.all([rsc.retomar(), guardar.copias(1)]);
-  const sabe = cuantoSabeDeTuEmpresa();
+  const [ultimoAprendido] = cerebro.aprendidoUltimamente(1);
+  const sabe = cerebro.cuantoSabe();
   const conectados = conexiones.proveedores().length;
-  const arrancando = conectados === 0 && sabe === 0;
+  const esperando = cerebro.esperandoLectura();
+
+  const hiciste = ultimoAprendido
+    ? `Aprendió sobre ${ultimoAprendido.titulo}`
+    : (copias.length ? `Guardaste una copia ${guardar.haceCuanto(copias[0].cuando)}` : null);
 
   return {
     listo: true,
-    donde: interpretar(continuacion) || (arrancando ? 'Acabas de empezar' : 'Tu empresa'),
-    hiciste: copias.length ? `Guardaste una copia ${guardar.haceCuanto(copias[0].cuando)}` : null,
+    donde: interpretar(continuacion) || (conectados === 0 && sabe === 0 ? 'Acabas de empezar' : 'Tu empresa'),
+    hiciste,
     sabe,
     conectados,
-    siguiente: arrancando ? SUGERENCIAS_DE_ARRANQUE : SUGERENCIAS_HABITUALES,
+    esperando,
   };
 }
 
-module.exports = { estado, interpretar, zonasTocadas };
+module.exports = { estado, olvidar, interpretar, zonasTocadas };

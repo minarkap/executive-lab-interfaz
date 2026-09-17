@@ -26,6 +26,21 @@ jerga por goteo.
 | agente / modelo / LLM | El asistente |
 | error / excepción / stack trace | Algo va mal |
 | log / diagnóstico | Informe para tu tutor |
+| `01-TOOLS/` | Mis conexiones |
+| una carpeta de `01-TOOLS/` | Una conexión |
+| los scripts de una herramienta | Qué puedes hacer con esto |
+| `.claude/commands/` con `boton:` | Qué quieres hacer |
+| `02-DOCS/wiki/` | Lo que sabe de tu empresa |
+| un tema de la wiki | Un tema |
+| un artículo de la wiki | Una cosa que sabe |
+| `02-DOCS/wiki/log.md` | Qué ha aprendido últimamente |
+| `02-DOCS/wiki/gaps.md` | Lo que aún no sabe |
+| `02-DOCS/inbox/` | Darle documentos |
+| `02-DOCS/inbox/_processed/` | Documentos que ya ha leído |
+| `02-DOCS/wiki/dashboard.html` | El panel completo |
+| `rsc onboard` en una carpeta nueva | Empezar una empresa aquí |
+| quitar el disfraz en esta ventana | Ver el editor completo |
+| poner el disfraz en esta ventana | Volver al modo sencillo |
 
 ## Palabras prohibidas
 
@@ -39,8 +54,10 @@ Dos matices:
 
 - **"Claude"** sí se puede nombrar (es el asistente con el que hablan). **"Claude Code"** no: Anthropic
   prohíbe expresamente que un producto de terceros se presente con ese nombre.
-- **"Archivo"** y **"carpeta"** sí se pueden usar. Son vocabulario de ofimática, no de programación:
-  cualquiera que haya usado Windows los entiende.
+- **"Archivo"**, **"documento"** y **"carpeta"** sí se pueden usar. Son vocabulario de ofimática, no
+  de programación: cualquiera que haya usado Windows los entiende.
+- **"El editor"** se puede nombrar en los dos botones del interruptor, porque hay que decir de algún
+  modo qué aparece y qué desaparece. **"VS Code"** no.
 
 ## Cómo se escriben los mensajes
 
@@ -52,3 +69,12 @@ Dos matices:
    caracteres que pueda dictar por teléfono.
 5. **Ninguna pregunta sin opciones.** Un campo de texto vacío ante alguien que no sabe qué escribir es
    una pared. Siempre hay ejemplos clicables.
+
+## Nada predefinido
+
+Las palabras de arriba nombran **sitios**, no contenidos. Lo que se enseña dentro de cada sitio sale
+de lo que el arnés tenga montado en esa empresa: sus conexiones, sus botones, sus temas.
+
+No hay una lista de herramientas ni de tareas en el código. Una gestoría verá facturación y bancos;
+una empresa de contratos verá plantillas y firmas. Si alguna vez hace falta escribir en la interfaz
+el nombre de una herramienta concreta, es que algo se ha hecho mal.

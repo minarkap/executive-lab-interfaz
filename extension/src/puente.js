@@ -22,6 +22,7 @@ const ENVIO_INTERNO = 'claude-vscode.editor.open';
 // Y el enlace profundo que la propia extensión registra (handleUri → /open,
 // parámetros session y prompt). Tampoco documentado; segundo intento.
 const ENLACE_ABRIR = 'vscode://anthropic.claude-code/open';
+const EXTENSION_DE_CLAUDE = 'anthropic.claude-code';
 
 // Estos sí están documentados. Primero se abre el chat, luego se enfoca la caja.
 const CANDIDATOS_ABRIR = ['claude-vscode.editor.openLast', 'claude-vscode.sidebar.open'];
@@ -68,11 +69,16 @@ async function enviar(texto) {
     }
   }
 
-  try {
-    const abierto = await vscode.env.openExternal(vscode.Uri.parse(`${ENLACE_ABRIR}?prompt=${encodeURIComponent(texto)}`));
-    if (abierto) return 'directo';
-  } catch {
-    /* sin enlace: plan B */
+  // openExternal dice que sí en cuanto entrega la URI, sin comprobar si alguien
+  // la recoge. Así que primero se mira que la extensión que la registra esté
+  // instalada; si no, el enlace se tragaría el mensaje en silencio.
+  if (vscode.extensions.getExtension(EXTENSION_DE_CLAUDE)) {
+    try {
+      const abierto = await vscode.env.openExternal(vscode.Uri.parse(`${ENLACE_ABRIR}?prompt=${encodeURIComponent(texto)}`));
+      if (abierto) return 'directo';
+    } catch {
+      /* sin enlace: plan B */
+    }
   }
 
   await vscode.env.clipboard.writeText(texto);
@@ -98,6 +104,7 @@ async function diagnostico(salida) {
   salida.appendLine(`Puente de envío: ${(await primeroDisponible([ENVIO_INTERNO])) ? `${ENVIO_INTERNO} (argumento interno initialPrompt)` : 'NINGUNO — se usará el portapapeles'}`);
   salida.appendLine(`Puente de foco:  ${(await primeroDisponible(CANDIDATOS_FOCO)) || 'NINGUNO'}`);
   salida.appendLine(`Puente de abrir: ${(await primeroDisponible(CANDIDATOS_ABRIR)) || 'NINGUNO'}`);
+  salida.appendLine(`Enlace profundo: ${vscode.extensions.getExtension(EXTENSION_DE_CLAUDE) ? ENLACE_ABRIR : 'NO (la extensión de Claude no está instalada)'}`); // diccionario: interno
   salida.show(true);
 }
 
