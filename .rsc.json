@@ -1,0 +1,398 @@
+{
+  "version": 1,
+  "targets": [
+    "claude"
+  ],
+  "skills": [
+    "bro",
+    "eli5",
+    "harness",
+    "init",
+    "orient",
+    "show-me",
+    "suggest",
+    "unslop"
+  ],
+  "agents": [],
+  "ownSkills": [],
+  "catalogVersion": "1.4.1",
+  "tier": null,
+  "optOuts": [
+    "context7"
+  ],
+  "onboarding": {
+    "schemaVersion": 1,
+    "acceptedPlanId": "434ebdda2d12e72195a3b0a9ba0e57e6171e56ae1f19bc4f89d93223d9ae36a3",
+    "acceptedAt": "2026-09-17T08:35:52.388Z",
+    "plan": {
+      "schemaVersion": 1,
+      "record": {
+        "schemaVersion": 1,
+        "technicalLevel": "technical",
+        "accompaniment": "L1",
+        "projectKind": "software",
+        "goal": "Interfaz sin fricción sobre el arnés RSC para alumnos no técnicos de Executive Lab: extensión de VS Code con brújula y botones, perfil que disfraza el editor, instalador sin administrador para Windows y macOS, y skills que fijan español y vocabulario de negocio",
+        "softwareScope": "small",
+        "targets": [
+          "claude"
+        ]
+      },
+      "evidence": {
+        "schemaVersion": 1,
+        "signals": [
+          "manifest:package.json",
+          "markdown:14"
+        ],
+        "stacks": [
+          "node"
+        ],
+        "complexitySignals": [],
+        "sourceFileCount": 14,
+        "parentHarness": null
+      },
+      "decisions": [
+        {
+          "kind": "agent",
+          "id": "base-agents",
+          "state": "deferred",
+          "reason": "No substantial software implementation is planned.",
+          "provenance": "proportionality-policy",
+          "reevaluateWhen": [
+            "substantial software implementation is introduced"
+          ],
+          "triggerRules": [
+            {
+              "type": "source-growth",
+              "atLeast": 5
+            },
+            {
+              "type": "complexity-added",
+              "atLeast": 1
+            },
+            {
+              "type": "manifest-with-implementation"
+            }
+          ]
+        },
+        {
+          "kind": "capability",
+          "id": "memory",
+          "state": "selected",
+          "reason": "Local bounded project memory supports continuity without an external account.",
+          "provenance": "declared-intent",
+          "reevaluateWhen": []
+        },
+        {
+          "kind": "guard",
+          "id": "gitmoji-guard",
+          "state": "deferred",
+          "reason": "No selected target and project policy justify this Claude-only commit guard.",
+          "provenance": "proportionality-policy",
+          "reevaluateWhen": [
+            "Claude Code is selected and a governed software workflow adopts the convention"
+          ],
+          "triggerRules": [
+            {
+              "type": "software-trigger-and-claude"
+            }
+          ]
+        },
+        {
+          "kind": "hook",
+          "id": "code-hooks",
+          "state": "deferred",
+          "reason": "Code-only gates would add unrelated behavior to this project.",
+          "provenance": "proportionality-policy",
+          "reevaluateWhen": [
+            "a substantial software workflow is accepted"
+          ],
+          "triggerRules": [
+            {
+              "type": "source-growth",
+              "atLeast": 5
+            },
+            {
+              "type": "complexity-added",
+              "atLeast": 1
+            },
+            {
+              "type": "manifest-with-implementation"
+            }
+          ]
+        },
+        {
+          "kind": "integration",
+          "id": "context7",
+          "state": "excluded",
+          "reason": "External MCP connections require a separate, provider-specific consent flow and are outside this local harness plan.",
+          "provenance": "separate-consent-boundary",
+          "reevaluateWhen": [],
+          "triggerRules": []
+        },
+        {
+          "kind": "route",
+          "id": "harness-documents",
+          "state": "selected",
+          "reason": "The accepted profile and plan are persisted under 02-DOCS/wiki/harness/.",
+          "provenance": "declared-intent",
+          "reevaluateWhen": []
+        },
+        {
+          "kind": "skill",
+          "id": "bro",
+          "state": "selected",
+          "reason": "Included in the lightweight foundation for this software project.",
+          "provenance": "declared-intent",
+          "reevaluateWhen": []
+        },
+        {
+          "kind": "skill",
+          "id": "eli5",
+          "state": "selected",
+          "reason": "Included in the lightweight foundation for this software project.",
+          "provenance": "declared-intent",
+          "reevaluateWhen": []
+        },
+        {
+          "kind": "skill",
+          "id": "harness",
+          "state": "selected",
+          "reason": "Included in the lightweight foundation for this software project.",
+          "provenance": "declared-intent",
+          "reevaluateWhen": []
+        },
+        {
+          "kind": "skill",
+          "id": "init",
+          "state": "selected",
+          "reason": "Included in the lightweight foundation for this software project.",
+          "provenance": "declared-intent",
+          "reevaluateWhen": []
+        },
+        {
+          "kind": "skill",
+          "id": "orient",
+          "state": "selected",
+          "reason": "Included in the lightweight foundation for this software project.",
+          "provenance": "declared-intent",
+          "reevaluateWhen": []
+        },
+        {
+          "kind": "skill",
+          "id": "show-me",
+          "state": "selected",
+          "reason": "Included in the lightweight foundation for this software project.",
+          "provenance": "declared-intent",
+          "reevaluateWhen": []
+        },
+        {
+          "kind": "skill",
+          "id": "suggest",
+          "state": "selected",
+          "reason": "Included in the lightweight foundation for this software project.",
+          "provenance": "declared-intent",
+          "reevaluateWhen": []
+        },
+        {
+          "kind": "skill",
+          "id": "unslop",
+          "state": "selected",
+          "reason": "Included in the lightweight foundation for this software project.",
+          "provenance": "declared-intent",
+          "reevaluateWhen": []
+        },
+        {
+          "kind": "workflow",
+          "id": "sdd",
+          "state": "deferred",
+          "reason": "The software scope is small, so specification overhead is not justified yet.",
+          "provenance": "proportionality-policy",
+          "reevaluateWhen": [
+            "multiple related features",
+            "authentication or persistence",
+            "external integrations",
+            "cross-cutting changes"
+          ],
+          "triggerRules": [
+            {
+              "type": "source-growth",
+              "atLeast": 5
+            },
+            {
+              "type": "complexity-added",
+              "atLeast": 1
+            },
+            {
+              "type": "manifest-with-implementation"
+            }
+          ]
+        }
+      ],
+      "policy": {
+        "skills": [
+          "bro",
+          "eli5",
+          "harness",
+          "init",
+          "orient",
+          "show-me",
+          "suggest",
+          "unslop"
+        ],
+        "targets": [
+          "claude"
+        ],
+        "baseAgents": false,
+        "agents": [],
+        "alwaysOn": true,
+        "codeHooks": false,
+        "gitmojiGuard": false,
+        "memory": true,
+        "context7": false
+      },
+      "governedPaths": [
+        ".claude/commands/checkpoint.md",
+        ".claude/commands/learn.md",
+        ".claude/commands/resume-session.md",
+        ".claude/commands/save-session.md",
+        ".claude/rsc-bootstrap.mjs",
+        ".claude/settings.json",
+        ".claude/settings.local.json",
+        ".claude/skills/.rsc-state.json",
+        ".claude/skills/bro",
+        ".claude/skills/eli5",
+        ".claude/skills/harness",
+        ".claude/skills/init",
+        ".claude/skills/orient",
+        ".claude/skills/show-me",
+        ".claude/skills/suggest",
+        ".claude/skills/unslop",
+        ".rsc.json",
+        ".rsc/.base-versions.json",
+        ".rsc/.no-context7",
+        ".rsc/.version",
+        ".rsc/backups/",
+        ".rsc/hook-once.mjs",
+        ".rsc/session-memory-adapter.mjs",
+        ".rsc/session-memory-core.mjs",
+        ".rsc/session-memory.mjs",
+        ".rsc/session-start.mjs",
+        ".rsc/skills/bro",
+        ".rsc/skills/eli5",
+        ".rsc/skills/harness",
+        ".rsc/skills/init",
+        ".rsc/skills/orient",
+        ".rsc/skills/show-me",
+        ".rsc/skills/suggest",
+        ".rsc/skills/unslop",
+        ".rsc/suggest-always-on.md",
+        ".rsc/worklog-checkpoint.mjs",
+        ".rsc/worktree-reaper.mjs",
+        "02-DOCS/wiki/harness/decisions.md",
+        "02-DOCS/wiki/harness/installation-plan.md",
+        "02-DOCS/wiki/harness/user-profile.md"
+      ],
+      "floorPaths": [
+        "01-TOOLS/_TEMPLATE/",
+        "02-DOCS/wiki/harness/"
+      ]
+    },
+    "provenance": {
+      "skills": {
+        "bro": "installed",
+        "eli5": "installed",
+        "harness": "installed",
+        "init": "installed",
+        "orient": "installed",
+        "show-me": "installed",
+        "suggest": "installed",
+        "unslop": "installed"
+      },
+      "targets": {
+        "claude": "installed"
+      },
+      "paths": {
+        ".claude/commands/checkpoint.md": "installed",
+        ".claude/commands/learn.md": "installed",
+        ".claude/commands/resume-session.md": "installed",
+        ".claude/commands/save-session.md": "installed",
+        ".claude/rsc-bootstrap.mjs": "installed",
+        ".claude/settings.json": "installed",
+        ".claude/settings.local.json": "installed",
+        ".claude/skills/.rsc-state.json": "installed",
+        ".claude/skills/bro": "installed",
+        ".claude/skills/eli5": "installed",
+        ".claude/skills/harness": "installed",
+        ".claude/skills/init": "installed",
+        ".claude/skills/orient": "installed",
+        ".claude/skills/show-me": "installed",
+        ".claude/skills/suggest": "installed",
+        ".claude/skills/unslop": "installed",
+        ".rsc.json": "installed",
+        ".rsc/.base-versions.json": "installed",
+        ".rsc/.no-context7": "installed",
+        ".rsc/.version": "installed",
+        ".rsc/backups/": "preexisting",
+        ".rsc/hook-once.mjs": "installed",
+        ".rsc/session-memory-adapter.mjs": "installed",
+        ".rsc/session-memory-core.mjs": "installed",
+        ".rsc/session-memory.mjs": "installed",
+        ".rsc/session-start.mjs": "installed",
+        ".rsc/skills/bro": "installed",
+        ".rsc/skills/eli5": "installed",
+        ".rsc/skills/harness": "installed",
+        ".rsc/skills/init": "installed",
+        ".rsc/skills/orient": "installed",
+        ".rsc/skills/show-me": "installed",
+        ".rsc/skills/suggest": "installed",
+        ".rsc/skills/unslop": "installed",
+        ".rsc/suggest-always-on.md": "installed",
+        ".rsc/worklog-checkpoint.mjs": "installed",
+        ".rsc/worktree-reaper.mjs": "installed",
+        "02-DOCS/wiki/harness/decisions.md": "installed",
+        "02-DOCS/wiki/harness/installation-plan.md": "installed",
+        "02-DOCS/wiki/harness/user-profile.md": "installed"
+      }
+    },
+    "artifactDigests": {
+      ".claude/commands/checkpoint.md": "3709d39e46dbc67d4178356c1f586998ebd15b2264926a07377c19c86f695271",
+      ".claude/commands/learn.md": "b6e2f72d92cb1dabba437dd35544e4db4b3c33b3396aa50345c41d8cfb24af32",
+      ".claude/commands/resume-session.md": "d03750a36f0b2eaac2782b4f356f0b48757fbcf96b31d2ad22f62d8db75212a2",
+      ".claude/commands/save-session.md": "bccff1405b115834208ae96f4db935e94885ad4b008c2f71d925755932668a7b",
+      ".claude/rsc-bootstrap.mjs": "b572dd9732f143d942ac9e14329d76e7c241369aea5aca991a153327e0fd53b6",
+      ".claude/settings.json": "c6a8f3ba30da35eef6b7d6cf83f25d3230b6e3837752110eedaa956d11da92b3",
+      ".claude/settings.local.json": "83c68ca9ce97003ad16addb32d6ebd53784a3adb05f6958e8272d1b67c0cb917",
+      ".claude/skills/.rsc-state.json": "4c56f6630613365aeb8c8f621240b309ec6d9630b95437ee2df1dd3e4781f59b",
+      ".claude/skills/bro": "da7332949972c99e34c60cb8b7ee0f7c8581beaa7ddd8b807d6ab26f1e244e58",
+      ".claude/skills/eli5": "736f70a7ac1482013661bb6e7523bd5e00e663a883c92791bf4adc2556499355",
+      ".claude/skills/harness": "218303d28ca62b47411056e5af6ce53f90c4b1a6b25dc462d73e55ea08ca6979",
+      ".claude/skills/init": "2687e81a994f0f194df63685d62dd0a6fda6e8a80ac4d09220480180a2c5940f",
+      ".claude/skills/orient": "a3afb2e50a7fcadec4808b621f699fa6ca4333c277a11f85ddad2cd849379415",
+      ".claude/skills/show-me": "ca3bafbb07046011d884a0ef100cafe623f9abc3cfdec49c8b1709fc1a2911bc",
+      ".claude/skills/suggest": "c6f26c7085e9ec178460d8bc81ff0567351534597e857292485977963b00cf0e",
+      ".claude/skills/unslop": "1e545b565cd4250d15dd60961763bee80a8a986521de4415fdf9b44e5981820f",
+      ".rsc/.base-versions.json": "8f41d34dd76b16b4b790a7fbff4d73aaa44741b945340b16cb4e1c30e3f621a0",
+      ".rsc/.no-context7": "f5486b5171bbf8c7ea1ea564faf743d8938e0be83436dacbd522ab68eaa41264",
+      ".rsc/.version": "7d072b48526b023950e4c48db01e8c273554a6401119f5691e7589ba9bc65d9d",
+      ".rsc/hook-once.mjs": "22c46275c014a6c99112219e0c5e14de8f9ad112d9a5ce1a790719b6d23bf8ed",
+      ".rsc/session-memory-adapter.mjs": "1ee535bbe14b93a2f6b4852849f8c6e7ddb1430b5d8bf23af6f0e2cd26ef5e3f",
+      ".rsc/session-memory-core.mjs": "b57e4582729b9bd99e42f9aae17b22f63b3f22061e21ee17044265bf7aef6be1",
+      ".rsc/session-memory.mjs": "a796c46f381fa2b3fb41788e6452e81903e2a08d87467fb609d94ba09af014a4",
+      ".rsc/session-start.mjs": "dd38494cb4b1924bba4a868311e56d825b6f3e7e804e2b8bbbc37a7110636bde",
+      ".rsc/skills/bro": "ab335e13f03a977849a37320c978cd8c84b7e5732f24d3e7ecdd1572378eff23",
+      ".rsc/skills/eli5": "9a30b4b2eb70a54462914fc00130fa750b6300e13977df10ba0439780896c2d3",
+      ".rsc/skills/harness": "add33cccd9b7c8539bdd9b85f9786a8f5783454b2dd95abd12bb776933b72ce7",
+      ".rsc/skills/init": "1a425334fdf69d2ae463d044f5cf6e2a17e862a57f182543111f9fa629e21e8b",
+      ".rsc/skills/orient": "fd4b8f553713a07c44f7a1bc100ee8bb0409145ae7bbf9dbf73672d9a04cbc38",
+      ".rsc/skills/show-me": "4ecef218a2452a61d7b50c91aa08055e5ba728c0660fd18ea846659f0c73f857",
+      ".rsc/skills/suggest": "9b65753a74a730b6cde3f907096c3fcce3d08b2b1675aaae1f84390977bdec4f",
+      ".rsc/skills/unslop": "c78e5ee0a12d4affc93bebf0866cbef5d526118c375cc8d638bcbab56d68419b",
+      ".rsc/suggest-always-on.md": "ceebcff315f4b0dca9b2bb734f97356118afbf78dd1314e866920eb18e7b392f",
+      ".rsc/worklog-checkpoint.mjs": "a2bf2d97adb0a2e3b0dc1a288325ea6c3425778492dc68332c7824f8837986c6",
+      ".rsc/worktree-reaper.mjs": "07c5c66e31585e737667b21fa91404712f16a9f32dda4c3760c2b1c297b474ec",
+      "02-DOCS/wiki/harness/decisions.md": "11e814f7c765b35c6f27c77d0c171cb0d073229eb2fe8618847b38cce2fd23fb",
+      "02-DOCS/wiki/harness/installation-plan.md": "381a4a84b33dc9be977b127fb11177fd483a48088d7b87514903673636d7de8f",
+      "02-DOCS/wiki/harness/user-profile.md": "5b0369e368c27dd6fa4fd99f40605f84978bb89b0fb63a31ce58fe64e2065dac"
+    }
+  }
+}

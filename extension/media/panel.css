@@ -1,0 +1,161 @@
+/* La barra lateral Executive Lab.
+   Pensada para alguien que puede tener poca soltura con el ordenador: texto
+   más grande que el de VS Code, botones altos, foco muy visible y ningún icono
+   sin su palabra al lado. */
+
+:root {
+  --alto-boton: 46px;
+  --radio: 10px;
+  --hueco: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 16px 14px 24px;
+  font-family: var(--vscode-font-family);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--vscode-foreground);
+  background: var(--vscode-sideBar-background);
+}
+
+h2 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+/* La brújula: dónde estás y qué acabas de hacer. */
+.brujula {
+  padding: 14px;
+  margin-bottom: 20px;
+  border-radius: var(--radio);
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border, transparent);
+}
+
+.brujula .donde {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 6px 0 0;
+}
+
+.brujula .hiciste {
+  margin: 8px 0 0;
+  opacity: 0.75;
+}
+
+.brujula .detalle {
+  margin: 10px 0 0;
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+/* Botones. Todos del mismo tamaño para que ninguno parezca el peligroso. */
+button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--alto-boton);
+  margin-bottom: var(--hueco);
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  text-align: left;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  border-radius: var(--radio);
+  cursor: pointer;
+}
+
+button:hover { background: var(--vscode-list-hoverBackground); }
+
+button:focus-visible {
+  outline: 3px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+button[disabled] { opacity: 0.45; cursor: default; }
+
+button.principal {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+button.principal:hover { background: var(--vscode-button-hoverBackground); }
+
+button .icono { font-size: 18px; line-height: 1; }
+
+/* Formulario de conexiones. */
+.conexion {
+  padding: 12px;
+  margin-bottom: var(--hueco);
+  border-radius: var(--radio);
+  border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+}
+
+.conexion .nombre { font-weight: 600; }
+
+.conexion .pista {
+  font-size: 13px;
+  opacity: 0.6;
+  margin: 2px 0 8px;
+}
+
+input[type="text"], input[type="password"] {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, rgba(128, 128, 128, 0.4));
+  border-radius: 8px;
+}
+
+.fila { display: flex; gap: 8px; }
+.fila button { margin-bottom: 0; }
+
+/* Avisos. El color nunca va solo: siempre acompaña a una palabra. */
+.aviso {
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: var(--radio);
+  border-left: 4px solid var(--vscode-charts-green, #2ea043);
+  background: var(--vscode-editor-background);
+}
+
+.aviso.malo { border-left-color: var(--vscode-charts-red, #f85149); }
+
+.codigo {
+  display: block;
+  margin: 12px 0;
+  padding: 14px;
+  font-family: var(--vscode-editor-font-family), monospace;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-align: center;
+  border-radius: var(--radio);
+  background: var(--vscode-textBlockQuote-background, rgba(128, 128, 128, 0.12));
+}
+
+.cargando { padding: 24px 0; text-align: center; opacity: 0.7; }
+
+.separador {
+  height: 1px;
+  margin: 20px 0 16px;
+  background: var(--vscode-panel-border, rgba(128, 128, 128, 0.25));
+  border: 0;
+}

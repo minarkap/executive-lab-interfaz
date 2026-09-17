@@ -1,0 +1,88 @@
+{
+  "name": "panel",
+  "displayName": "Executive Lab",
+  "description": "La barra lateral de Executive Lab: la brújula y los seis botones.",
+  "publisher": "executivelab",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.98.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./src/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "executiveLab",
+          "title": "Mi Empresa",
+          "icon": "media/icono.svg"
+        }
+      ]
+    },
+    "views": {
+      "executiveLab": [
+        {
+          "id": "executiveLab.panel",
+          "name": "¿Qué quieres hacer?",
+          "type": "webview",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "executiveLab.seguir",
+        "title": "Executive Lab: Seguir donde lo dejé"
+      },
+      {
+        "command": "executiveLab.empezar",
+        "title": "Executive Lab: Empezar algo nuevo"
+      },
+      {
+        "command": "executiveLab.conexiones",
+        "title": "Executive Lab: Mis conexiones"
+      },
+      {
+        "command": "executiveLab.guardar",
+        "title": "Executive Lab: Guardar copia de seguridad"
+      },
+      {
+        "command": "executiveLab.algoVaMal",
+        "title": "Executive Lab: Algo va mal"
+      },
+      {
+        "command": "executiveLab.refrescar",
+        "title": "Executive Lab: Actualizar la brújula"
+      },
+      {
+        "command": "executiveLab.modoAvanzado",
+        "title": "Executive Lab: Modo avanzado (ver el editor completo)"
+      },
+      {
+        "command": "executiveLab.modoSencillo",
+        "title": "Executive Lab: Volver al modo sencillo"
+      },
+      {
+        "command": "executiveLab.diagnosticoPuente",
+        "title": "Executive Lab: Qué comandos de Claude hay disponibles"
+      }
+    ]
+  },
+  "scripts": {
+    "empaquetar": "npx --yes @vscode/vsce package --out executive-lab.vsix --allow-missing-repository --skip-license"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "La barra lateral solo ejecuta cosas cuando el alumno pulsa un botón. El disfraz desactiva la confianza del workspace, así que esto solo importa en el primer arranque."
+    },
+    "virtualWorkspaces": false
+  }
+}

@@ -1,0 +1,21 @@
+# Binarios de terceros que monta el instalador. No se versionan: pesan y no son
+# nuestros. instalador/README.md dice de dónde sale cada uno.
+instalador/*/carga/
+instalador/mac/*.pkg
+instalador/windows/Output/
+
+# Se generan
+perfil/executive-lab.code-profile
+extension/*.vsix
+node_modules/
+
+# Lo que RSC pide no versionar. Lo habría añadido él, pero esta carpeta no era
+# un repo git cuando se instaló. Se versionan .rsc.json, .claude/settings.json
+# y .claude/rsc-bootstrap.mjs; el resto es estado de máquina.
+.rsc/
+.claude/skills/
+.claude/settings.local.json
+02-DOCS/raw/worklog/.rsc-memory/
+
+# VS Code aislado para ver la demo sin tocar la configuración real
+.demo/
