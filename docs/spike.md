@@ -43,6 +43,10 @@ dejarlo en el vídeo de bienvenida como único paso manual.
 
 ---
 
+> **Las preguntas 3, 4 y 6 se comprueban solas.** Copia `instalador/windows/` con el `.exe` a la
+> máquina de pruebas y ejecuta `powershell -ExecutionPolicy Bypass -File probar.ps1`. Detalle y dónde
+> conseguir un Windows: [instalador/windows/COMO-PROBARLO.md](../instalador/windows/COMO-PROBARLO.md).
+
 ## 3. ⚠️ ¿`rsc onboard` no interactivo corre limpio en Windows sobre carpeta vacía?
 
 **Por qué importa:** es el paso central de `preparar.js`. Si falla ahí, el alumno se queda con una
