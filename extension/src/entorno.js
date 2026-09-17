@@ -41,13 +41,26 @@ function binarioDelSistema(rutas, respaldo) {
   return primeroQueExista(rutas.filter((r) => r && r.endsWith('.exe') === ES_WINDOWS), respaldo);
 }
 
+// VS Code lleva Node dentro —el propio anfitrión de extensiones ES Node— y su
+// binario lo ejecuta si se le pone ELECTRON_RUN_AS_NODE=1. Comprobado: v24.
+//
+// Eso quiere decir que NO hace falta un Node instalado en la máquina para
+// correr el arnés. Es la diferencia entre necesitar un instalador de 277 MB y
+// no necesitarlo. Se prefiere el del instalador si está —porque ahí sabemos
+// qué versión es— y si no, el de VS Code, y solo al final el del sistema.
 function node() {
   const app = carpetaDeLaApp();
-  return binarioDelSistema(
+  const propio = binarioDelSistema(
     app ? [path.join(app, 'runtime', 'node.exe'), path.join(app, 'runtime', 'bin', 'node'), path.join(app, 'runtime', 'node')] : [],
-    ES_WINDOWS ? 'node.exe' : 'node',
+    null,
   );
+  if (propio) return propio;
+  return process.execPath;
 }
+
+// El de VS Code necesita que se le diga que haga de Node. Al del instalador o
+// al del sistema no les hace falta, pero sobra sin molestar.
+const usaElNodeDeVsCode = () => node() === process.execPath;
 
 function git() {
   const app = carpetaDeLaApp();
@@ -75,12 +88,15 @@ function bash() {
 // El punto de entrada del arnés: el instalador lo deja preinstalado con la
 // versión fijada, así que no hace falta npx (lento y frágil en Windows). Para
 // una máquina de desarrollo, se admite también el node_modules del proyecto.
-function entradaDelArnes(raizDelProyecto) {
+function entradaDelArnes(raizDelProyecto, carpetaDeLaExtension) {
   const app = carpetaDeLaApp();
   const relativa = path.join('node_modules', '@ericrisco', 'rsc', 'scripts', 'rsc.js');
   return primeroQueExista(
     [
       app && path.join(app, 'harness', relativa),
+      // Dentro de la propia extensión: así se instala desde el marketplace y
+      // funciona, sin instalador de escritorio y sin npm.
+      carpetaDeLaExtension && path.join(carpetaDeLaExtension, 'media', 'harness', relativa),
       raizDelProyecto && path.join(raizDelProyecto, relativa),
     ],
     null,
@@ -106,7 +122,7 @@ function npxCli() {
 // git o node por nombre.
 function entornoConHerramientas(base = process.env) {
   const app = carpetaDeLaApp();
-  if (!app) return { ...base };
+  if (!app) return { ...base, ...(usaElNodeDeVsCode() ? { ELECTRON_RUN_AS_NODE: '1' } : {}) };
   const delante = [
     path.join(app, 'runtime'),
     path.join(app, 'runtime', 'bin'),
@@ -114,7 +130,11 @@ function entornoConHerramientas(base = process.env) {
     path.join(app, 'git', 'usr', 'bin'),
   ].filter((d) => fs.existsSync(d));
   const clave = Object.keys(base).find((k) => k.toLowerCase() === 'path') || 'PATH';
-  return { ...base, [clave]: [...delante, base[clave] || ''].join(path.delimiter) };
+  return {
+    ...base,
+    ...(usaElNodeDeVsCode() ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
+    [clave]: [...delante, base[clave] || ''].join(path.delimiter),
+  };
 }
 
-module.exports = { ES_WINDOWS, carpetaDeLaApp, node, git, bash, entradaDelArnes, npxCli, entornoConHerramientas };
+module.exports = { ES_WINDOWS, carpetaDeLaApp, node, git, bash, entradaDelArnes, npxCli, entornoConHerramientas, usaElNodeDeVsCode };

@@ -3,3 +3,5 @@ node_modules/**
 *.vsix
 prueba/**
 README.md
+media/harness/node_modules/.bin/**
+media/harness/package-lock.json

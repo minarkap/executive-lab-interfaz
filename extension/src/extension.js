@@ -22,6 +22,7 @@ const sueltas = require('./sueltas');
 const cerebro = require('./cerebro');
 const copias = require('./guardar');
 const soporte = require('./soporte');
+const rsc = require('./rsc');
 const disfraz = require('./disfraz');
 const arrancar = require('./arrancar');
 const marca = require('./marca');
@@ -472,6 +473,7 @@ function vigilarElModo(contexto) {
 
 function activate(contexto) {
   const salida = vscode.window.createOutputChannel('Executive Lab');
+  rsc.saberDondeEstamos(contexto.extensionPath);
   const panel = new Panel(contexto, salida);
   const comando = (id, fn) => vscode.commands.registerCommand(id, fn);
   const repintarModo = vigilarElModo(contexto);

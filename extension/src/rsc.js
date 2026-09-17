@@ -21,8 +21,13 @@ function paquete() {
 //   1. el arnés preinstalado por el instalador (o el del proyecto) → node rsc.js
 //   2. npx-cli.js del node que tengamos → node npx-cli.js --yes @ericrisco/rsc@X
 //   3. npx del PATH (máquina de desarrollo), pasando por cmd.exe en Windows
+// La carpeta de la extensión la pone extension.js al arrancar: desde aquí no
+// hay forma de saberla, y es donde puede viajar el arnés.
+let carpetaDeLaExtension = null;
+const saberDondeEstamos = (ruta) => { carpetaDeLaExtension = ruta; };
+
 async function correr(args, opciones) {
-  const entrada = entorno.entradaDelArnes(proyecto.raiz());
+  const entrada = entorno.entradaDelArnes(proyecto.raiz(), carpetaDeLaExtension);
   if (entrada) return procesos.node([entrada, ...args], opciones);
 
   const npx = entorno.npxCli();
@@ -45,4 +50,4 @@ const revisar = () => correr(['doctor'], { tiempoMaximo: 120000 });
 const arreglarEnSeco = () => correr(['repair', '--dry-run'], { tiempoMaximo: 120000 });
 const arreglar = () => correr(['repair'], { tiempoMaximo: 180000 });
 
-module.exports = { correr, retomar, revisar, arreglarEnSeco, arreglar, paquete };
+module.exports = { correr, retomar, revisar, arreglarEnSeco, arreglar, paquete, saberDondeEstamos };

@@ -423,3 +423,38 @@ trabajo.
 
 Si la extensión del asistente ni siquiera está instalada, lo dice y manda al tutor: eso no lo arregla
 el alumno.
+
+## 20. No hace falta instalador: VS Code ya lleva Node dentro
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido — y deja el instalador como camino secundario
+
+Idea de Jose: *«¿y si lo publicamos como extensión y ya está?»*. La objeción que yo tenía era que RSC
+necesita Node y un alumno no lo tiene. Resulta que sí lo tiene:
+
+**VS Code lleva Node dentro** —su anfitrión de extensiones *es* Node— y su binario lo ejecuta si se
+le pone `ELECTRON_RUN_AS_NODE=1`. Comprobado: v24.18.1, y corre `rsc.js` sin tocar nada del sistema.
+
+Comprobado también de punta a punta: con **solo** el Node de VS Code y una copia de RSC dentro de la
+extensión, el arnés se monta entero — `RSC_ONBOARDING_READY`, con `.rsc.json`, `01-TOOLS/_TEMPLATE`,
+`02-DOCS/wiki/harness`, `settings.json` y el hook de arranque.
+
+**Lo que eso se lleva por delante:**
+
+| Fricción | Con instalador | Con extensión |
+|---|---|---|
+| Tamaño | 277 MB | **6 MB** |
+| SmartScreen | El peor problema de todos | **No existe**: no es un `.exe` |
+| Permisos | Por confirmar | **No hace falta** |
+| Node, npm | Empaquetados | **Los pone VS Code** |
+| Firmar código | Cientos de euros al año | **No hace falta** |
+
+Las tres cosas contra las que llevábamos toda la tarde peleando eran fricción **que nos habíamos
+fabricado nosotros** al empaquetarlo todo. VS Code y Claude Code tienen sus propios instaladores
+oficiales y firmados: por ahí no hay aviso de SmartScreen que valga.
+
+**Lo que sigue necesitando el instalador de escritorio:** quien no tiene *nada* — ni VS Code ni el
+asistente. Pasa a ser el camino secundario, para el alumno que llega con el portátil virgen.
+
+**Lo que la extensión no puede traer: git.** Se usa para «Guardar copia de seguridad». macOS lo trae o
+lo ofrece; Windows a menudo no. Sin él, todo lo demás funciona y ese botón avisa de que no puede. Es
+el único hueco de este camino.
