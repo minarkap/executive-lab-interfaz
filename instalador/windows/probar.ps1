@@ -1,6 +1,6 @@
-# Comprueba el instalador en un Windows limpio y dice qué ha pasado.
+# Comprueba el instalador en un Windows limpio y dice que ha pasado.
 #
-# Se copia esta carpeta (el .exe y este fichero) a la máquina de pruebas y:
+# Se copia esta carpeta (el .exe y este fichero) a la maquina de pruebas y:
 #
 #   powershell -ExecutionPolicy Bypass -File probar.ps1
 #
