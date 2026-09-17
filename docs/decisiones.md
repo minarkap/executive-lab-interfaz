@@ -325,3 +325,59 @@ De paso, tres cosas que estaban pobres:
   Una lista de carencias que no se puede tocar solo sirve para quedarse mal.
 
 Lo que no es markdown —un archivado en HTML, un original— sigue abriéndose fuera.
+
+## 15. Nada se disfraza solo: hay un interruptor por carpeta
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido (corrige §9)
+
+Jose instaló la extensión en el VS Code donde trabaja y se le cambiaron **todas** las ventanas. El
+fallo era de diseño: la base iba a los ajustes de usuario. En la máquina de un alumno da igual —solo
+hay una carpeta— pero en cualquier otra es un desastre.
+
+Tres intentos hasta dar con lo que pedía, y la tercera es la buena:
+
+1. Base global + interruptor por ventana → le cambió todo el editor.
+2. Disfrazar solo las carpetas con `.rsc.json` → *«No, debe disfrazar solo los arneses que tú
+   quieras»*. Tampoco: tener un arnés no significa querer verlo así.
+3. **Un ajuste de la carpeta, `executiveLab.vistaSencilla`.** Apagado, no se toca nada. Lo enciende
+   el instalador en la carpeta que crea, el wizard preguntando al terminar, o el alumno desde la
+   barra.
+
+Lo de ámbito de programa (zoom, confianza del workspace, actualizaciones, telemetría) solo lo escribe
+el instalador, que es donde tiene sentido. Y la salida de emergencia apaga también el interruptor: si
+no, volvía en el siguiente arranque.
+
+**Lo que esto compra:** tienes VS Code, y aparte esto, y lo enciendes sobre la carpeta que quieras.
+
+## 16. No se llama "empresa"
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Con sus palabras: *«puede ser un arnés para llevar contabilidad, o solo rrhh, o solo un proyecto, o
+solo el dpto de marketing»*. Y una empresa puede tener cuatro.
+
+Ahora el alumno pone **dos nombres** cuando dice para qué va a ser: cómo se llama esto (*Contabilidad*)
+y cómo se llama su empresa (*Nexus Consulting*). Viven en el frontmatter de
+`02-DOCS/wiki/harness/user-profile.md`, junto a los diales, y de ahí salen el rótulo de la ventana
+—«Contabilidad · Nexus Consulting»—, el nombre de la carpeta que crea el instalador y los textos del
+panel —«Lo que sabe de Contabilidad»—.
+
+Sin nombre puesto se tira del de la carpeta; sin eso, la interfaz funciona sin nombrar nada. Es
+preferible a llamarle «tu empresa» al departamento de marketing.
+
+## 17. Claves fuera de sitio: se avisa, no se adivina
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+El caso brownfield, que él vio antes que yo: *«si pones la interfaz en brownfield no detecta»*. El
+panel lee `01-TOOLS/<herramienta>/.env`, que es la convención de RSC. Sobre un proyecto que ya
+existía, las claves están donde estuvieran — un `.env` en la raíz, un `config/.env.local`— y el
+alumno ve «no hay conexiones» teniendo seis.
+
+**No se leen esos ficheros ni se inventa una convención paralela**: solo se detecta que están —cuántos
+sitios y cuántas claves— y se ofrece un botón para que el asistente los ordene con el protocolo de
+`harness`. Mover credenciales es cosa suya: sabe hacerlo sin romper lo que ese proyecto ya estuviera
+usando, y de hecho se le pide expresamente que avise antes de mover nada.
+
+Ni los valores ni las rutas salen por pantalla: las rutas van en el mensaje al asistente, que es quien
+las necesita.

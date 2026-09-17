@@ -276,3 +276,22 @@ que mi fixture. La ruta exacta dentro de Odoo, que la clave se ve una sola vez, 
 permisos del usuario, y que si se pierde no pasa nada. Las cuatro pistas de los campos salieron
 exactas sin tocar nada, y los cuatro scripts se clasificaron bien: tres de solo mirar y uno que pide
 datos. La apuesta de §7 —que el panel refleje lo que el arnés escriba— se sostiene con un caso real.
+
+### Addendum — la tarde con Jose probando en Windows
+
+Instaló el `.exe` en un Windows real y trabajó con ello: la captura mostraba 5 conexiones y 7 cosas
+aprendidas, con el rótulo y el disfraz puestos. Eso responde de hecho las preguntas 3, 4 y 6 del
+spike, aunque falten los dos datos que solo se ven mirando (SmartScreen y si pidió administrador).
+
+Seis fallos más, todos míos:
+
+| | Qué | Cómo se arregló |
+|---|---|---|
+| F14 | **El disfraz le cambió todo VS Code.** La base iba a los ajustes de usuario | Un interruptor por carpeta (§15), tras dos intentos fallidos |
+| F15 | **El desinstalador no quitaba la extensión ni los ajustes**, así que la barra seguía saliendo después de desinstalar | Ahora quita las dos extensiones y las 34 claves, con copia antes |
+| F16 | **Coma colgando en el array de PowerShell**: el script no llegaba ni a arrancar | Arrays separados por salto de línea, y un `revisar-powershell.js` que pilla esa clase de fallo aquí |
+| F17 | **El vigía devolvía al alumno a la pantalla principal** cada vez que el asistente tocaba un fichero — por eso «no detectaba» las claves que sí estaban | Repinta la pantalla que tienes delante; en una de lectura no toca nada |
+| F18 | **`ODOO_DB` salía como «Db»** y la guía no aparecía porque el asistente tituló la sección a su manera | Etiquetas nuevas y títulos naturales aceptados (F11, F12) |
+| F19 | **La interfaz llamaba «empresa» a todo** | Dos nombres que pone el alumno (§16) |
+
+43 comprobaciones. El instalador compila con la página de nombres nueva.

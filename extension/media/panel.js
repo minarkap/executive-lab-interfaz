@@ -217,18 +217,29 @@ function pantallaPrincipal() {
 
 // ------------------------------------------------------------- conexiones
 
-function pantallaConexiones({ proveedores }) {
+function pantallaConexiones({ proveedores, sueltas }) {
+  // Caso brownfield: el arnés se montó sobre algo que ya existía y las claves
+  // están donde estuvieran. El alumno vería "no hay conexiones" teniendo seis.
+  const desordenadas = sueltas ? `
+    <div class="conexion">
+      <p class="nombre">${texto(plural(sueltas.claves, 'Hay 1 clave guardada fuera de sitio', 'Hay {n} claves guardadas fuera de sitio'))}</p>
+      <p class="pista">De cuando este trabajo se llevaba sin esto. Aquí no se ven, y por eso no salen abajo.</p>
+      ${boton({ etiqueta: 'Que las ordene', icono: '🧹', principal: true, accion: { tipo: 'pedir', prompt: sueltas.prompt } })}
+    </div>` : '';
+
   if (!proveedores.length) {
     return `
       <p class="titulo">Mis conexiones</p>
-      ${nada('Todavía no hay ninguna. Cuando le pidas al asistente que conecte tu correo, tu facturación o lo que uses, aparecerán aquí.')}
-      ${boton({ etiqueta: 'Conectar algo', icono: '▸', principal: true, accion: { tipo: 'pedir', prompt: 'Quiero conectar una herramienta que uso en mi empresa. Pregúntame cuál y guíame paso a paso.' } })}
+      ${desordenadas}
+      ${nada('Todavía no hay ninguna puesta en su sitio. Cuando le pidas al asistente que conecte tu correo, tu facturación o lo que uses, aparecerán aquí.')}
+      ${boton({ etiqueta: 'Conectar algo', icono: '▸', principal: !sueltas, accion: { tipo: 'pedir', prompt: 'Quiero conectar una herramienta que uso. Pregúntame cuál y guíame paso a paso.' } })}
       ${volver()}`;
   }
 
   return `
     ${bloqueAviso()}
     <p class="titulo">Mis conexiones</p>
+    ${desordenadas}
     ${proveedores.map((p) => boton({
       etiqueta: p.faltan
         ? `${p.etiqueta} — ${plural(p.faltan, 'falta una clave', 'faltan {n} claves')}`

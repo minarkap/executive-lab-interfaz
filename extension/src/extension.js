@@ -18,6 +18,7 @@ const identidad = require('./identidad');
 const puente = require('./puente');
 const acciones = require('./acciones');
 const conexiones = require('./conexiones');
+const sueltas = require('./sueltas');
 const cerebro = require('./cerebro');
 const copias = require('./guardar');
 const soporte = require('./soporte');
@@ -193,7 +194,13 @@ ${cabecera}
 
   verConexiones() {
     this.donde = { tipo: 'conexiones' };
-    this.enviar({ tipo: 'conexiones', proveedores: conexiones.proveedores() });
+    this.enviar({
+      tipo: 'conexiones',
+      proveedores: conexiones.proveedores(),
+      // Si el arnés se montó sobre un proyecto que ya existía, puede haber
+      // claves guardadas donde estuvieran. Aquí no se leen: se avisa.
+      sueltas: sueltas.resumen(),
+    });
   }
 
   verConexion(proveedor, aviso = null) {

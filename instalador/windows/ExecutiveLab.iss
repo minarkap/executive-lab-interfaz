@@ -62,13 +62,13 @@ Filename: "{tmp}\VSCodeUserSetup-x64.exe"; \
 
 ; El resto lo hace preparar.js: carpeta, arnés, raíles y extensiones.
 Filename: "{app}\runtime\node.exe"; \
-  Parameters: """{app}\preparar.js"" --destino ""{code:CarpetaDeTrabajo}"" --objetivo ""{code:ObjetivoElegido}"" --asistente claude"; \
+  Parameters: """{app}\preparar.js"" --destino ""{code:CarpetaDeTrabajo}"" --objetivo ""{code:ObjetivoElegido}"" --arnes ""{code:NombreDelArnes}"" --empresa ""{code:NombreDeLaEmpresa}"" --asistente claude"; \
   StatusMsg: "Montando el arnés de tu empresa. Esto tarda unos minutos..."; \
   Flags: waituntilterminated runhidden
 
 [Icons]
 ; Sin perfil: el disfraz lo pone la extensión en el primer arranque.
-Name: "{autodesktop}\{#Nombre}"; \
+Name: "{autodesktop}\{code:NombreDelArnes}"; \
   Filename: "{localappdata}\Programs\Microsoft VS Code\Code.exe"; \
   Parameters: """{code:CarpetaDeTrabajo}"""; \
   IconFilename: "{app}\executivelab.ico"; \
@@ -77,6 +77,7 @@ Name: "{autodesktop}\{#Nombre}"; \
 [Code]
 var
   PaginaObjetivo: TInputOptionWizardPage;
+  PaginaNombres: TInputQueryWizardPage;
 
 // Pascal Script no admite constantes de tipo array; se sirven por índice.
 function Objetivo(Indice: Integer): String;
@@ -93,6 +94,27 @@ begin
   end;
 end;
 
+// Lo que el alumno escriba se convierte en el nombre de una carpeta, asi que
+// fuera lo que Windows no admite. Si no queda nada, un nombre por defecto.
+function NombreDeCarpeta(Texto: String): String;
+var
+  i: Integer;
+  c: Char;
+begin
+  Result := '';
+  for i := 1 to Length(Texto) do
+  begin
+    c := Texto[i];
+    if Pos(c, '\/:*?"<>|') = 0 then
+      Result := Result + c;
+  end;
+  Result := Trim(Result);
+  while (Length(Result) > 0) and (Result[Length(Result)] = '.') do
+    Result := Copy(Result, 1, Length(Result) - 1);
+  if Result = '' then
+    Result := 'Mi trabajo';
+end;
+
 procedure InitializeWizard;
 var
   i: Integer;
@@ -106,6 +128,35 @@ begin
     PaginaObjetivo.Add(Objetivo(i));
 
   PaginaObjetivo.SelectedValueIndex := 0;
+
+  PaginaNombres := CreateInputQueryPage(PaginaObjetivo.ID,
+    'Ponle nombre', '¿Cómo llamamos a esto?',
+    'El primero es el nombre que verás arriba cada vez que lo abras, y el de la carpeta donde se guarda todo. El segundo es para saber de quién es.');
+  PaginaNombres.Add('Esto es para...  (Contabilidad, Personal, Marketing, Clientes...)', False);
+  PaginaNombres.Add('Y tu empresa se llama...  (puedes dejarlo en blanco)', False);
+  PaginaNombres.Values[0] := 'Mi trabajo';
+end;
+
+// No se deja pasar de la pagina de nombres sin al menos el primero.
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if (PaginaNombres <> nil) and (CurPageID = PaginaNombres.ID) then
+    if Trim(PaginaNombres.Values[0]) = '' then
+    begin
+      MsgBox('Ponle un nombre, aunque sea provisional. Luego se puede cambiar.', mbInformation, MB_OK);
+      Result := False;
+    end;
+end;
+
+function NombreDelArnes(Param: String): String;
+begin
+  Result := NombreDeCarpeta(PaginaNombres.Values[0]);
+end;
+
+function NombreDeLaEmpresa(Param: String): String;
+begin
+  Result := Trim(PaginaNombres.Values[1]);
 end;
 
 function ObjetivoElegido(Param: String): String;
@@ -113,11 +164,12 @@ begin
   Result := Objetivo(PaginaObjetivo.SelectedValueIndex);
 end;
 
-// La carpeta real de Documentos, que solo Windows sabe dónde está. Se le pasa
-// a preparar.js para que el acceso directo y el trabajo apunten al mismo sitio.
+// La carpeta real de Documentos, que solo Windows sabe dónde está, y dentro el
+// nombre que haya puesto el alumno. Se le pasa a preparar.js para que el acceso
+// directo y el trabajo apunten al mismo sitio.
 function CarpetaDeTrabajo(Param: String): String;
 begin
-  Result := ExpandConstant('{userdocs}') + '\Mi Empresa IA';
+  Result := ExpandConstant('{userdocs}') + '\' + NombreDeCarpeta(PaginaNombres.Values[0]);
 end;
 
 // El PATH del usuario. Los hooks del arnés llaman a node por nombre desde el

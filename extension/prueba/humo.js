@@ -97,6 +97,27 @@ async function main() {
     return `${claves.length} claves`;
   });
 
+  await comprobar('detecta claves fuera de sitio (brownfield)', () => {
+    const sueltas = cargar('sueltas');
+    assert.equal(sueltas.resumen(), null, 'un arnés montado desde cero está ordenado');
+
+    // Como un proyecto que ya existía antes de poner el arnés encima.
+    fs.writeFileSync(path.join(empresa, '.env'),
+      '# el .env de toda la vida\nSTRIPE_SECRET_KEY=sk_test_123\nexport SENDGRID_API_KEY=SG.abc\nPUERTO=3000\n');
+    fs.mkdirSync(path.join(empresa, 'config'), { recursive: true });
+    fs.writeFileSync(path.join(empresa, 'config', '.env.local'), 'MAILJET_API_KEY=abc\n');
+
+    const hay = sueltas.resumen();
+    assert.equal(hay.sitios, 2);
+    assert.equal(hay.claves, 4, 'PUERTO también cuenta: es una clave, aunque no sea secreta');
+    assert.match(hay.prompt, /protocolo de harness/);
+    assert.ok(!hay.prompt.includes('sk_test_123'), 'el valor de una clave no sale de su fichero');
+
+    fs.rmSync(path.join(empresa, '.env'));
+    fs.rmSync(path.join(empresa, 'config'), { recursive: true });
+    return `${hay.sitios} sitios · ${hay.claves} claves`;
+  });
+
   await comprobar('la guía para conectarla sale de su propio README', () => {
     const { proveedor } = conexiones.claves('HOLDED');
     assert.equal(proveedor.pasos.length, 5, 'cinco pasos, y ninguno técnico');

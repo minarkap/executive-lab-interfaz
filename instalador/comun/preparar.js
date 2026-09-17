@@ -18,7 +18,9 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const VERSION_DEL_CATALOGO = '1.4.1'; // fijada a propósito: toda la cohorte igual
-const NOMBRE_CARPETA = 'Mi Empresa IA';
+// Si el alumno no da nombre. Un arnés puede ser la contabilidad, el personal o
+// un proyecto, así que el nombre por defecto no presupone ninguna de las tres.
+const NOMBRE_POR_DEFECTO = 'Mi trabajo';
 const APP = __dirname;
 const ES_WINDOWS = process.platform === 'win32';
 
@@ -90,8 +92,8 @@ function carpetaDeDocumentos() {
 // El instalador de Windows pasa la ruta ya resuelta con --destino, porque él
 // conoce la carpeta real de Documentos y aquí solo podríamos adivinarla por el
 // nombre. Si nadie la pasa (macOS), se calcula.
-function crearCarpeta() {
-  const destino = argumento('destino') || path.join(carpetaDeDocumentos(), NOMBRE_CARPETA);
+function crearCarpeta(nombre) {
+  const destino = argumento('destino') || path.join(carpetaDeDocumentos(), nombre);
   fs.mkdirSync(destino, { recursive: true });
   anotar(`Carpeta de trabajo: ${destino}`);
   return destino;
@@ -169,6 +171,49 @@ function primeraCopia(destino) {
   return correr(GIT, ['commit', '-q', '-m', `Punto de partida — ${fecha}`], { cwd: destino }).codigo === 0;
 }
 
+// Los dos nombres, al frontmatter del perfil del arnés: de ahí salen el rótulo
+// de la ventana y los textos del panel. Es el mismo sitio que usa el wizard
+// cuando se monta un arnés desde dentro del editor.
+function ponerLosNombres(destino, arnes, empresa) {
+  const perfil = path.join(destino, '02-DOCS', 'wiki', 'harness', 'user-profile.md');
+  if (!fs.existsSync(perfil)) return;
+
+  const texto = fs.readFileSync(perfil, 'utf8');
+  const bloque = texto.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!bloque) return;
+
+  let cabecera = bloque[1];
+  for (const [clave, valor] of [['arnes', arnes], ['empresa', empresa]]) {
+    if (!valor) continue;
+    const linea = new RegExp(`^${clave}:.*$`, 'm');
+    cabecera = linea.test(cabecera) ? cabecera.replace(linea, `${clave}: ${valor}`) : `${cabecera}\n${clave}: ${valor}`;
+  }
+  fs.writeFileSync(perfil, texto.replace(bloque[0], `---\n${cabecera}\n---`));
+  anotar(`Nombres: ${arnes}${empresa ? ` · ${empresa}` : ''}`);
+}
+
+// En la máquina de un alumno la vista sencilla va encendida desde el primer
+// arranque: es la única carpeta que hay y no tiene por qué saber que existe un
+// interruptor. En cualquier otra, se enciende a mano.
+function encenderVistaSencilla(destino) {
+  const carpeta = path.join(destino, '.vscode');
+  fs.mkdirSync(carpeta, { recursive: true });
+  const fichero = path.join(carpeta, 'settings.json');
+
+  let ajustes = {};
+  if (fs.existsSync(fichero)) {
+    try {
+      ajustes = JSON.parse(fs.readFileSync(fichero, 'utf8'));
+    } catch {
+      anotar('AVISO: el settings.json de la carpeta no es JSON; no lo toco.');
+      return;
+    }
+  }
+  ajustes['executiveLab.vistaSencilla'] = true;
+  fs.writeFileSync(fichero, `${JSON.stringify(ajustes, null, 2)}\n`);
+  anotar('Vista sencilla encendida en esta carpeta');
+}
+
 // La línea de comandos de VS Code, por su ruta completa: recién instalado, el
 // PATH de este proceso todavía no la tiene.
 function code() {
@@ -226,17 +271,21 @@ function vestirAntesDeAbrir() {
 // -------------------------------------------------------------------- main
 
 function main() {
-  const objetivo = argumento('objetivo', 'llevar mi empresa con ayuda de la IA');
+  const objetivo = argumento('objetivo', 'llevar mi trabajo con ayuda de la IA');
   const asistente = argumento('asistente', 'claude');
+  const arnes = (argumento('arnes') || NOMBRE_POR_DEFECTO).trim();
+  const empresa = (argumento('empresa') || '').trim();
 
   anotar(`Executive Lab · ${process.platform} · node ${process.version} · objetivo: ${objetivo}`);
   anotar(`git: ${GIT} · arnés: ${ARNES || `npx (${NPX_CLI || 'no encontrado'})`}`);
 
-  const destino = crearCarpeta();
+  const destino = crearCarpeta(arnes);
   let bien = prepararHistorial(destino);
   if (bien) bien = montarElArnes(destino, objetivo, asistente);
   if (bien) bien = comprobarElSuelo(destino);
   if (bien) ponerLosRailes(destino);
+  if (bien) ponerLosNombres(destino, arnes, empresa);
+  if (bien) encenderVistaSencilla(destino);
   if (bien) primeraCopia(destino);
 
   // --sin-editor: para probar todo lo demás en una máquina de desarrollo sin
