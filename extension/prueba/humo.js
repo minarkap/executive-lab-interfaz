@@ -270,9 +270,18 @@ async function main() {
     const salida = vscode.window.createOutputChannel();
     assert.equal(disfraz.modoDeEstaVentana(), 'sencillo');
 
-    const hecho = await disfraz.verEditorCompleto(salida);
+    const hecho = await disfraz.verEditorCompleto(contexto, salida);
     assert.equal(hecho.ok, true, hecho.mensaje);
     assert.equal(disfraz.modoDeEstaVentana(), 'avanzado');
+
+    // Las listas de exclusión no se sustituyen entre ámbitos, se fusionan: hay
+    // que apagar cada patrón, no escribir una lista vacía.
+    const exclusiones = vscode.registrado.ajustes.workspace['files.exclude'];
+    assert.ok(Object.keys(exclusiones).length > 0, 'una lista vacía no destaparía nada');
+    assert.ok(Object.values(exclusiones).every((v) => v === false), 'cada patrón apagado');
+    assert.deepEqual(Object.keys(exclusiones).sort(),
+      Object.keys(JSON.parse(fs.readFileSync(path.join(RAIZ, 'media/disfraz.json'), 'utf8'))['files.exclude']).sort(),
+      'se apagan exactamente las que esconde la base');
 
     const { global, workspace } = vscode.registrado.ajustes;
     assert.equal(workspace['workbench.activityBar.location'], 'FÁBRICA:workbench.activityBar.location',

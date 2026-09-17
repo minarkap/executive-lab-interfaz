@@ -191,6 +191,8 @@ de mentira y una empresa de mentira con la forma que deja RSC.
 | Renderizado del panel con Chrome sin interfaz | Cuatro pantallas revisadas a ojo: principal, una conexión, el cerebro y la carpeta sin arnés |
 | Contraste de la paleta | Tinta sobre crema 15,1:1 · botón 4,56:1 · enlace 5,57:1 · todo AA |
 
+| F9 | **El interruptor no habría desocultado los ficheros.** VS Code *fusiona* los ajustes de tipo objeto entre ámbitos en vez de sustituirlos, así que escribir el `files.exclude` de fábrica (vacío) dejaba puestas las exclusiones del usuario | Revisando qué cambiaba cada clave antes de recompilar. Ahora se apaga cada patrón a `false`, y la prueba comprueba que se apagan exactamente los que esconde la base |
+
 ## El wizard, probado de verdad
 
 `node extension/prueba/humo.js --con-arnes` lo ejecuta entero contra una carpeta vacía, con el arnés
@@ -203,5 +205,8 @@ código**. Tarda unos segundos y por eso no va en la pasada normal.
 ## Lo que sigue sin probar
 
 **El interruptor por ventana no se ha visto con dos ventanas abiertas a la vez** — la prueba confirma
-que escribe en el ámbito de carpeta y no en el de usuario, pero verlo es cosa de mirar. Y sigue
+que escribe en el ámbito de carpeta y no en el de usuario, pero verlo es cosa de mirar. Y queda una
+pregunta concreta para esa mirada: si VS Code fusiona también `workbench.colorCustomizations`, los
+colores de la marca se quedarían puestos en modo avanzado. Se ve a simple vista —barra lateral color
+crema con el editor completo— y se arregla igual que las listas de exclusión (F9). Y sigue
 pendiente el `.exe` en un Windows limpio, que es lo que de verdad bloquea sentar alumnos.

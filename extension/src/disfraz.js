@@ -27,6 +27,10 @@ const VERSION = 1;
 // Lo que el interruptor devuelve a fábrica: lo que se ve. El resto de la base
 // (confianza, actualizaciones, telemetría, zoom) es de ámbito de programa y
 // ninguna ventana puede cambiarlo por su cuenta.
+// Pendiente de mirar con dos ventanas abiertas: si VS Code también fusiona
+// `workbench.colorCustomizations` entre ámbitos, los colores de la marca se
+// quedarían puestos en modo avanzado. Se ve a simple vista (barra lateral color
+// crema con el editor completo) y se arregla igual que las listas de exclusión.
 const CLAVES_VISIBLES = [
   'window.title',
   'window.commandCenter',
@@ -118,8 +122,21 @@ function modoDeEstaVentana() {
   return anulada ? 'avanzado' : 'sencillo';
 }
 
+// Las listas de exclusión no se sustituyen entre ámbitos: VS Code fusiona el
+// valor de la carpeta con el del usuario. Escribir el de fábrica (vacío) no
+// desocultaría nada, así que hay que apagar una por una las que esconde la
+// base, poniéndolas a `false`.
+const SE_FUSIONAN = ['files.exclude', 'search.exclude'];
+
+function valorParaDestapar(contexto, clave, configuracion) {
+  if (!SE_FUSIONAN.includes(clave)) return configuracion.inspect(clave)?.defaultValue;
+
+  const base = ajustes(contexto)[clave] || {};
+  return Object.fromEntries(Object.keys(base).map((patron) => [patron, false]));
+}
+
 // Devuelve a fábrica lo que se ve, solo en esta ventana.
-async function verEditorCompleto(salida) {
+async function verEditorCompleto(contexto, salida) {
   if (!hayCarpeta()) {
     return { ok: false, mensaje: 'Primero abre tu empresa; sin carpeta no puedo cambiar solo esta ventana.' };
   }
@@ -128,9 +145,8 @@ async function verEditorCompleto(salida) {
   const rechazadas = [];
   for (const clave of CLAVES_VISIBLES) {
     // El valor de fábrica lo dice VS Code; no lo adivinamos ni lo copiamos.
-    const porDefecto = configuracion.inspect(clave)?.defaultValue;
     try {
-      await configuracion.update(clave, porDefecto, vscode.ConfigurationTarget.Workspace);
+      await configuracion.update(clave, valorParaDestapar(contexto, clave, configuracion), vscode.ConfigurationTarget.Workspace);
     } catch (error) {
       rechazadas.push(clave);
       salida.appendLine(`[disfraz] ${clave} no admite ámbito de carpeta: ${error.message}`);

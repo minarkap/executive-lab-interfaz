@@ -261,7 +261,7 @@ class Panel {
   // ------------------------------------------------------ interruptor
 
   async verEditorCompleto() {
-    const { ok, mensaje } = await disfraz.verEditorCompleto(this.salida);
+    const { ok, mensaje } = await disfraz.verEditorCompleto(this.contexto, this.salida);
     this.enviar({ tipo: 'aviso', texto: mensaje, malo: !ok });
     if (ok) {
       await this.refrescar(true);
