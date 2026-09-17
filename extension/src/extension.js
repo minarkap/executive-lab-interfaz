@@ -168,6 +168,7 @@ ${cabecera}
       algoVaMal: () => this.algoVaMal(),
       arreglar: () => this.arreglar(),
       arrancar: () => this.arrancar(),
+      ponerLaCara: () => this.ponerLaCara(),
       elegirCarpeta: () => this.elegirCarpeta(),
       verEditorCompleto: () => this.verEditorCompleto(),
       modoSencillo: () => this.modoSencillo(),
@@ -348,6 +349,23 @@ ${cabecera}
     return undefined;
   }
 
+  // La web se pregunta aquí, en una caja nativa, no mandándole a Claude un
+  // párrafo pidiéndole que la pregunte él. Un dato que el alumno tiene en la
+  // cabeza no necesita una conversación de ida y vuelta.
+  async ponerLaCara() {
+    const escrito = await vscode.window.showInputBox({
+      title: 'Ponerle la cara de tu empresa',
+      prompt: '¿Cuál es la web de tu empresa? De ahí saco los colores y el logotipo.',
+      placeHolder: 'nexusconsulting.com',
+      ignoreFocusOut: true,
+    });
+    const limpio = (escrito || '').trim();
+    if (!limpio) return;
+
+    const web = /^https?:\/\//i.test(limpio) ? limpio : `https://${limpio}`;
+    await this.pedir(`Mira ${web} y ponle a esto la cara de mi empresa: sus colores y su logotipo.`);
+  }
+
   // Elegir sobre qué carpeta se trabaja. Hace falta al arrancar —quien abre
   // esto sin nada abierto no tiene por dónde empezar— y después, para cambiar
   // de sitio sin tener que saber dónde está el menú de VS Code.
@@ -468,6 +486,7 @@ function activate(contexto) {
     comando('executiveLab.algoVaMal', () => panel.algoVaMal()),
     comando('executiveLab.empezarEmpresa', () => panel.arrancar()),
     comando('executiveLab.elegirCarpeta', () => panel.elegirCarpeta()),
+    comando('executiveLab.ponerLaCara', () => panel.ponerLaCara()),
     comando('executiveLab.seguir', () => panel.pedir('Recuérdame en qué estábamos y sigamos por donde lo dejamos.')),
     comando('executiveLab.empezar', () => panel.pedir('Quiero empezar algo nuevo en mi empresa. Pregúntame qué necesito.')),
     comando('executiveLab.diagnosticoPuente', () => puente.diagnostico(salida)),

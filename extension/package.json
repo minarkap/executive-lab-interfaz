@@ -92,6 +92,10 @@
       {
         "command": "executiveLab.quitarDeTodo",
         "title": "Executive Lab: Quitar el aspecto de todo VS Code"
+      },
+      {
+        "command": "executiveLab.ponerLaCara",
+        "title": "Executive Lab: Ponerle la cara de tu empresa"
       }
     ],
     "configuration": {

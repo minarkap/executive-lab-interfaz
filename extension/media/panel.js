@@ -207,7 +207,7 @@ function pantallaPrincipal() {
       etiqueta: 'Ponerle la cara de tu empresa',
       icono: '🎨',
       discreto: true,
-      accion: { tipo: 'pedir', prompt: 'Quiero que esto tenga la cara de mi empresa. Pregúntame cuál es nuestra web, míralas y quédate con sus colores y su logotipo.' },
+      accion: { tipo: 'ponerLaCara' },
     })}
     ${modo === 'avanzado'
       ? boton({ etiqueta: 'Volver al modo sencillo', icono: '◂', discreto: true, accion: { tipo: 'modoSencillo' } })

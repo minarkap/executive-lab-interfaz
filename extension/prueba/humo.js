@@ -295,9 +295,9 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     vscode.registrado.ejecutados.length = 0;
     const como = await puente.enviar('hola');
     assert.equal(como, 'directo');
-    const envio = vscode.registrado.ejecutados.find((e) => e.id === 'claude-vscode.editor.open');
-    assert.deepEqual(envio.args, [undefined, 'hola'], 'sin sesión y con el texto como initialPrompt');
-    return 'claude-vscode.editor.open';
+    const envio = vscode.registrado.ejecutados.find((e) => e.id === 'claude-vscode.primaryEditor.open');
+    assert.deepEqual(envio.args, [undefined, 'hola'], 'el mismo camino que usa el enlace de Anthropic');
+    return 'claude-vscode.primaryEditor.open';
   });
 
   await comprobar('sin el comando, el puente prueba el enlace profundo', async () => {
@@ -316,7 +316,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(vscode.registrado.portapapeles, 'adiós');
     assert.ok(vscode.registrado.ejecutados.some((e) => e.id === 'claude-vscode.focus'), 'y enfoca la caja');
     vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
-    vscode.guion.comandosDeClaude = ['claude-vscode.editor.open', 'claude-vscode.focus', 'claude-vscode.editor.openLast'];
+    vscode.guion.comandosDeClaude = ['claude-vscode.primaryEditor.open', 'claude-vscode.focus', 'claude-vscode.editor.openLast'];
     return 'portapapeles + foco';
   });
 
