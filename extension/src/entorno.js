@@ -27,14 +27,18 @@ function carpetaDeLaApp() {
   return fs.existsSync(candidata) ? candidata : null;
 }
 
+// Solo se consideran ejecutables del sistema en el que estamos. Sin esto, un
+// Mac con la carga de Windows delante (al construir el instalador, o al
+// probar) elegiría un `.exe` y fallaría con un error indescifrable.
 function primeroQueExista(rutas, respaldo) {
-  return rutas.find((r) => r && fs.existsSync(r)) || respaldo;
+  const delSistema = rutas.filter((r) => r && (r.endsWith('.exe') === ES_WINDOWS));
+  return delSistema.find((r) => fs.existsSync(r)) || respaldo;
 }
 
 function node() {
   const app = carpetaDeLaApp();
   return primeroQueExista(
-    app ? [path.join(app, 'runtime', 'node.exe'), path.join(app, 'runtime', 'bin', 'node')] : [],
+    app ? [path.join(app, 'runtime', 'node.exe'), path.join(app, 'runtime', 'bin', 'node'), path.join(app, 'runtime', 'node')] : [],
     ES_WINDOWS ? 'node.exe' : 'node',
   );
 }
@@ -42,7 +46,7 @@ function node() {
 function git() {
   const app = carpetaDeLaApp();
   return primeroQueExista(
-    app ? [path.join(app, 'git', 'cmd', 'git.exe'), path.join(app, 'git', 'bin', 'git')] : [],
+    app ? [path.join(app, 'git', 'cmd', 'git.exe'), path.join(app, 'git', 'bin', 'git'), path.join(app, 'git', 'usr', 'bin', 'git')] : [],
     ES_WINDOWS ? 'git.exe' : 'git',
   );
 }

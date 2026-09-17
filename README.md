@@ -35,6 +35,8 @@ resultados y razonamiento. Es la vista para no técnicos, ya construida.
 Y [docs/diccionario.md](docs/diccionario.md), que gobierna **todos** los textos: nada aparece en
 pantalla si no está ahí.
 
+![Las cuatro pantallas del panel](docs/panel.png)
+
 ## La regla que ordena el panel
 
 **No hay ni una herramienta, ni una tarea, ni un tema escritos en el código.** Todo lo que el alumno ve
@@ -74,7 +76,8 @@ empezar de cero.
 ## Comprobaciones
 
 ```bash
-cd extension && npm run probar       # 25 comprobaciones con un vscode de mentira
+cd extension && npm run probar       # 26 comprobaciones con un vscode de mentira
+node extension/prueba/humo.js --con-arnes   # + monta un arnés de verdad (tarda)
 node docs/comprobar-diccionario.js   # ningún texto de pantalla usa palabra prohibida
 cd extension && npm run empaquetar   # valida el manifiesto y genera el .vsix
 node perfil/construir-perfil.js      # .code-profile para probar el disfraz a mano

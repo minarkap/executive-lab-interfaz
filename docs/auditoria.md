@@ -177,6 +177,7 @@ de mentira y una empresa de mentira con la forma que deja RSC.
 | F4 | **"Dónde estás" con dos zonas ocupaba tres líneas** en serif de 21 px sobre una barra estrecha | Lo mismo. Si no cabe en 42 caracteres, una sola zona |
 | F5 | La prueba de humo **no esperaba a las comprobaciones asíncronas**, así que se solapaban y los fallos salían en la comprobación equivocada | Un fallo aparecía en la barra de estado y venía del interruptor |
 | F6 | La empresa de mentira **pisaba `.rsc.json` y el perfil del alumno** al sembrar sobre una carpeta ya preparada | Se vio al montar `demo.sh --con-datos`. Ahora esas dos no se sobrescriben |
+| F7 | **`entorno.js` elegía un ejecutable de otro sistema.** Probaba `git/cmd/git.exe` antes que `git/bin/git` sin mirar la plataforma: en un Mac con la carga de Windows delante, intentaba lanzar el `.exe` y fallaba con un error indescifrable | Lo pilló la prueba del wizard al ejecutarse de verdad. Ahora los candidatos se filtran por sistema, y la prueba lo comprueba |
 
 ## Verificación ejecutada
 
@@ -189,9 +190,17 @@ de mentira y una empresa de mentira con la forma que deja RSC.
 | Renderizado del panel con Chrome sin interfaz | Cuatro pantallas revisadas a ojo: principal, una conexión, el cerebro y la carpeta sin arnés |
 | Contraste de la paleta | Tinta sobre crema 15,1:1 · botón 4,56:1 · enlace 5,57:1 · todo AA |
 
+## El wizard, probado de verdad
+
+`node extension/prueba/humo.js --con-arnes` lo ejecuta entero contra una carpeta vacía, con el arnés
+preinstalado como lo tendrá el alumno (sin `npx`, sin red): elige objetivo, monta el arnés en los dos
+pasos, comprueba el suelo, pone los raíles y guarda el punto de partida. Después comprueba que el
+perfil lleva los diales `non-technical` + `L3`, que la habilidad está puesta, que hay un commit
+*Punto de partida* al que volver, y que **los tres botones ya aparecen sin que nadie haya tocado el
+código**. Tarda unos segundos y por eso no va en la pasada normal.
+
 ## Lo que sigue sin probar
 
-Lo mismo que en la fase 1, más lo nuevo: **el wizard `arrancar.js` no se ha ejecutado de verdad**
-(monta un arnés entero, tarda minutos y necesita una carpeta limpia y una sesión de editor), y **el
-interruptor por ventana no se ha visto con dos ventanas abiertas a la vez**. Y sigue pendiente el
-`.exe` en un Windows limpio, que es lo que de verdad bloquea sentar alumnos.
+**El interruptor por ventana no se ha visto con dos ventanas abiertas a la vez** — la prueba confirma
+que escribe en el ámbito de carpeta y no en el de usuario, pero verlo es cosa de mirar. Y sigue
+pendiente el `.exe` en un Windows limpio, que es lo que de verdad bloquea sentar alumnos.

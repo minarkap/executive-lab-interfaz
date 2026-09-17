@@ -315,6 +315,69 @@ async function main() {
     return estado.donde;
   });
 
+  await comprobar('no se elige un ejecutable de otro sistema', () => {
+    const entorno = cargar('entorno');
+    const carga = path.join(RAIZ, '..', 'instalador', 'windows', 'carga');
+    if (!fs.existsSync(path.join(carga, 'git', 'cmd', 'git.exe'))) return 'sin carga de Windows a mano';
+
+    const antes = process.env.EXECUTIVE_LAB_HOME;
+    process.env.EXECUTIVE_LAB_HOME = carga;
+    const elegido = { git: entorno.git(), node: entorno.node() };
+    process.env.EXECUTIVE_LAB_HOME = antes;
+
+    if (process.platform === 'win32') assert.match(elegido.git, /\.exe$/);
+    else {
+      assert.ok(!elegido.git.endsWith('.exe'), `en ${process.platform} no vale ${elegido.git}`);
+      assert.ok(!elegido.node.endsWith('.exe'), `en ${process.platform} no vale ${elegido.node}`);
+    }
+    return `git → ${path.basename(elegido.git)}`;
+  });
+
+  // --------------------------------------------- el wizard, de verdad
+  // Monta un arnés entero: tarda minutos y toca la red, así que no va en la
+  // pasada normal. `node prueba/humo.js --con-arnes` lo incluye.
+  if (process.argv.includes('--con-arnes')) {
+    await comprobar('el wizard monta una empresa en una carpeta vacía', async () => {
+      const vacia = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-nueva-'));
+      vscode.guion.raiz = vacia;
+      vscode.guion.eleccion = 'Llevar los contratos y el papeleo de la gente';
+
+      // Como en la máquina de un alumno: el arnés ya instalado junto a la app.
+      const carga = path.join(RAIZ, '..', 'instalador', 'windows', 'carga');
+      if (fs.existsSync(path.join(carga, 'harness'))) process.env.EXECUTIVE_LAB_HOME = carga;
+
+      const hecho = await cargar('arrancar').arrancar(contexto, vscode.window.createOutputChannel());
+      assert.equal(hecho.ok, true, hecho.mensaje);
+
+      // El suelo que RSC exige para dar un arnés por bueno.
+      for (const pieza of ['.rsc.json', '01-TOOLS/_TEMPLATE', '02-DOCS/wiki/harness']) {
+        assert.ok(fs.existsSync(path.join(vacia, pieza)), `falta ${pieza}`);
+      }
+      // Los raíles, con los diales puestos.
+      const perfil = fs.readFileSync(path.join(vacia, '02-DOCS/wiki/harness/user-profile.md'), 'utf8');
+      assert.match(perfil, /^technical_level: non-technical$/m);
+      assert.match(perfil, /^accompaniment: L3$/m);
+      assert.ok(fs.existsSync(path.join(vacia, '.claude/skills/executive-lab/SKILL.md')), 'falta la habilidad');
+
+      // Y queda un punto de partida al que volver: sin esto, "Volver a como
+      // estaba antes" no tendría a dónde hasta la primera copia del alumno.
+      const { execFileSync } = require('node:child_process');
+      const registro = execFileSync('git', ['log', '--oneline'], { cwd: vacia, encoding: 'utf8' });
+      assert.match(registro, /Punto de partida/);
+
+      // Y los botones ya salen, sin que nadie haya tocado el código.
+      vscode.guion.raiz = vacia;
+      const botones = cargar('acciones').acciones().map((a) => a.etiqueta);
+      assert.deepEqual(botones.sort(), ['Empezar algo nuevo', 'No sé qué hacer ahora', 'Seguir donde lo dejé']);
+
+      vscode.guion.raiz = empresa;
+      vscode.guion.eleccion = undefined;
+      return `${botones.length} botones desde cero`;
+    });
+  } else {
+    console.log('  · el wizard no se ha probado (añade --con-arnes: tarda minutos)');
+  }
+
   console.log(`\n${pasadas} comprobaciones pasadas${process.exitCode ? ' — y alguna ha fallado' : ''}`);
 }
 
