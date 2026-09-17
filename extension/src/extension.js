@@ -69,9 +69,17 @@ class Panel {
     ].join('; ');
 
     // Si el alumno ha contado cuál es la web de su empresa, manda su marca.
-    const logo = suya && suya.logo
-      ? { src: webview.asWebviewUri(vscode.Uri.file(suya.logo)), alt: suya.nombre || 'Tu empresa' }
-      : { src: uri('logo.svg'), alt: 'Executive Lab' };
+    // Sin logotipo utilizable, su nombre escrito: siempre se lee, y en muchas
+    // pymes es lo único que hay.
+    const escapar = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    let cabecera;
+    if (suya && suya.logo) {
+      cabecera = `<img class="marca" src="${webview.asWebviewUri(vscode.Uri.file(suya.logo))}" alt="${escapar(suya.nombre || 'Tu empresa')}">`;
+    } else if (suya && suya.nombre) {
+      cabecera = `<p class="marca marca--nombre">${escapar(suya.nombre)}</p>`;
+    } else {
+      cabecera = `<img class="marca" src="${uri('logo.svg')}" alt="Executive Lab">`;
+    }
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -82,7 +90,7 @@ class Panel {
 ${marca.estilo(suya)}
 </head>
 <body>
-<img class="marca" src="${logo.src}" alt="${logo.alt}">
+${cabecera}
 <div id="app" aria-live="polite"></div>
 <script nonce="${nonce}" src="${uri('panel.js')}"></script>
 </body>
@@ -95,11 +103,15 @@ ${marca.estilo(suya)}
 
   async refrescar(fresco = false) {
     this.enviar({ tipo: 'cargando' });
+    const suya = marca.leer();
     this.enviar({
       tipo: 'estado',
       estado: await brujula.estado({ fresco }),
       acciones: acciones.acciones(),
       modo: disfraz.modoDeEstaVentana(),
+      // Si la empresa aún no tiene cara puesta, el panel la ofrece en vez de
+      // esperar a que el alumno caiga en contarlo.
+      marcaPuesta: Boolean(suya && suya.tokens),
     });
   }
 

@@ -95,6 +95,17 @@ body {
   color: var(--texto-fuerte);
 }
 
+/* Cuando la empresa no tiene un logotipo que se lea sobre su fondo, su nombre
+   escrito hace de rótulo. Se lee siempre, que es lo que importa. */
+.marca--nombre {
+  width: auto;
+  margin: 0 0 18px;
+  font-family: var(--serif);
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--tinta);
+}
+
 h2 {
   margin: 0 0 8px;
   font-family: var(--sans);

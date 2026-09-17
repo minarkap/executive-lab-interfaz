@@ -110,6 +110,11 @@ Una fuente leída.
 // Aparte de `montar` porque el caso por defecto —sin marca todavía, con la de
 // Executive Lab— también hay que poder probarlo.
 function montarMarca(raiz, { acento = '#0057b8', texto = '#1a1a1a', fondo = '#f7f5f2', logo = true } = {}) {
+  // Sin logotipo utilizable, el récord no lo declara: es lo que debe hacer el
+  // asistente cuando el de la empresa no se lee sobre su propio fondo.
+  const viejo = path.join(raiz, '02-DOCS/wiki/brand/logo.svg');
+  if (!logo && fs.existsSync(viejo)) fs.unlinkSync(viejo);
+
   escribir(raiz, '02-DOCS/wiki/brand/marca.md', `---
 type: concept
 title: Marca de Ferretería Soler
@@ -119,7 +124,7 @@ tags: [brand, marca]
 fondo: "${fondo}"
 texto: "${texto}"
 acento: "${acento}"
-logo: logo.svg
+${logo ? 'logo: logo.svg' : ''}
 ---
 
 # Marca de Ferretería Soler

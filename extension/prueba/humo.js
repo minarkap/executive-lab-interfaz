@@ -252,7 +252,7 @@ async function main() {
   await comprobar('con récord, el panel se pinta con los colores de la empresa', () => {
     montarMarca(empresa);
     const suya = marca.leer();
-    assert.equal(suya.nombre, 'Marca de Ferretería Soler');
+    assert.equal(suya.nombre, 'Ferretería Soler', 'sin el "Marca de" del título del artículo');
     assert.equal(suya.web, 'https://ferreteriasoler.es');
     assert.ok(suya.logo && suya.logo.endsWith('logo.svg'), 'coge su logotipo');
     assert.equal(suya.tokens['--crema'], '#f7f5f2');
@@ -278,6 +278,14 @@ async function main() {
     assert.ok(suya.descartada, 'mejor la nuestra que una interfaz ilegible');
     assert.equal(marca.estilo(suya), '');
     return suya.descartada;
+  });
+
+  await comprobar('sin logotipo utilizable, el rótulo es el nombre de la empresa', () => {
+    montarMarca(empresa, { logo: false });
+    const suya = marca.leer();
+    assert.equal(suya.logo, null);
+    montarMarca(empresa);
+    return suya.nombre;
   });
 
   await comprobar('un logotipo que apunta fuera de su carpeta se ignora', () => {

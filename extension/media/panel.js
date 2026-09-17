@@ -9,6 +9,7 @@ const app = document.getElementById('app');
 let estado = null;
 let accionesDescubiertas = [];
 let modo = 'sencillo';
+let marcaPuesta = true;
 let aviso = null;
 
 const pedir = (tipo, extra = {}) => vscode.postMessage({ tipo, ...extra });
@@ -102,6 +103,12 @@ function pantallaPrincipal() {
     ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
 
     <hr class="separador">
+    ${marcaPuesta ? '' : boton({
+      etiqueta: 'Ponerle la cara de tu empresa',
+      icono: '🎨',
+      discreto: true,
+      accion: { tipo: 'pedir', prompt: 'Quiero que esto tenga la cara de mi empresa. Pregúntame cuál es nuestra web, míralas y quédate con sus colores y su logotipo.' },
+    })}
     ${modo === 'avanzado'
       ? boton({ etiqueta: 'Volver al modo sencillo', icono: '◂', discreto: true, accion: { tipo: 'modoSencillo' } })
       : boton({ etiqueta: 'Ver el editor completo', icono: '▸', discreto: true, accion: { tipo: 'verEditorCompleto' } })}
@@ -288,6 +295,7 @@ window.addEventListener('message', ({ data }) => {
       estado = data.estado;
       accionesDescubiertas = data.acciones || [];
       modo = data.modo || 'sencillo';
+      marcaPuesta = data.marcaPuesta !== false;
       return pintar(pantallaPrincipal());
     case 'conexiones': return pintar(pantallaConexiones(data));
     case 'conexion': return pintar(pantallaConexion(data));

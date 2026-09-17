@@ -112,8 +112,9 @@ pide datos o cambia algo, te lo pide a ti, y entonces preguntas lo que falte y p
 
 ### 3. Cuando sepas cuál es su web, quédate con su marca
 
-En cuanto el alumno diga la web de su empresa —el wizard se la pregunta al montar la carpeta, y si no
-saldrá en la conversación— **míralas y escribe el récord de marca**. Desde ese momento el panel deja
+Hay tres puertas a esto y todas acaban aquí: el **wizard** se la pregunta al montar la carpeta, el
+alumno puede pulsar **Ponerle la cara de tu empresa** en la barra, o simplemente lo cuenta en la
+conversación. En cuanto sepas la web, **míralas y escribe el récord de marca**. Desde ese momento el panel deja
 de llevar los colores de Executive Lab y lleva los suyos, y eso hace más por que se sienta en su casa
 que cualquier cosa que le digas.
 
@@ -140,9 +141,14 @@ De dónde sale cada color y qué se ha dejado fuera.
 ```
 
 Cuatro colores, y solo cuatro: **fondo** (el de la página), **superficie** (tarjetas; si no lo pones,
-se calcula), **texto** y **acento** (el color de sus botones y enlaces). En `#rrggbb`, siempre. Coge
-el logotipo también: descárgalo a esa misma carpeta como `logo.svg` (o `.png`), y **en versión para
-fondo claro** — si el suyo es blanco sobre oscuro, recolorea el blanco al color de texto.
+se calcula), **texto** y **acento** (el color de sus botones y enlaces). En `#rrggbb`, siempre. **El logotipo, solo si se lee sobre el fondo que has elegido.** Descárgalo a esa misma carpeta como
+`logo.svg` o `logo.png` y míralo: si es blanco sobre transparente —el caso más común— sobre un fondo
+claro desaparece. Si es SVG, recolorea el blanco al color de texto y listo. Si es un PNG blanco y no
+puedes recolorearlo, **deja fuera la línea `logo:`**: el panel escribirá el nombre de la empresa con
+su tipografía y sus colores, que se lee siempre. Un rótulo escrito es mejor que medio logotipo
+invisible.
+
+Y pon `empresa: Ferretería Soler` si el nombre para el rótulo no es el del título del artículo.
 
 **No toques la tipografía ni los tamaños.** Los colores de una web se pueden adoptar sin romper nada;
 una tipografía ajena, no, y esta gente no puede permitirse una interfaz que de pronto no se lee.

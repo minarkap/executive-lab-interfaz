@@ -43,6 +43,7 @@ jerga por goteo.
 | poner el disfraz en esta ventana | Volver al modo sencillo |
 | `02-DOCS/wiki/brand/marca.md` | La marca de tu empresa |
 | la web de la empresa del alumno | Tu web |
+| escribir el récord de marca | Ponerle la cara de tu empresa |
 
 ## Palabras prohibidas
 

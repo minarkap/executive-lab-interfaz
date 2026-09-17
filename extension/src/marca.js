@@ -29,6 +29,12 @@ function carpeta() {
 
 // El logotipo vive junto al récord. Se comprueba que no se salga de ahí: el
 // nombre viene de un fichero que escribe el asistente.
+//
+// Y si no hay logotipo utilizable no pasa nada: el panel escribe el nombre de
+// la empresa con la tipografía y los colores de la marca. Es la salida buena
+// para el caso más común — un logotipo blanco sobre transparente, que sobre
+// fondo claro desaparece— y para las muchas pymes que no tienen logotipo
+// en un fichero a mano.
 function logoDe(campos, donde) {
   if (typeof campos.logo !== 'string' || !LOGOS.test(campos.logo)) return null;
   const completa = path.resolve(donde, campos.logo);
@@ -65,8 +71,13 @@ function leer() {
   // botón usa el color de texto, que sí se lee.
   const acentoFuerte = color.hastaQueSeLea(acento, '#ffffff') || texto;
 
+  // El nombre a secas, para poder escribirlo cuando no haya logotipo usable.
+  // El título del artículo suele ser "Marca de X", que como rótulo no sirve.
+  const nombre = (typeof campos.empresa === 'string' && campos.empresa.trim())
+    || (typeof campos.title === 'string' ? campos.title.replace(/^marca de\s+/i, '').trim() : null);
+
   return {
-    nombre: campos.title || null,
+    nombre: nombre || null,
     web: typeof campos.resource === 'string' ? campos.resource : null,
     logo: logoDe(campos, donde),
     carpeta: donde,
