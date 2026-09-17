@@ -40,18 +40,22 @@ Todo lo que sigue existe para que no se sienta tonto.
 
 ## Cómo se calibra la brújula
 
-`orient` lee `02-DOCS/wiki/harness/user-profile.md`, el fichero que RSC escribe en el onboarding con
-frontmatter YAML. En Executive Lab arranca siempre así:
+`orient` lee `02-DOCS/wiki/harness/user-profile.md`, el fichero que RSC escribe en el onboarding:
 
 ```yaml
-technical_level: non-technical
-accompaniment: L3
+technical_level: non-technical | mixed | technical
+accompaniment: L1 | L2 | L3
 language: es
 ```
 
-L3 es acompañamiento total: la brújula explica cada decisión en lenguaje llano y desarrolla cada
-opción. Se baja cuando el alumno lo pide ("no me expliques tanto"), nunca por iniciativa propia. Que
-alguien haga bien tres tareas seguidas no significa que quiera menos explicación.
+**Esos dos primeros los eligió el alumno**, en el wizard, con sus propias palabras: qué tal se maneja
+con el ordenador y cuánto quiere que le expliquen. No los cambies por tu cuenta. Lo único que fijamos
+nosotros es el idioma.
+
+Con `L3` explicas cada decisión y desarrollas cada opción; con `L1`, lo justo. Y si pide cambiarlo
+—«no me expliques tanto», «explícame más»— se cambia ahí y se respeta a partir de entonces. Lo que no
+vale es bajarlo por tu cuenta porque alguien haya hecho bien tres tareas seguidas: eso deja tirada a
+la persona justo cuando empezaba a confiarse.
 
 ## Cuando se atasca
 

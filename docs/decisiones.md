@@ -381,3 +381,45 @@ usando, y de hecho se le pide expresamente que avise antes de mover nada.
 
 Ni los valores ni las rutas salen por pantalla: las rutas van en el mensaje al asistente, que es quien
 las necesita.
+
+## 18. El wizard pregunta lo que pregunta RSC, y los raíles dejan de imponerlo
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido (corrige §7 y los raíles)
+
+Hasta hoy dábamos por supuestas tres de las cinco preguntas del onboarding de RSC: siempre
+`operations`, siempre `non-technical`, siempre `L3`. Y por si acaso, `aplicar.js` las volvía a
+escribir después, por si RSC había respondido otra cosa.
+
+Eso está mal por dos motivos. Uno práctico: **un arnés puede ser para llevar facturas o para montar
+una web**, y quien lo usa puede ser el de administración o alguien que programó hace diez años. Otro
+de fondo: si RSC pregunta algo, la respuesta es del alumno, no nuestra.
+
+Ahora los dos wizards —el del editor y el del instalador— preguntan las cinco, en cristiano:
+
+| RSC pregunta | El alumno lee |
+|---|---|
+| `--project-kind` | ¿De qué va esto? Llevar el día a día · Crear cosas · Construir algo · Estudiar un tema · Un poco de todo |
+| `--technical-level` | ¿Qué tal te manejas con el ordenador? Lo justo · Me defiendo · Programo |
+| `--accompaniment` | ¿Cuánto quieres que te explique? Todo paso a paso · Lo normal · Poco |
+| `--goal` | ¿Qué te gustaría resolver primero? — y las sugerencias cambian según de qué vaya |
+| `--target` | ¿Con quién vas a trabajar? — solo si hay más de uno instalado |
+
+Y `aplicar.js` **ya no toca** `technical_level` ni `accompaniment`: solo pone el idioma y la marca de
+los raíles. La habilidad dice lo mismo al asistente: esos dos los eligió el alumno, no se cambian por
+iniciativa propia.
+
+## 19. La cuenta es el primer paso, no una sorpresa a mitad
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Sin cuenta de pago el chat no responde, y el alumno se queda mirando una caja muda sin saber por qué.
+
+**No se puede detectar si ha iniciado sesión**: la credencial vive en el llavero del sistema, y
+mirarla desde la extensión pediría permisos y sería distinto en cada sistema. Así que no se adivina:
+cuando el arnés está recién montado y no ha pasado nada —ni conexiones, ni cosas aprendidas, ni
+copias, ni sesión anterior— la barra pone arriba del todo **Empieza por aquí: abre Claude y entra con
+tu cuenta**, con el aviso de que hace falta una de pago. Desaparece en cuanto hay cualquier rastro de
+trabajo.
+
+Si la extensión del asistente ni siquiera está instalada, lo dice y manda al tutor: eso no lo arregla
+el alumno.

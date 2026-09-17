@@ -51,14 +51,17 @@ for (const fichero of fs.readdirSync(path.join(origen, 'comandos'))) {
 }
 hechos.push('.claude/commands/ (4 comandos)');
 
-// 3. Los diales del perfil, que es lo que lee `orient` para calibrar la brújula.
+// 3. El perfil del arnés.
 //
-// RSC escribe este fichero en el onboarding con frontmatter YAML
-// (technical_level, accompaniment, project_kind) y una línea "Goal:". Si ya
-// existe, se ajustan solo los diales y se respeta el resto. Y si ya lleva la
-// marca de los raíles, no se toca sin --forzar: el alumno puede haber pedido
-// "no me expliques tanto" y orient haberle bajado el dial a propósito.
-const DIALES = [['technical_level', 'non-technical'], ['accompaniment', 'L3'], ['language', 'es'], ['executive_lab_rails', '1']];
+// Aquí NO se tocan `technical_level` ni `accompaniment`: los pregunta RSC en su
+// onboarding y son la respuesta del alumno. Imponer L3 y "no técnico" a todo el
+// mundo era arrogante — un arnés puede ser para quien lleva las facturas o para
+// quien montó la web de la empresa hace diez años, y RSC ya se lo pregunta.
+//
+// Lo que sí se pone es lo que es nuestro: el idioma y la marca de los raíles.
+// Si el perfil no existe todavía (raíles antes del onboarding), se deja la
+// plantilla entera, que sí trae unos valores por defecto prudentes.
+const NUESTRO = [['language', 'es'], ['executive_lab_rails', '1']];
 const perfil = path.join(destino, '02-DOCS', 'wiki', 'harness', 'user-profile.md');
 
 function ajustarPerfil() {
@@ -70,23 +73,24 @@ function ajustarPerfil() {
 
   const texto = fs.readFileSync(perfil, 'utf8');
   const bloque = texto.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
-  let frontmatter = bloque ? bloque[1] : '';
+  if (!bloque) return '02-DOCS/wiki/harness/user-profile.md (no entiendo su cabecera — no lo toco)';
 
+  let frontmatter = bloque[1];
   if (/^executive_lab_rails:/m.test(frontmatter) && !forzar) {
     return '02-DOCS/wiki/harness/user-profile.md (ya tenía los raíles — no lo he tocado)';
   }
 
-  for (const [clave, valor] of DIALES) {
+  for (const [clave, valor] of NUESTRO) {
     const linea = new RegExp(`^${clave}:.*$`, 'm');
     frontmatter = linea.test(frontmatter) ? frontmatter.replace(linea, `${clave}: ${valor}`) : `${frontmatter}\n${clave}: ${valor}`;
   }
   frontmatter = frontmatter.replace(/^\n+/, '');
 
-  const nuevo = bloque
-    ? texto.replace(bloque[0], `---\n${frontmatter}\n---\n`)
-    : `---\n${frontmatter}\n---\n\n${texto}`;
-  fs.writeFileSync(perfil, nuevo);
-  return '02-DOCS/wiki/harness/user-profile.md (diales puestos en non-technical + L3)';
+  fs.writeFileSync(perfil, texto.replace(bloque[0], `---\n${frontmatter}\n---\n`));
+
+  const dial = (frontmatter.match(/^accompaniment:\s*(\S+)/m) || [])[1] || '?';
+  const nivel = (frontmatter.match(/^technical_level:\s*(\S+)/m) || [])[1] || '?';
+  return `02-DOCS/wiki/harness/user-profile.md (idioma es · se respetan ${nivel} y ${dial})`;
 }
 
 hechos.push(ajustarPerfil());

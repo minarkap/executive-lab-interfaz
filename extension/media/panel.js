@@ -174,6 +174,23 @@ function pantallaPrincipal() {
     .map((a, i) => boton({ etiqueta: a.etiqueta, icono: a.icono, principal: i === 0, accion: { tipo: 'pedir', prompt: a.prompt } }))
     .join('');
 
+  // Recién montado: lo primero es tener cuenta y sesión. Sin eso, el chat no
+  // responde y el alumno se queda mirando una caja muda sin saber por qué.
+  const primerPaso = estado.primerPaso ? `
+    <h2>Empieza por aquí</h2>
+    <div class="conexion">
+      <p class="nombre">${texto(estado.primerPaso.instalado
+        ? `Abre ${estado.primerPaso.asistente} y entra con tu cuenta`
+        : `Falta instalar ${estado.primerPaso.asistente}`)}</p>
+      <p class="pista">${texto(estado.primerPaso.instalado
+        ? 'Hace falta una cuenta de pago. Sin ella no te va a contestar.'
+        : 'Díselo a tu tutor: falta algo por instalar y sin eso no puede hablar con nadie.')}</p>
+      ${estado.primerPaso.instalado
+        ? boton({ etiqueta: `Abrir ${estado.primerPaso.asistente}`, icono: '▸', principal: true, accion: { tipo: 'abrirAsistente' } })
+        : ''}
+    </div>
+    <hr class="separador">` : '';
+
   const documentos = estado.esperando
     ? boton({
       etiqueta: plural(estado.esperando, 'Tienes 1 documento sin leer', 'Tienes {n} documentos sin leer'),
@@ -192,6 +209,7 @@ function pantallaPrincipal() {
       ${detalle.length ? `<p class="detalle">${texto(detalle.join(' · '))}</p>` : ''}
     </div>
 
+    ${primerPaso}
     ${documentos}
     ${descubiertos ? `<h2>Qué quieres hacer</h2>${descubiertos}<hr class="separador">` : ''}
 

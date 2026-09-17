@@ -17,12 +17,14 @@ curiosidad técnica. Puede tener poca soltura con el ordenador.
 
 ## Qué significan los diales aquí
 
-**`technical_level: non-technical`** — lenguaje llano y analogías de cosas que se tocan. Ninguna
-palabra técnica sin haberla mostrado antes.
+Estos dos valores son **un punto de partida prudente**, para cuando los raíles se ponen antes de que
+el alumno haya respondido nada. En cuanto pasa por el wizard, manda lo que él eligió.
 
-**`accompaniment: L3`** — acompañamiento total: la brújula explica cada decisión y desarrolla cada
-opción. **Se baja solo cuando la persona lo pide.** Que haga bien tres tareas seguidas no significa que
-quiera menos explicación.
+**`technical_level`** — `non-technical` es lenguaje llano y analogías de cosas que se tocan, sin una
+palabra técnica sin mostrarla antes. `mixed` y `technical` aflojan eso.
+
+**`accompaniment`** — `L3` es acompañamiento total: se explica cada decisión y se desarrollan las
+opciones. `L1` es lo justo. **Se cambia cuando la persona lo pide**, no por iniciativa propia.
 
 **`language: es`** — español en todo: respuestas, nombres de ficheros y carpetas, títulos de lo que se
 escriba en `02-DOCS/`, y mensajes de las copias de seguridad.

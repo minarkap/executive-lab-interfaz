@@ -62,7 +62,7 @@ Filename: "{tmp}\VSCodeUserSetup-x64.exe"; \
 
 ; El resto lo hace preparar.js: carpeta, arnés, raíles y extensiones.
 Filename: "{app}\runtime\node.exe"; \
-  Parameters: """{app}\preparar.js"" --destino ""{code:CarpetaDeTrabajo}"" --objetivo ""{code:ObjetivoElegido}"" --arnes ""{code:NombreDelArnes}"" --empresa ""{code:NombreDeLaEmpresa}"" --asistente ""{code:AsistenteElegido}"""; \
+  Parameters: """{app}\preparar.js"" --destino ""{code:CarpetaDeTrabajo}"" --objetivo ""{code:ObjetivoElegido}"" --arnes ""{code:NombreDelArnes}"" --empresa ""{code:NombreDeLaEmpresa}"" --asistente ""{code:AsistenteElegido}"" --tipo ""{code:TipoDeProyecto}"" --nivel ""{code:NivelTecnico}"" --acompanamiento ""{code:Acompanamiento}"""; \
   StatusMsg: "Montando el arnés de tu empresa. Esto tarda unos minutos..."; \
   Flags: waituntilterminated runhidden
 
@@ -79,6 +79,9 @@ var
   PaginaObjetivo: TInputOptionWizardPage;
   PaginaNombres: TInputQueryWizardPage;
   PaginaAsistente: TInputOptionWizardPage;
+  PaginaDeQueVa: TInputOptionWizardPage;
+  PaginaManejo: TInputOptionWizardPage;
+  PaginaExplico: TInputOptionWizardPage;
 
 // Pascal Script no admite constantes de tipo array; se sirven por índice.
 function Objetivo(Indice: Integer): String;
@@ -144,6 +147,67 @@ begin
   PaginaAsistente.Add('Claude');
   PaginaAsistente.Add('Codex');
   PaginaAsistente.SelectedValueIndex := 0;
+
+  PaginaDeQueVa := CreateInputOptionPage(PaginaAsistente.ID,
+    'Para empezar', '¿De qué va esto?',
+    'De aquí sale lo que se te instala. Si te equivocas no pasa nada: se puede cambiar después.',
+    True, False);
+  PaginaDeQueVa.Add('Llevar el día a día — facturas, clientes, papeleo');
+  PaginaDeQueVa.Add('Crear cosas — textos, vídeos, redes');
+  PaginaDeQueVa.Add('Construir algo — una web, una automatización');
+  PaginaDeQueVa.Add('Estudiar un tema a fondo');
+  PaginaDeQueVa.Add('Un poco de todo');
+  PaginaDeQueVa.SelectedValueIndex := 0;
+
+  PaginaManejo := CreateInputOptionPage(PaginaDeQueVa.ID,
+    'Sobre ti', '¿Qué tal te manejas con el ordenador?',
+    'No hay respuesta mala. Sirve para saber con qué palabras hablarte.',
+    True, False);
+  PaginaManejo.Add('Lo justo — el correo, Word y poco más');
+  PaginaManejo.Add('Me defiendo — me apaño con casi todo, pero no programo');
+  PaginaManejo.Add('Programo, o he programado');
+  PaginaManejo.SelectedValueIndex := 0;
+
+  PaginaExplico := CreateInputOptionPage(PaginaManejo.ID,
+    'Sobre ti', '¿Cuánto quieres que te explique?',
+    'Se puede cambiar cuando quieras: basta con decírselo.',
+    True, False);
+  PaginaExplico.Add('Todo, paso a paso');
+  PaginaExplico.Add('Lo normal');
+  PaginaExplico.Add('Poco — ya preguntaré yo');
+  PaginaExplico.SelectedValueIndex := 0;
+end;
+
+function TipoDeProyecto(Param: String): String;
+begin
+  case PaginaDeQueVa.SelectedValueIndex of
+    1: Result := 'content';
+    2: Result := 'software';
+    3: Result := 'research';
+    4: Result := 'mixed';
+  else
+    Result := 'operations';
+  end;
+end;
+
+function NivelTecnico(Param: String): String;
+begin
+  case PaginaManejo.SelectedValueIndex of
+    1: Result := 'mixed';
+    2: Result := 'technical';
+  else
+    Result := 'non-technical';
+  end;
+end;
+
+function Acompanamiento(Param: String): String;
+begin
+  case PaginaExplico.SelectedValueIndex of
+    1: Result := 'L2';
+    2: Result := 'L1';
+  else
+    Result := 'L3';
+  end;
 end;
 
 function AsistenteElegido(Param: String): String;

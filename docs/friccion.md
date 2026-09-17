@@ -15,10 +15,10 @@ alumno que se cae en el paso 2 no llega nunca al 9.
 | 1 | Recibe el enlace y descarga | 277 MB. Con mala conexión, cinco minutos mirando una barra | Abierto |
 | 2 | **SmartScreen** | *«Windows protegió tu PC»*. El botón visible es *No ejecutar* | **Abierto — el peor** |
 | 3 | Instalación | ¿Pide administrador? No debería | Por confirmar |
-| 4 | Elige objetivo, nombres y asistente | Tres páginas. ¿Se entienden solas? | Por confirmar |
+| 4 | Responde el wizard | Seis páginas: asistente, de qué va, objetivo, cómo te manejas, cuánto te explico, nombres. ¿Se entienden solas? | Por confirmar |
 | 5 | Espera | Unos minutos con una barra de progreso | Aceptable |
 | 6 | Abre el acceso directo | Debería salir su barra, sin barras ni pestañas | Hecho |
-| 7 | **Inicia sesión** | Necesita cuenta de pago. Si no la tiene, aquí se acaba | **Abierto — no técnico** |
+| 7 | **Inicia sesión** | Necesita cuenta de pago. Si no la tiene, aquí se acaba | Avisado en la barra (§19); quién paga sigue abierto |
 | 8 | Primera conversación | El asistente le pregunta; los raíles lo llevan | Hecho |
 | 9 | Conecta una herramienta | Guía paso a paso y campos con su pista | Hecho |
 | 10 | Se atasca | *Algo va mal* → código para el tutor | Hecho, sin probar en real |

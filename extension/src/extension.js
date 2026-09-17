@@ -170,6 +170,7 @@ ${cabecera}
       arrancar: () => this.arrancar(),
       ponerLaCara: () => this.ponerLaCara(),
       elegirCarpeta: () => this.elegirCarpeta(),
+      abrirAsistente: () => puente.abrirConversacion(),
       verEditorCompleto: () => this.verEditorCompleto(),
       modoSencillo: () => this.modoSencillo(),
     };

@@ -119,13 +119,17 @@ function prepararHistorial(destino) {
 // aceptación se reutiliza tal cual la imprime RSC — con el objetivo en base64
 // y los mismos flags — para que la huella no pueda dejar de coincidir.
 function montarElArnes(destino, objetivo, asistente) {
+  // Los tres los responde el alumno en el instalador. Antes se daban por
+  // supuestos, y eso imponia "no tecnico" y "explicamelo todo" a cualquiera.
+  const tipo = argumento('tipo', 'operations');
   const flags = [
-    '--technical-level', 'non-technical',
-    '--accompaniment', 'L3',
-    '--project-kind', 'operations',
+    '--technical-level', argumento('nivel', 'non-technical'),
+    '--accompaniment', argumento('acompanamiento', 'L3'),
+    '--project-kind', tipo,
     '--goal', objetivo,
     '--target', asistente,
   ];
+  if (tipo === 'software') flags.push('--software-scope', 'small');
 
   const previo = arnes(['onboard', ...flags], { cwd: destino, timeout: 600000 });
   const huella = (previo.salida.match(/Plan id:\s*([0-9a-f]{64})/i) || [])[1];

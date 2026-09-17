@@ -19,6 +19,7 @@ const rsc = require('./rsc');
 const guardar = require('./guardar');
 const conexiones = require('./conexiones');
 const cerebro = require('./cerebro');
+const asistentes = require('./asistentes');
 
 // Nombres del diccionario para las dos carpetas del arnés.
 const ZONAS = { '02-DOCS': 'Lo que sabe de tu empresa', '01-TOOLS': 'Conexiones' };
@@ -116,13 +117,24 @@ async function calcular() {
     ? `Aprendió sobre ${ultimoAprendido.titulo}`
     : (copias.length ? `Guardaste una copia ${guardar.haceCuanto(copias[0].cuando)}` : null);
 
+  // Recién montado y sin nada hecho: lo primero es la cuenta. No se puede
+  // saber desde aquí si ha iniciado sesión —la credencial vive en el llavero
+  // del sistema— así que no se adivina: se convierte en el primer paso, y
+  // desaparece en cuanto haya pasado algo.
+  const quien = asistentes.elDeAhora();
+  const sinEmpezar = !continuacion && !sabe && !conectados && !copias.length;
+
   return {
     listo: true,
-    donde: interpretar(continuacion) || (conectados === 0 && sabe === 0 ? 'Acabas de empezar' : 'Tu empresa'),
+    donde: interpretar(continuacion) || (conectados === 0 && sabe === 0 ? 'Acabas de empezar' : 'Tu trabajo'),
     hiciste,
     sabe,
     conectados,
     esperando,
+    primerPaso: sinEmpezar ? {
+      asistente: quien.nombre,
+      instalado: asistentes.estaInstalado(quien),
+    } : null,
   };
 }
 

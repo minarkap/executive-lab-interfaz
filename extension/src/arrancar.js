@@ -21,28 +21,61 @@ const guardar = require('./guardar');
 const identidad = require('./identidad');
 const asistentes = require('./asistentes');
 
-const OBJETIVOS = [
-  'Poner orden en mis facturas',
-  'Atender mejor a mis clientes',
-  'Organizar los documentos de la empresa',
-  'Vender más y hacer seguimiento',
-  'Quitarme tareas repetitivas de encima',
-  'Llevar los contratos y el papeleo de la gente',
+// Las preguntas que hace RSC, en cristiano. Antes se daban por supuestas tres
+// —siempre operaciones, siempre no técnico, siempre L3— y eso está mal: un
+// arnés puede ser para llevar facturas o para montar una web, y quien lo usa
+// puede ser el de administración o alguien que programó hace años.
+//
+// El orden importa: primero de qué va, porque de ahí sale todo lo demás.
+
+const DE_QUE_VA = [
+  { etiqueta: 'Llevar el día a día', detalle: 'Facturas, clientes, papeleo, proveedores', kind: 'operations' },
+  { etiqueta: 'Crear cosas', detalle: 'Textos, vídeos, redes, presentaciones', kind: 'content' },
+  { etiqueta: 'Construir algo', detalle: 'Una web, una automatización, una herramienta', kind: 'software' },
+  { etiqueta: 'Estudiar un tema a fondo', detalle: 'Un sector, una competencia, una normativa', kind: 'research' },
+  { etiqueta: 'Un poco de todo', detalle: 'Todavía no lo tengo claro', kind: 'mixed' },
 ];
 
-const OTRA_COSA = 'Otra cosa — te lo cuento yo';
+const COMO_TE_MANEJAS = [
+  { etiqueta: 'Lo justo', detalle: 'El correo, Word y poco más', nivel: 'non-technical' },
+  { etiqueta: 'Me defiendo', detalle: 'Me apaño con casi todo, pero no programo', nivel: 'mixed' },
+  { etiqueta: 'Programo, o he programado', detalle: 'He escrito código alguna vez', nivel: 'technical' },
+];
 
-async function preguntarObjetivo() {
-  const elegido = await vscode.window.showQuickPick([...OBJETIVOS, OTRA_COSA], {
-    title: 'Empezar una empresa aquí',
-    placeHolder: '¿Qué te gustaría resolver primero?',
-    ignoreFocusOut: true,
-  });
+const CUANTO_TE_EXPLICO = [
+  { etiqueta: 'Todo, paso a paso', detalle: 'Prefiero que me lleve de la mano', dial: 'L3' },
+  { etiqueta: 'Lo normal', detalle: 'Explícame lo importante y sigue', dial: 'L2' },
+  { etiqueta: 'Poco', detalle: 'Ya preguntaré yo si hace falta', dial: 'L1' },
+];
+
+const OBJETIVOS_POR_TIPO = {
+  operations: ['Poner orden en mis facturas', 'Atender mejor a mis clientes', 'Organizar el papeleo', 'Vender más y hacer seguimiento', 'Quitarme tareas repetitivas'],
+  content: ['Escribir para mi web o mi blog', 'Llevar las redes sociales', 'Preparar presentaciones', 'Hacer vídeos'],
+  software: ['Montar una web sencilla', 'Automatizar algo que hago a mano', 'Conectar dos herramientas que ya uso'],
+  research: ['Entender a mi competencia', 'Estudiar una normativa que me afecta', 'Buscar oportunidades en mi sector'],
+  mixed: ['Poner orden en mis facturas', 'Atender mejor a mis clientes', 'Escribir para mi web', 'Automatizar algo que hago a mano'],
+};
+
+// Un elegir con descripción debajo de cada opción: en una lista pelada, la
+// mitad de las opciones no se entienden sin un ejemplo.
+async function elegir(titulo, pregunta, opciones, extra = []) {
+  const elegida = await vscode.window.showQuickPick(
+    [...opciones.map((o) => ({ label: o.etiqueta, detail: o.detalle, valor: o })), ...extra],
+    { title: titulo, placeHolder: pregunta, ignoreFocusOut: true, matchOnDetail: true },
+  );
+  return elegida ? (elegida.valor !== undefined ? elegida.valor : elegida) : null;
+}
+
+async function preguntarObjetivo(kind) {
+  const OTRA = { label: 'Otra cosa — te la cuento yo', otra: true };
+  const sugeridos = (OBJETIVOS_POR_TIPO[kind] || OBJETIVOS_POR_TIPO.mixed).map((e) => ({ etiqueta: e }));
+
+  const elegido = await elegir('Para empezar', '¿Qué te gustaría resolver primero?', sugeridos, [OTRA]);
   if (!elegido) return null;
-  if (elegido !== OTRA_COSA) return elegido;
+  if (!elegido.otra) return elegido.etiqueta;
 
   const escrito = await vscode.window.showInputBox({
-    title: 'Empezar una empresa aquí',
+    title: 'Para empezar',
     prompt: 'Cuéntamelo con tus palabras. Da igual si luego cambias de idea.',
     placeHolder: 'Por ejemplo: llevar los contratos de mis proveedores',
     ignoreFocusOut: true,
@@ -122,19 +155,24 @@ async function preguntarWeb() {
 // huella, y solo escribe cuando se le devuelve esa misma huella. La línea de
 // aceptación se reutiliza tal cual la imprime RSC —con el objetivo en base64 y
 // los mismos flags— para que la huella no pueda dejar de coincidir.
-async function montarElArnes(objetivo, asistente) {
+async function montarElArnes(respuestas) {
   const flags = [
-    '--technical-level', 'non-technical',
-    '--accompaniment', 'L3',
-    '--project-kind', 'operations',
-    '--goal', objetivo,
-    '--target', asistente,
+    '--technical-level', respuestas.nivel,
+    '--accompaniment', respuestas.dial,
+    '--project-kind', respuestas.kind,
+    '--goal', respuestas.objetivo,
+    '--target', respuestas.asistente,
   ];
+  // RSC pide el tamaño cuando se trata de construir algo.
+  if (respuestas.kind === 'software') flags.push('--software-scope', respuestas.tamano || 'small');
 
   const previo = await rsc.correr(['onboard', ...flags], { tiempoMaximo: 600000 });
   const huella = (previo.salida.match(/Plan id:\s*([0-9a-f]{64})/i) || [])[1];
   if (!huella) return { ok: false, detalle: previo.error || previo.salida };
 
+  // Se reutiliza la línea de aceptación tal cual la imprime RSC —con el
+  // objetivo en base64 y los mismos flags— para que la huella no pueda dejar
+  // de coincidir.
   const linea = (previo.salida.match(/^Accept exactly this plan: npx @ericrisco\/rsc@\S+ onboard (.+)$/m) || [])[1];
   const aceptar = linea ? linea.trim().split(/\s+/) : [...flags, '--accept-plan', huella];
 
@@ -197,16 +235,42 @@ async function arrancar(contexto, salida) {
     return { ok: false, mensaje: 'Aquí ya hay una empresa montada.' };
   }
 
-  const objetivo = await preguntarObjetivo();
-  if (!objetivo) return { ok: false, cancelado: true };
-
   const asistente = await preguntarAsistente();
   if (!asistente) return { ok: false, cancelado: true };
+
+  const deQueVa = await elegir('Para empezar', '¿De qué va esto?', DE_QUE_VA);
+  if (!deQueVa) return { ok: false, cancelado: true };
+
+  const objetivo = await preguntarObjetivo(deQueVa.kind);
+  if (!objetivo) return { ok: false, cancelado: true };
+
+  const tamano = deQueVa.kind === 'software'
+    ? await elegir('Para empezar', '¿Es algo pequeño o va para largo?', [
+      { etiqueta: 'Algo pequeño', detalle: 'Una cosa concreta, para salir del paso', valor: 'small' },
+      { etiqueta: 'Va para largo', detalle: 'Le voy a dedicar tiempo y va a crecer', valor: 'large' },
+    ])
+    : null;
+  if (deQueVa.kind === 'software' && !tamano) return { ok: false, cancelado: true };
+
+  const manejo = await elegir('Sobre ti', '¿Qué tal te manejas con el ordenador?', COMO_TE_MANEJAS);
+  if (!manejo) return { ok: false, cancelado: true };
+
+  const explico = await elegir('Sobre ti', '¿Cuánto quieres que te explique?', CUANTO_TE_EXPLICO);
+  if (!explico) return { ok: false, cancelado: true };
 
   const nombres = await preguntarNombres(objetivo);
   if (!nombres) return { ok: false, cancelado: true };
 
   const web = await preguntarWeb();
+
+  const respuestas = {
+    asistente,
+    kind: deQueVa.kind,
+    objetivo,
+    tamano: tamano ? (tamano.valor || tamano) : null,
+    nivel: manejo.nivel,
+    dial: explico.dial,
+  };
 
   return vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Preparando tu empresa', cancellable: false },
@@ -218,7 +282,7 @@ async function arrancar(contexto, salida) {
       }
 
       progreso.report({ message: 'montando el arnés, esto tarda unos minutos…' });
-      const montado = await montarElArnes(objetivo, asistente);
+      const montado = await montarElArnes(respuestas);
       if (!montado.ok) {
         salida.appendLine(`[arrancar] ${montado.detalle}`);
         return { ok: false, mensaje: 'No he podido montar el arnés. Pulsa "Algo va mal" y pásale el código a tu tutor.' };
@@ -242,4 +306,4 @@ async function arrancar(contexto, salida) {
   );
 }
 
-module.exports = { arrancar, OBJETIVOS };
+module.exports = { arrancar, DE_QUE_VA, COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO };
