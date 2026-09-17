@@ -187,7 +187,7 @@ ${cabecera}
   }
 
   async pedir(prompt) {
-    const como = await puente.enviar(prompt);
+    const como = await puente.enviar(prompt, this.salida);
     if (como === 'directo') this.enviar({ tipo: 'aviso', texto: 'Se lo he pedido. Mira la conversación.' });
   }
 

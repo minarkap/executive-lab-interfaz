@@ -245,9 +245,12 @@ function code() {
   return primero(['/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code'], 'code');
 }
 
-function vestirElEditor() {
+const EXTENSION_DEL_ASISTENTE = { claude: 'anthropic.claude-code', codex: 'openai.chatgpt' };
+
+function vestirElEditor(asistente) {
   const cli = code();
-  let bien = correrCmd(cli, ['--install-extension', 'anthropic.claude-code', '--force']).codigo === 0;
+  const suya = EXTENSION_DEL_ASISTENTE[asistente] || EXTENSION_DEL_ASISTENTE.claude;
+  let bien = correrCmd(cli, ['--install-extension', suya, '--force']).codigo === 0;
 
   const vsix = path.join(APP, 'executive-lab.vsix');
   if (fs.existsSync(vsix)) bien = correrCmd(cli, ['--install-extension', vsix, '--force']).codigo === 0 && bien;
@@ -416,7 +419,7 @@ function main() {
   // --sin-editor solo se salta instalar las extensiones, para poder probar
   // todo lo demás sin tocar el VS Code de quien prueba.
   if (process.argv.includes('--sin-editor')) anotar('Extensiones: omitidas (--sin-editor).');
-  else bien = vestirElEditor() && bien;
+  else bien = vestirElEditor(asistente) && bien;
 
   const donde = path.join(destino, 'instalacion.log');
   try {

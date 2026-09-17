@@ -399,6 +399,35 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'ignorado';
   });
 
+  await comprobar('con Codex, los botones abren su barra y copian', async () => {
+    const asistentes = cargar('asistentes');
+    const fs2 = require('node:fs');
+    const declaracion = path.join(empresa, '.rsc.json');
+    const antes = fs2.readFileSync(declaracion, 'utf8');
+
+    // Un arnés montado para Codex, con su extensión instalada y la de Claude no.
+    fs2.writeFileSync(declaracion, JSON.stringify({ ...JSON.parse(antes), targets: ['codex'] }, null, 2));
+    vscode.guion.extensionesInstaladas = ['openai.chatgpt'];
+    assert.equal(asistentes.elDeAhora().id, 'codex', 'lo dice el arnés, no se adivina');
+
+    vscode.registrado.ejecutados.length = 0;
+    const como = await puente.enviar('hola Codex');
+    assert.equal(como, 'copiado', 'su extensión no expone ningún comando que acepte texto');
+    assert.equal(vscode.registrado.portapapeles, 'hola Codex');
+    assert.ok(vscode.registrado.ejecutados.some((e) => e.id === 'chatgpt.openSidebar'), 'y le abre su barra');
+
+    fs2.writeFileSync(declaracion, antes);
+    vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    return 'barra + portapapeles';
+  });
+
+  await comprobar('el asistente sale de lo que declara el arnés', () => {
+    const asistentes = cargar('asistentes');
+    assert.equal(asistentes.elDeAhora().id, 'claude');
+    assert.deepEqual(asistentes.losDelArnes().map((a) => a.id), ['claude']);
+    return 'claude';
+  });
+
   // ---------------------------------------------- el disfraz y su interruptor
   const contexto = {
     extensionUri: { fsPath: RAIZ },

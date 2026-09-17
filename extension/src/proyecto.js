@@ -38,13 +38,16 @@ function arnesCompleto() {
 
 // La versión del catálogo que fijó el instalador. Toda la cohorte tiene que
 // correr exactamente la misma, así que nunca se usa @latest.
-function versionDelCatalogo() {
+function declaracion() {
   try {
-    const declaracion = JSON.parse(fs.readFileSync(ruta('.rsc.json'), 'utf8'));
-    return declaracion.catalogVersion || null;
+    return JSON.parse(fs.readFileSync(ruta('.rsc.json'), 'utf8'));
   } catch {
     return null;
   }
 }
 
-module.exports = { raiz, ruta, existe, sueloDelArnes, arnesCompleto, versionDelCatalogo };
+function versionDelCatalogo() {
+  return (declaracion() || {}).catalogVersion || null;
+}
+
+module.exports = { raiz, ruta, existe, declaracion, sueloDelArnes, arnesCompleto, versionDelCatalogo };

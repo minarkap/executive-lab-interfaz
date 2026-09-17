@@ -21,6 +21,7 @@ const guion = {
   ficheros: [],             // qué devuelve showOpenDialog
   rechazaAjuste: () => false,
   extensionesInstaladas: ['anthropic.claude-code'],
+  comandosDeCodex: ['chatgpt.openSidebar', 'chatgpt.addToThread'],
   raiz: null,
 };
 
@@ -65,7 +66,7 @@ module.exports = {
   commands: {
     registerCommand: (id, fn) => { registrado.comandos.push(id); registrado[id] = fn; return { dispose() {} }; },
     executeCommand: async (id, ...args) => { registrado.ejecutados.push({ id, args }); },
-    getCommands: async () => ['workbench.action.reloadWindow', ...guion.comandosDeClaude],
+    getCommands: async () => ['workbench.action.reloadWindow', ...guion.comandosDeClaude, ...guion.comandosDeCodex],
   },
 
   RelativePattern: class { constructor(base, patron) { this.base = base; this.pattern = patron; registrado.vigilado = patron; } },

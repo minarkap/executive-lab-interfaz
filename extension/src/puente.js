@@ -1,49 +1,26 @@
-// El puente hasta la caja de texto de Claude.
+// El puente hasta el asistente, sea cual sea.
 //
-// Anthropic no documenta qué comandos expone su extensión, y no queremos
-// depender de un identificador adivinado que desaparezca en una actualización.
-// Así que el puente se descubre en tiempo de ejecución: se mira qué comandos
-// hay, se prueba el mejor, y si no hay ninguno se cae al plan B.
+// Qué asistente es y qué permite cada uno está en `asistentes.js`. Aquí solo
+// está el orden en que se intenta hablarle:
 //
-// Este módulo es también la respuesta a la pregunta 1 del spike: el comando
-// "Qué comandos de Claude hay disponibles" imprime lo que encuentre.
+//   1. Un comando suyo que acepte texto.
+//   2. Su enlace profundo, si la extensión que lo recoge está instalada.
+//   3. El portapapeles, avisando de que ha hecho falta.
+//
+// El paso 3 no es un fallo silencioso: si se llega ahí, el alumno lo sabe y
+// queda anotado en el canal de salida, porque significa que algo ha cambiado
+// en la extensión del asistente.
 
 const vscode = require('vscode');
+const asistentes = require('./asistentes');
 
-// Ordenados por preferencia. Los nombres son conjeturas razonables sobre
-// convenciones de VS Code, no API documentada.
-// Comprobado leyendo el código de la extensión 2.1.273 (17-09-2026).
-//
-// Ninguno de sus comandos documentados acepta texto, pero su propio manejador
-// de enlaces (`vscode://anthropic.claude-code/open?prompt=…`) llama a
-// `claude-vscode.primaryEditor.open(sesion, prompt)`. Ese es el camino que usa
-// Anthropic, así que es el que usamos: si algún día cambia, cambiará para
-// todos a la vez y no solo para nosotros.
-//
-// Lo que NO se puede: escribir en la conversación que ya tienes abierta. Su
-// API no lo expone. Cada envío abre una conversación nueva con el texto ya
-// puesto, y es lo máximo que permite hoy.
-const ENVIO = [
-  'claude-vscode.primaryEditor.open',
-  'claude-vscode.editor.open',
-];
-
-const ENLACE_ABRIR = 'vscode://anthropic.claude-code/open';
-const EXTENSION_DE_CLAUDE = 'anthropic.claude-code';
-
-// Estos sí están documentados. Abrir el chat, y enfocar su caja de texto.
-const CANDIDATOS_ABRIR = ['claude-vscode.editor.openLast', 'claude-vscode.sidebar.open'];
-const CANDIDATOS_FOCO = ['claude-vscode.focus', 'claude-code.focusInput'];
-
-// Sin caché a propósito: cuando arrancamos, la extensión de Claude puede no
-// haberse activado todavía y su lista estar vacía. Preguntar es barato.
-async function comandosDeClaude() {
-  const todos = await vscode.commands.getCommands(true);
-  return todos.filter((c) => /claude/i.test(c)).sort();
+async function comandosDisponibles() {
+  return vscode.commands.getCommands(true);
 }
 
 async function primeroDisponible(candidatos) {
-  const hay = await comandosDeClaude();
+  if (!candidatos || !candidatos.length) return null;
+  const hay = await comandosDisponibles();
   return candidatos.find((c) => hay.includes(c)) || null;
 }
 
@@ -54,74 +31,74 @@ async function ejecutarSiExiste(candidatos) {
     await vscode.commands.executeCommand(comando);
     return true;
   } catch {
-    return false; // el foco es una cortesía, no un requisito
+    return false;
   }
 }
 
-async function darFoco() {
-  await ejecutarSiExiste(CANDIDATOS_ABRIR);
-  return ejecutarSiExiste(CANDIDATOS_FOCO);
-}
+const darFoco = () => ejecutarSiExiste(asistentes.elDeAhora().foco);
 
-// Manda un texto a Claude. Devuelve 'directo' si ha llegado, o 'copiado' si
-// hubo que dejarlo en el portapapeles.
-async function enviar(texto) {
-  const hay = await comandosDeClaude();
+// Abre su chat sin texto: al arrancar, para que el alumno lo tenga delante.
+const abrirConversacion = () => ejecutarSiExiste(asistentes.elDeAhora().abrir);
 
-  for (const comando of ENVIO) {
+// Manda un texto. Devuelve 'directo' si ha llegado, 'copiado' si hubo que
+// dejarlo en el portapapeles.
+async function enviar(texto, salida) {
+  const quien = asistentes.elDeAhora();
+  const hay = await comandosDisponibles();
+
+  for (const comando of quien.envio) {
     if (!hay.includes(comando)) continue;
     try {
       await vscode.commands.executeCommand(comando, undefined, texto);
-      await ejecutarSiExiste(CANDIDATOS_FOCO);
+      await darFoco();
       return 'directo';
-    } catch {
-      /* siguiente */
+    } catch (error) {
+      if (salida) salida.appendLine(`[puente] ${comando} ha fallado: ${error.message}`); // diccionario: interno
     }
   }
 
-  // openExternal dice que sí en cuanto entrega la URI, sin comprobar si
-  // alguien la recoge. Así que primero se mira que la extensión que la
-  // registra esté instalada.
-  if (vscode.extensions.getExtension(EXTENSION_DE_CLAUDE)) {
+  // openExternal dice que sí en cuanto entrega la URI, sin mirar si alguien la
+  // recoge: por eso se comprueba antes que su extensión está instalada.
+  if (quien.enlace && asistentes.estaInstalado(quien)) {
     try {
-      if (await vscode.env.openExternal(vscode.Uri.parse(`${ENLACE_ABRIR}?prompt=${encodeURIComponent(texto)}`))) return 'directo';
-    } catch {
-      /* plan B */
+      const uri = `${quien.enlace}?${quien.parametro}=${encodeURIComponent(texto)}`;
+      if (await vscode.env.openExternal(vscode.Uri.parse(uri))) return 'directo';
+    } catch (error) {
+      if (salida) salida.appendLine(`[puente] el enlace ha fallado: ${error.message}`); // diccionario: interno
     }
   }
 
-  // Plan B. Si se llega aquí es que algo ha cambiado en su extensión: queda
-  // anotado para poder arreglarlo, en vez de dejar al alumno con un párrafo
-  // en el portapapeles y ninguna explicación.
   await vscode.env.clipboard.writeText(texto);
+  await abrirConversacion();
   await darFoco();
+
+  if (salida) salida.appendLine(`[puente] sin canal directo con ${quien.nombre}: al portapapeles`); // diccionario: interno
   vscode.window.showWarningMessage(
-    'No he podido hablarle directamente. Te lo he copiado: pégalo con Ctrl+V en la caja de abajo.',
+    `Con ${quien.nombre} no puedo escribirle yo. Te lo he copiado: pégalo con Ctrl+V en su caja y dale a enviar.`,
   );
   return 'copiado';
 }
 
-// Vuelca lo que hay. Sirve para responder al spike sin leer código.
+// Vuelca lo que hay. Sirve para saber qué expone cada asistente sin leer código.
 async function diagnostico(salida) {
-  const hay = await comandosDeClaude();
+  const hay = await comandosDisponibles();
   salida.clear();
-  salida.appendLine('Comandos de Claude detectados en esta instalación:');
-  salida.appendLine('');
-  if (!hay.length) {
-    salida.appendLine('  (ninguno — ¿está instalada y activada la extensión de Claude Code?)'); // diccionario: interno
-  } else {
-    hay.forEach((c) => salida.appendLine(`  ${c}`));
+
+  for (const quien of asistentes.ASISTENTES) {
+    const suyos = hay.filter((c) => c.startsWith(`${quien.id === 'claude' ? 'claude-vscode' : 'chatgpt'}.`)).sort();
+    salida.appendLine(`=== ${quien.nombre} (${quien.extension}) ===`);
+    salida.appendLine(`  instalado: ${asistentes.estaInstalado(quien) ? 'sí' : 'no'}`);
+    salida.appendLine(`  envío:     ${(await primeroDisponible(quien.envio)) || 'NINGUNO — irá al portapapeles'}`);
+    salida.appendLine(`  abrir:     ${(await primeroDisponible(quien.abrir)) || 'ninguno'}`);
+    salida.appendLine(`  foco:      ${(await primeroDisponible(quien.foco)) || 'ninguno'}`);
+    salida.appendLine(`  comandos que expone (${suyos.length}):`);
+    suyos.forEach((c) => salida.appendLine(`    ${c}`));
+    salida.appendLine('');
   }
-  salida.appendLine('');
-  salida.appendLine(`Puente de envío: ${(await primeroDisponible(ENVIO)) || 'NINGUNO — se usará el portapapeles'}`);
-  salida.appendLine(`Puente de foco:  ${(await primeroDisponible(CANDIDATOS_FOCO)) || 'NINGUNO'}`);
-  salida.appendLine(`Puente de abrir: ${(await primeroDisponible(CANDIDATOS_ABRIR)) || 'NINGUNO'}`);
-  salida.appendLine(`Enlace profundo: ${vscode.extensions.getExtension(EXTENSION_DE_CLAUDE) ? ENLACE_ABRIR : 'NO (la extensión de Claude no está instalada)'}`); // diccionario: interno
+
+  const ahora = asistentes.elDeAhora();
+  salida.appendLine(`El arnés de esta carpeta habla con: ${ahora.nombre}`);
   salida.show(true);
 }
 
-// Abre el chat de Claude sin texto: al arrancar, para que el alumno lo tenga
-// delante sin buscarlo.
-const abrirConversacion = () => ejecutarSiExiste(CANDIDATOS_ABRIR);
-
-module.exports = { enviar, darFoco, abrirConversacion, comandosDeClaude, diagnostico };
+module.exports = { enviar, darFoco, abrirConversacion, diagnostico, primeroDisponible };

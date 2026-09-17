@@ -62,7 +62,7 @@ Filename: "{tmp}\VSCodeUserSetup-x64.exe"; \
 
 ; El resto lo hace preparar.js: carpeta, arnés, raíles y extensiones.
 Filename: "{app}\runtime\node.exe"; \
-  Parameters: """{app}\preparar.js"" --destino ""{code:CarpetaDeTrabajo}"" --objetivo ""{code:ObjetivoElegido}"" --arnes ""{code:NombreDelArnes}"" --empresa ""{code:NombreDeLaEmpresa}"" --asistente claude"; \
+  Parameters: """{app}\preparar.js"" --destino ""{code:CarpetaDeTrabajo}"" --objetivo ""{code:ObjetivoElegido}"" --arnes ""{code:NombreDelArnes}"" --empresa ""{code:NombreDeLaEmpresa}"" --asistente ""{code:AsistenteElegido}"""; \
   StatusMsg: "Montando el arnés de tu empresa. Esto tarda unos minutos..."; \
   Flags: waituntilterminated runhidden
 
@@ -78,6 +78,7 @@ Name: "{autodesktop}\{code:NombreDelArnes}"; \
 var
   PaginaObjetivo: TInputOptionWizardPage;
   PaginaNombres: TInputQueryWizardPage;
+  PaginaAsistente: TInputOptionWizardPage;
 
 // Pascal Script no admite constantes de tipo array; se sirven por índice.
 function Objetivo(Indice: Integer): String;
@@ -135,6 +136,22 @@ begin
   PaginaNombres.Add('Esto es para...  (Contabilidad, Personal, Marketing, Clientes...)', False);
   PaginaNombres.Add('Y tu empresa se llama...  (puedes dejarlo en blanco)', False);
   PaginaNombres.Values[0] := 'Mi trabajo';
+
+  PaginaAsistente := CreateInputOptionPage(PaginaNombres.ID,
+    'Tu asistente', '¿Con cuál vas a trabajar?',
+    'Los dos hacen lo mismo aquí. Si en clase te han dicho uno, elige ese. Si no lo sabes, deja Claude.',
+    True, False);
+  PaginaAsistente.Add('Claude');
+  PaginaAsistente.Add('Codex');
+  PaginaAsistente.SelectedValueIndex := 0;
+end;
+
+function AsistenteElegido(Param: String): String;
+begin
+  if PaginaAsistente.SelectedValueIndex = 1 then
+    Result := 'codex'
+  else
+    Result := 'claude';
 end;
 
 // No se deja pasar de la pagina de nombres sin al menos el primero.

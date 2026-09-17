@@ -19,6 +19,7 @@ const procesos = require('./procesos');
 const rsc = require('./rsc');
 const guardar = require('./guardar');
 const identidad = require('./identidad');
+const asistentes = require('./asistentes');
 
 const OBJETIVOS = [
   'Poner orden en mis facturas',
@@ -47,6 +48,20 @@ async function preguntarObjetivo() {
     ignoreFocusOut: true,
   });
   return escrito && escrito.trim() ? escrito.trim() : null;
+}
+
+// Con qué asistente va a trabajar. Solo se pregunta si hay más de uno
+// instalado: si solo tiene uno, preguntarlo es una pantalla de más.
+async function preguntarAsistente() {
+  const puestos = asistentes.ASISTENTES.filter(asistentes.estaInstalado);
+  if (puestos.length === 1) return puestos[0].id;
+  if (!puestos.length) return 'claude';
+
+  const elegido = await vscode.window.showQuickPick(
+    puestos.map((a) => ({ label: a.nombre, id: a.id })),
+    { title: 'Con quién vas a trabajar', placeHolder: 'Tienes los dos instalados: elige uno', ignoreFocusOut: true },
+  );
+  return elegido ? elegido.id : null;
 }
 
 // Cómo se llama esto. Dos nombres, y los pone el alumno: para qué es esta
@@ -107,13 +122,13 @@ async function preguntarWeb() {
 // huella, y solo escribe cuando se le devuelve esa misma huella. La línea de
 // aceptación se reutiliza tal cual la imprime RSC —con el objetivo en base64 y
 // los mismos flags— para que la huella no pueda dejar de coincidir.
-async function montarElArnes(objetivo) {
+async function montarElArnes(objetivo, asistente) {
   const flags = [
     '--technical-level', 'non-technical',
     '--accompaniment', 'L3',
     '--project-kind', 'operations',
     '--goal', objetivo,
-    '--target', 'claude',
+    '--target', asistente,
   ];
 
   const previo = await rsc.correr(['onboard', ...flags], { tiempoMaximo: 600000 });
@@ -185,6 +200,9 @@ async function arrancar(contexto, salida) {
   const objetivo = await preguntarObjetivo();
   if (!objetivo) return { ok: false, cancelado: true };
 
+  const asistente = await preguntarAsistente();
+  if (!asistente) return { ok: false, cancelado: true };
+
   const nombres = await preguntarNombres(objetivo);
   if (!nombres) return { ok: false, cancelado: true };
 
@@ -200,7 +218,7 @@ async function arrancar(contexto, salida) {
       }
 
       progreso.report({ message: 'montando el arnés, esto tarda unos minutos…' });
-      const montado = await montarElArnes(objetivo);
+      const montado = await montarElArnes(objetivo, asistente);
       if (!montado.ok) {
         salida.appendLine(`[arrancar] ${montado.detalle}`);
         return { ok: false, mensaje: 'No he podido montar el arnés. Pulsa "Algo va mal" y pásale el código a tu tutor.' };
