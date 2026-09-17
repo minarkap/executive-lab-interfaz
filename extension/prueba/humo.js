@@ -370,21 +370,43 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     async update(k, v) { this.datos.set(k, v); },
   };
 
-  await comprobar('el disfraz base escribe en los ajustes de usuario', async () => {
+  await comprobar('el disfraz se pone en la carpeta, no en todo VS Code', async () => {
     const salida = vscode.window.createOutputChannel();
     // Las claves de Claude no existen hasta que su extensión se activa.
     vscode.guion.rechazaAjuste = (clave) => clave.startsWith('claudeCode.');
     const { aplicadas, pendientes } = await disfraz.aplicar(contexto, salida);
-    const total = Object.keys(JSON.parse(fs.readFileSync(path.join(RAIZ, 'media/disfraz.json'), 'utf8'))).length;
-    assert.equal(aplicadas + pendientes.length, total);
+
+    const { global, workspace } = vscode.registrado.ajustes;
+    assert.ok(aplicadas > 20, `solo ha escrito ${aplicadas}`);
+    assert.equal(Object.keys(global).length, 0, 'ni una sola clave en los ajustes de usuario');
+    assert.ok(workspace['workbench.colorCustomizations'], 'los colores de la marca entran en la carpeta');
     assert.ok(pendientes.every((k) => k.startsWith('claudeCode.')));
-    assert.ok(vscode.registrado.ajustes.global['workbench.colorCustomizations'], 'los colores de la marca entran');
-    return `${aplicadas} escritos, ${pendientes.length} pendientes`;
+
+    // Lo de ámbito de programa lo pone el instalador, no la extensión: en la
+    // máquina de quien desarrolla le cambiaría todas las ventanas.
+    for (const clave of ['window.zoomLevel', 'security.workspace.trust.enabled', 'telemetry.telemetryLevel']) {
+      assert.ok(!(clave in workspace) && !(clave in global), `${clave} no la debe tocar la extensión`);
+    }
+    return `${aplicadas} en la carpeta, 0 en VS Code entero`;
+  });
+
+  await comprobar('la salida de emergencia lo quita de los dos sitios', async () => {
+    const salida = vscode.window.createOutputChannel();
+    // Como si alguien lo hubiera instalado en el editor donde trabaja.
+    vscode.registrado.ajustes.global['workbench.activityBar.location'] = 'hidden';
+    vscode.registrado.ajustes.global['window.zoomLevel'] = 1;
+
+    const { quitadas } = await disfraz.quitar(contexto, salida);
+    assert.equal(Object.keys(vscode.registrado.ajustes.global).length, 0, 'fuera de los ajustes de usuario');
+    assert.equal(Object.keys(vscode.registrado.ajustes.workspace).length, 0, 'y de los de la carpeta');
+    assert.ok(quitadas > 20, `solo ha quitado ${quitadas}`);
+    return `${quitadas} ajustes fuera`;
   });
 
   await comprobar('el interruptor cambia solo esta ventana', async () => {
     const salida = vscode.window.createOutputChannel();
-    assert.equal(disfraz.modoDeEstaVentana(), 'sencillo');
+    // Se parte de limpio: la comprobación anterior lo quitó todo.
+    await disfraz.aplicar(contexto, salida, { forzar: true });
 
     const hecho = await disfraz.verEditorCompleto(contexto, salida);
     assert.equal(hecho.ok, true, hecho.mensaje);
@@ -399,15 +421,12 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       Object.keys(JSON.parse(fs.readFileSync(path.join(RAIZ, 'media/disfraz.json'), 'utf8'))['files.exclude']).sort(),
       'se apagan exactamente las que esconde la base');
 
-    const { global, workspace } = vscode.registrado.ajustes;
+    const { workspace } = vscode.registrado.ajustes;
     assert.equal(workspace['workbench.activityBar.location'], 'FÁBRICA:workbench.activityBar.location',
       'el valor de fábrica lo dice VS Code, no lo inventamos');
-    assert.equal(global['workbench.activityBar.location'], 'hidden', 'la base no se toca');
     assert.ok(!('security.workspace.trust.enabled' in workspace), 'lo de ámbito de programa no se intenta por ventana');
 
     await disfraz.volverAModoSencillo(salida);
-    assert.equal(disfraz.modoDeEstaVentana(), 'sencillo');
-    assert.equal(Object.keys(workspace).length, 0, 'volver al modo sencillo borra las anulaciones');
     return `${disfraz.CLAVES_VISIBLES.length} claves visibles`;
   });
 
@@ -440,11 +459,10 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${etiquetas.length} botones, uno recién creado`;
   });
 
-  await comprobar('en modo sencillo la barra de estado no molesta', () => {
+  await comprobar('la vuelta al modo sencillo vive en la barra de estado', () => {
     const boton = vscode.registrado.barraEstado.at(-1);
-    assert.equal(boton.visible, false, 'solo se ve cuando la ventana está en modo avanzado');
-    assert.equal(boton.command, 'executiveLab.modoSencillo');
-    return 'oculta';
+    assert.equal(boton.command, 'executiveLab.modoSencillo', 'en modo avanzado la barra puede no verse');
+    return boton.text;
   });
 
   await comprobar('una carpeta sin arnés ofrece montarlo, no dice que esté rota', async () => {

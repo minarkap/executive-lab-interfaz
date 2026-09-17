@@ -22,7 +22,24 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const CLAVE_ESTADO = 'disfraz';
-const VERSION = 1;
+const VERSION = 2;
+
+// Estas no admiten ámbito de carpeta: VS Code las declara de ámbito de
+// programa, así que valen para todas las ventanas a la vez. **Las pone el
+// instalador**, una vez, en la máquina del alumno, donde solo hay una empresa
+// y eso es lo correcto.
+//
+// La extensión no las toca nunca. En la máquina de quien desarrolla —o de
+// cualquiera que use VS Code para otras cosas— cambiarlas le altera todas las
+// ventanas, que es justo lo que no queremos.
+const SOLO_DEL_INSTALADOR = [
+  'security.workspace.trust.enabled',
+  'update.mode',
+  'update.showReleaseNotes',
+  'telemetry.telemetryLevel',
+  'extensions.ignoreRecommendations',
+  'window.zoomLevel',
+];
 
 // Lo que el interruptor devuelve a fábrica: lo que se ve. El resto de la base
 // (confianza, actualizaciones, telemetría, zoom) es de ámbito de programa y
@@ -70,20 +87,30 @@ async function aplicar(contexto, salida, { forzar = false } = {}) {
   const claves = primeraVez ? Object.keys(todos) : (antes.pendientes || []);
   if (!claves.length) return { primeraVez: false, aplicadas: 0, pendientes: [] };
 
+  // El disfraz va a los ajustes de ESTA carpeta, no a los de VS Code entero:
+  // así una ventana con la empresa del alumno está disfrazada y otra con
+  // cualquier otra cosa no se entera. Sin carpeta abierta no hay dónde
+  // escribirlo, y se deja estar.
+  if (!hayCarpeta()) return { primeraVez: false, aplicadas: 0, pendientes: [] };
+
   const configuracion = vscode.workspace.getConfiguration();
   const pendientes = [];
   let cambiadas = 0;
   for (const clave of claves) {
-    // Si el instalador ya lo dejó escrito, no hay nada que cambiar ni que
-    // reabrir: solo se escribe lo que falte o esté distinto.
-    const actual = configuracion.inspect(clave)?.globalValue;
-    if (JSON.stringify(actual) === JSON.stringify(todos[clave])) continue;
+    if (SOLO_DEL_INSTALADOR.includes(clave)) continue;
+
+    // Si ya está escrito —por el instalador o por una sesión anterior— no hay
+    // nada que cambiar ni que reabrir.
+    const visto = configuracion.inspect(clave);
+    const puesto = visto?.workspaceValue !== undefined ? visto.workspaceValue : visto?.globalValue;
+    if (JSON.stringify(puesto) === JSON.stringify(todos[clave])) continue;
+
     try {
-      await configuracion.update(clave, todos[clave], vscode.ConfigurationTarget.Global);
+      await configuracion.update(clave, todos[clave], vscode.ConfigurationTarget.Workspace);
       cambiadas += 1;
     } catch (error) {
       pendientes.push(clave);
-      salida.appendLine(`[disfraz] no he podido escribir ${clave}: ${error.message}`);
+      salida.appendLine(`[disfraz] ${clave} no admite ámbito de carpeta: ${error.message}`);
     }
   }
 
@@ -91,17 +118,31 @@ async function aplicar(contexto, salida, { forzar = false } = {}) {
   return { primeraVez, aplicadas: cambiadas, pendientes };
 }
 
-// Quita la base entera. Es la salida de emergencia, no el interruptor diario.
+// Quita el disfraz de TODO VS Code: de esta carpeta y de los ajustes de
+// usuario. Es la salida de emergencia — la que hace falta cuando alguien
+// instala esto en el editor donde trabaja y se le cambian todas las ventanas.
 async function quitar(contexto, salida) {
   const configuracion = vscode.workspace.getConfiguration();
+  let quitadas = 0;
+
   for (const clave of Object.keys(ajustes(contexto))) {
-    try {
-      await configuracion.update(clave, undefined, vscode.ConfigurationTarget.Global);
-    } catch (error) {
-      salida.appendLine(`[disfraz] no he podido quitar ${clave}: ${error.message}`);
+    for (const ambito of [vscode.ConfigurationTarget.Workspace, vscode.ConfigurationTarget.Global]) {
+      try {
+        const visto = configuracion.inspect(clave);
+        const hay = ambito === vscode.ConfigurationTarget.Workspace
+          ? visto?.workspaceValue !== undefined
+          : visto?.globalValue !== undefined;
+        if (!hay) continue;
+        await configuracion.update(clave, undefined, ambito);
+        quitadas += 1;
+      } catch (error) {
+        salida.appendLine(`[disfraz] no he podido quitar ${clave}: ${error.message}`);
+      }
     }
   }
+
   await contexto.globalState.update(CLAVE_ESTADO, { version: VERSION, pendientes: [], quitado: true });
+  return { quitadas };
 }
 
 // ------------------------------------------------ el interruptor, por ventana

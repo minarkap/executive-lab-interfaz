@@ -27,6 +27,11 @@ class Panel {
     this.contexto = contexto;
     this.salida = salida;
     this.vista = null;
+    // En qué pantalla está el alumno. Cuando el arnés cambia algo por detrás
+    // se repinta la que tiene delante, no se le devuelve a la principal: que
+    // te saquen de donde estabas mientras rellenas una clave es peor que no
+    // enterarte del cambio.
+    this.donde = { tipo: 'principal' };
   }
 
   resolveWebviewView(vista) {
@@ -101,7 +106,20 @@ ${cabecera}
     if (this.vista) this.vista.webview.postMessage(mensaje);
   }
 
+  // Repinta lo que el alumno tenga delante. Lo llama el vigía del arnés.
+  async repintarLoQueHaya() {
+    const d = this.donde;
+    if (d.tipo === 'conexiones') return this.verConexiones();
+    if (d.tipo === 'conexion') return this.verConexion(d.proveedor);
+    if (d.tipo === 'cerebro') return this.verCerebro();
+    if (d.tipo === 'tema') return this.verTema(d.tema);
+    // En una pantalla de lectura o de resultado no se toca nada: está leyendo.
+    if (d.tipo === 'quieto') return undefined;
+    return this.refrescar(true);
+  }
+
   async refrescar(fresco = false) {
+    this.donde = { tipo: 'principal' };
     this.enviar({ tipo: 'cargando' });
     const suya = marca.leer();
     this.enviar({
@@ -168,12 +186,14 @@ ${cabecera}
   // ------------------------------------------------------- conexiones
 
   verConexiones() {
+    this.donde = { tipo: 'conexiones' };
     this.enviar({ tipo: 'conexiones', proveedores: conexiones.proveedores() });
   }
 
   verConexion(proveedor, aviso = null) {
     const datos = conexiones.claves(proveedor);
     if (!datos) return this.verConexiones();
+    this.donde = { tipo: 'conexion', proveedor };
     return this.enviar({ tipo: 'conexion', ...datos, cositas: conexiones.scripts(proveedor), aviso });
   }
 
@@ -200,12 +220,14 @@ ${cabecera}
     const hecho = await conexiones.ejecutar(proveedor, fichero);
     if (!hecho.ok) return this.verConexion(proveedor, { texto: hecho.mensaje, malo: true });
     if (!hecho.texto) return this.verConexion(proveedor, { texto: hecho.mensaje, malo: false });
+    this.donde = { tipo: 'quieto' };
     return this.enviar({ tipo: 'resultado', titulo: hecho.titulo, texto: hecho.texto, proveedor });
   }
 
   // ---------------------------------------------------------- cerebro
 
   verCerebro(aviso = null) {
+    this.donde = { tipo: 'cerebro' };
     this.enviar({
       tipo: 'cerebro',
       temas: cerebro.catalogo(),
@@ -221,6 +243,7 @@ ${cabecera}
   verTema(tema) {
     const encontrado = cerebro.catalogo().find((t) => t.id === tema);
     if (!encontrado) return this.verCerebro();
+    this.donde = { tipo: 'tema', tema };
     return this.enviar({ tipo: 'tema', tema: encontrado });
   }
 
@@ -229,6 +252,7 @@ ${cabecera}
   leerArticulo(ruta, tema) {
     const leido = cerebro.leerArticulo(ruta);
     if (!leido.ok) return this.enviar({ tipo: 'aviso', texto: leido.mensaje, malo: true });
+    this.donde = { tipo: 'quieto' };
     return this.enviar({ tipo: 'articulo', ...leido, tema });
   }
 
@@ -346,7 +370,7 @@ function vigilarElArnes(contexto, panel) {
       // La marca cambia los colores y el logotipo, así que hay que rehacer la
       // página entera; lo demás se actualiza por mensaje.
       if (esMarca) panel.pintarPagina();
-      panel.refrescar(true).catch(() => {});
+      panel.repintarLoQueHaya().catch(() => {});
     }, 600);
   };
 
@@ -407,6 +431,17 @@ function activate(contexto) {
     comando('executiveLab.diagnosticoPuente', () => puente.diagnostico(salida)),
     comando('executiveLab.verEditorCompleto', async () => { await panel.verEditorCompleto(); repintarModo(); }),
     comando('executiveLab.modoSencillo', async () => { await panel.modoSencillo(); repintarModo(); }),
+    comando('executiveLab.quitarDeTodo', async () => {
+      const seguro = await vscode.window.showWarningMessage(
+        'Voy a quitar el aspecto de Executive Lab de todas las ventanas, no solo de esta. Tus ajustes propios no se tocan.',
+        { modal: true },
+        'Quítalo',
+      );
+      if (seguro !== 'Quítalo') return;
+      const { quitadas } = await disfraz.quitar(contexto, salida);
+      repintarModo();
+      await disfraz.proponerReabrir(`Quitado de ${quitadas} ajustes. Hay que cerrar y abrir para verlo.`);
+    }),
   );
 
   vigilarElArnes(contexto, panel);

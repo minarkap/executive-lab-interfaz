@@ -1,0 +1,40 @@
+EXECUTIVE LAB - prueba del instalador en Windows
+================================================
+
+Esto es lo unico que falta antes de poder sentar a un alumno delante.
+
+QUE HAY AQUI
+  ExecutiveLab-Setup.exe   el instalador (dentro de Output\)
+  probar.ps1               comprueba 18 cosas solo y deja un informe
+  COMO-PROBARLO.md         el detalle, y donde conseguir un Windows
+
+QUE HACER, EN ORDEN
+
+  1. Copia esta carpeta entera a un Windows limpio.
+     Importante: entra con un usuario que NO sea administrador.
+     Si entras como administrador, la pregunta que mas importa se queda sin responder.
+
+  2. Sube el .exe a algun sitio (Drive, WeTransfer) y DESCARGALO CON EDGE
+     en esa maquina, en vez de copiarlo por USB.
+     GRABA LA PANTALLA desde antes de hacer doble clic.
+     Lo que salga es lo que vera el alumno en el primer minuto del curso.
+     Esperado: "Windows protegio tu PC". Pasa con Mas informacion > Ejecutar de todas formas.
+
+  3. Deja que termine. Tarda unos minutos y no deberia pedir contrasena de administrador.
+     Si la pide, para y dimelo: eso es un fallo.
+
+  4. Abre PowerShell en esta carpeta y ejecuta:
+        powershell -ExecutionPolicy Bypass -File probar.ps1
+     Te dice que ha ido bien y que no. Deja un informe-*.txt al lado.
+
+  5. Abre el acceso directo "Executive Lab" del escritorio.
+     Inicia sesion en Claude cuando te lo pida.
+     Mira: sale la barra de la izquierda? se ve sin barras ni pestanas?
+     hay algun aviso raro?
+
+  6. Mandame el informe-*.txt y el video.
+
+LO QUE ESPERO QUE FALLE
+  - SmartScreen: seguro. Se arregla firmando el codigo, que cuesta dinero.
+  - rsc onboard en Windows: usa enlaces simbolicos y ahi cae a copias reales.
+  - bash: va dentro (MinGit), pero se llama sh.exe y no bash.exe.
