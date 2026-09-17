@@ -330,7 +330,16 @@ async function main() {
       assert.ok(!elegido.git.endsWith('.exe'), `en ${process.platform} no vale ${elegido.git}`);
       assert.ok(!elegido.node.endsWith('.exe'), `en ${process.platform} no vale ${elegido.node}`);
     }
-    return `git → ${path.basename(elegido.git)}`;
+
+    // Pero el filtro es solo para binarios: el punto de entrada del arnés es un
+    // .js y no lleva .exe en ningún sistema. Si se filtrara, en Windows se
+    // perdería el arnés preinstalado y caería a npx.
+    process.env.EXECUTIVE_LAB_HOME = carga;
+    const arnes = entorno.entradaDelArnes(null);
+    process.env.EXECUTIVE_LAB_HOME = antes;
+    assert.ok(arnes && arnes.endsWith('rsc.js'), 'el arnés preinstalado tiene que encontrarse');
+
+    return `git → ${path.basename(elegido.git)} · arnés → rsc.js`;
   });
 
   // --------------------------------------------- el wizard, de verdad

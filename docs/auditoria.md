@@ -178,6 +178,7 @@ de mentira y una empresa de mentira con la forma que deja RSC.
 | F5 | La prueba de humo **no esperaba a las comprobaciones asíncronas**, así que se solapaban y los fallos salían en la comprobación equivocada | Un fallo aparecía en la barra de estado y venía del interruptor |
 | F6 | La empresa de mentira **pisaba `.rsc.json` y el perfil del alumno** al sembrar sobre una carpeta ya preparada | Se vio al montar `demo.sh --con-datos`. Ahora esas dos no se sobrescriben |
 | F7 | **`entorno.js` elegía un ejecutable de otro sistema.** Probaba `git/cmd/git.exe` antes que `git/bin/git` sin mirar la plataforma: en un Mac con la carga de Windows delante, intentaba lanzar el `.exe` y fallaba con un error indescifrable | Lo pilló la prueba del wizard al ejecutarse de verdad. Ahora los candidatos se filtran por sistema, y la prueba lo comprueba |
+| F8 | **El arreglo de F7 rompía Windows**, que es lo que venía a proteger: el filtro descartaba también las rutas de script, y el punto de entrada del arnés (`rsc.js`) no lleva `.exe` en ningún sistema. En Windows se habría perdido el arnés preinstalado y habría caído a `npx` — justo lo que la decisión §6 existe para evitar | Se vio al repasar qué cambiaba el arreglo antes de recompilar el instalador. El filtro es ahora `binarioDelSistema` y solo lo usan node, git y bash; la prueba comprueba las dos mitades |
 
 ## Verificación ejecutada
 

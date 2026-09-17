@@ -27,17 +27,23 @@ function carpetaDeLaApp() {
   return fs.existsSync(candidata) ? candidata : null;
 }
 
-// Solo se consideran ejecutables del sistema en el que estamos. Sin esto, un
-// Mac con la carga de Windows delante (al construir el instalador, o al
-// probar) elegiría un `.exe` y fallaría con un error indescifrable.
 function primeroQueExista(rutas, respaldo) {
-  const delSistema = rutas.filter((r) => r && (r.endsWith('.exe') === ES_WINDOWS));
-  return delSistema.find((r) => fs.existsSync(r)) || respaldo;
+  return rutas.find((r) => r && fs.existsSync(r)) || respaldo;
+}
+
+// Para binarios, y solo para binarios: se descartan los de otro sistema. Sin
+// esto, un Mac con la carga de Windows delante (al construir el instalador, o
+// al probar) elegiría un `.exe` y fallaría con un error indescifrable.
+//
+// No vale para rutas de script: `rsc.js` y `npx-cli.js` no llevan `.exe` en
+// ningún sistema y este filtro los dejaría fuera precisamente en Windows.
+function binarioDelSistema(rutas, respaldo) {
+  return primeroQueExista(rutas.filter((r) => r && r.endsWith('.exe') === ES_WINDOWS), respaldo);
 }
 
 function node() {
   const app = carpetaDeLaApp();
-  return primeroQueExista(
+  return binarioDelSistema(
     app ? [path.join(app, 'runtime', 'node.exe'), path.join(app, 'runtime', 'bin', 'node'), path.join(app, 'runtime', 'node')] : [],
     ES_WINDOWS ? 'node.exe' : 'node',
   );
@@ -45,7 +51,7 @@ function node() {
 
 function git() {
   const app = carpetaDeLaApp();
-  return primeroQueExista(
+  return binarioDelSistema(
     app ? [path.join(app, 'git', 'cmd', 'git.exe'), path.join(app, 'git', 'bin', 'git'), path.join(app, 'git', 'usr', 'bin', 'git')] : [],
     ES_WINDOWS ? 'git.exe' : 'git',
   );
@@ -56,7 +62,7 @@ function git() {
 // entiende BASH_SOURCE y pipefail, que es lo que esos scripts usan.
 function bash() {
   const app = carpetaDeLaApp();
-  return primeroQueExista(
+  return binarioDelSistema(
     app ? [
       path.join(app, 'git', 'usr', 'bin', 'bash.exe'),
       path.join(app, 'git', 'bin', 'bash.exe'),
