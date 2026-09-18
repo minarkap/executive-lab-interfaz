@@ -25,3 +25,7 @@ node_modules/
 # Lo que genera publicar.sh
 publicacion/
 extension/media/harness/node_modules/
+
+# La copia que preparar-paquete.js deja dentro de la extensión. La fuente
+# está en instalador/comun/.
+extension/media/comun/

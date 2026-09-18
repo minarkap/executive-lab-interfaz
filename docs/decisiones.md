@@ -503,7 +503,11 @@ De paso quita una duplicación: las seis opciones de objetivo estaban copiadas e
 
 ## 23. El historial es git escrito en JavaScript, no el git del sistema
 
-**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+**Fecha:** 17 de septiembre de 2026 · **Estado:** ~~decidido~~ **revisada por la decisión 26**
+
+> git pasó a ser obligatorio y lo instala el instalador oficial de cada sistema. Lo que sigue
+> vigente de aquí: que en un Mac limpio no hay git y que `/usr/bin/git` es un señuelo. Lo que
+> cambió: la respuesta.
 
 ### El problema
 
@@ -561,3 +565,66 @@ Y sobre ofrecer habilidades de RSC: el catálogo trae 272, todas descritas en in
 *(no recommendations)*—. Así que no se usa: hay un catálogo curado de 25 en
 `extension/media/capacidades.json`, dichas en español de negocio, y **lo que no está ahí no se
 ofrece nunca**. Hay una comprobación que falla si alguna deja de existir en el catálogo de verdad.
+
+---
+
+## 26. git es obligatorio, y lo instala el instalador oficial de cada sistema
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido — **revisa la decisión 23**
+
+Idea de Jose: *«puede ser el git del sistema. La idea es que haya un instalador de git en el
+instalador, no traer git. Yo lo que quiero es que sí o sí se trabaje con git, es necesario»*.
+
+### Lo que estaba mal
+
+git se trataba como opcional: si faltaba, las copias de seguridad las hacía `isomorphic-git`, que
+viajaba dentro, y el botón avisaba de que faltaba *«una pieza; díselo a tu tutor»*. Era mentira por
+tres sitios, y los tres se ven en el código:
+
+- **Montar la carpeta ya exigía git.** `arrancar.js` hace `git init` con el binario del sistema antes
+  que nada, y si falla aborta. O sea que era obligatorio de hecho; lo que faltaba era decirlo.
+- **El arnés usa git por su cuenta**, y ahí la biblioteca no llega: `git check-ignore` al instalar,
+  los `verify.sh` de varias habilidades, y el registro de continuación, que se indexa por rama y por
+  HEAD. Sin git el arnés funcionaba a medias y sin avisar.
+- **El aviso era un callejón.** «Díselo a tu tutor» no es una salida para quien está solo delante de
+  la pantalla.
+
+Y en la extensión instalada desde el `.vsix` no había ni biblioteca: `historial.js` no viajaba
+dentro, así que las copias quedaban apagadas en silencio.
+
+### Qué se hace
+
+**git es un requisito, se comprueba antes de preguntar nada, y el panel lo instala.** No lo
+distribuimos: se lanza el instalador oficial de cada sistema, que además está firmado por quien lo
+hace y no por nosotros.
+
+| | Cómo se instala | Qué cuesta |
+|---|---|---|
+| macOS | `xcode-select --install`, el diálogo de Apple | 1-2 GB una vez, en un Mac limpio |
+| Windows | El `.exe` oficial de Git para Windows, descargado y lanzado en silencio | Un par de minutos |
+
+Un git empaquetado no habría servido: solo lo ve quien lo invoque por su sitio exacto, y los scripts
+del arnés lo llaman por nombre. Hace falta uno instalado de verdad.
+
+### Lo que eso cambia
+
+- `instalador/comun/git.js`: el mecanismo, compartido entre el instalador y la barra.
+- El motor de las copias pasa a ser **el binario** (`preferirBinario`). `isomorphic-git` se queda
+  dentro de `historial.js` como resto, para el instalador que todavía la lleve.
+- `historial.js`, `git.js` y `enganches.js` **viajan dentro del `.vsix`** (`preparar-paquete.js`).
+  Son catorce kilobytes cada uno; la biblioteca de cinco megas ya no hace falta.
+- En macOS, comprobar **nunca ejecuta `/usr/bin/git`**: existe siempre aunque git no esté, y al
+  invocarlo abre el diálogo de Apple. Se mira el disco y se pregunta `xcode-select -p`.
+
+### Lo que la decisión 23 sigue teniendo razón
+
+Que en un Mac limpio no hay git y que `/usr/bin/git` es un señuelo. Lo que cambia es la respuesta:
+entonces fue esquivarlo con una biblioteca, ahora es instalarlo de verdad. La biblioteca resolvía las
+copias, pero no el arnés — y el arnés es el producto.
+
+### Lo que falta por confirmar
+
+- Si `xcode-select --install` pide **contraseña de administrador** en una cuenta gestionada. En una
+  de administrador no debería. Solo se ve en un Mac limpio.
+- Si el instalador de Git para Windows, **lanzado sin elevar**, instala para el usuario sin pedir
+  administrador. Es el único paso de todo esto que no se puede probar desde un Mac.

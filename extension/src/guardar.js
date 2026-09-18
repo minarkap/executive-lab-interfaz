@@ -5,13 +5,19 @@
 //
 // El trabajo sucio lo hace instalador/comun/historial.js, que es el mismo
 // módulo que usa el instalador al montar la carpeta. Aquí solo queda lo que
-// esto tiene de propio: las palabras. Antes se llamaba al git del sistema
-// directamente, y eso en un Mac sin las herramientas de Xcode no existe.
+// esto tiene de propio: las palabras.
+//
+// Y lo hace con el git del sistema, que es obligatorio y está instalado
+// (instalador/comun/git.js dice por qué). Durante un tiempo lo hizo una
+// biblioteca de JavaScript que viajaba dentro, para un Mac sin las
+// herramientas de Xcode; esa biblioteca sigue ahí de resto, pero ya no es el
+// camino.
 
 const fs = require('node:fs');
 const path = require('node:path');
 const proyecto = require('./proyecto');
 const entorno = require('./entorno');
+const git = require('./git');
 const conexiones = require('./conexiones');
 
 // Se busca una vez y se recuerda, aunque no esté: si no hay módulo no lo va a
@@ -32,8 +38,11 @@ function historial() {
   return modulo;
 }
 
-// El binario solo se usa si no está la biblioteca; se le pasa por si acaso.
-const comoLlamar = () => ({ git: entorno.git() });
+// Se pide el motor binario a propósito: git es obligatorio y está instalado
+// (git.js dice por qué), así que las copias las hace el git de verdad, el
+// mismo que usa el arnés. La biblioteca de JavaScript se queda dentro de
+// historial.js como resto, para el instalador que todavía la lleve.
+const comoLlamar = () => ({ git: entorno.git(), preferirBinario: true });
 
 function fechaLarga(cuando = new Date()) {
   return new Intl.DateTimeFormat('es-ES', { dateStyle: 'full', timeStyle: 'short' }).format(cuando);
@@ -52,20 +61,24 @@ function haceCuanto(iso) {
 }
 
 const NO_PUEDO = 'No puedo guardar copias en este ordenador. Pulsa "Algo va mal".';
-const SIN_PIEZA = 'Para guardar copias hace falta una pieza que este ordenador no tiene. Pídesela a tu tutor: se llama git.';
+const SIN_PIEZA = 'Falta una pieza para poder guardar. Puedo ponerla yo.';
 
-// Antes esto preguntaba si había git instalado. Ahora pregunta algo más
-// amplio: si se pueden guardar copias, que con la biblioteca dentro es que sí
-// en cualquier ordenador. El nombre se queda porque la brújula lo usa.
+// Esto volvió a preguntar lo que preguntaba al principio: si hay git. Durante
+// un tiempo preguntó algo más amplio —"¿se pueden guardar copias?"— porque la
+// biblioteca de JavaScript viajaba con nosotros y la respuesta era que sí
+// siempre. Ya no: git es obligatorio, está instalado, y es el que hace el
+// trabajo. Una respuesta que siempre era que sí escondía que el arnés se
+// quedaba a medias por su cuenta.
 let sabemosSiHayGit = null;
 
 async function hayGit() {
-  if (sabemosSiHayGit === null) {
-    const h = historial();
-    sabemosSiHayGit = h ? await h.disponible(comoLlamar()) : false;
-  }
+  if (sabemosSiHayGit === null) sabemosSiHayGit = await git.hay();
   return sabemosSiHayGit;
 }
+
+// Después de instalarlo hay que volver a preguntar, o la barra seguiría
+// diciendo que falta.
+const olvidarSiHayGit = () => { sabemosSiHayGit = null; };
 
 async function guardar(mensaje) {
   const h = historial();
@@ -208,4 +221,4 @@ async function cambiosSinGuardar() {
   return h.cuantosCambios(donde, comoLlamar());
 }
 
-module.exports = { guardar, copias, volverA, cambiosSinGuardar, subirCopia, puedeSubir, fechaLarga, haceCuanto, hayGit };
+module.exports = { guardar, copias, volverA, cambiosSinGuardar, subirCopia, puedeSubir, fechaLarga, haceCuanto, hayGit, olvidarSiHayGit };

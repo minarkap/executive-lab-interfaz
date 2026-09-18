@@ -68,8 +68,10 @@ Tampoco hace falta ningún permiso de administrador, y no hay aviso de SmartScre
 porque no es un ejecutable.
 
 Requisitos: **VS Code 1.98 o más nuevo**, y **Claude Code o Codex** con cuenta de pago del que uses.
-**git** solo se usa para las copias de seguridad: sin él, todo lo demás funciona y ese botón lo
-avisa.
+
+**git hace falta sí o sí**, y si no está, el panel lo instala con un botón: en Windows descarga y
+lanza el instalador oficial de Git; en macOS lanza el de Apple. No lo repartimos nosotros. El porqué
+está en la decisión 26: el arnés usa git por su cuenta, y sin él funciona a medias y sin decirlo.
 
 ### 2. El instalador de escritorio — para el portátil virgen
 
@@ -112,8 +114,12 @@ Comprueba las condiciones previas:
 
 ```bash
 code --version          # debe existir y ser >= 1.98.0
-git --version           # opcional: solo para las copias de seguridad
+git --version           # hace falta; si no está, el panel lo instala con un botón
 ```
+
+⚠️ **En macOS no ejecutes `git --version` para comprobarlo** si puede no estar instalado:
+`/usr/bin/git` existe siempre y es un señuelo que abre el diálogo de Apple. Usa `xcode-select -p`,
+que responde sin abrir nada.
 
 Si `code` no está en el `PATH` pero VS Code sí está instalado: en VS Code,
 `Ctrl+Shift+P` → *Shell Command: Install 'code' command in PATH*.
@@ -214,7 +220,7 @@ ls .claude/skills/executive-lab/SKILL.md              # los raíles
 | `code: command not found` | El comando no está en el `PATH` | *Shell Command: Install 'code' command in PATH* desde VS Code |
 | La barra lateral no aparece | La extensión no arrancó | Reinicia VS Code; comprueba el paso 2 |
 | «Preparar esta carpeta» falla a mitad | El arnés quedó a medias | Borra `.rsc.json` y vuelve a pulsar; la salida queda en `instalacion.log` |
-| El botón de copias de seguridad avisa de que no puede | No hay `git` en el sistema | Instala git; lo demás sigue funcionando |
+| Dice que falta una pieza | No hay `git` en el sistema | Pulsa el botón: lo instala. O instálalo tú |
 | El panel no responde | Falta iniciar sesión en Claude Code o Codex | Que inicie sesión en la extensión del asistente |
 
 Dentro del panel hay un botón **Algo va mal** que revisa, arregla lo que puede y da un código de seis
@@ -233,17 +239,14 @@ Las tres no son equivalentes. Esto es lo que hay **hoy**:
 | Arnés RSC 1.4.1 | ✅ dentro del paquete | ✅ dentro (carga + `.vsix`) | ✅ en la carga |
 | Disfraz (`disfraz.json`) | ✅ | ✅ | ✅ (versión vieja) |
 | Raíles / skills | ✅ `media/railes/` | ✅ `carga/skills/` | ✅ `carga/skills/` |
-| Historial en JavaScript (`isomorphic-git`) | ❌ **cae al git del sistema** | ✅ `historial.js` + librería | ❌ usa el git del sistema |
+| git | ✅ obligatorio; lo instala el panel | ✅ obligatorio | ⚠️ todavía lleva MinGit dentro |
+| Módulos compartidos (historial, git, enganches) | ✅ dentro del `.vsix` | ✅ en la carga | ⚠️ carga atrasada |
 | Node | El que trae VS Code | `runtime/` dentro | `runtime/` dentro |
 | Instala VS Code | ❌ | ✅ (lo descarga) | ✅ (lo lleva dentro) |
 | Firmado | No hace falta | ❌ pendiente | ❌ pendiente |
 
-Dos huecos conocidos, los dos anotados y los dos con arreglo:
+Un hueco conocido, anotado y con arreglo:
 
-- **El `.vsix` no lleva `historial.js`.** [`entorno.js`](extension/src/entorno.js) lo busca en la
-  carpeta de la app del instalador o en este repo clonado, y en una instalación por `.vsix` no hay
-  ninguno de los dos, así que «Guardar copia de seguridad» cae al git del sistema. Meterlo dentro son
-  ~5 MB sobre 6 (decisión 23).
 - **La carga de Windows está atrasada.** `instalador/windows/carga/` se monta a mano —no hay un
   `construir.sh` como en Mac— y se quedó en el `.vsix` 0.1.0 y en un `preparar.js` anterior al
   historial en JavaScript. Hay que rehacerla antes de volver a compilar el `.exe`.

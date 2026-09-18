@@ -166,7 +166,23 @@ function pantallaEsperando(que = 'Un momento…') {
   return nada(que);
 }
 
-// Carpeta sin arnés: no está rota, es que aún no se ha montado.
+// Falta git. No se enseña como un error —no lo es, es una pieza que no está—
+// y sobre todo no se acaba en "díselo a tu tutor", que era un callejón: el
+// botón la pone. Lo que pasará al pulsarlo cambia según el ordenador, así que
+// el texto lo escribe la extensión (git.comoSeInstala) y aquí solo se pinta.
+function bloqueFaltaGit() {
+  return `
+    <div class="aviso">
+      <p>Falta una pieza para poder guardar tu trabajo.</p>
+      <p>${texto(estado.comoSeInstalaGit || '')}</p>
+    </div>
+    ${boton({ etiqueta: 'Ponerla ahora', icono: '⬇️', principal: true, accion: { tipo: 'instalarGit' } })}
+  `;
+}
+
+// Carpeta sin arnés: no está rota, es que aún no se ha montado. Si falta git no
+// se ofrece prepararla: sin él la preparación aborta a mitad, y enseñar un
+// botón que no puede funcionar es peor que no enseñarlo.
 function pantallaSinArnes() {
   return `
     ${bloqueAviso()}
@@ -175,7 +191,9 @@ function pantallaSinArnes() {
       <p class="donde">${texto(estado.donde)}</p>
       <p class="hiciste">${texto(estado.aviso)}</p>
     </div>
-    ${boton({ etiqueta: 'Preparar esta carpeta', icono: '✳', principal: true, accion: { tipo: 'arrancar' } })}
+    ${estado.faltaGit
+      ? bloqueFaltaGit()
+      : boton({ etiqueta: 'Preparar esta carpeta', icono: '✳', principal: true, accion: { tipo: 'arrancar' } })}
     ${boton({ etiqueta: 'Elegir otra carpeta', icono: '📂', discreto: true, accion: { tipo: 'elegirCarpeta' } })}
   `;
 }
@@ -262,7 +280,7 @@ function pantallaPrincipal() {
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Guardar copia de seguridad', icono: '💾', accion: { tipo: 'guardarCopia' } })}
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', accion: { tipo: 'verCopias' } })}
     ${estado.puedeSubir ? boton({ etiqueta: 'Guardar una copia fuera de este ordenador', icono: '☁️', accion: { tipo: 'subirCopia' } }) : ''}
-    ${estado.faltaGit ? `<p class="detalle">Las copias de seguridad están apagadas: falta una pieza en este ordenador. Díselo a tu tutor, se llama git.</p>` : ''}
+    ${estado.faltaGit ? bloqueFaltaGit() : ''}
     ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
 
     <hr class="separador">

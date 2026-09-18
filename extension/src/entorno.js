@@ -71,10 +71,30 @@ function node() {
 // al del sistema no les hace falta, pero sobra sin molestar.
 const usaElNodeDeVsCode = () => node() === process.execPath;
 
+// Dónde vive un git de verdad en un Mac. La lista está en el módulo compartido
+// —que es quien sabe de git— y se lee de allí para no tener dos que se separen.
+// Lo importante de esa lista es lo que NO lleva: `/usr/bin/git`, que existe
+// siempre aunque git no esté instalado y que al invocarlo abre el diálogo de
+// Apple. Si ninguna existe se cae a `git` a secas, que en un Mac con las
+// herramientas puestas es ese mismo /usr/bin/git y entonces sí funciona.
+let gitsDeMac;
+function GITS_DE_MAC() {
+  if (gitsDeMac) return gitsDeMac;
+  try {
+    gitsDeMac = require(moduloComun('git')).GITS_DE_MAC;
+  } catch {
+    gitsDeMac = [];
+  }
+  return gitsDeMac;
+}
+
 function git() {
   const app = carpetaDeLaApp();
   return binarioDelSistema(
-    app ? [path.join(app, 'git', 'cmd', 'git.exe'), path.join(app, 'git', 'bin', 'git'), path.join(app, 'git', 'usr', 'bin', 'git')] : [],
+    [
+      ...(app ? [path.join(app, 'git', 'cmd', 'git.exe'), path.join(app, 'git', 'bin', 'git'), path.join(app, 'git', 'usr', 'bin', 'git')] : []),
+      ...(process.platform === 'darwin' ? GITS_DE_MAC() : []),
+    ],
     ES_WINDOWS ? 'git.exe' : 'git',
   );
 }
@@ -112,18 +132,27 @@ function entradaDelArnes(raizDelProyecto, carpetaDeLaExtension) {
   );
 }
 
-// Los módulos que la extensión comparte con el instalador (hoy, historial.js).
+// Los módulos que la extensión comparte con el instalador: historial.js,
+// git.js y enganches.js.
 //
-// No se copian dentro del .vsix a propósito: el instalador los deja en la
-// carpeta de la app, junto a preparar.js, y desde ahí los lee todo el mundo. En
-// el portátil de quien desarrolla esto no hay carpeta de app, así que se cae al
-// propio repositorio, que está dos niveles por encima de este fichero.
+// Antes no se copiaban dentro del .vsix: se daba por hecho que los dejaba el
+// instalador en la carpeta de la app. Con eso, quien instalaba solo la
+// extensión se quedaba sin módulo y sin copias de seguridad, en silencio.
+// Ahora `npm run empaquetar` los copia a media/comun/ y viajan dentro: son
+// catorce kilobytes, y la biblioteca gorda ya no hace falta porque git es
+// obligatorio y lo pone el sistema.
+//
+// El orden importa, y la copia va la última a propósito: el fichero de
+// instalador/comun/ es la fuente, y si la copia fuera antes, quien desarrolla
+// esto estaría ejecutando la del último empaquetado sin enterarse. En una
+// instalación de verdad no hay repositorio al lado, así que gana la copia.
 function moduloComun(nombre) {
   const app = carpetaDeLaApp();
   return primeroQueExista(
     [
       app && path.join(app, `${nombre}.js`),
       path.join(__dirname, '..', '..', 'instalador', 'comun', `${nombre}.js`),
+      path.join(__dirname, '..', 'media', 'comun', `${nombre}.js`),
     ],
     null,
   );
@@ -163,4 +192,4 @@ function entornoConHerramientas(base = process.env) {
   };
 }
 
-module.exports = { ES_WINDOWS, carpetaDeLaApp, node, git, bash, entradaDelArnes, moduloComun, npxCli, entornoConHerramientas, usaElNodeDeVsCode };
+module.exports = { ES_WINDOWS, GITS_DE_MAC, carpetaDeLaApp, node, git, bash, entradaDelArnes, moduloComun, npxCli, entornoConHerramientas, usaElNodeDeVsCode };

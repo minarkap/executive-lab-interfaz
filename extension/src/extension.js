@@ -27,6 +27,7 @@ const soporte = require('./soporte');
 const rsc = require('./rsc');
 const disfraz = require('./disfraz');
 const arrancar = require('./arrancar');
+const git = require('./git');
 const marca = require('./marca');
 
 // Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
@@ -249,6 +250,7 @@ ${cabecera}
       algoVaMal: () => this.algoVaMal(),
       arreglar: () => this.arreglar(),
       arrancar: () => this.arrancar(),
+      instalarGit: () => this.instalarGit(),
       ponerLaCara: () => this.ponerLaCara(),
       elegirCarpeta: () => this.elegirCarpeta(),
       abrirAsistente: () => puente.abrirConversacion(),
@@ -453,9 +455,38 @@ ${cabecera}
     await this.refrescar(true);
   }
 
+  // La pieza que falta es git, y sin ella no se monta nada (git.js dice por
+  // qué). No la repartimos: se lanza el instalador oficial del sistema. Puede
+  // tardar mucho —en un Mac limpio son uno o dos gigas—, así que va con barra
+  // de progreso y contando lo que pasa.
+  async instalarGit() {
+    if (!git.sePuedeInstalarSolo()) {
+      return this.enviar({ tipo: 'aviso', texto: git.comoSeInstala(), malo: true });
+    }
+
+    const hecho = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: 'Poniendo lo que falta', cancellable: false },
+      (progreso) => git.instalar((que) => progreso.report({ message: que })),
+    );
+
+    // La respuesta anterior está recordada; sin esto la barra seguiría
+    // diciendo que falta justo después de ponerla.
+    copias.olvidarSiHayGit();
+
+    if (!hecho.ok) {
+      this.salida.appendLine(`[instalarGit] ${hecho.mensaje}`);
+      return this.enviar({ tipo: 'aviso', texto: hecho.mensaje, malo: true });
+    }
+
+    await this.refrescar(true);
+    return this.enviar({ tipo: 'aviso', texto: 'Ya está. Puedes preparar la carpeta.' });
+  }
+
   async arrancar() {
     const hecho = await arrancar.arrancar(this.contexto, this.salida);
     if (hecho.cancelado) return this.refrescar();
+    // Falta git: no es un error que mirar, es un botón que pulsar.
+    if (hecho.faltaGit) return this.refrescar(true);
     if (!hecho.ok) return this.enviar({ tipo: 'aviso', texto: hecho.mensaje, malo: true });
 
     // Se pregunta, no se impone: puede ser la carpeta de un alumno o la de

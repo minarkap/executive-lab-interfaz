@@ -16,6 +16,8 @@ const fs = require('node:fs');
 
 const proyecto = require('./proyecto');
 const procesos = require('./procesos');
+const entorno = require('./entorno');
+const git = require('./git');
 const rsc = require('./rsc');
 const guardar = require('./guardar');
 const identidad = require('./identidad');
@@ -219,6 +221,30 @@ function ponerLosNombres({ arnes, empresa }) {
   return true;
 }
 
+// Los enganches que RSC deja escritos llaman a `node` por su nombre, y en el
+// ordenador de un alumno puede no haber ninguno en el PATH. `enganches.js` decía
+// que esto lo hacía el wizard de la extensión; no era verdad, solo lo hacía el
+// instalador, así que en el camino sin instalador los enganches se quedaban
+// apuntando a un node que podía no existir.
+//
+// Solo se reescribe cuando tenemos un node de verdad. Si el que hay es el de
+// VS Code, su binario necesita que se le diga que haga de Node y escribir su
+// ruta a secas rompería el enganche en vez de arreglarlo: en ese caso se deja
+// `node`, que funciona si esa persona tiene uno instalado.
+function apuntarLosEnganches(salida) {
+  if (entorno.usaElNodeDeVsCode()) return false;
+
+  const donde = entorno.moduloComun('enganches');
+  if (!donde) return false;
+
+  try {
+    const { fijarElNodeDeLosEnganches } = require(donde);
+    return fijarElNodeDeLosEnganches(proyecto.raiz(), entorno.node(), (que) => salida.appendLine(`[arrancar] ${que}`)) > 0;
+  } catch {
+    return false;
+  }
+}
+
 // Hace falta para que "Guardar copia de seguridad" tenga dónde guardar, y para
 // que la memoria del arnés se ancle a una rama.
 async function prepararHistorial() {
@@ -233,6 +259,13 @@ async function arrancar(contexto, salida) {
   }
   if (proyecto.existe('.rsc.json')) {
     return { ok: false, mensaje: 'Aquí ya hay una empresa montada.' };
+  }
+
+  // git es obligatorio, y por qué lo es está en git.js. Se comprueba ANTES de
+  // preguntar nada: enterarse a mitad, después de cinco respuestas y con la
+  // barra de progreso en marcha, era la peor forma posible de descubrirlo.
+  if (!(await git.hay())) {
+    return { ok: false, faltaGit: true, mensaje: 'Falta una pieza para poder guardar tu trabajo.' };
   }
 
   const asistente = await preguntarAsistente();
@@ -297,6 +330,7 @@ async function arrancar(contexto, salida) {
       if (!(await ponerLosRailes(contexto))) salida.appendLine('[arrancar] no he podido poner los raíles');
 
       ponerLosNombres(nombres);
+      apuntarLosEnganches(salida);
 
       progreso.report({ message: 'guardando el punto de partida…' });
       await guardar.guardar(`Punto de partida — ${guardar.fechaLarga()}`);

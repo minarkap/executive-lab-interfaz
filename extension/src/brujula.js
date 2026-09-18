@@ -17,6 +17,7 @@
 const proyecto = require('./proyecto');
 const rsc = require('./rsc');
 const guardar = require('./guardar');
+const git = require('./git');
 const conexiones = require('./conexiones');
 const cerebro = require('./cerebro');
 const asistentes = require('./asistentes');
@@ -87,13 +88,17 @@ async function calcular() {
     return { listo: false, sinCarpeta: true, donde: 'Elige con qué quieres trabajar', hiciste: null };
   }
 
-  // Carpeta sin arnés: no está rota, es que aún no se ha montado.
+  // Carpeta sin arnés: no está rota, es que aún no se ha montado. Aquí también
+  // se mira si falta git, porque sin él no se puede montar nada y es mejor
+  // verlo antes de pulsar que a mitad de las preguntas.
   if (!proyecto.existe('.rsc.json')) {
     return {
       listo: false,
       sinArnes: true,
       donde: 'Aquí todavía no hay nada',
       hiciste: null,
+      faltaGit: !(await guardar.hayGit()),
+      comoSeInstalaGit: git.comoSeInstala(),
       aviso: 'Puedo montar tu empresa en esta carpeta. Tarda unos minutos y te pregunto una sola cosa.',
     };
   }
@@ -133,6 +138,7 @@ async function calcular() {
     conectados,
     esperando,
     faltaGit: !conGit,
+    comoSeInstalaGit: git.comoSeInstala(),
     primerPaso: sinEmpezar ? {
       asistente: quien.nombre,
       instalado: asistentes.estaInstalado(quien),

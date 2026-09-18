@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -621,7 +621,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${suyos.length} ficheros · ${copias.length} copias al día`;
   });
 
-  await comprobar('las copias de seguridad funcionan sin git en el sistema', async () => {
+  await comprobar('el motor de JavaScript sigue sirviendo de resto', async () => {
     const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
     if (historial.queMotor({ recalcular: true }) !== 'js') return 'SALTADA';
 
@@ -788,6 +788,91 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.match(estado.aviso, /Puedo montar tu empresa/);
     vscode.guion.raiz = empresa;
     return estado.donde;
+  });
+
+  // ---------------------------------------------------------------- git
+  //
+  // git es obligatorio (extension/src/git.js dice por qué). Estas tres prueban
+  // las tres formas en que eso puede volver a romperse sin que nadie lo note.
+
+  await comprobar('en un Mac no se elige nunca el git señuelo', () => {
+    const entorno = cargar('entorno');
+    const sitios = entorno.GITS_DE_MAC();
+    assert.ok(sitios.length, 'la lista sale del módulo compartido: vacía quiere decir que no lo encuentra');
+    assert.ok(
+      !sitios.includes('/usr/bin/git'),
+      '/usr/bin/git existe siempre en macOS y abre el diálogo de Apple: no puede estar en la lista',
+    );
+    return `${sitios.length} sitios donde vive un git de verdad`;
+  });
+
+  await comprobar('el módulo del historial viaja dentro de la extensión', () => {
+    const entorno = cargar('entorno');
+    const donde = entorno.moduloComun('historial');
+    assert.ok(donde, 'sin él, las copias de seguridad quedan apagadas y sin decirlo');
+
+    const modulo = require(donde);
+    for (const fn of ['iniciar', 'guardar', 'historial', 'volverA', 'disponible']) {
+      assert.equal(typeof modulo[fn], 'function', `al módulo del historial le falta ${fn}`);
+    }
+
+    // La fuente vive fuera de extension/ y vsce solo empaqueta lo que cuelga de
+    // ahí, así que `npm run empaquetar` deja una copia. Si se queda atrás, el
+    // .vsix sale con un historial viejo y nadie se entera.
+    const copia = path.join(RAIZ, 'media', 'comun', 'historial.js');
+    const fuente = path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js');
+    if (fs.existsSync(copia)) {
+      assert.equal(
+        fs.readFileSync(copia, 'utf8'),
+        fs.readFileSync(fuente, 'utf8'),
+        'la copia que va dentro del .vsix se ha quedado atrás: vuelve a empaquetar',
+      );
+    }
+    return path.basename(donde);
+  });
+
+  // Se falsea la respuesta en vez de desinstalar git: `guardar.hayGit` la
+  // recuerda, así que hay que olvidarla antes y después o las pruebas que
+  // vengan detrás heredan la mentira.
+  const sinGit = async (hacer) => {
+    const gitMod = cargar('git');
+    const copias = cargar('guardar');
+    const antes = gitMod.hay;
+    gitMod.hay = async () => false;
+    copias.olvidarSiHayGit();
+    try {
+      return await hacer();
+    } finally {
+      gitMod.hay = antes;
+      copias.olvidarSiHayGit();
+    }
+  };
+
+  await comprobar('sin git, la carpeta vacía no ofrece prepararse: ofrece ponerlo', async () => {
+    const vacia = fs.mkdtempSync(path.join(os.tmpdir(), 'carpeta-sin-git-'));
+    vscode.guion.raiz = vacia;
+    const estado = await sinGit(() => brujula.estado({ fresco: true }));
+    vscode.guion.raiz = empresa;
+
+    assert.equal(estado.sinArnes, true);
+    assert.equal(estado.faltaGit, true, 'sin git la carpeta vacía tiene que decirlo antes de ofrecer nada');
+    assert.ok(estado.comoSeInstalaGit, 'y tiene que decir qué va a pasar al pulsar');
+    return estado.comoSeInstalaGit.slice(0, 46);
+  });
+
+  await comprobar('sin git, preparar la carpeta se para antes de preguntar nada', async () => {
+    const vacia = fs.mkdtempSync(path.join(os.tmpdir(), 'carpeta-sin-git-2-'));
+    vscode.guion.raiz = vacia;
+    const preguntaAntes = vscode.registrado.quickPick;
+
+    const hecho = await sinGit(() => cargar('arrancar').arrancar({}, { appendLine() {} }));
+    vscode.guion.raiz = empresa;
+
+    assert.equal(hecho.ok, false);
+    assert.equal(hecho.faltaGit, true, 'tiene que decir que lo que falta es git, no fallar a secas');
+    assert.equal(hecho.cancelado, undefined, 'y no confundirse con que el alumno cerrara la pregunta');
+    assert.equal(vscode.registrado.quickPick, preguntaAntes, 'no se pregunta nada si va a abortar igualmente');
+    return hecho.mensaje;
   });
 
   await comprobar('no se elige un ejecutable de otro sistema', () => {
