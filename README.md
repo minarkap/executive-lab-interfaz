@@ -317,10 +317,13 @@ tarda un par de minutos. `rm -rf .demo` para empezar de cero.
 
 ```bash
 cd extension && npm run empaquetar   # valida el manifiesto y genera el .vsix
-./publicar.sh                        # pruebas + diccionario + .vsix + notas, en publicacion/
+./publicar.sh                        # todas las comprobaciones + .vsix + notas, en publicacion/
+./publicar.sh --rapido               # sin montar un arnés de verdad (minutos menos)
 ```
 
-`publicar.sh` no publica nada: deja los ficheros listos y dice qué hacer con cada uno.
+`publicar.sh` no publica nada: deja los ficheros listos y dice qué hacer con cada uno. Y corre las
+comprobaciones **con un arnés de verdad**, que tarda minutos: es lo que habría pillado tres semanas
+antes que la prueba del wizard estaba rota (auditoría, F26).
 
 Para los instaladores de escritorio hay que montar antes la carpeta `carga/` con los binarios de
 terceros, que no se versionan. Está explicado en [instalador/README.md](instalador/README.md).

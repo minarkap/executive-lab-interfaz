@@ -19,8 +19,22 @@ cd "$R/extension"
 VERSION=$(node -p "require('./package.json').version")
 
 echo "Comprobando antes de empaquetar…"
-npm run probar --silent | tail -1
+
+# Con el arnés de verdad, no solo con el de mentira. Tarda minutos y por eso no
+# estaba aquí — y por eso la prueba del wizard estuvo rota tres semanas sin que
+# nadie lo viera (auditoría, F26). Una release es exactamente el momento en que
+# esos minutos salen baratos.
+#
+# `--rapido` se los salta, para cuando solo quieres el .vsix a mano.
+if [ "${1:-}" = "--rapido" ]; then
+  echo "  (con --rapido: sin montar un arnés de verdad)"
+  npm run probar --silent | tail -1
+else
+  node "$R/extension/prueba/humo.js" --con-arnes | tail -1
+fi
+
 node "$R/docs/comprobar-diccionario.js" | tail -1
+node "$R/herramientas/revisar-powershell.js" | tail -1
 npm run empaquetar --silent | grep DONE
 
 mkdir -p "$DESTINO"
