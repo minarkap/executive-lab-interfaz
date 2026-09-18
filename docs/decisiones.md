@@ -1587,3 +1587,70 @@ no da error, se traga el valor de reserva y sigue. Por eso ahora hay dos pruebas
 El verde de «bien» y el rojo de «mal» se quedan: un aviso tiene que parecer un aviso aunque la
 empresa sea verde lima. Pero se llevan al tono que se ve sobre **su** fondo, en vez de quedarse en
 verde oscuro sobre azul marino.
+
+---
+
+## 58. El tema lo hace el asistente; la barra recoge el material
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+La primera versión de `tema.js` tenía selectores de color dentro de la barra. Jose lo corrigió:
+*«la idea es que lo haga el agente de IA. La cuestión es qué material le pasas»*.
+
+Y tiene razón: elegir tres colores que peguen entre sí no es algo que se le pueda pedir a alguien que
+no sabe lo que es un color de acento. El asistente sí sabe mirar una web y sacarlos.
+
+Así que la pantalla *El tema de mi empresa* es una puerta de entrada de material, no un editor:
+
+- **la web**, como hasta ahora;
+- **subirle el logotipo, su manual de marca, una captura de su página** — o arrastrarlo encima, que
+  en esa pantalla cae en `02-DOCS/wiki/brand/` y no en la bandeja de documentos;
+- o **contárselo con palabras**, para quien no tenga ni web ni logotipo a mano, que son muchas.
+
+Todo se le pasa con el contrato de campos que ya estaba escrito, y se le dice qué material hay para
+mirar. Lo que **no** es suyo sino nuestro: que lo que elija se pueda leer. De eso se encarga la
+escala tonal, y por eso aquí no se valida ningún color — se valida al pintar, y si no cumple se
+descarta diciendo por qué.
+
+*Volver a la cara de siempre* borra el récord y **deja el material**: lo dio esa persona y no es
+nuestro para borrarlo.
+
+Y una aclaración que conviene dejar escrita, porque se prestaba a confusión: lo de Material Design
+nunca fue un estilo. Jose: *«a la hora de aplicar el diseño de marca quiero que se cumpla, que no
+haya contrastes raros, que no se ponga un color claro sobre un color claro»*. Eso es exactamente lo
+que hace la escala tonal, y lo comprueban dos pruebas con seis marcas distintas.
+
+---
+
+## 59. Una prueba en un VS Code de verdad
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Todo lo demás usa dobles: un `vscode` de mentira y un navegador de mentira. Cogen mucho, y hay una
+clase de fallo que no pueden coger por definición — que el editor de verdad no haga lo que el doble
+dice que hace.
+
+`npm run probar-en-vscode` arranca un VS Code de verdad, le abre una empresa de mentira y ejecuta
+todos los comandos de la barra, uno a uno. No mira cómo se ve: de eso se encargan las comprobaciones
+de contraste, que pueden calcularlo sin pintar nada.
+
+**Lo que encontró nada más funcionar**, y es justo lo que se buscaba:
+
+- Tres comandos se quedaban esperando una respuesta que nadie iba a dar. Hacen bien en preguntar
+  —cambian el aspecto de **todas** las ventanas— pero ahora está escrito cuáles son.
+- Y algo que yo daba por sentado: **`markdown.showPreviewToSide` puede no estar registrado**. Lo
+  trae una extensión de serie que el editor no despierta hasta que hace falta, así que comprobar si
+  el comando existe no dice nada. El respaldo que ya tenía la barra resultó no ser una precaución
+  teórica.
+
+Tres cosas del montaje que costaron más que la prueba, y quedan escritas para el siguiente:
+
+- Hay entornos que traen `ELECTRON_RUN_AS_NODE` puesto. Con eso, el binario de VS Code se comporta
+  como un Node pelado y rechaza todos sus propios argumentos, con un error que no se parece en nada
+  a la causa.
+- La carpeta de datos no puede estar dentro del proyecto: VS Code abre ahí un socket y el sistema no
+  admite rutas de más de 103 caracteres.
+- La carpeta de trabajo se pasa como `--folder-uri`; suelta, el proceso de pruebas se la queda como
+  si fuera su punto de entrada.
+
+No va dentro de `probar` porque tarda y pide red: la primera vez se descarga un VS Code de 300 MB.

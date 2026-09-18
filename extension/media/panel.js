@@ -31,6 +31,10 @@ let ultimoPintado = '';
 
 const pedir = (tipo, extra = {}) => vscode.postMessage({ tipo, ...extra });
 
+// Dónde cae lo que se arrastra encima: la bandeja de documentos, salvo cuando
+// se está mirando la cara de la empresa, que va a su carpeta.
+let dondeCaeLoQueSueltas = 'documentos';
+
 // -------------------------------------------------- soltar documentos encima
 //
 // El editor NO le da a la barra la ruta de lo que se suelta, y hace bien: eso
@@ -83,10 +87,10 @@ document.addEventListener('drop', async (e) => {
 
   const leidos = (await Promise.all(sueltos.map(leer))).filter(Boolean);
   if (!leidos.length) {
-    pedir('soltarDocumentos', { ficheros: [] });
+    pedir('soltarDocumentos', { ficheros: [], para: dondeCaeLoQueSueltas });
     return;
   }
-  pedir('soltarDocumentos', { ficheros: leidos });
+  pedir('soltarDocumentos', { ficheros: leidos, para: dondeCaeLoQueSueltas });
 });
 
 // Todo lo que venga de fuera se escapa antes de pintarse. `texto` vale para el
@@ -416,6 +420,52 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'c
       accion: { tipo: 'pedir', prompt: 'Hay cosas que no quiero que hagas nunca en esta carpeta. Pregúntame cuáles son, una a una, y déjalas escritas donde te las leas siempre.' },
     })}
 
+  `;
+}
+
+// ----------------------------------------------------- la cara de la empresa
+
+// El diseño lo hace el asistente. Esto es la puerta por la que entra el
+// material: la web, el logotipo, su manual de marca, una captura de su página,
+// o nada de eso y contárselo con palabras.
+function pantallaLaCara({
+  puesta, descartada, nombre, web, hayLogo, material = [], aviso: avisoLocal,
+}) {
+  const estadoAhora = descartada
+    ? `<div class="aviso malo"><p>No he podido usar lo que hay: ${texto(descartada)}.</p></div>`
+    : (puesta
+      ? `<p class="hiciste">Ahora mismo lleva la cara de ${texto(nombre || 'tu empresa')}${hayLogo ? ', con su logotipo' : ''}.</p>`
+      : '<p class="hiciste">Ahora mismo lleva la de Executive Lab.</p>');
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'El tema de mi empresa' }])}
+    ${bloqueAviso(avisoLocal)}
+    ${volver()}
+
+    <div class="brujula">
+      <h2>El tema de mi empresa</h2>
+      ${estadoAhora}
+      <p class="detalle">Los colores los saca el asistente de lo que le des. Si lo que elige no se lee bien, no se aplica: prefiero dejar la cara de siempre antes que una pantalla ilegible.</p>
+    </div>
+
+    <h2>Dale material</h2>
+    ${boton({ etiqueta: web ? `Cambiar la web (${web})` : 'Decirle cuál es tu web', icono: '🌐', principal: true, accion: { tipo: 'ponerLaCara' } })}
+    ${boton({ etiqueta: 'Subirle el logotipo o lo que tengas', icono: '📎', accion: { tipo: 'materialDeMarca' } })}
+    <p class="detalle">El logotipo, su manual de marca, una captura de la web… o arrástralo aquí encima.</p>
+    ${boton({
+      etiqueta: 'Contárselo con mis palabras',
+      icono: '💬',
+      accion: { tipo: 'pedir', prompt: 'Quiero ponerle a esto la cara de mi empresa y no tengo web ni logotipo a mano. Pregúntame cómo es: los colores, el nombre, el aire que tiene, y déjalo montado.' },
+    })}
+
+    ${material.length ? `
+      <hr class="separador">
+      <h2>Lo que ya le has dado</h2>
+      ${material.map((m) => `<div class="archivo"><div class="archivo-que"><p class="nombre">${texto(m)}</p></div></div>`).join('')}` : ''}
+
+    ${puesta || descartada ? `
+      <hr class="separador">
+      ${boton({ etiqueta: 'Volver a la cara de siempre', icono: '↩️', discreto: true, pequeno: true, accion: { tipo: 'quitarLaCara' } })}` : ''}
   `;
 }
 
@@ -1163,7 +1213,7 @@ function pantallaPrincipal() {
           etiqueta: marcaPuesta ? 'Cambiar el tema de mi empresa' : 'Poner el tema de mi empresa',
           icono: '🎨',
           pequeno: true,
-          accion: { tipo: 'ponerLaCara' },
+          accion: { tipo: 'verLaCara' },
         })}
         ${boton({ etiqueta: 'Cambiar de proyecto', icono: '📂', pequeno: true, accion: { tipo: 'elegirCarpeta' } })}
         ${modo === 'avanzado'
@@ -1497,6 +1547,8 @@ function pantallaIncidencia({ codigo, sano, hayQueTocarAlgo, faltaGit, comoSeIns
 // ------------------------------------------------------------------ pintado
 
 function pintar(html) {
+  // Salvo la de la marca, que lo pone justo antes de pintar.
+  if (!/El tema de mi empresa/.test(html)) dondeCaeLoQueSueltas = 'documentos';
   // Cualquier pantalla que no sea la de esperar para el reloj.
   if (!html.includes('data-cuanto')) pararElReloj();
   // Repintar tira el scroll al principio. Si se está en la misma pantalla —el
@@ -1622,6 +1674,9 @@ function atender(data) {
     case 'reglas': return pintar(pantallaReglas(data));
     case 'asistente': return pintar(pantallaAsistente(data));
     case 'comoTrabaja': return pintar(pantallaComoTrabaja(data));
+    case 'laCara':
+      dondeCaeLoQueSueltas = 'marca';
+      return pintar(pantallaLaCara(data));
     case 'huecos': return pintar(pantallaHuecos(data));
     case 'diario': return pintar(pantallaDiario(data));
     case 'trato': return pintar(pantallaTrato(data));

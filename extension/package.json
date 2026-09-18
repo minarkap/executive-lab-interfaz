@@ -3,7 +3,7 @@
   "displayName": "Executive Lab",
   "description": "Convierte VS Code en una sola pantalla sencilla para trabajar con un arnés de IA, sin ver ficheros, rutas ni terminales.",
   "publisher": "executivelab",
-  "version": "0.9.9",
+  "version": "0.10.0",
   "license": "UNLICENSED",
   "engines": {
     "vscode": "^1.98.0"
@@ -114,6 +114,10 @@
         "title": "Executive Lab: Lo que ha hecho"
       },
       {
+        "command": "executiveLab.laCara",
+        "title": "Executive Lab: El tema de mi empresa"
+      },
+      {
         "command": "executiveLab.fijadas",
         "title": "Executive Lab: Acciones rápidas"
       },
@@ -180,7 +184,8 @@
   },
   "scripts": {
     "empaquetar": "node preparar-paquete.js && npx --yes @vscode/vsce package --out executive-lab.vsix --allow-missing-repository --skip-license",
-    "probar": "node prueba/humo.js"
+    "probar": "node prueba/humo.js",
+    "probar-en-vscode": "npm install --no-save --silent @vscode/test-electron && node prueba/en-vscode/correr.js"
   },
   "capabilities": {
     "untrustedWorkspaces": {

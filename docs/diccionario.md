@@ -78,7 +78,9 @@ jerga por goteo.
 | `rsc add <skill>` desde la barra | Que lo aprenda |
 | crear un `.claude/commands/` nuevo por repetición | Que se quede como botón |
 | la web de la empresa del alumno | Tu web |
-| escribir el récord de marca | Poner el tema de mi empresa |
+| escribir el récord de marca | El tema de mi empresa |
+| el material que se le da para la marca | Dale material · Subirle el logotipo o lo que tengas |
+| borrar el récord de marca | Volver a la cara de siempre |
 | un logotipo que es solo el símbolo | (se pinta el símbolo y, al lado, el nombre de la empresa) |
 | `02-DOCS/raw/worklog/` | Días de trabajo (se abren al lado, no en la barra) |
 | una ficha de `raw/worklog/` | Una anotación |

@@ -40,6 +40,7 @@ const ajustes = require('./ajustes');
 const donde = require('./donde');
 const pulso = require('./pulso');
 const fijadas = require('./fijadas');
+const tema = require('./tema');
 const asistentes = require('./asistentes');
 const trato = require('./trato');
 const marca = require('./marca');
@@ -294,7 +295,7 @@ ${cabecera}
       abrirFuera: () => this.abrirFuera(mensaje.ruta),
       cambiarArticulo: () => this.pedir(`Quiero cambiar lo que sabes sobre "${mensaje.titulo}". Ábrelo, enséñame qué dice y pregúntame qué hay que corregir.`),
       anadirDocumentos: () => this.anadirDocumentos(),
-      soltarDocumentos: () => this.soltarDocumentos(mensaje.ficheros),
+      soltarDocumentos: () => this.soltarDocumentos(mensaje.ficheros, mensaje.para),
       abrirPanelCompleto: () => cerebro.abrirPanel(),
 
       verCopias: () => this.verCopias(),
@@ -321,6 +322,9 @@ ${cabecera}
       verAsistente: () => this.verAsistente(),
       verComoTrabaja: () => this.verComoTrabaja(),
       verFijadas: () => this.verFijadas(),
+      verLaCara: () => this.verLaCara(),
+      materialDeMarca: () => this.materialDeMarca(),
+      quitarLaCara: () => this.quitarLaCara(),
       fijar: () => this.cambiarFijada(fijadas.fijar, mensaje.cual),
       soltar: () => this.cambiarFijada(fijadas.soltar, mensaje.cual),
       ponerPermiso: () => this.cambiarAjuste(ajustes.ponerPermiso, mensaje.cual),
@@ -479,8 +483,18 @@ ${cabecera}
 
   // Soltados encima de la barra. Llegan ya leídos por el panel, porque el
   // editor no le da la ruta de lo que se suelta — y hace bien.
-  async soltarDocumentos(ficheros) {
+  async soltarDocumentos(ficheros, para = 'documentos') {
     if (!ficheros || !ficheros.length) return this.refrescar();
+
+    // Arrastrado encima de la pantalla de la marca, el material va a su
+    // carpeta: es lo que el asistente mira para sacar los colores, y en la
+    // bandeja de documentos se mezclaría con las facturas.
+    if (para === 'marca') {
+      const puesto = tema.guardarSoltado(ficheros);
+      if (!puesto.ok) return this.verLaCara({ texto: puesto.mensaje, malo: true });
+      await puente.enviar(tema.queLePedimos({ web: tema.comoEstamos().web, puestos: puesto.puestos }));
+      return this.verLaCara({ texto: `${puesto.mensaje} Se lo he pasado al asistente.`, malo: false });
+    }
 
     const { ok, cuantos, mensaje } = cerebro.guardarSoltados(ficheros);
     if (!ok) return this.enviar({ tipo: 'aviso', texto: mensaje, malo: true });
@@ -594,6 +608,30 @@ ${cabecera}
       await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside, preview: true });
     }
     return undefined;
+  }
+
+  // ------------------------------------------------ la cara de la empresa
+  //
+  // El diseño lo hace el asistente. Esto solo recoge el material y se lo pasa:
+  // la web, el logotipo, su manual de marca, o palabras.
+  async verLaCara(avisoLocal = null) {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'laCara', ...tema.comoEstamos(), aviso: avisoLocal });
+  }
+
+  async materialDeMarca() {
+    const hecho = await tema.elegirMaterial();
+    if (hecho.cancelado) return this.verLaCara();
+    if (!hecho.ok) return this.verLaCara({ texto: hecho.mensaje, malo: true });
+
+    await puente.enviar(tema.queLePedimos({ web: tema.comoEstamos().web, puestos: hecho.puestos }));
+    return this.verLaCara({ texto: `${hecho.mensaje} Se lo he pasado al asistente.`, malo: false });
+  }
+
+  async quitarLaCara() {
+    const { ok, mensaje } = tema.quitarla();
+    if (ok) this.pintarPagina();
+    return this.verLaCara({ texto: mensaje, malo: !ok });
   }
 
   // Elegir qué va arriba del todo. Lo que use de verdad esa persona no lo
@@ -1062,6 +1100,7 @@ function activate(contexto) {
     comando('executiveLab.asistente', () => panel.verAsistente()),
     comando('executiveLab.comoTrabaja', () => panel.verComoTrabaja()),
     comando('executiveLab.fijadas', () => panel.verFijadas()),
+    comando('executiveLab.laCara', () => panel.verLaCara()),
     comando('executiveLab.diario', () => panel.verDiario()),
     comando('executiveLab.trato', () => panel.verTrato()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),

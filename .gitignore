@@ -32,3 +32,7 @@ extension/media/comun/
 
 # El registro que deja una prueba en seco de preparar.js
 instalador/comun/instalacion.log
+
+# El VS Code que se descarga para probar de verdad.
+.vscode-test/
+extension/.vscode-test/

@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -1224,7 +1224,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       'guardarCopia', 'verCopiaFuera', 'verCopias', 'verDiario',
       'verConexiones', 'verSaberes',
       'verAyuda', 'verRadiografia',
-      'ponerLaCara', 'elegirCarpeta', 'verEditorCompleto', 'bajarLaNueva',
+      'verLaCara', 'elegirCarpeta', 'verEditorCompleto', 'bajarLaNueva',
     ];
     const faltan = imprescindibles.filter((t) => !principal.includes(`tipo: '${t}'`));
     assert.deepEqual(faltan, [], `la pantalla principal ya no lleva a: ${faltan.join(', ')}`);
@@ -1233,6 +1233,13 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     // donde se busca. Pero tiene que seguir llegándose a él.
     const ayuda = panel.slice(panel.indexOf('function pantallaAyuda'), panel.indexOf('function pantallaPapeles'));
     assert.match(ayuda, /tipo: 'algoVaMal'/, 'a "Algo va mal" se llega desde Ayuda');
+
+    // Y el material de la marca se da desde su pantalla, no desde la principal:
+    // el diseño lo hace el asistente, la barra solo recoge lo que mirar.
+    const laCara = panel.slice(panel.indexOf('function pantallaLaCara'), panel.indexOf('function pantallaComoTrabaja'));
+    for (const t of ['ponerLaCara', 'materialDeMarca', 'quitarLaCara']) {
+      assert.ok(laCara.includes(`tipo: '${t}'`), `falta ${t} en la pantalla de la cara`);
+    }
 
     // Y cada fila plegable tiene que tener nombre propio, o dos se pisarían el
     // recuerdo de abierta/cerrada.
@@ -1524,6 +1531,46 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${usados.length} colores, todos los pone la marca`;
   });
 
+  await comprobar('el material de la marca va a su carpeta, no a la bandeja', () => {
+    // Son dos sitios distintos y el asistente los lee para cosas distintas: en
+    // la bandeja, el logotipo se mezclaría con las facturas.
+    const tema = cargar('tema');
+    const puesto = tema.guardarSoltado([
+      { nombre: 'manual-de-marca.pdf', datos: Buffer.from('un pdf de mentira').toString('base64') },
+    ]);
+    assert.equal(puesto.ok, true);
+    assert.ok(tema.material().includes('manual-de-marca.pdf'));
+    assert.ok(fs.existsSync(path.join(vscode.guion.raiz, '02-DOCS/wiki/brand/manual-de-marca.pdf')));
+
+    // Y no pisa lo que ya estaba: ahí puede estar el trabajo del asistente.
+    tema.guardarSoltado([{ nombre: 'manual-de-marca.pdf', datos: Buffer.from('otro').toString('base64') }]);
+    assert.ok(tema.material().includes('manual-de-marca (2).pdf'), 'se numera en vez de sobrescribir');
+
+    // Volver a la cara de siempre borra el récord y deja el material: lo dio
+    // esa persona y no es nuestro para borrarlo.
+    assert.ok(tema.quitarla().ok);
+    assert.ok(!fs.existsSync(path.join(vscode.guion.raiz, '02-DOCS/wiki/brand/marca.md')));
+    assert.ok(tema.material().length, 'el material se queda');
+
+    montarMarca(empresa);
+    return `${tema.material().length} cosas de material`;
+  });
+
+  await comprobar('lo que se le pide lleva el material que se le ha dado', () => {
+    const tema = cargar('tema');
+    const conTodo = tema.queLePedimos({ web: 'https://nexus.example', puestos: ['logo.svg'], contado: 'somos azules' });
+    assert.match(conTodo, /nexus\.example/);
+    assert.match(conTodo, /logo\.svg/, 'se le dice qué mirar');
+    assert.match(conTodo, /somos azules/);
+    assert.match(conTodo, /brand\/marca\.md/, 'y dónde escribirlo');
+
+    // Sin web también vale: hay pymes que no tienen.
+    const sinWeb = tema.queLePedimos({ puestos: ['logo.svg'] });
+    assert.ok(!/\(no te he dado web\)/.test(sinWeb), 'no se le cuela el hueco del ejemplo');
+    assert.match(sinWeb, /brand\/marca\.md/);
+    return 'con web y sin ella';
+  });
+
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
     // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
     // había forma de salir de esa pantalla.
@@ -1608,6 +1655,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['reglas', { tipo: 'reglas', ...cargar('reglas').queHay() }, /albarán firmado/],
       ['asistente', { tipo: 'asistente', ...cargar('asistentes').comoEstamos(), aviso: null }, /Claude|Codex/],
       ['comoTrabaja', { tipo: 'comoTrabaja', ...cargar('ajustes').comoEstamos(), aviso: null }, /Cada cuánto guarda solo/],
+      ['laCara', { tipo: 'laCara', ...cargar('tema').comoEstamos(), aviso: null }, /Dale material/],
       ['trato', { tipo: 'trato', ...tratoM.comoEstamos(), aviso: null }, /Cuánto te explica/],
       ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
     ];

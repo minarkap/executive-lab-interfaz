@@ -240,21 +240,25 @@ function tipografiaDe(marca) {
 // Executive Lab. Nadie se enteraba de que había pasado algo.
 function queLePedimos(web) {
   return [
-    `Mira ${web} y ponle a esto la cara de mi empresa.`,
+    web
+      ? `Mira ${web} y ponle a esto la cara de mi empresa.`
+      : 'Ponle a esto la cara de mi empresa, con el material que te he dejado.',
     '',
     `Déjalo en \`${CARPETA.join('/')}/${FICHERO}\`, con estos campos en la cabecera y escritos así:`,
     '',
     '- `empresa:` cómo se llama.',
     '- `fondo:`, `texto:` y `acento:` en formato `#rrggbb`.',
-    '  El `fondo` y el `acento` son los de su web de verdad: si la web es oscura, el fondo va oscuro.',
+    web
+      ? '  El `fondo` y el `acento` son los de su web de verdad: si la web es oscura, el fondo va oscuro.'
+      : '  Sácalos del material. Si su marca es oscura, el fondo va oscuro: esto se pinta igual de bien de las dos maneras.',
     '  El `texto` solo se usa para saber si la marca es clara u oscura; las letras las calculo yo.',
     '  Evita un fondo a media luz (un gris medio): encima de eso no se lee nada y tendría que descartarlo.',
     '- `logo:` el nombre del fichero del logotipo, guardado en esa misma carpeta.',
     '- `logo_lleva_el_nombre:` `si` si el logotipo trae dentro el nombre escrito, `no` si es solo el símbolo.',
-    '- `resource:` la web.',
+    web ? '- `resource:` la web.' : null,
     '',
     'Con esos tres colores construyo la paleta entera siguiendo Material Design, así que no hace falta que me des más.',
-  ].join('\n');
+  ].filter((l) => l !== null).join('\n');
 }
 
 module.exports = { leer, estilo, queLePedimos, TIPOGRAFIAS, CARPETA, FICHERO };
