@@ -13,17 +13,24 @@ y se apoya en [RSC](https://github.com/ericrisco/rsc-harness), que es quien mont
 - **Una brújula**: dónde estás, qué acabas de hacer, qué puedes hacer ahora.
 - **Tus conexiones**: las claves de cada herramienta como un formulario, con los pasos para sacarlas.
 - **Lo que sabe de tu trabajo**: la wiki del arnés, leída dentro, sin markdown ni cabeceras técnicas.
-- **Copias de seguridad**: git por debajo, sin que esa palabra aparezca nunca.
+- **Copias de seguridad**: git por debajo, sin que esa palabra aparezca nunca. Y una copia fuera de
+  este ordenador, entrando en GitHub con la ventana del propio editor — sin claves escritas a mano.
+- **Qué hay en esta carpeta**: pieza por pieza, hasta qué punto está montada. Incluidas las claves
+  que ya tuvieras en un `.env` de antes, que se detectan sin tocarlas.
 - **Algo va mal**: revisa, arregla y da un código de seis letras para el tutor.
 - **Tu marca**: si dices cuál es la web de tu empresa, la barra se pinta con sus colores y su logotipo.
 
 Nada de eso está escrito en el código: sale de leer lo que el arnés tenga montado en tu carpeta. Una
 gestoría acaba con botones de facturación y una empresa de contratos con botones de contratos.
 
+**Sobre un proyecto que ya existe**, el panel mira antes de tocar: dice qué ha encontrado, el botón
+pasa a ser *Añadir el asistente a esto*, y nunca escribe nada en un historial que no sea suyo.
+
 ## Qué necesitas
 
-- **VS Code** y **Claude Code** o **Codex**, con una cuenta de pago del que uses.
-- **git**, para las copias de seguridad. Si no está, todo lo demás funciona y ese botón lo avisa.
+- **VS Code 1.98 o más nuevo** y **Claude Code** o **Codex**, con una cuenta de pago del que uses.
+- **git**. Hace falta de verdad: el arnés lo usa por su cuenta. Si no está, el panel lo instala con
+  un botón, usando el instalador oficial de tu sistema.
 
 No hace falta Node: VS Code ya lo lleva dentro, y el arnés viaja en la propia extensión.
 
@@ -47,22 +54,25 @@ code --install-extension /tmp/executive-lab-*.vsix --force
 ```
 
 Después **no montes el arnés por tu cuenta**: dile a la persona que abra la carpeta con la que quiere
-trabajar y pulse **Preparar esta carpeta** en la barra de la izquierda. El asistente de la extensión
-le hará las cinco preguntas que RSC necesita —de qué va, qué quiere resolver, qué tal se maneja,
-cuánto quiere que le expliquen y con quién trabaja— en lenguaje llano, y montará el arnés con esas
-respuestas.
+trabajar y pulse **Preparar esta carpeta** en la barra de la izquierda. (Si esa carpeta ya tiene un
+proyecto suyo, el botón se llama **Añadir el asistente a esto** y el panel enseña antes lo que ha
+encontrado.)
+
+El asistente de la extensión le hará las preguntas que RSC necesita —de qué va, qué quiere resolver,
+qué tal se maneja, cuánto quiere que le expliquen y con quién trabaja— en lenguaje llano, y montará
+el arnés con esas respuestas.
 
 Si prefiere que lo hagas tú, las respuestas son suyas, no tuyas: pregúntaselas una a una y luego
 
 ```bash
-npx @ericrisco/rsc@latest onboard \
+npx @ericrisco/rsc@1.4.1 onboard \
   --technical-level <non-technical|mixed|technical> \
   --accompaniment <L0|L1|L2|L3> \
   --project-kind <software|operations|research|content|mixed> \
   --goal "<lo que quiera conseguir>" \
   --target <claude|codex>
 # imprime un plan y su huella; solo después de que ACEPTE ese plan exacto:
-npx @ericrisco/rsc@latest onboard ...mismos flags... --accept-plan <huella>
+npx @ericrisco/rsc@1.4.1 onboard ...mismos flags... --accept-plan <huella>
 ```
 
 Y por último, los raíles de Executive Lab (idioma y vocabulario), que van dentro de la extensión:
