@@ -487,7 +487,16 @@ ${cabecera}
     this.enviar({ tipo: 'esperando', que: 'Estoy mirando qué pasa. Tarda un poco.' });
     const informe = await soporte.revisar();
     this.salida.appendLine(informe.informe);
-    this.enviar({ tipo: 'incidencia', codigo: informe.codigo, sano: informe.sano, hayQueTocarAlgo: informe.hayQueTocarAlgo });
+    this.enviar({
+      tipo: 'incidencia',
+      codigo: informe.codigo,
+      sano: informe.sano,
+      hayQueTocarAlgo: informe.hayQueTocarAlgo,
+      // Si lo que falta es git, `rsc repair` no lo va a arreglar: hay que
+      // ponerlo. Mejor ese botón que uno que no puede funcionar.
+      faltaGit: informe.faltaGit,
+      comoSeInstalaGit: git.comoSeInstala(),
+    });
   }
 
   async arreglar() {

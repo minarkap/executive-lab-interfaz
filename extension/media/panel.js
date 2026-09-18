@@ -729,13 +729,22 @@ function pantallaCopias({ copias }) {
   `;
 }
 
-function pantallaIncidencia({ codigo, sano, hayQueTocarAlgo }) {
+function pantallaIncidencia({ codigo, sano, hayQueTocarAlgo, faltaGit, comoSeInstalaGit }) {
+  // Si lo que falta es git, arreglar el arnés no sirve de nada: la pieza no
+  // está. Se dice eso y se ofrece ponerla, en vez de un botón que no puede.
+  const queDigo = faltaGit
+    ? 'Falta una pieza en este ordenador, y sin ella no puedo hacer casi nada.'
+    : (sano ? 'He mirado y tu empresa está bien.' : 'He encontrado algo y puedo intentar arreglarlo.');
+
   return `
     <p class="titulo">Algo va mal</p>
-    <p>${texto(sano ? 'He mirado y tu empresa está bien.' : 'He encontrado algo y puedo intentar arreglarlo.')}</p>
+    <p>${texto(queDigo)}</p>
+    ${faltaGit ? `<p class="detalle">${texto(comoSeInstalaGit || '')}</p>` : ''}
     <p class="detalle">Si hablas con tu tutor, dale este código:</p>
     <span class="codigo">${texto(codigo)}</span>
-    ${!sano || hayQueTocarAlgo ? boton({ etiqueta: 'Arreglarlo ahora', icono: '🛠️', principal: true, accion: { tipo: 'arreglar' } }) : ''}
+    ${faltaGit
+      ? boton({ etiqueta: 'Ponerla ahora', icono: '⬇️', principal: true, accion: { tipo: 'instalarGit' } })
+      : (!sano || hayQueTocarAlgo ? boton({ etiqueta: 'Arreglarlo ahora', icono: '🛠️', principal: true, accion: { tipo: 'arreglar' } }) : '')}
     ${volver()}
   `;
 }

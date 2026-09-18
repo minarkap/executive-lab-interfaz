@@ -8,6 +8,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const proyecto = require('./proyecto');
 const rsc = require('./rsc');
+const git = require('./git');
+const github = require('./github');
+const terreno = require('./terreno');
 
 // Sin O ni 0, sin I ni 1: el código se dicta en voz alta y por teléfono.
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -34,11 +37,29 @@ async function revisar() {
   const doctor = await rsc.revisar();
   const reparacion = await rsc.arreglarEnSeco();
 
+  // Las tres cosas por las que alguien se atasca hoy, y que el informe no
+  // decía: que no haya git (sin él no funciona nada), que no haya entrado en su
+  // cuenta (y por eso no puede guardar fuera), y en qué estado está la carpeta
+  // (un proyecto ya empezado no se comporta como una vacía). Quien lea esto por
+  // teléfono tiene que verlas de un vistazo, no deducirlas.
+  const [hayGit, cuenta, hay] = await Promise.all([git.hay(), github.estado(), terreno.queHay()]);
+
   const informe = [
     `Incidencia ${codigo}`,
     `Fecha: ${new Date().toISOString()}`,
     `Sistema: ${process.platform} ${process.arch}`,
     `Catálogo: ${rsc.paquete()}`,
+    '',
+    'Piezas del ordenador:',
+    `  git:                     ${hayGit ? 'sí' : 'NO — sin esto no funciona nada'}`, // diccionario: interno
+    `  cuenta de GitHub:        ${cuenta.conectado ? `sí (${cuenta.usuario || 'sin nombre'})` : 'no ha entrado'}`, // diccionario: interno
+    `  copia fuera apunta a:    ${cuenta.remoto ? cuenta.remoto.corto : '(ninguna todavía)'}`, // diccionario: interno
+    '',
+    `Estado de la carpeta: ${hay.tipo}`, // diccionario: interno
+    ...(hay.tipo === 'empezada' ? [
+      `  ya tenía ${hay.cuantos} cosas dentro${hay.parece ? ` · ${hay.parece}` : ''}`, // diccionario: interno
+      `  historial propio: ${hay.conHistorial ? 'sí — no lo tocamos' : 'no'}`, // diccionario: interno
+    ] : []),
     '',
     'Suelo del arnés:',
     `  declaración (.rsc.json): ${suelo.declaracion ? 'sí' : 'NO'}`, // diccionario: interno
@@ -60,10 +81,12 @@ async function revisar() {
 
   // Que el diagnóstico falle no es un problema del alumno: si no podemos
   // arreglarlo solos, lo que importa es que el tutor reciba el código.
-  const sano = doctor.codigo === 0 && proyecto.arnesCompleto();
+  // Sin git no está sano por mucho que el doctor del arnés diga que sí: es la
+  // pieza de la que cuelga todo lo demás.
+  const sano = doctor.codigo === 0 && proyecto.arnesCompleto() && hayGit;
   const hayQueTocarAlgo = /repair|fix|missing|dangling/i.test(reparacion.salida || '');
 
-  return { codigo, fichero, sano, hayQueTocarAlgo, informe };
+  return { codigo, fichero, sano, hayQueTocarAlgo, faltaGit: !hayGit, informe };
 }
 
 // Solo se llama cuando el alumno ha dicho que sí. `rsc repair` guarda una copia
