@@ -162,6 +162,48 @@ empresa: Ferretería Soler
 Goal: organizar mis facturas
 `);
 
+  // --- las reglas: los tres sitios donde RSC las pone. La constitución solo
+  //     aparece si el arnés se montó con SDD; los otros dos van siempre ---
+  escribir(raiz, '02-DOCS/wiki/sdd/constitution.md', `---
+type: concept
+title: Constitution
+---
+
+# Constitution
+
+## Nunca se factura sin albarán firmado
+
+Es lo que nos ha salvado dos veces en una inspección.
+
+## Los precios no se cambian sin pasar por Marta
+
+## {Principio de ejemplo}
+`);
+  escribir(raiz, 'CLAUDE.md', `# CLAUDE.md — Ferretería Soler
+
+## Knowledge map
+
+| Area | Article |
+|------|---------|
+| User profile | \`02-DOCS/wiki/harness/user-profile.md\` |
+
+## Working rules
+
+- No se manda nada a un cliente sin que lo lea una persona antes.
+- Los datos del banco no salen de esta carpeta.
+- {Regla de ejemplo de la plantilla}
+
+## Main commands
+
+- \`npm test\`
+`);
+  escribir(raiz, 'AGENTS.md', `# AGENTS.md — Ferretería Soler
+
+## Working rules
+
+- No se manda nada a un cliente sin que lo lea una persona antes.
+`);
+
   // --- el diario: lo que RSC escribe solo al terminar un rato de trabajo,
   //     y el registro de decisiones con sus dos formatos a la vez ---
   escribir(raiz, '02-DOCS/raw/worklog/2026-09-15-cobro-talleres-ruiz.md', `---

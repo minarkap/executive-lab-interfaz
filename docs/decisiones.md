@@ -1188,3 +1188,124 @@ hace.
 Igual que *principios y constitución*: eso no existe en RSC. Lo más parecido son la sección
 *Working rules* del `CLAUDE.md`, el objetivo y los límites del perfil, y el registro de decisiones.
 Se puede montar, pero sería inventarlo juntando tres sitios, no enseñar algo que ya está.
+
+---
+
+## 43. Dos buscadores, y me equivoqué defendiendo uno
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Yo defendí uno solo con los resultados agrupados por tipo, con el argumento de que dos cajas obligan
+a elegir cuál antes de saber qué buscas. Jose decidió dos, y su argumento es mejor: **que se sepa
+por el nombre qué va a salir.**
+
+Buscar un contrato firmado y buscar cómo se factura aquí son dos preguntas distintas. Mezclar las
+respuestas no ahorra la elección: la aplaza, y encima obliga a leerlas todas para descartar la mitad.
+
+- **Buscar un documento** (en Documentos) — nombres de fichero, los tres montones.
+- **Buscar un concepto** (en Lo que sabe) — lo que ha entendido, lo que sabe hacer, los programas y
+  el diario.
+
+Cada caja vuelve a su propia pantalla al vaciarse. La caja sin nombre que había en la principal se
+ha quitado: con dos buscadores con nombre, una tercera anónima devuelve justo la duda que estos dos
+quitan.
+
+---
+
+## 44. Las reglas existían y no las veía nadie. Me equivoqué al decir que no
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Le dije a Jose que lo de «principios y constitución» no existía en RSC y que habría que inventarlo.
+Él insistió — *«míralo bien porque creo que depende»* — y tenía razón.
+
+**`02-DOCS/wiki/sdd/constitution.md` existe**, y no es un fichero cualquiera. El `CLAUDE.md` que
+escribe el arnés lo pone en su mapa bajo el rótulo *Read first, always*, junto al perfil de usuario
+**y nada más**. De todos los ficheros de una carpeta, esos dos son los que se leen antes de cada
+cosa que se hace. Uno ya se veía en la barra desde la decisión 33; el otro no se veía en absoluto.
+
+Tres sitios, y se enseñan los tres:
+
+| Sitio | En pantalla |
+|---|---|
+| `02-DOCS/wiki/sdd/constitution.md` | Innegociables |
+| `CLAUDE.md` § Working rules | Cómo se trabaja aquí |
+| `AGENTS.md` § Working rules | Lo mismo, para lo que no es Claude |
+
+La constitución solo aparece si el arnés se montó con SDD, y los otros dos van siempre, así que no
+se exige ninguno: se enseña lo que haya. Se leen sus dos formatos —lista de guiones y prosa con
+encabezados— porque con uno solo media pantalla sale vacía.
+
+Y dos botones que es lo que le faltaba a esto para servir de algo: **Añadir una regla** y **Decirle
+qué NO quiero que haga**.
+
+**Efecto colateral que convenía arreglar:** `sdd/` pasa a contar como andamio de la wiki, con
+`harness/` y `brand/`. Sin eso, a quien monte el arnés con SDD le saldría «Sdd» en la lista de lo
+que el asistente sabe de su empresa, que no significa nada.
+
+---
+
+## 45. Con quién hablas se elige desde la barra
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Faltaba, y lo pidió Jose. El arnés ya sabía con cuál hablar —lo lee de `targets` en `.rsc.json`—
+pero no había forma de cambiarlo ni de ver por qué con Codex algunas cosas van distinto.
+
+La pantalla dice de cada uno si está en este ordenador y, lo que importa, **qué cambia**: con Claude
+los botones le mandan el texto; con Codex abren su barra y lo dejan copiado, porque su extensión no
+admite que se lo pasen (comprobado leyéndola, no adivinado).
+
+Elegir escribe `targets` respetando el resto del fichero. **Lo que no hace, y la pantalla lo dice:**
+no reinstala el arnés para el otro asistente. Las habilidades se quedan donde estaban.
+
+---
+
+## 46. "Ver las copias guardadas": un botón que da miedo no se pulsa
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Tercer nombre para el mismo botón. Era *Volver a como estaba antes*, lo cambié a *Volver a un punto
+anterior* (decisión 41) y Jose señaló que seguía sonando a que al pulsarlo ya no hay marcha atrás.
+
+Tiene razón, y el nombre era el problema entero: **ese botón no deshace nada**. Enseña una lista de
+diez copias. Deshacer es lo que viene después, eligiendo una, y ni eso es irreversible.
+
+Nombrar la lista en vez de la acción quita el miedo. Un botón que da miedo no se pulsa, y alguien
+que no se atreve ni a mirar sus copias de seguridad no tiene copias de seguridad.
+
+---
+
+## 47. La cuenta de GitHub se ofrece al montar la carpeta
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Lo pidió Jose y es evidente en cuanto lo dice: la cuenta solo salía el día que alguien pulsaba
+*Subir a GitHub*, que es **el peor momento posible**. Esa persona ya quiere guardar algo y se
+encuentra con que antes le toca crearse una cuenta en un sitio del que no ha oído hablar.
+
+Montar la carpeta es cuando se está montando todo, y es la única vez que alguien espera trámites.
+Ahí se pregunta, con el motivo por delante —«si se rompe el portátil, lo recuperas»— y se puede
+decir que más tarde: la carpeta funciona igual sin ello y el botón sigue en Histórico para siempre.
+
+---
+
+## 48. Quitar un documento: solo del que no ha aprendido nada todavía
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose preguntó qué haría yo. Esto, y el motivo es que **borrar el fichero no borra lo que el arnés
+aprendió de él**. Si alguien entrega un contrato, el asistente saca de ahí las condiciones y las
+escribe en un concepto, y después borramos el PDF: el papel desaparece y lo aprendido se queda. Un
+botón que solo hace lo primero y se llama «eliminar» miente justo en lo que esa persona quería
+evitar.
+
+Así que se separa por estado, que es lo único honesto:
+
+- **Sin leer todavía** — nadie ha sacado nada de él. Se borra, con una pregunta que lleva el nombre
+  del documento dentro, porque un «¿seguro?» a secas no dice qué se va a perder. Es el caso
+  frecuente de verdad: te equivocas de fichero al arrastrarlo.
+- **Ya leído, o el original guardado** — aquí no borramos nosotros. Se le pide al asistente, que es
+  el único que sabe qué conceptos salieron de ese papel y puede quitarlos con él. Además `raw/` es
+  la prueba de lo que entró: el protocolo del arnés dice que no se borra, y hacerlo a sus espaldas
+  le rompería la contabilidad de lo ingerido.

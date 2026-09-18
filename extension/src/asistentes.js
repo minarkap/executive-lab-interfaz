@@ -65,4 +65,50 @@ function elDeAhora() {
   return delArnes.find(estaInstalado) || ASISTENTES.find(estaInstalado) || delArnes[0] || ASISTENTES[0];
 }
 
-module.exports = { ASISTENTES, elDeAhora, losDelArnes, estaInstalado, porId };
+// Lo que hay que enseñar para poder elegir: cuál manda ahora, cuáles están
+// puestos en este ordenador y cuáles declaró el arnés.
+function comoEstamos() {
+  const ahora = elDeAhora();
+  const delArnes = losDelArnes().map((a) => a.id);
+  return {
+    ahora: ahora ? ahora.id : null,
+    cuales: ASISTENTES.map((a) => ({
+      id: a.id,
+      nombre: a.nombre,
+      instalado: estaInstalado(a),
+      // Si el arnés se montó para él. Se puede hablar con uno no declarado,
+      // pero conviene decirlo.
+      delArnes: delArnes.includes(a.id),
+      // Con Codex los botones no pueden mandar texto: abren su barra y lo
+      // dejan copiado. Se dice aquí y no en una nota al pie.
+      mandaTexto: a.envio.length > 0,
+    })),
+  };
+}
+
+// Cambiar con cuál se habla. Se escribe en `.rsc.json`, que es donde el arnés
+// lo guarda, respetando todo lo demás del fichero.
+//
+// Ojo con lo que esto NO hace: no reinstala el arnés para el otro asistente.
+// Las habilidades quedan donde estaban. Por eso la pantalla lo dice.
+function elegir(id) {
+  const cual = porId(id);
+  if (!cual) return { ok: false, mensaje: 'Ese no es uno de los dos.' };
+  if (!estaInstalado(cual)) return { ok: false, mensaje: `${cual.nombre} no está en este ordenador. Díselo a tu tutor.` };
+
+  const ruta = proyecto.ruta('.rsc.json');
+  const declaracion = proyecto.declaracion();
+  if (!ruta || !declaracion) return { ok: false, mensaje: 'Esta carpeta todavía no está preparada.' };
+
+  const antes = Array.isArray(declaracion.targets) ? declaracion.targets : [];
+  const targets = [id, ...antes.filter((t) => t !== id)];
+
+  try {
+    require('node:fs').writeFileSync(ruta, `${JSON.stringify({ ...declaracion, targets }, null, 2)}\n`);
+  } catch {
+    return { ok: false, mensaje: 'No he podido guardarlo. Prueba con "Algo va mal".' };
+  }
+  return { ok: true, mensaje: `Hecho. A partir de ahora los botones hablan con ${cual.nombre}.` };
+}
+
+module.exports = { ASISTENTES, elDeAhora, losDelArnes, estaInstalado, porId, comoEstamos, elegir };

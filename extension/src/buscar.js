@@ -26,7 +26,7 @@ const MAXIMO_POR_FICHERO = 1024 * 1024;
 
 // Ni la carpeta del arnés ni la de la marca son "lo que sabe de tu empresa":
 // son fontanería nuestra.
-const FUERA_DE_LA_WIKI = ['harness', 'brand'];
+const FUERA_DE_LA_WIKI = ['harness', 'brand', 'sdd'];
 
 // Quitar tildes y mayúsculas: quien busca "facturacion" tiene que encontrar
 // "Facturación", y al revés.
@@ -212,14 +212,36 @@ function puntuar(cosa, terminos, frase) {
   return { puntos, donde };
 }
 
-function buscar(texto, cuantos = 15) {
+// Dos buscadores, no uno.
+//
+// ── Por qué dos ──────────────────────────────────────────────────────────
+//
+// Yo defendía uno solo, agrupando los resultados por tipo. Jose decidió dos, y
+// el argumento es el suyo: **que se sepa por el nombre qué va a salir**. Buscar
+// un contrato firmado y buscar cómo se factura aquí son dos preguntas
+// distintas, y mezclar las respuestas obliga a leerlas todas para descartar.
+//
+//   · `papeles`   — nombres de fichero. Lo que te dieron y lo que produjo.
+//   · `conceptos` — lo que el arnés ha entendido, y lo que se puede pedir.
+//
+// Sin decir dónde, se busca en todo: es lo que usa la pantalla de resultados
+// cuando se llega desde otro sitio.
+const DONDE = {
+  papeles: ['papel'],
+  conceptos: ['sabe', 'hacer', 'conexion', 'diario'],
+};
+
+function buscar(texto, cuantos = 15, donde = null) {
   const frase = pelar(texto || '').trim();
   const terminos = palabras(texto || '');
-  if (!terminos.length) return { texto: texto || '', cuantos: 0, grupos: [] };
+  if (!terminos.length) return { texto: texto || '', cuantos: 0, grupos: [], donde };
+
+  const solo = DONDE[donde] || null;
 
   const aciertos = [];
   for (const cosa of indice()) {
-    const { puntos, donde } = puntuar(cosa, terminos, frase);
+    if (solo && !solo.includes(cosa.tipo)) continue;
+    const { puntos, donde: dondeSale } = puntuar(cosa, terminos, frase);
     if (!puntos) continue;
 
     const primero = terminos.find((t) => cosa.textoPelado.includes(t)) || terminos[0];
@@ -229,8 +251,8 @@ function buscar(texto, cuantos = 15) {
       icono: cosa.icono,
       accion: cosa.accion,
       puntos,
-      donde,
-      frase: donde === 'titulo' && !cosa.textoPelado.includes(primero)
+      donde: dondeSale,
+      frase: dondeSale === 'titulo' && !cosa.textoPelado.includes(primero)
         ? cosa.texto.replace(/^#\s+.+$/m, '').replace(/\s+/g, ' ').trim().slice(0, 120)
         : fraseCon(cosa.texto, primero),
       resaltar: terminos,
@@ -243,6 +265,7 @@ function buscar(texto, cuantos = 15) {
   return {
     texto: texto || '',
     cuantos: elegidos.length,
+    donde,
     grupos: GRUPOS
       .map((g) => ({ titulo: g.titulo, aciertos: elegidos.filter((a) => a.tipo === g.tipo) }))
       .filter((g) => g.aciertos.length),

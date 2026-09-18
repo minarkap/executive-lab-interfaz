@@ -107,4 +107,49 @@ async function abrir(rutaRelativa) {
   return { ok: true };
 }
 
-module.exports = { queHay, donde, abrir };
+// ------------------------------------------------------------- quitar uno
+
+// ── La trampa que tiene esto ─────────────────────────────────────────────
+//
+// Jose preguntó qué haría yo con "eliminar documentos". Esto:
+//
+// Borrar el fichero **no borra lo que el arnés aprendió de él**. Si alguien
+// entrega un contrato, el asistente saca de ahí las condiciones y las escribe
+// en un concepto, y después borramos el PDF, el papel desaparece y lo que
+// aprendió se queda. Un botón que solo hace lo primero y se llama "eliminar"
+// miente, y miente justo en lo que la persona quería evitar.
+//
+// Así que se separa por estado, que es lo único honesto:
+//
+//   · **Sin leer todavía** — nadie ha sacado nada de él. Se borra y ya está.
+//     Es el caso de verdad frecuente: te equivocas de fichero al arrastrarlo.
+//   · **Ya leído, o el original guardado** — aquí no borramos nosotros. Se le
+//     pide al asistente, que es el único que sabe qué conceptos salieron de ese
+//     papel y puede quitarlos con él. Además `raw/` es la prueba de lo que
+//     entró; el protocolo del arnés dice que no se borra, y hacerlo a sus
+//     espaldas le rompería la contabilidad de lo ingerido.
+const sinLeer = (rutaRelativa) => {
+  const inbox = proyecto.ruta(...INBOX);
+  const completa = donde(rutaRelativa);
+  if (!inbox || !completa) return false;
+  // En la bandeja, pero no dentro de `_processed/`.
+  const dentro = path.relative(inbox, completa);
+  return !dentro.startsWith('..') && dentro.split(path.sep)[0] !== '_processed';
+};
+
+function quitar(rutaRelativa) {
+  const completa = donde(rutaRelativa);
+  if (!completa) return { ok: false, mensaje: 'Ese documento ya no está.' };
+  if (!sinLeer(rutaRelativa)) {
+    return { ok: false, alAsistente: true, mensaje: 'Ese ya lo ha leído, así que no lo quito yo solo.' };
+  }
+
+  try {
+    fs.unlinkSync(completa);
+  } catch {
+    return { ok: false, mensaje: 'No he podido quitarlo. Prueba con "Algo va mal".' };
+  }
+  return { ok: true, mensaje: `Quitado ${path.basename(completa)}.` };
+}
+
+module.exports = { queHay, donde, abrir, quitar, sinLeer };

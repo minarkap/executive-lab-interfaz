@@ -56,7 +56,7 @@ function tituloDe(rutaRelativa) {
 //
 // `harness` y `brand` quedan fuera, como en todo lo demás: son de la máquina y
 // de la marca, no de lo que sabe esta empresa.
-const NO_SON_TEMAS = new Set(['harness', 'brand']);
+const NO_SON_TEMAS = new Set(['harness', 'brand', 'sdd']);
 
 function delDisco() {
   const wiki = proyecto.ruta(...WIKI);
@@ -217,7 +217,7 @@ function todosLosDocumentos() {
   const wiki = proyecto.ruta(...WIKI);
   if (!wiki || !fs.existsSync(wiki)) return [];
 
-  const fuera = ['harness', 'brand'];
+  const fuera = ['harness', 'brand', 'sdd'];
   const raiz = ['index.md', 'log.md', 'gaps.md'];
   const encontrados = [];
 

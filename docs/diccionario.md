@@ -12,7 +12,7 @@ jerga por goteo.
 |---|---|
 | carpeta del proyecto / repo / workspace | Mi Empresa |
 | `git commit` | Guardar en git |
-| `git log` / `git restore` / checkout | Volver a un punto anterior |
+| `git log` / `git restore` / checkout | Ver las copias guardadas |
 | una copia concreta de la lista | Como estaba ayer · Como estaba el martes |
 | `.env` / variables de entorno / secretos | Tus programas |
 | API key / token / credencial | Clave de acceso |
@@ -32,6 +32,12 @@ jerga por goteo.
 | log / diagnóstico | Informe para tu tutor |
 | una carpeta de `01-TOOLS/` | Un programa |
 | el catálogo de habilidades de RSC | Habilidades · Todo lo que sabe hacer |
+| `02-DOCS/wiki/sdd/constitution.md` | Innegociables |
+| `CLAUDE.md` / `AGENTS.md`, sección Working rules | Cómo se trabaja aquí |
+| los dos juntos | Las reglas |
+| `targets` de `.rsc.json` (Claude o Codex) | Con quién hablas |
+| borrar un documento sin leer | Quitar |
+| borrar uno ya leído, con lo que aprendió de él | Quitar algo que ya ha leído |
 | los scripts de una herramienta | Consultar · Consultas |
 | `.claude/commands/` con `boton:` | Qué quieres hacer |
 | `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |
@@ -49,7 +55,8 @@ jerga por goteo.
 | quitar el disfraz en esta ventana | Ver el editor completo |
 | poner el disfraz en esta ventana | Volver al modo sencillo |
 | `02-DOCS/wiki/brand/marca.md` | La marca de tu empresa |
-| buscar en la wiki, los comandos y `01-TOOLS/` | Busca lo que quieras: un cliente, una factura, una norma… |
+| buscar entre los ficheros | Buscar un documento |
+| buscar en la wiki, los comandos y `01-TOOLS/` | Buscar un concepto |
 | los resultados, por dónde salen | Cosas que sabe · Cosas que puedes hacer · Conexiones |
 | un `.md` de la wiki que no está en `index.md` | Sin ordenar todavía |
 | pedirle que actualice `index.md` | Que los ordene |

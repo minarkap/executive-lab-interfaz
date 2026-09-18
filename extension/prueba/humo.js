@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -1186,6 +1186,94 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'ninguno';
   });
 
+  await comprobar('las reglas salen de los tres sitios de RSC, y las plantillas no', () => {
+    const reglas = cargar('reglas');
+    const hay = reglas.queHay();
+
+    // La constitución es prosa con encabezados; el CLAUDE.md, una lista. Las
+    // dos formas hay que leerlas o media pantalla sale vacía.
+    assert.deepEqual(hay.innegociables, [
+      'Nunca se factura sin albarán firmado',
+      'Los precios no se cambian sin pasar por Marta',
+    ]);
+    assert.ok(hay.deLaCasa.includes('Los datos del banco no salen de esta carpeta.'));
+    assert.ok(!hay.innegociables.concat(hay.deLaCasa).some((r) => /[{}]/.test(r)),
+      'un ejemplo de la plantilla no es una regla de esta empresa');
+
+    // Y solo se abren esos tres. El nombre viene de un mensaje del panel.
+    assert.ok(reglas.dondeVive('constitucion'));
+    assert.equal(reglas.dondeVive('../../.env'), null);
+    assert.equal(reglas.dondeVive('cualquier-cosa'), null);
+
+    return `${hay.innegociables.length} innegociables · ${hay.deLaCasa.length} de la casa`;
+  });
+
+  await comprobar('el andamio de la wiki no se cuenta como algo que sepa', () => {
+    // `sdd/` guarda la constitución y tiene su propia pantalla. Si contara como
+    // tema, al alumno le saldría "Sdd" en la lista de lo que sabe de su
+    // empresa, que no significa nada — el mismo fallo que ya se arregló con
+    // `harness/` y `brand/`.
+    const temas = cargar('cerebro').catalogo().map((t) => t.id);
+    for (const andamio of ['harness', 'brand', 'sdd']) {
+      assert.ok(!temas.includes(andamio), `${andamio} es andamio, no un tema`);
+    }
+    return temas.join(' · ');
+  });
+
+  await comprobar('solo se quita el papel del que no ha aprendido nada', () => {
+    // Borrar el fichero NO borra lo que sacó de él. Con los que ya ha leído no
+    // borramos nosotros: se le pide al asistente, que sabe qué se llevó.
+    const papeles = cargar('papeles');
+    const { esperando, leidos, originales } = papeles.queHay();
+
+    assert.ok(papeles.sinLeer(esperando[0].ruta), 'el de la bandeja todavía no lo ha leído nadie');
+    assert.ok(!papeles.sinLeer(leidos[0].ruta), 'el que ya leyó, no');
+    assert.ok(!papeles.sinLeer(originales[0].ruta), 'y el original guardado, tampoco');
+
+    const negado = papeles.quitar(leidos[0].ruta);
+    assert.equal(negado.ok, false);
+    assert.equal(negado.alAsistente, true, 'se deriva al asistente, no se borra a medias');
+    assert.ok(fs.existsSync(path.join(vscode.guion.raiz, leidos[0].ruta)), 'y sigue ahí');
+
+    const quitado = papeles.quitar(esperando[0].ruta);
+    assert.equal(quitado.ok, true);
+    assert.ok(!fs.existsSync(path.join(vscode.guion.raiz, esperando[0].ruta)));
+
+    // Se deja como estaba, que las pruebas de después cuentan documentos.
+    fs.writeFileSync(path.join(vscode.guion.raiz, esperando[0].ruta), 'Contrato marco de mentira.\n');
+    return 'uno quitado, dos protegidos';
+  });
+
+  await comprobar('cada buscador busca en lo suyo y se sabe por el nombre', () => {
+    // Jose quiso dos con nombre en vez de uno agrupado: que se sepa qué va a
+    // salir antes de escribir. Si los dos devuelven lo mismo, no sirve de nada.
+    const soloPapeles = buscador.buscar('contrato', 15, 'papeles');
+    const soloConceptos = buscador.buscar('contrato', 15, 'conceptos');
+
+    assert.deepEqual(soloPapeles.grupos.map((g) => g.titulo), ['Documentos']);
+    assert.ok(!soloConceptos.grupos.some((g) => g.titulo === 'Documentos'), 'el de conceptos no saca papeles');
+    assert.ok(soloConceptos.grupos.length, 'pero saca lo suyo');
+
+    // Y el panel tiene que pintar dos cajas distintas, con rótulos distintos.
+    const panel = fs.readFileSync(path.join(RAIZ, 'media', 'panel.js'), 'utf8');
+    assert.match(panel, /cajaDeBusqueda\('papeles'\)/);
+    assert.match(panel, /cajaDeBusqueda\('conceptos'\)/);
+    assert.match(panel, /Buscar un documento/);
+    assert.match(panel, /Buscar un concepto/);
+
+    return 'dos cajas, dos resultados';
+  });
+
+  await comprobar('la cuenta de GitHub se ofrece al montar, no el día que hace falta', () => {
+    // Antes solo salía al pulsar "Subir a GitHub", que es el peor momento: ya
+    // quieres guardar y te toca crearte una cuenta.
+    const fuente = fs.readFileSync(path.join(RAIZ, 'src', 'extension.js'), 'utf8');
+    const wizard = fuente.slice(fuente.indexOf('async arrancar()'), fuente.indexOf('async ponerLaCara()'));
+    assert.match(wizard, /github\.estado\(\)/, 'el wizard mira si hay cuenta');
+    assert.match(wizard, /Más tarde/, 'y se puede decir que no');
+    return 'se ofrece y se puede rechazar';
+  });
+
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
     // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
     // había forma de salir de esa pantalla.
@@ -1259,6 +1347,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['huecos', { tipo: 'huecos', huecos: cerebroM.loQueAunNoSabe(4) }, /Preguntas sin contestar/],
       ['papeles', { tipo: 'papeles', ...cargar('papeles').queHay() }, /contrato-talleres-ruiz/],
       ['ayuda', { tipo: 'ayuda', github: { conectado: false } }, /Estoy atascado|por dónde seguir/],
+      ['reglas', { tipo: 'reglas', ...cargar('reglas').queHay() }, /albarán firmado/],
+      ['asistente', { tipo: 'asistente', ...cargar('asistentes').comoEstamos(), aviso: null }, /Claude|Codex/],
       ['trato', { tipo: 'trato', ...tratoM.comoEstamos(), aviso: null }, /Cuánto te explica/],
       ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
     ];

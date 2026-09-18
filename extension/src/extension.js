@@ -35,6 +35,8 @@ const salidas = require('./salidas');
 const version = require('./version');
 const diario = require('./diario');
 const papeles = require('./papeles');
+const reglas = require('./reglas');
+const asistentes = require('./asistentes');
 const trato = require('./trato');
 const marca = require('./marca');
 
@@ -274,7 +276,7 @@ ${cabecera}
       probar: () => this.probar(mensaje.proveedor),
       hacerCosita: () => this.hacerCosita(mensaje.proveedor, mensaje.fichero, mensaje.etiqueta, mensaje.pideDatos),
 
-      buscar: () => this.buscar(mensaje.texto),
+      buscar: () => this.buscar(mensaje.texto, mensaje.donde),
       verCerebro: () => this.verCerebro(),
       verTema: () => this.verTema(mensaje.tema),
       leerArticulo: () => this.leerArticulo(mensaje.ruta, mensaje.tema, mensaje.desde),
@@ -301,7 +303,12 @@ ${cabecera}
       verHuecos: () => this.verHuecos(),
       verPapeles: () => this.verPapeles(),
       abrirPapel: () => this.abrirPapel(mensaje.ruta),
+      quitarPapel: () => this.quitarPapel(mensaje.ruta, mensaje.nombre),
       verAyuda: () => this.verAyuda(),
+      verReglas: () => this.verReglas(),
+      abrirReglas: () => this.abrirReglas(mensaje.cual),
+      verAsistente: () => this.verAsistente(),
+      elegirAsistente: () => this.elegirAsistente(mensaje.cual),
       verDiario: () => this.verDiario(),
       verSesion: () => this.verSesion(mensaje.fichero),
       verTrato: () => this.verTrato(),
@@ -417,11 +424,11 @@ ${cabecera}
 
   // Buscar es mirar, no conversar: lo resuelve la barra leyendo el disco, sin
   // abrir una conversación ni hacer esperar a nadie (docs/friccion.md §4).
-  buscar(texto) {
+  buscar(texto, donde = null) {
     // Mientras se busca no se repinta por detrás: el vigía borraría lo escrito
     // en la caja a media palabra.
     this.donde = { tipo: 'quieto' };
-    return this.enviar({ tipo: 'resultados', ...buscador.buscar(texto) });
+    return this.enviar({ tipo: 'resultados', ...buscador.buscar(texto, 15, donde) });
   }
 
   // Se lee dentro del panel: la vista previa de VS Code enseña el frontmatter
@@ -520,9 +527,23 @@ ${cabecera}
   // El archivador: los papeles que han entrado, en sus tres montones. Antes de
   // los tres solo se veía un número — "tienes 3 sin leer" y ni forma de saber
   // cuáles son.
-  async verPapeles() {
+  async verPapeles(avisoLocal = null) {
     this.donde = { tipo: 'quieto' };
-    this.enviar({ tipo: 'papeles', ...papeles.queHay() });
+    this.enviar({ tipo: 'papeles', ...papeles.queHay(), aviso: avisoLocal });
+  }
+
+  // Se pregunta antes, y con el nombre del documento dentro de la pregunta: un
+  // "¿seguro?" a secas no dice qué se va a borrar.
+  async quitarPapel(ruta, nombre) {
+    const seguro = await vscode.window.showWarningMessage(
+      `¿Quito "${nombre}"? Todavía no lo ha leído nadie, así que no se pierde nada aprendido.`,
+      { modal: true },
+      'Sí, quítalo',
+    );
+    if (seguro !== 'Sí, quítalo') return undefined;
+
+    const { ok, mensaje } = papeles.quitar(ruta);
+    return this.verPapeles({ texto: mensaje, malo: !ok });
   }
 
   async abrirPapel(ruta) {
@@ -535,6 +556,38 @@ ${cabecera}
   async verAyuda() {
     this.donde = { tipo: 'quieto' };
     this.enviar({ tipo: 'ayuda', github: await github.estado() });
+  }
+
+  // Las reglas que el asistente respeta siempre. Son tres sitios de RSC y no se
+  // veía ninguno — y uno de ellos, la constitución, es de los dos ficheros que
+  // el arnés marca como "léete esto antes de cada cosa que hagas".
+  async verReglas() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'reglas', ...reglas.queHay() });
+  }
+
+  async abrirReglas(cual) {
+    const donde = reglas.dondeVive(cual);
+    if (!donde) return this.enviar({ tipo: 'aviso', texto: 'Eso todavía no está escrito.', malo: true });
+
+    const uri = vscode.Uri.file(donde);
+    try {
+      await vscode.commands.executeCommand('markdown.showPreviewToSide', uri);
+    } catch {
+      await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside, preview: true });
+    }
+    return undefined;
+  }
+
+  async verAsistente(avisoLocal = null) {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'asistente', ...asistentes.comoEstamos(), aviso: avisoLocal });
+  }
+
+  async elegirAsistente(cual) {
+    const { ok, mensaje } = asistentes.elegir(cual);
+    await this.verAsistente({ texto: mensaje, malo: !ok });
+    if (ok) await this.refrescar(true);
   }
 
   // Lo que sabe que no sabe. Estaba al final de la pantalla de conceptos,
@@ -735,6 +788,25 @@ ${cabecera}
     );
     if (sencilla === 'Sí, más sencillo') await this.modoSencillo();
     await this.refrescar(true);
+
+    // La cuenta de GitHub, aquí y no cuando haga falta.
+    //
+    // Antes esto solo salía el día que alguien pulsaba "Subir a GitHub", que es
+    // el peor momento: ya quiere guardar algo y se encuentra con que le toca
+    // crearse una cuenta. Montar la carpeta es cuando se está montando todo, y
+    // es la única vez que el alumno espera trámites.
+    //
+    // Se ofrece, no se impone: quien no lo quiera ahora lo tiene en Histórico
+    // para siempre, y la carpeta funciona igual sin ello.
+    if (!(await github.estado()).conectado) {
+      const ahora = await vscode.window.showInformationMessage(
+        'Te queda una cosa: una cuenta de GitHub para guardar tu trabajo fuera de este ordenador. Si se rompe el portátil, lo recuperas. ¿Te la preparo ahora?',
+        'Sí, ahora',
+        'Más tarde',
+      );
+      if (ahora === 'Sí, ahora') await this.verCopiaFuera();
+    }
+
     // Lo mismo que pide el botón de la cara, para que el récord salga legible
     // también cuando la web se da al montar la carpeta.
     const conWeb = hecho.web ? `\n\n${marca.queLePedimos(hecho.web)}\n\n` : '';
@@ -885,6 +957,8 @@ function activate(contexto) {
     comando('executiveLab.huecos', () => panel.verHuecos()),
     comando('executiveLab.papeles', () => panel.verPapeles()),
     comando('executiveLab.ayuda', () => panel.verAyuda()),
+    comando('executiveLab.reglas', () => panel.verReglas()),
+    comando('executiveLab.asistente', () => panel.verAsistente()),
     comando('executiveLab.diario', () => panel.verDiario()),
     comando('executiveLab.trato', () => panel.verTrato()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),

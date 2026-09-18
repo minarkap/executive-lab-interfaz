@@ -21,6 +21,8 @@ let aviso = null;
 // Lo último que se buscó: desde un artículo abierto desde el buscador, el
 // "Volver" tiene que devolver a los resultados, no a la lista de temas.
 let ultimaBusqueda = '';
+// En cuál de los dos buscadores se escribió lo último, para volver al suyo.
+let ultimoBuscado = 'conceptos';
 // Lo último que se pintó, para saber si un repintado es de la misma pantalla.
 let ultimoPintado = '';
 
@@ -249,10 +251,32 @@ function migas(tramos) {
 }
 
 // Buscar es mirar: lo resuelve la barra sin abrir una conversación.
-function cajaDeBusqueda(valor = '') {
-  return `<input class="buscar" type="search" data-buscar value="${atributo(valor)}"
-    placeholder="Busca lo que quieras: un cliente, una factura, una norma…"
-    aria-label="Buscar">`;
+// Dos buscadores, cada uno en su sitio y con su nombre.
+//
+// Yo defendía uno solo con los resultados agrupados. Jose decidió dos, con su
+// argumento: **que se sepa por el nombre qué va a salir**. Buscar un contrato
+// firmado y buscar cómo se factura aquí son dos preguntas distintas, y
+// mezclar las respuestas obliga a leerlas todas para descartar.
+const BUSCADORES = {
+  papeles: {
+    rotulo: 'Buscar un documento',
+    pista: 'Por su nombre: un contrato, una factura, un albarán…',
+    vacio: { tipo: 'verPapeles' },
+  },
+  conceptos: {
+    rotulo: 'Buscar un concepto',
+    pista: 'Un cliente, una norma, cómo se hace algo aquí…',
+    vacio: { tipo: 'verCerebro' },
+  },
+};
+
+function cajaDeBusqueda(donde, valor = '') {
+  const cual = BUSCADORES[donde] || BUSCADORES.conceptos;
+  return `
+    <h2>${texto(cual.rotulo)}</h2>
+    <input class="buscar" type="search" data-buscar data-donde="${atributo(donde)}" value="${atributo(valor)}"
+      placeholder="${atributo(cual.pista)}"
+      aria-label="${atributo(cual.rotulo)}">`;
 }
 
 // ---------------------------------------------------- llevarte un archivo
@@ -341,6 +365,90 @@ function pantallaSaberes(datos) {
   `;
 }
 
+// ------------------------------------------------------------- las reglas
+
+// Lo que el asistente tiene que respetar siempre. Son tres sitios de RSC y
+// ninguno se veía: la constitución (los innegociables, que el arnés pone en su
+// mapa bajo "léete esto siempre"), y las reglas de la casa del CLAUDE.md y del
+// AGENTS.md.
+function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {} }) {
+  const lista = (reglas, vacio, comoQuitar) => (reglas.length
+    ? reglas.map((r) => `<div class="entrada"><p class="nombre">${enLinea(r)}</p></div>`).join('')
+    : nada(vacio));
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Las reglas' }])}
+    ${bloqueAviso()}
+
+    <div class="brujula">
+      <h2>Las reglas</h2>
+      <p class="hiciste">Lo que tiene que respetar siempre, pase lo que pase. Se las lee antes de cada cosa que hace.</p>
+    </div>
+
+    <h2>Innegociables</h2>
+    ${lista(innegociables, 'Todavía no hay ninguno. Son las cosas que no se saltan nunca, pase lo que pase.')}
+    ${hay.constitucion ? boton({ etiqueta: 'Verlas enteras', icono: '▸', pequeno: true, discreto: true, accion: { tipo: 'abrirReglas', cual: 'constitucion' } }) : ''}
+
+    <hr class="separador">
+    <h2>Cómo se trabaja aquí</h2>
+    ${lista(deLaCasa, 'Todavía no hay ninguna.')}
+    ${hay.claude ? boton({ etiqueta: 'Verlas enteras', icono: '▸', pequeno: true, discreto: true, accion: { tipo: 'abrirReglas', cual: 'claude' } }) : ''}
+
+    <hr class="separador">
+    ${boton({
+      etiqueta: 'Añadir una regla',
+      icono: '➕',
+      principal: true,
+      accion: { tipo: 'pedir', prompt: 'Quiero añadir una regla que tengas que respetar siempre en esta carpeta. Pregúntame cuál es, dime dónde la vas a dejar y por qué ahí, y déjala escrita.' },
+    })}
+    ${boton({
+      etiqueta: 'Decirle qué NO quiero que haga',
+      icono: '🚫',
+      accion: { tipo: 'pedir', prompt: 'Hay cosas que no quiero que hagas nunca en esta carpeta. Pregúntame cuáles son, una a una, y déjalas escritas donde te las leas siempre.' },
+    })}
+
+    <hr class="separador">
+    ${volver()}
+  `;
+}
+
+// ------------------------------------------------------- con quién hablas
+
+function pantallaAsistente({ ahora, cuales = [], aviso: avisoLocal }) {
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Con quién hablas' }])}
+    ${bloqueAviso(avisoLocal)}
+
+    <div class="brujula">
+      <h2>Con quién hablas</h2>
+      <p class="hiciste">El asistente al que le hablan los botones de esta barra.</p>
+    </div>
+
+    ${cuales.map((a) => `
+      <div class="capacidad${a.id === ahora ? ' puesta' : ''}">
+        <p class="nombre">${texto(a.nombre)}${a.id === ahora ? ' <span class="cuantos">ahora mismo</span>' : ''}</p>
+        <p class="pista">${texto(a.instalado
+          ? (a.mandaTexto
+            ? 'Puesto en este ordenador. Los botones le mandan el texto directamente.'
+            : 'Puesto en este ordenador. Los botones abren su barra y te dejan el texto copiado, porque no admite que se lo pasen.')
+          : 'No está en este ordenador. Díselo a tu tutor.')}</p>
+        ${a.instalado && a.id !== ahora
+          ? boton({ etiqueta: `Hablar con ${a.nombre}`, icono: '▸', pequeno: true, accion: { tipo: 'elegirAsistente', cual: a.id } })
+          : ''}
+      </div>`).join('')}
+
+    <hr class="separador">
+    ${boton({
+      etiqueta: 'Configurarlo',
+      icono: '⚙️',
+      accion: { tipo: 'pedir', prompt: 'Quiero repasar cómo estás configurado en esta carpeta: qué lees antes de contestar, qué permisos tienes y qué se ejecuta solo. Explícamelo en cristiano y dime qué me conviene cambiar.' },
+    })}
+
+    <hr class="separador">
+    ${volver()}
+  `;
+}
+
 // -------------------------------------------------------------- la ayuda
 
 // Todo lo que sirve cuando alguien se atasca, en un sitio. Antes estaba
@@ -398,8 +506,11 @@ function pantallaAyuda({ github }) {
 // El archivador: los documentos que han entrado. NO es lo que el arnés ha
 // entendido —eso son los conceptos— sino los ficheros, en los tres estados por
 // los que pasan. Hasta ahora de los tres solo se veía un número.
-function pantallaPapeles({ esperando = [], leidos = [], originales = [] }) {
-  const monton = (papeles, vacio) => (papeles.length
+function pantallaPapeles({ esperando = [], leidos = [], originales = [], aviso: avisoLocal }) {
+  // Quitar solo se ofrece en los que todavía no ha leído nadie: de esos no ha
+  // salido ningún concepto, así que borrar el papel lo borra de verdad. Con los
+  // demás hay un botón distinto, abajo, que se lo pide al asistente.
+  const monton = (papeles, vacio, seQuitan = false) => (papeles.length
     ? papeles.map((d) => `
       <div class="archivo">
         <div class="archivo-que">
@@ -408,23 +519,26 @@ function pantallaPapeles({ esperando = [], leidos = [], originales = [] }) {
         </div>
         <div class="archivo-acciones">
           ${boton({ etiqueta: `Abrir ${d.nombre}`, icono: '↗', pequeno: true, soloIcono: true, accion: { tipo: 'abrirPapel', ruta: d.ruta } })}
+          ${seQuitan ? boton({ etiqueta: `Quitar ${d.nombre}`, icono: '×', pequeno: true, soloIcono: true, accion: { tipo: 'quitarPapel', ruta: d.ruta, nombre: d.nombre } }) : ''}
         </div>
       </div>`).join('')
     : nada(vacio));
 
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Documentos' }])}
-    ${bloqueAviso()}
+    ${bloqueAviso(avisoLocal)}
 
     <div class="brujula">
       <h2>Documentos</h2>
       <p class="hiciste">Los papeles que han entrado aquí. Lo que ha entendido de ellos está en Lo que sabe.</p>
     </div>
 
+    ${cajaDeBusqueda('papeles')}
+
     ${boton({ etiqueta: 'Darle documentos', icono: '📎', principal: true, accion: { tipo: 'anadirDocumentos' } })}
 
     <h2>Sin leer todavía</h2>
-    ${monton(esperando, 'Ninguno esperando.')}
+    ${monton(esperando, 'Ninguno esperando.', true)}
 
     <hr class="separador">
     <h2>Ya leídos</h2>
@@ -434,6 +548,17 @@ function pantallaPapeles({ esperando = [], leidos = [], originales = [] }) {
     <h2>Originales guardados</h2>
     <p class="detalle">Tal y como llegaron. Esto no se borra nunca.</p>
     ${monton(originales, 'Ninguno guardado todavía.')}
+
+    ${/* Aquí no borramos nosotros: de estos papeles ya salieron conceptos, y
+          quitar el papel dejando lo aprendido es justo lo que quien lo quita
+          quería evitar. El asistente sí sabe qué se llevó de cada uno. */''}
+    <hr class="separador">
+    ${boton({
+      etiqueta: 'Quitar algo que ya ha leído',
+      icono: '🗑️',
+      discreto: true,
+      accion: { tipo: 'pedir', prompt: 'Quiero quitar un documento que ya has leído. Pregúntame cuál, dime antes qué has aprendido de él y qué conceptos se quedarían cojos, y cuando te diga que sí, quita el documento y lo que salió solo de él.' },
+    })}
 
     <hr class="separador">
     ${volver()}
@@ -843,12 +968,6 @@ function pantallaPrincipal() {
     ${primerPaso}
     ${elConsejo}
     ${documentos}
-    ${/* Una sola caja, arriba, y los resultados agrupados por tipo. Dos
-          buscadores —uno de papeles y otro de conceptos— obligarían a elegir
-          cuál antes de saber qué buscas, que es la peor pregunta que se le
-          puede hacer a alguien que no sabe dónde está algo. */''}
-    ${cajaDeBusqueda()}
-
     ${descubiertos ? `<h2>Qué quieres hacer</h2>${descubiertos}` : ''}
     ${vistazos ? `<h2>Consultar</h2>${vistazos}` : ''}
     ${descubiertos || vistazos ? '<hr class="separador">' : ''}
@@ -882,9 +1001,12 @@ function pantallaPrincipal() {
       dentro: `
         ${boton({ etiqueta: 'Guardar en git', icono: '💾', pequeno: true, accion: { tipo: 'guardarCopia' } })}
         ${boton({ etiqueta: 'Subir a GitHub', icono: '☁️', pequeno: true, accion: { tipo: 'verCopiaFuera' } })}
-        ${/* No hay un único "antes": hay una lista de copias y se elige una. El
-              nombre viejo, "Volver a como estaba antes", no lo decía. */''}
-        ${boton({ etiqueta: 'Volver a un punto anterior', icono: '↩️', pequeno: true, accion: { tipo: 'verCopias' } })}
+        ${/* Este botón no deshace nada: enseña la lista de copias. Se llamó
+              "Volver a como estaba antes" y luego "Volver a un punto anterior",
+              y los dos sonaban a que al pulsarlos ya no hay marcha atrás.
+              Nombrar la lista y no la acción quita ese miedo, que es lo que
+              hace que alguien no se atreva ni a mirar. */''}
+        ${boton({ etiqueta: 'Ver las copias guardadas', icono: '🕑', pequeno: true, accion: { tipo: 'verCopias' } })}
         ${boton({ etiqueta: 'El diario', icono: '🗓️', pequeno: true, accion: { tipo: 'verDiario' } })}
         ${boton({ etiqueta: 'Apuntar lo de hoy', icono: '✍️', pequeno: true, accion: { tipo: 'pedir', prompt: 'Apunta en el diario lo que hemos hecho hoy: qué hicimos, por qué, qué quedó tocado y cómo quedó. Y si hemos decidido algo que importe, déjalo también en el registro de decisiones con su porqué.' } })}`,
     })}
@@ -921,6 +1043,8 @@ function pantallaPrincipal() {
       id: 'grupo:ajustes',
       etiqueta: 'Ajustes',
       dentro: `
+        ${boton({ etiqueta: 'Las reglas', icono: '📜', pequeno: true, accion: { tipo: 'verReglas' } })}
+        ${boton({ etiqueta: 'Con quién hablas', icono: '💬', pequeno: true, accion: { tipo: 'verAsistente' } })}
         ${boton({
           etiqueta: marcaPuesta ? 'Cambiar el tema de mi empresa' : 'Poner el tema de mi empresa',
           icono: '🎨',
@@ -1066,7 +1190,7 @@ function pantallaCerebro({ temas, sinOrdenar = [], esperando, yaLeidos, hayPanel
   return `
     ${bloqueAviso(avisoLocal)}
     <p class="titulo">Lo que sabe de ${texto(comoSeLlama)}</p>
-    ${cajaDeBusqueda()}
+    ${cajaDeBusqueda('conceptos')}
     ${porTemas}
 
     <hr class="separador">
@@ -1104,7 +1228,7 @@ function pantallaResultados({ texto: consulta, cuantos, grupos }) {
 
   return `
     <p class="titulo">Lo que sabe de ${texto(comoSeLlama)}</p>
-    ${cajaDeBusqueda(consulta)}
+    ${cajaDeBusqueda(ultimoBuscado, consulta)}
     <p class="detalle">${texto(cuantos ? plural(cuantos, '1 resultado', '{n} resultados') : '')}</p>
     ${cuantos ? listas : vacio}
     <hr class="separador">
@@ -1301,6 +1425,11 @@ function engancharLaBusqueda() {
     caja.setSelectionRange(caja.value.length, caja.value.length);
   }
 
+  // Cada caja busca en lo suyo y, al vaciarse, vuelve a su propia pantalla.
+  const donde = caja.dataset.donde || 'conceptos';
+  const aSuSitio = donde === 'papeles' ? 'verPapeles' : 'verCerebro';
+  ultimoBuscado = donde;
+
   let reloj = null;
   caja.addEventListener('input', () => {
     clearTimeout(reloj);
@@ -1310,8 +1439,8 @@ function engancharLaBusqueda() {
     reloj = setTimeout(() => {
       ultimaBusqueda = loEscrito;
       aviso = null;
-      if (loEscrito.trim()) pedir('buscar', { texto: loEscrito });
-      else pedir('verCerebro');
+      if (loEscrito.trim()) pedir('buscar', { texto: loEscrito, donde });
+      else pedir(aSuSitio);
     }, 250);
   });
 
@@ -1319,7 +1448,7 @@ function engancharLaBusqueda() {
     if (evento.key !== 'Escape') return;
     clearTimeout(reloj);
     ultimaBusqueda = '';
-    pedir('verCerebro');
+    pedir(aSuSitio);
   });
 }
 
@@ -1376,6 +1505,8 @@ function atender(data) {
     case 'salidas': return pintar(pantallaSalidas(data));
     case 'papeles': return pintar(pantallaPapeles(data));
     case 'ayuda': return pintar(pantallaAyuda(data));
+    case 'reglas': return pintar(pantallaReglas(data));
+    case 'asistente': return pintar(pantallaAsistente(data));
     case 'huecos': return pintar(pantallaHuecos(data));
     case 'diario': return pintar(pantallaDiario(data));
     case 'trato': return pintar(pantallaTrato(data));
