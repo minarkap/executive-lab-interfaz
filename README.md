@@ -11,8 +11,8 @@ espacio de trabajo es el arnés [RSC](https://github.com/ericrisco/rsc-harness).
 > Salta directo a **[Para agentes: instrucciones ejecutables](#-para-agentes-instrucciones-ejecutables)**.
 > Está escrito para que lo sigas sin interpretar nada.
 
-**Última release:** [v0.3.0](https://github.com/minarkap/executive-lab-interfaz/releases/latest) ·
-`executive-lab-0.3.0.vsix`, 6 MB.
+**Última release:** [v0.4.0](https://github.com/minarkap/executive-lab-interfaz/releases/latest) ·
+`executive-lab-0.4.0.vsix`, 6 MB.
 
 ---
 
@@ -236,7 +236,7 @@ Las tres llevan lo mismo, porque el arnés viaja en un solo sitio: dentro del `.
 
 | | `.vsix` (extensión) | `.dmg` (macOS) | `.exe` (Windows) |
 |---|---|---|---|
-| Versión del panel | **0.3.0** | **0.3.0** | **0.3.0** |
+| Versión del panel | **0.4.0** | **0.4.0** | **0.4.0** |
 | Tamaño | 6 MB | 103 MB | 268 MB |
 | Arnés RSC 1.4.1 | ✅ dentro del paquete | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Raíles | ✅ `media/railes/` | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
