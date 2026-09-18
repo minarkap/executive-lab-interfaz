@@ -1,6 +1,7 @@
 // "Qué quieres hacer": los botones que la barra descubre, no los que trae.
 //
-// Un botón por comando de `.claude/commands/` cuyo frontmatter lleve
+// Un botón por comando del asistente para el que se montó el arnés, cuyo
+// frontmatter lleve
 // `boton:`. Nada está predefinido a propósito: el arnés de una gestoría no se
 // parece al de una empresa de contratos, así que los botones los va creando
 // Claude conforme el alumno repite tareas (la habilidad `executive-lab` le
@@ -9,17 +10,18 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const proyecto = require('./proyecto');
+const donde = require('./donde');
 const frontmatter = require('./frontmatter');
-
-const CARPETA = ['.claude', 'commands'];
 
 // Orden: primero lo que el alumno hace a diario, luego lo que aprendió a
 // hacer. Dentro de cada grupo, por orden alfabético de etiqueta.
 const ORDEN_DE_GRUPOS = ['diario', 'aprendido'];
 
 function acciones() {
-  const carpeta = proyecto.ruta(...CARPETA);
+  // Cada asistente los guarda en su sitio, y Codex no los guarda en ninguno:
+  // RSC no le escribe comandos. Leer la carpeta de Claude en un arnés de Codex
+  // daría cero botones sin decir por qué.
+  const carpeta = donde.carpetaDeComandos();
   if (!carpeta || !fs.existsSync(carpeta)) return [];
 
   const encontradas = [];

@@ -78,6 +78,15 @@ function llevaElNombre(campos, fichero) {
   return medida.ancho / medida.alto >= DE_TIRA_PARA_ARRIBA;
 }
 
+// Un apagado que se lea sobre los dos fondos en los que va a salir. Se empieza
+// por el que peor lo pone y se comprueba en el otro.
+function masApagadoQueSeLea(texto, fondo, superficie) {
+  const contra = color.contraste(texto, fondo) <= color.contraste(texto, superficie) ? fondo : superficie;
+  const candidato = color.apagadoSobre(texto, contra);
+  const otro = contra === fondo ? superficie : fondo;
+  return color.contraste(candidato, otro) >= 4.5 ? candidato : texto;
+}
+
 // Devuelve los colores ya comprobados, o null si no hay marca utilizable.
 function leer() {
   const donde = carpeta();
@@ -92,20 +101,31 @@ function leer() {
   const acento = color.esColor(campos.acento) ? campos.acento.trim() : null;
   if (!fondo || !texto || !acento) return null;
 
-  // Si el texto no se lee sobre el fondo, la marca no sirve y se descarta
-  // entera: mejor la nuestra que una interfaz ilegible.
-  if (color.contraste(texto, fondo) < 4.5) {
-    return { descartada: 'el texto no se lee sobre el fondo', nombre: campos.title || null };
+  // ── De tres colores a una paleta entera, con Material Design ───────────
+  //
+  // Antes cada token se sacaba a mano mezclando y comprobando, y cada caso raro
+  // —un fondo oscuro, uno a media luz, un blanco puro— había que arreglarlo por
+  // separado. Ahora se construye la paleta tonal de Material 3 y cada sitio usa
+  // el tono que le toca. Sale bien con cualquier marca sin ir color por color,
+  // que es justo lo que pedía Jose.
+  //
+  // El `texto` del récord ya no pinta letras: solo dice si la marca es clara o
+  // oscura. Las letras las pone la escala, que es la que garantiza que se lean.
+  const esOscura = color.luz(fondo) <= color.luz(texto);
+  const esquema = color.esquemaMaterial({ acento, fondo, oscura: esOscura });
+
+  // Hay fondos que no admiten texto encima, ni blanco ni negro: un gris medio
+  // da 3,9:1 con blanco y 4,4:1 con negro, y no hay nada que hacer. No es un
+  // fallo del cálculo, es el color. Se descarta la marca entera y se dice por
+  // qué, porque quedarse con la nuestra sin explicar nada es lo que hacía que
+  // "poner el tema" pareciera roto.
+  const seLee = (a, b) => color.contraste(a, b) >= 4.5;
+  if (!seLee(esquema.texto, esquema.superficie) || !seLee(esquema.texto, esquema.tarjeta)) {
+    return {
+      descartada: 'con ese fondo no se lee nada encima. Prueba con uno más claro o más oscuro',
+      nombre: campos.empresa || campos.title || null,
+    };
   }
-
-  const superficie = color.esColor(campos.superficie)
-    ? campos.superficie.trim()
-    : color.mezclar(fondo, color.luz(fondo) > 0.5 ? '#ffffff' : '#000000', 0.55);
-
-  // El acento se oscurece (o aclara) hasta que se lea el texto de encima. Si
-  // no se consigue, el acento se queda para bordes y foco, y el relleno de
-  // botón usa el color de texto, que sí se lee.
-  const acentoFuerte = color.hastaQueSeLea(acento, '#ffffff') || texto;
 
   // El nombre a secas, para poder escribirlo cuando no haya logotipo usable.
   // El título del artículo suele ser "Marca de X", que como rótulo no sirve.
@@ -121,17 +141,21 @@ function leer() {
     // Solo tiene sentido preguntárselo si hay logotipo y hay nombre que poner.
     logoSinNombre: Boolean(logo && nombre && !llevaElNombre(campos, logo)),
     carpeta: donde,
-    ajustado: acentoFuerte !== acento,
+    oscura: esOscura,
+    tipografia: typeof campos.tipografia === 'string' ? campos.tipografia.trim() : null,
     tokens: {
-      '--crema': fondo,
-      '--crema-2': color.mezclar(fondo, texto, 0.07),
-      '--papel': superficie,
-      '--tinta': texto,
-      '--tinta-texto': texto,
-      '--gris': color.apagadoSobre(texto, fondo),
-      '--linea': color.mezclar(fondo, texto, 0.14),
-      '--rojo': acento,
-      '--rojo-fuerte': acentoFuerte,
+      // Los de significado, que son los que pintan. Los crudos de `panel.css`
+      // se quedan sin tocar a propósito: son la paleta de Executive Lab.
+      '--fondo': esquema.superficie,
+      '--superficie': esquema.tarjeta,
+      '--superficie-2': esquema.tarjeta,
+      '--texto': esquema.texto,
+      '--texto-fuerte': esquema.texto,
+      '--apagado': esquema.apagado,
+      '--borde': esquema.borde,
+      '--acento': esquema.acento,
+      '--acento-relleno': esquema.acentoRelleno,
+      '--sobre-acento': esquema.sobreAcento,
     },
   };
 }
@@ -156,34 +180,54 @@ function estilo(marca) {
   if (!marca || !marca.tokens) return '';
   const lineas = Object.entries(marca.tokens).map(([k, v]) => `  ${k}: ${v};`).join('\n');
 
-  const suyoEsOscuro = color.luz(marca.tokens['--crema']) <= 0.5;
-  const conTemaOscuro = suyoEsOscuro ? `
-body.vscode-dark {
-  --fondo: ${marca.tokens['--crema']};
-  --superficie: ${marca.tokens['--papel']};
-  --texto: ${marca.tokens['--tinta-texto']};
-  --texto-fuerte: ${marca.tokens['--tinta']};
-  --apagado: ${marca.tokens['--gris']};
-  --borde: ${marca.tokens['--linea']};
-}` : '';
+  // La marca manda también con un tema oscuro del editor.
+  //
+  // Antes esto solo se hacía si la marca era oscura, para no dejar una isla
+  // color crema dentro de un editor negro. Con la paleta de Material ese
+  // problema desaparece: sea clara u oscura, la de la empresa es una paleta
+  // completa y coherente, no tres colores sueltos. Así que manda siempre, y la
+  // barra se ve igual en las dos ventanas de al lado.
+  //
+  // El alto contraste se queda fuera a propósito: quien lo usa lo necesita, y
+  // ninguna marca vale eso.
+  const tipo = tipografiaDe(marca);
 
-  return `<style>\n:root {\n${lineas}\n}${conTemaOscuro}\n</style>`;
+  return `<style>
+:root {
+${lineas}${tipo}
+}
+body.vscode-dark {
+${lineas}
+}
+</style>`;
+}
+
+// La tipografía, de una lista corta. Nada de traerse una fuente de la red: el
+// panel no pide nada fuera a propósito, y una que no carga deja la barra en lo
+// que decida el sistema.
+const TIPOGRAFIAS = {
+  sistema: {
+    sans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    serif: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  },
+  clasica: { sans: "Georgia, 'Times New Roman', serif", serif: "Georgia, 'Times New Roman', serif" },
+  grande: { sans: "Verdana, Tahoma, -apple-system, sans-serif", serif: "Verdana, Tahoma, Georgia, serif" },
+};
+
+function tipografiaDe(marca) {
+  const cual = TIPOGRAFIAS[marca.tipografia];
+  return cual ? `\n  --sans: ${cual.sans};\n  --serif: ${cual.serif};` : '';
 }
 
 // Lo que se le pide al asistente cuando el alumno da su web.
 //
 // ── Por qué está escrito con este detalle ────────────────────────────────
 //
-// Antes se le decía «mira la web y ponle a esto la cara de mi empresa: sus
-// colores y su logotipo», sin decirle dónde escribirlo ni con qué nombres. Si
-// acertaba era por suerte, y cuando no acertaba **no fallaba nada**: el récord
-// quedaba escrito, el panel no encontraba los campos que sabe leer y la barra
-// se quedaba con los colores de Executive Lab. Nadie se enteraba de que había
-// pasado algo.
-//
-// Así que el contrato se dice entero. Las tres cosas que importan: dónde va,
-// cómo se llaman los campos, y que los colores sean los de verdad de la web
-// —si es oscura, oscuros— porque la barra sabe pintarse oscura.
+// Antes se le decía «mira la web y ponle a esto la cara de mi empresa», sin
+// decirle dónde escribirlo ni con qué nombres. Si acertaba era por suerte, y
+// cuando no acertaba **no fallaba nada**: el récord quedaba escrito, el panel no
+// encontraba los campos que sabe leer y la barra se quedaba con los colores de
+// Executive Lab. Nadie se enteraba de que había pasado algo.
 function queLePedimos(web) {
   return [
     `Mira ${web} y ponle a esto la cara de mi empresa.`,
@@ -191,15 +235,16 @@ function queLePedimos(web) {
     `Déjalo en \`${CARPETA.join('/')}/${FICHERO}\`, con estos campos en la cabecera y escritos así:`,
     '',
     '- `empresa:` cómo se llama.',
-    '- `fondo:`, `texto:` y `acento:` los tres colores de su web, en formato `#rrggbb`.',
-    '  Cógelos de verdad de la web: si la web es oscura, el fondo va oscuro. Esto se pinta igual de bien claro que oscuro, así que no los aclares para que "encajen".',
-    '- `superficie:` opcional, el color de sus tarjetas o cajas si lo tiene.',
-    '- `logo:` el nombre del fichero del logotipo, que tiene que quedar guardado en esa misma carpeta.',
+    '- `fondo:`, `texto:` y `acento:` en formato `#rrggbb`.',
+    '  El `fondo` y el `acento` son los de su web de verdad: si la web es oscura, el fondo va oscuro.',
+    '  El `texto` solo se usa para saber si la marca es clara u oscura; las letras las calculo yo.',
+    '  Evita un fondo a media luz (un gris medio): encima de eso no se lee nada y tendría que descartarlo.',
+    '- `logo:` el nombre del fichero del logotipo, guardado en esa misma carpeta.',
     '- `logo_lleva_el_nombre:` `si` si el logotipo trae dentro el nombre escrito, `no` si es solo el símbolo.',
     '- `resource:` la web.',
     '',
-    'Si el texto no se lee sobre el fondo que elijas, se descarta todo y se queda la cara de siempre, así que elige un par que se lea.',
+    'Con esos tres colores construyo la paleta entera siguiendo Material Design, así que no hace falta que me des más.',
   ].join('\n');
 }
 
-module.exports = { leer, estilo, queLePedimos, CARPETA, FICHERO };
+module.exports = { leer, estilo, queLePedimos, TIPOGRAFIAS, CARPETA, FICHERO };

@@ -30,10 +30,10 @@ const PERMISOS = [
   { id: 'acceptEdits', nombre: 'Que cambie ficheros sin preguntar', frase: 'Va más rápido y te interrumpe menos. Ten copias al día.' },
 ];
 
-const AJUSTES_DE_CLAUDE = ['.claude', 'settings.json'];
+const donde = require('./donde');
 
-function leerJson(...partes) {
-  const ruta = proyecto.ruta(...partes);
+function leerJson() {
+  const ruta = donde.ficheroDeAjustes();
   if (!ruta || !fs.existsSync(ruta)) return null;
   try {
     return JSON.parse(fs.readFileSync(ruta, 'utf8'));
@@ -43,7 +43,7 @@ function leerJson(...partes) {
 }
 
 function permisoDeAhora() {
-  const ajustes = leerJson(...AJUSTES_DE_CLAUDE) || {};
+  const ajustes = leerJson() || {};
   const cual = ajustes.permissions && ajustes.permissions.defaultMode;
   return PERMISOS.some((p) => p.id === cual) ? cual : 'default';
 }
@@ -53,10 +53,11 @@ function permisoDeAhora() {
 function ponerPermiso(cual) {
   if (!PERMISOS.some((p) => p.id === cual)) return { ok: false, mensaje: 'Eso no es una de las opciones.' };
 
-  const ruta = proyecto.ruta(...AJUSTES_DE_CLAUDE);
-  if (!ruta) return { ok: false, mensaje: 'Esta carpeta todavía no está preparada.' };
+  // Solo Claude tiene esto. Con Codex no se inventa un fichero que nadie lee.
+  const ruta = donde.ficheroDeAjustes();
+  if (!ruta) return { ok: false, mensaje: 'Esto lo lleva tu asistente por su cuenta, no se ajusta desde aquí.' };
 
-  const ajustes = leerJson(...AJUSTES_DE_CLAUDE) || {};
+  const ajustes = leerJson() || {};
   const nuevo = { ...ajustes, permissions: { ...(ajustes.permissions || {}), defaultMode: cual } };
 
   try {
@@ -130,6 +131,9 @@ function seccionDelPerfil(nombres) {
 
 function comoEstamos() {
   return {
+    // Con Codex esto no existe: lo lleva él por su cuenta. Se dice, en vez de
+    // enseñar tres botones que no cambian nada.
+    hayPermisos: donde.puedeTenerAjustes(),
     permisos: PERMISOS,
     permiso: permisoDeAhora(),
     cadaCuanto: CADA_CUANTO,

@@ -37,6 +37,7 @@ const diario = require('./diario');
 const papeles = require('./papeles');
 const reglas = require('./reglas');
 const ajustes = require('./ajustes');
+const donde = require('./donde');
 const asistentes = require('./asistentes');
 const trato = require('./trato');
 const marca = require('./marca');
@@ -175,6 +176,10 @@ ${cabecera}
       tipo: 'estado',
       estado: await brujula.estado({ fresco }),
       acciones: acciones.acciones(),
+      // Si el asistente de esta carpeta llega a tener botones. Codex no: RSC no
+      // le escribe comandos a ninguno de su familia. Sin esto, la barra
+      // enseñaba un hueco y nadie sabía si era que no había o que no iban.
+      puedeTenerBotones: donde.puedeTenerBotones(),
       // Los scripts que solo miran, por herramienta: la barra los ejecuta ella
       // y el resultado sale en un segundo, sin abrir conversación.
       deUnVistazo: conexiones.loQueSePuedeMirar(),

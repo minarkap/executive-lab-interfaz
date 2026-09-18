@@ -64,7 +64,7 @@ async function anadir(id) {
 
 // Las habilidades que esta carpeta ya tiene puestas.
 function habilidadesPuestas() {
-  const carpeta = proyecto.ruta('.claude', 'skills');
+  const carpeta = require('./donde').carpetaDeHabilidades();
   const enDisco = carpeta && fs.existsSync(carpeta)
     ? fs.readdirSync(carpeta, { withFileTypes: true })
       .filter((e) => (e.isDirectory() || e.isSymbolicLink()) && !e.name.startsWith('.'))

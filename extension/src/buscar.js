@@ -108,7 +108,7 @@ function armarElIndice() {
 
   // 2. Lo que puede hacer: los mismos botones que enseña la pantalla
   // principal, descubiertos por acciones.js para no tener dos criterios.
-  const comandos = proyecto.ruta('.claude', 'commands');
+  const comandos = require('./donde').carpetaDeComandos();
   for (const accion of acciones()) {
     const crudo = comandos ? leerSiCabe(path.join(comandos, `${accion.nombre}.md`)) : null;
     cosas.push(cosa('hacer', accion.etiqueta, (crudo || '').replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, ''),

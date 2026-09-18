@@ -429,29 +429,116 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(suya.nombre, 'Ferretería Soler', 'sin el "Marca de" del título del artículo');
     assert.equal(suya.web, 'https://ferreteriasoler.es');
     assert.ok(suya.logo && suya.logo.endsWith('logo.svg'), 'coge su logotipo');
-    assert.equal(suya.tokens['--crema'], '#f7f5f2');
-    assert.equal(suya.tokens['--rojo'], '#0057b8');
-    assert.match(marca.estilo(suya), /--crema: #f7f5f2;/);
+    assert.equal(suya.tokens['--fondo'], '#f7f5f2', 'el fondo es el que eligió la empresa, no un tono inventado');
+    assert.match(marca.estilo(suya), /--fondo: #f7f5f2;/);
     return `${Object.keys(suya.tokens).length} colores`;
   });
 
-  await comprobar('un acento flojo se oscurece hasta que se lee encima', () => {
+  await comprobar('la paleta de cualquier marca se lee, sea cual sea', () => {
+    // Antes cada color se sacaba mezclando a mano y cada caso raro había que
+    // arreglarlo por separado: el fondo oscuro hundía las tarjetas, el apagado
+    // se comprobaba solo contra la página… Ahora se construye la paleta tonal
+    // de Material 3 y cada sitio usa el tono que le toca, así que esto se puede
+    // comprobar de golpe con marcas muy distintas.
     const color = cargar('color');
-    montarMarca(empresa, { acento: '#7bb8ff' }); // azul claro: 1,9:1 con blanco
-    const suya = marca.leer();
-    assert.equal(suya.ajustado, true);
-    assert.equal(suya.tokens['--rojo'], '#7bb8ff', 'el de la web se queda para bordes y foco');
-    const relleno = suya.tokens['--rojo-fuerte'];
-    assert.ok(color.contraste('#ffffff', relleno) >= 4.5, `relleno ${relleno} sigue sin leerse`);
-    return `#7bb8ff → ${relleno}`;
+    const marcas = [
+      ['azul marino', '#0d1117', '#e6edf3', '#22d3ee'],
+      ['crema', '#f7f5f2', '#1a1a1a', '#0057b8'],
+      ['blanco puro', '#ffffff', '#111111', '#2e7d32'],
+      ['negro puro', '#000000', '#eeeeee', '#ff5722'],
+      ['morado oscuro', '#1a0f2e', '#f0eaff', '#b388ff'],
+      ['acento flojo', '#ffffff', '#222222', '#7bb8ff'],
+    ];
+
+    for (const [que, fondo, texto, acento] of marcas) {
+      montarMarca(empresa, { fondo, texto, acento });
+      const t = marca.leer().tokens;
+      assert.ok(t, `${que}: tendría que valer`);
+
+      const pares = [
+        ['el texto sobre la página', t['--texto'], t['--fondo']],
+        ['el texto sobre las tarjetas', t['--texto-fuerte'], t['--superficie']],
+        ['el texto apagado sobre la página', t['--apagado'], t['--fondo']],
+        ['el texto apagado sobre las tarjetas', t['--apagado'], t['--superficie']],
+        ['la letra del botón sobre su relleno', t['--sobre-acento'], t['--acento-relleno']],
+      ];
+      for (const [donde, encima, debajo] of pares) {
+        const cuanto = color.contraste(encima, debajo);
+        assert.ok(cuanto >= 4.5, `${que}: ${donde} se queda en ${cuanto.toFixed(2)}:1`);
+      }
+
+      // Y las tarjetas tienen que distinguirse de la página, o no se ve dónde
+      // empieza y acaba cada una. Con un fondo blanco se quedaban blancas.
+      assert.notEqual(t['--superficie'], t['--fondo'], `${que}: las tarjetas se confunden con la página`);
+    }
+
+    montarMarca(empresa);
+    return `${marcas.length} marcas, todas legibles`;
   });
 
-  await comprobar('si el texto no se lee sobre el fondo, se descarta la marca entera', () => {
-    montarMarca(empresa, { texto: '#cccccc', fondo: '#ffffff' });
+  await comprobar('un fondo a media luz se descarta, porque encima no se lee nada', () => {
+    // No es un fallo del cálculo: un gris medio da 3,9:1 con blanco y 4,4:1 con
+    // negro. No hay letra que se lea encima, así que se descarta y se dice.
+    montarMarca(empresa, { fondo: '#808080', texto: '#ffffff', acento: '#0057b8' });
     const suya = marca.leer();
     assert.ok(suya.descartada, 'mejor la nuestra que una interfaz ilegible');
+    assert.match(suya.descartada, /más claro o más oscuro/, 'y se dice qué hacer, no solo que no vale');
     assert.equal(marca.estilo(suya), '');
+    montarMarca(empresa);
     return suya.descartada;
+  });
+
+  await comprobar('ninguna regla del panel pinta con un color crudo', () => {
+    // Este es el fallo que vio Jose: el nombre de su empresa salía casi negro
+    // sobre fondo azul marino. La regla usaba `--tinta`, que es de la paleta de
+    // Executive Lab, y ni el tema oscuro ni la marca de nadie saben cambiar
+    // eso: solo saben cambiar los colores con significado.
+    const css = fs.readFileSync(path.join(RAIZ, 'media', 'panel.css'), 'utf8');
+    const cuerpo = css.slice(css.indexOf('* { box-sizing'));
+    const crudos = ['--tinta', '--tinta-texto', '--papel', '--crema', '--crema-2', '--gris', '--linea', '--rojo', '--rojo-fuerte'];
+
+    const culpables = cuerpo.split('\n')
+      .map((l, i) => [i, l])
+      .filter(([, l]) => crudos.some((c) => l.includes(`var(${c})`)));
+    assert.deepEqual(culpables.map(([, l]) => l.trim()), [],
+      'una regla que nombra un color crudo no cambia ni con tema oscuro ni con la marca de la empresa');
+
+    // Y los de significado tienen que estar todos definidos.
+    const declarados = new Set([...css.matchAll(/^\s*(--[a-z-]+):/gm)].map((m) => m[1]));
+    for (const token of ['--fondo', '--superficie', '--texto', '--texto-fuerte', '--apagado', '--borde', '--acento', '--acento-relleno', '--sobre-acento']) {
+      assert.ok(declarados.has(token), `falta declarar ${token}`);
+    }
+    return `${declarados.size} colores declarados, 0 crudos en las reglas`;
+  });
+
+  await comprobar('la marca manda también con el tema oscuro del editor', () => {
+    // Con la paleta de Material la marca es completa y coherente, clara u
+    // oscura, así que ya no hay razón para cederle el fondo al editor: la barra
+    // se ve igual en las dos ventanas de al lado.
+    montarMarca(empresa, { fondo: '#0d1117', texto: '#e6edf3', acento: '#22d3ee' });
+    const oscura = marca.estilo(marca.leer());
+    assert.match(oscura, /body\.vscode-dark\s*\{[^}]*--fondo: #0d1117/);
+    assert.ok(!/vscode-high-contrast/.test(oscura), 'el alto contraste no se toca: quien lo usa lo necesita');
+
+    montarMarca(empresa);
+    const clara = marca.estilo(marca.leer());
+    assert.match(clara, /body\.vscode-dark\s*\{[^}]*--fondo: #f7f5f2/, 'y la clara también manda');
+    return 'manda en los dos';
+  });
+
+  await comprobar('la tipografía se cambia, pero solo de la lista', () => {
+    // `marca.js` decía que la tipografía no se toca nunca, y el motivo era
+    // bueno: una ajena puede dejar la barra ilegible. Jose quiere poder
+    // cambiarla, así que se cambia de una lista corta — nada de traerse una
+    // fuente de la red, que el panel no pide nada fuera a propósito.
+    montarMarca(empresa, { tipografia: 'grande' });
+    assert.match(marca.estilo(marca.leer()), /--sans: Verdana/);
+
+    montarMarca(empresa, { tipografia: 'la-de-mi-primo' });
+    assert.ok(!/--sans:/.test(marca.estilo(marca.leer())), 'una que no está en la lista no se pone');
+
+    montarMarca(empresa);
+    return Object.keys(marca.TIPOGRAFIAS).join(' · ');
   });
 
   await comprobar('sin logotipo utilizable, el rótulo es el nombre de la empresa', () => {
@@ -535,25 +622,6 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(medidas.medir(path.join(donde, 'no-existe.png')), null);
 
     return '5 formatos medidos · 2 sin medir, sin reventar';
-  });
-
-  await comprobar('una marca oscura se queda oscura aunque el editor lo esté', () => {
-    // La regla que apagaba el fondo de la marca con tema oscuro se puso para no
-    // dejar una isla color crema dentro de un editor negro. Con una marca que
-    // YA es oscura —azul marino y cian, como la de Nexus— esa regla tiraba
-    // justo los colores que encajaban.
-    montarMarca(empresa, { fondo: '#0d1117', texto: '#e6edf3', acento: '#22d3ee' });
-    const oscura = marca.leer();
-    assert.ok(oscura.tokens, 'un fondo oscuro con texto claro se lee perfectamente');
-    assert.match(marca.estilo(oscura), /body\.vscode-dark\s*\{[^}]*--fondo: #0d1117/);
-    // El alto contraste no se toca: quien lo usa lo necesita.
-    assert.ok(!/vscode-high-contrast/.test(marca.estilo(oscura)));
-
-    montarMarca(empresa);
-    const clara = marca.leer();
-    assert.ok(!/body\.vscode-dark/.test(marca.estilo(clara)), 'una marca clara sigue cediendo');
-
-    return 'la oscura manda, la clara cede';
   });
 
   await comprobar('un logotipo que apunta fuera de su carpeta se ignora', () => {

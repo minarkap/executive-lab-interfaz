@@ -9,6 +9,8 @@ const app = document.getElementById('app');
 let estado = null;
 let accionesDescubiertas = [];
 let deUnVistazo = [];
+// Si el asistente de esta carpeta llega a tener botones: Codex no tiene.
+let puedeTenerBotones = true;
 // Qué herramientas tiene abiertas en el acordeón. Vive aquí y no en el estado
 // del arnés porque es de esta persona y de este rato: el vigía repinta la
 // pantalla cada vez que el asistente toca un fichero, y sin esto se le cerraría
@@ -127,10 +129,11 @@ function boton({ etiqueta, icono = '', accion, principal = false, discreto = fal
 // No se esconde nada: cada fila dice qué guarda y cuánto hay dentro, y lo que
 // se abre se queda abierto mientras dure la sesión (el vigía repinta la
 // pantalla cada vez que el asistente toca un fichero).
-function grupo({ id, etiqueta, cuantos = '', dentro }) {
+function grupo({ id, etiqueta, cuantos = '', dentro, abiertoDeEntrada = false }) {
   if (!dentro) return '';
+  const abierto = abiertas.has(id) || (abiertoDeEntrada && !abiertas.size);
   return `
-    <details class="acordeon grupo" data-abrir="${atributo(id)}"${abiertas.has(id) ? ' open' : ''}>
+    <details class="acordeon grupo" data-abrir="${atributo(id)}"${abierto ? ' open' : ''}>
       <summary>${texto(etiqueta)}${cuantos ? `<span class="cuantos">${texto(cuantos)}</span>` : ''}</summary>
       ${dentro}
     </details>`;
@@ -417,7 +420,8 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'c
 // El subapartado de personalización. Son cuatro cosas y cada una cambia el día
 // a día, así que van juntas y no repartidas por la barra.
 function pantallaComoTrabaja({
-  permisos = [], permiso, cadaCuanto = [], guarda, objetivo, metas = [], limites = [], aviso: avisoLocal,
+  permisos = [], permiso, hayPermisos = true, cadaCuanto = [], guarda,
+  objetivo, metas = [], limites = [], aviso: avisoLocal,
 }) {
   const elegir = (opciones, puesto, accion) => opciones.map((o) => `
     <div class="capacidad${o.id === puesto ? ' puesta' : ''}">
@@ -438,8 +442,9 @@ function pantallaComoTrabaja({
     </div>
 
     <h2>Qué puede hacer sin preguntarte</h2>
-    ${elegir(permisos, permiso, { tipo: 'ponerPermiso' })}
-    <p class="detalle">Esto es para Claude. Codex lo lleva por su cuenta, en sus propios ajustes.</p>
+    ${hayPermisos
+      ? elegir(permisos, permiso, { tipo: 'ponerPermiso' })
+      : nada('Esto lo lleva tu asistente por su cuenta, en sus propios ajustes. Desde aquí no se toca.')}
 
     <hr class="separador">
     <h2>Cada cuánto guarda solo</h2>
@@ -913,7 +918,7 @@ function pantallaSinArnes() {
   return `
     ${bloqueAviso()}
     <div class="brujula">
-      <h2>Dónde estás</h2>
+      <h2>Lo último</h2>
       <p class="donde">${texto(estado.donde)}</p>
       <p class="hiciste">${texto(estado.aviso)}</p>
     </div>
@@ -1013,7 +1018,7 @@ function pantallaPrincipal() {
   return `
     ${bloqueAviso()}
     <div class="brujula">
-      <h2>Dónde estás</h2>
+      <h2>Lo último</h2>
       <p class="donde">${texto(estado.donde)}</p>
       ${estado.hiciste ? `<p class="hiciste">${texto(estado.hiciste)}</p>` : ''}
       ${estado.aviso ? `<p class="hiciste">${texto(estado.aviso)}</p>` : ''}
@@ -1024,6 +1029,9 @@ function pantallaPrincipal() {
     ${elConsejo}
     ${documentos}
     ${descubiertos ? `<h2>Qué quieres hacer</h2>${descubiertos}` : ''}
+    ${!descubiertos && !puedeTenerBotones
+      ? `<h2>Qué quieres hacer</h2>${nada('Tu asistente no trabaja con botones. Pídele las cosas escribiéndolas en la conversación.')}`
+      : ''}
     ${vistazos ? `<h2>Consultar</h2>${vistazos}` : ''}
     ${descubiertos || vistazos ? '<hr class="separador">' : ''}
 
@@ -1034,6 +1042,10 @@ function pantallaPrincipal() {
     ${grupo({
       id: 'grupo:documentos',
       etiqueta: 'Documentos',
+      // En una carpeta recién montada, lo primero que hay que hacer es darle
+      // documentos. Si todo está plegado, eso no se ve. En cuanto ya sabe algo
+      // o hay conexiones, se pliega como los demás.
+      abiertoDeEntrada: !estado.sabe && !estado.conectados,
       dentro: `
         ${boton({ etiqueta: 'Ver los documentos', icono: '📁', pequeno: true, accion: { tipo: 'verPapeles' } })}
         ${boton({ etiqueta: 'Darle documentos', icono: '📎', pequeno: true, accion: { tipo: 'anadirDocumentos' } })}
@@ -1539,6 +1551,7 @@ function atender(data) {
       estado = data.estado;
       accionesDescubiertas = data.acciones || [];
       deUnVistazo = data.deUnVistazo || [];
+      puedeTenerBotones = data.puedeTenerBotones !== false;
       modo = data.modo || 'sencillo';
       marcaPuesta = data.marcaPuesta !== false;
       comoSeLlama = data.comoSeLlama || 'tu trabajo';

@@ -48,9 +48,11 @@ function zonasTocadas(rutas) {
       // significa nada para nadie.
       const proveedor = partes[1] && !partes[1].startsWith('_') && !partes[1].includes('.');
       zonas.add(proveedor ? `${ZONAS['01-TOOLS']} (${humanizar(partes[1])})` : ZONAS['01-TOOLS']);
-    } else if (partes.length > 1) {
-      zonas.add(humanizar(partes[0]));
     }
+    // Cualquier otra carpeta NO es una zona. Antes lo era, y salían rótulos sin
+    // sentido: Jose vio "Tus programas (Odoo) · M 01 tools" en su barra. Un
+    // nombre de carpeta cualquiera humanizado no le dice nada a nadie, y la
+    // brújula es justo el sitio donde no se puede escribir ruido.
   }
   return [...zonas];
 }

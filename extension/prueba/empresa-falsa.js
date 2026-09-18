@@ -284,6 +284,7 @@ function montarMarca(raiz, {
   // la ene de puntos de Nexus Consulting. El de por defecto es una tira de
   // letras, que sí lo lleva.
   simbolo = false,
+  tipografia = null,
   // Lo que diga el récord, cuando lo diga: 'si', 'no', o nada.
   dice = null,
 } = {}) {
@@ -303,6 +304,7 @@ texto: "${texto}"
 acento: "${acento}"
 ${logo ? 'logo: logo.svg' : ''}
 ${dice ? `logo_lleva_el_nombre: ${dice}` : ''}
+${tipografia ? `tipografia: ${tipografia}` : ''}
 ---
 
 # Marca de Ferretería Soler

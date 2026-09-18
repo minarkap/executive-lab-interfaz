@@ -10,7 +10,7 @@ jerga por goteo.
 
 | Lo técnico | Lo que ve el alumno |
 |---|---|
-| carpeta del proyecto / repo / workspace | Mi Empresa |
+| carpeta del proyecto / repo / workspace | Mi trabajo |
 | `git commit` | Guardar en git |
 | `git log` / `git restore` / checkout | Ver las copias guardadas |
 | una copia concreta de la lista | Como estaba ayer · Como estaba el martes |
@@ -20,6 +20,8 @@ jerga por goteo.
 | el consejero y el «¿y ahora qué?» | Estoy atascado · Dime por dónde seguir |
 | pedirle ideas | Pensemos ideas juntos |
 | la radiografía de la carpeta | Qué falta por montar |
+| lo último que tocó el asistente | Lo último |
+| la tipografía de la marca | La de siempre · La de tu ordenador · Clásica · Fácil de leer |
 | `rsc add <skill>` | Que lo aprenda |
 | skill | Habilidad |
 | `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |

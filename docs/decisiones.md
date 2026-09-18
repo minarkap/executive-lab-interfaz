@@ -1380,3 +1380,105 @@ que tiene este proyecto.
 Para saberlo hay que leer el paquete de RSC, y el que está instalado en esta máquina es un enlace a
 **otro proyecto de Jose** (`dashboard-formacion/rsc-harness`). Eso queda fuera del límite de ámbito,
 así que no se ha mirado. Pendiente de que él lo autorice o lo confirme de memoria.
+
+---
+
+## 51. La marca de la empresa se construye con Material Design
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«haz que la marca sea con guidelines de material design. Es decir, adaptas los colores pero
+que se vea bien»*. Y antes, con su barra delante: *«falta ajustar colores dark light y contrastes»*.
+
+### Lo que estaba mal
+
+Cada color se sacaba mezclando a mano, y cada caso raro había que arreglarlo por separado. Con su
+marca de Nexus Consulting salían dos cosas feas a la vez:
+
+- **Las tarjetas se hundían en la página.** Con fondo claro se acercaban al blanco, bien; con fondo
+  oscuro se hacía lo simétrico —acercarlas al negro— y ahí lo simétrico es lo contrario de lo
+  correcto: la página salía `#0d1117` y las tarjetas `#06080a`, más oscuras.
+- **El texto apagado se comprobaba solo contra la página**, nunca contra las tarjetas.
+
+### Qué se hace ahora
+
+Una **paleta tonal** de Material 3: del color de marca se saca una escala de trece tonos del mismo
+matiz, y cada sitio de la interfaz usa un tono fijo de esa escala. Como las distancias entre esos
+tonos están elegidas para cumplir contraste, sale bien con cualquier marca sin ir corrigiendo color
+por color.
+
+Los tonos se calculan en OKLab, con la escala L\* de CIELAB para numerarlos, que es la que usa
+Material. Cabe en cincuenta líneas y no trae ninguna dependencia.
+
+**Una desviación de Material, y conviene saber cuál:** Material fija el fondo en el tono 98 en claro
+y el 6 en oscuro, vengas de donde vengas. Aquí el fondo es **el que eligió la empresa**, y el resto
+se coloca a las distancias de Material contando desde él. Con el suyo, el azul marino de Nexus salía
+negro — cumpliría contraste y no sería la marca de nadie.
+
+### Un fondo que no admite texto se descarta, y se dice
+
+Un gris medio da 3,9:1 con blanco y 4,4:1 con negro. No hay letra que se lea encima; no es un fallo
+del cálculo, es el color. Antes se descartaba en silencio y la barra se quedaba igual, que es lo que
+hacía que «poner el tema» pareciera roto. Ahora se dice, y se dice qué hacer.
+
+### El fallo que vio Jose en su captura
+
+El nombre de su empresa salía casi negro sobre fondo azul marino. La causa: media docena de reglas
+de `panel.css` pintaban con los colores **crudos** de la paleta de Executive Lab (`--tinta`,
+`--papel`, `--rojo`) en vez de con los que tienen significado (`--texto-fuerte`, `--superficie`,
+`--acento`). Ni el tema oscuro del editor ni la marca de nadie saben cambiar los crudos: solo saben
+cambiar los otros.
+
+Ahora ninguna regla nombra un color crudo, y hay una prueba que lo vigila — porque este fallo no da
+ningún error, solo se ve.
+
+### Y la marca manda también con tema oscuro
+
+Antes se le cedía el fondo al editor salvo que la marca fuera oscura, para no dejar una isla color
+crema dentro de un editor negro. Con la paleta de Material ese problema desaparece: sea clara u
+oscura, la de la empresa es una paleta completa y coherente, no tres colores sueltos. El alto
+contraste sigue fuera: quien lo usa lo necesita.
+
+### La tipografía sí se cambia, de una lista corta
+
+`marca.js` decía que no se tocaba nunca, por un motivo bueno: una tipografía ajena puede dejar la
+barra ilegible. Jose quiere poder cambiarla, así que se cambia **de cuatro opciones** —la de
+siempre, la del ordenador, una clásica y una fácil de leer— y ninguna se baja de la red, porque el
+panel no pide nada fuera a propósito.
+
+---
+
+## 52. "Mi Empresa" pasa a "Mi trabajo", y "Dónde estás" a "Lo último"
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«lo de "Mi empresa" lo cambiamos a "Mi arnés"? porque al final esto es un arnés, no una
+empresa»*. Tiene razón en el diagnóstico y el nombre que propone no vale: «arnés» es nuestra
+palabra, no la suya, y la decisión 16 ya dijo que un arnés puede ser el departamento de marketing,
+un proyecto o un equipo.
+
+**«Mi trabajo»** vale para los cuatro casos, no es jerga, y no promete que esto sea una empresa
+entera. El nombre que el alumno le puso sigue saliendo debajo, que es lo que de verdad identifica la
+carpeta.
+
+**«Dónde estás»** tampoco decía lo que hay: no es dónde estás, es **qué pasó lo último**. Se llama
+así ahora.
+
+Y de paso, el fallo que enseñaba esa misma captura: la brújula escribía «Tus programas (Odoo) · M 01
+tools». Cualquier carpeta de primer nivel se convertía en una «zona» con su nombre humanizado, y un
+nombre de carpeta cualquiera no le dice nada a nadie. Ahora solo son zonas las dos del arnés.
+
+---
+
+## 53. Un desplegable abierto, y solo uno, y solo al principio
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose preguntó si metería alguno abierto por defecto. Uno: **Documentos**, y solo en una carpeta
+recién montada — sin nada aprendido y sin conexiones.
+
+El motivo es que ahí lo primero que hay que hacer es darle documentos, y con todo plegado eso no se
+ve. En cuanto la carpeta tiene algo, se pliega como los demás: a partir de ese momento lo que se usa
+a diario ya está arriba y desplegado, y abrir uno por nuestra cuenta sería decidir por esa persona.
+
+En cuanto alguien abre o cierra cualquiera, manda lo suyo y esto no vuelve a actuar.
