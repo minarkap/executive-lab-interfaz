@@ -18,6 +18,7 @@ const path = require('node:path');
 const proyecto = require('./proyecto');
 const entorno = require('./entorno');
 const git = require('./git');
+const github = require('./github');
 const conexiones = require('./conexiones');
 
 // Se busca una vez y se recuerda, aunque no esté: si no hay módulo no lo va a
@@ -154,8 +155,21 @@ function laClave() {
   return clave ? { clave, donde: env.get('GITHUB_REPO') || null, usuario: env.get('GITHUB_USER') || null } : null;
 }
 
-// ¿Se puede guardar fuera? Solo si la conexión está puesta.
-const puedeSubir = () => Boolean(laClave());
+// ¿Se puede guardar fuera? Con la sesión de GitHub del editor basta; la clave
+// escrita a mano sigue valiendo para quien ya la tuviera puesta.
+//
+// La sesión se mira en silencio: si no la hay no se abre ningún diálogo, que
+// esto se llama al pintar el panel y un panel no puede ponerse a pedir cosas
+// por su cuenta.
+async function comoEntrar() {
+  const sesion = await github.sesion();
+  if (sesion) {
+    return { clave: sesion.accessToken, usuario: sesion.account ? sesion.account.label : null, delEditor: true };
+  }
+  return laClave();
+}
+
+const puedeSubir = async () => Boolean(await comoEntrar());
 
 // Crea el sitio la primera vez, privado, y devuelve a dónde hay que empujar.
 async function dondeSubir({ clave, donde, usuario }) {
@@ -186,8 +200,8 @@ async function dondeSubir({ clave, donde, usuario }) {
 }
 
 async function subirCopia() {
-  const credenciales = laClave();
-  if (!credenciales) return { ok: false, mensaje: 'Todavía no tienes puesta la conexión para guardar fuera.' };
+  const credenciales = await comoEntrar();
+  if (!credenciales) return { ok: false, faltaGitHub: true, mensaje: 'Todavía no has entrado en tu cuenta para guardar fuera.' };
 
   const h = historial();
   const donde = proyecto.raiz();
@@ -203,13 +217,24 @@ async function subirCopia() {
   } catch {
     url = null;
   }
-  if (!url) return { ok: false, mensaje: 'No he podido preparar el sitio donde guardarla. Revisa la clave en Mis conexiones.' };
+  if (!url) {
+    return {
+      ok: false,
+      mensaje: credenciales.delEditor
+        ? 'No he podido preparar el sitio donde guardarla. Prueba a entrar otra vez en tu cuenta.'
+        : 'No he podido preparar el sitio donde guardarla. Revisa la clave en Mis conexiones.',
+    };
+  }
 
   await h.enlazar(donde, url, comoLlamar());
   const subida = await h.subir(donde, { url, token: credenciales.clave }, comoLlamar());
-  return subida.ok
-    ? { ok: true, mensaje: 'Copia guardada fuera de este ordenador.' }
-    : { ok: false, mensaje: 'No he podido guardarla fuera. Revisa la clave en Mis conexiones.' };
+  if (subida.ok) return { ok: true, mensaje: 'Copia guardada fuera de este ordenador.' };
+  return {
+    ok: false,
+    mensaje: credenciales.delEditor
+      ? 'No he podido guardarla fuera. Prueba a entrar otra vez en tu cuenta.'
+      : 'No he podido guardarla fuera. Revisa la clave en Mis conexiones.',
+  };
 }
 
 // Cuánto ha cambiado desde la última copia. Es para avisar, no para decidir:

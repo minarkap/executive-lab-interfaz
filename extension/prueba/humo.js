@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -788,6 +788,52 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.match(estado.aviso, /Puedo montar tu empresa/);
     vscode.guion.raiz = empresa;
     return estado.donde;
+  });
+
+  await comprobar('la radiografía dice hasta qué punto está montada la carpeta', async () => {
+    const radio = await cargar('terreno').radiografia();
+    const por = Object.fromEntries(radio.piezas.map((p) => [p.nombre, p]));
+
+    assert.equal(radio.tipo, 'conArnes');
+    assert.equal(por['El asistente, montado aquí'].estado, 'si');
+    assert.equal(por['Conexiones con tus herramientas'].detalle, '1', 'la empresa de mentira tiene una');
+    assert.equal(por['Copias fuera de este ordenador'].estado, 'no', 'sin sesión, se dice que no');
+    assert.ok(por['Lo que sabe de tu trabajo'], 'la wiki también se cuenta');
+    return `${radio.piezas.length} piezas`;
+  });
+
+  // --------------------------------------------------- la copia de fuera
+
+  await comprobar('sin haber entrado en la cuenta, guardar fuera no es un error', async () => {
+    vscode.guion.sesionGitHub = null;
+    const gh = cargar('github');
+    const copias = cargar('guardar');
+
+    const estado = await gh.estado();
+    assert.equal(estado.conectado, false);
+    assert.equal(estado.usuario, null);
+
+    const hecho = await copias.subirCopia();
+    assert.equal(hecho.ok, false);
+    assert.equal(hecho.faltaGitHub, true, 'tiene que pedir la guía, no soltar un fallo');
+    return 'lleva a la guía';
+  });
+
+  await comprobar('con la sesión del editor no hace falta ninguna clave a mano', async () => {
+    vscode.guion.sesionGitHub = {
+      accessToken: 'de-mentira',
+      account: { label: 'jose' },
+    };
+    const gh = cargar('github');
+    const copias = cargar('guardar');
+
+    const estado = await gh.estado();
+    assert.equal(estado.conectado, true);
+    assert.equal(estado.usuario, 'jose');
+    assert.equal(await copias.puedeSubir(), true, 'con sesión se puede subir sin tocar 01-TOOLS');
+
+    vscode.guion.sesionGitHub = null;
+    return `dentro como ${estado.usuario}`;
   });
 
   // -------------------------------------------------- carpetas de alguien

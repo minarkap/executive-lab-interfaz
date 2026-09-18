@@ -467,3 +467,31 @@ mark {
 
 .consejo .que { margin: 0 0 12px; font-size: 15px; line-height: 1.5; }
 .consejo button { margin-bottom: 8px; }
+
+/* Los pasos de la copia de fuera. Numerados y con el hecho marcado: quien no
+   sabe qué es esto necesita ver en qué punto está, no un botón suelto. */
+.paso {
+  border-left: 3px solid var(--el-borde, rgba(0, 0, 0, 0.12));
+  padding: 0 0 0 0.9rem;
+  margin: 0 0 1rem;
+}
+.paso.hecho { border-left-color: var(--el-acento, #d84315); }
+.paso-titulo { font-weight: 600; margin: 0 0 0.2rem; }
+.paso.hecho .paso-titulo { color: var(--el-acento, #d84315); }
+.paso-cuerpo { margin: 0; opacity: 0.85; }
+
+/* La radiografía: una línea por pieza, con su marca delante. Nada de iconos de
+   color solo: la marca se lee igual en blanco y negro y con daltonismo. */
+.radiografia { margin: 0 0 1rem; }
+.pieza {
+  display: grid;
+  grid-template-columns: 1.2rem 1fr;
+  gap: 0 0.5rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--el-borde, rgba(0, 0, 0, 0.08));
+}
+.pieza-marca { font-weight: 700; opacity: 0.45; }
+.pieza.si .pieza-marca { color: var(--el-acento, #d84315); opacity: 1; }
+.pieza.aMedias .pieza-marca { opacity: 1; }
+.pieza-nombre { font-weight: 600; }
+.pieza-detalle { grid-column: 2; opacity: 0.8; }

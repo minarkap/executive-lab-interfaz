@@ -28,6 +28,8 @@ const rsc = require('./rsc');
 const disfraz = require('./disfraz');
 const arrancar = require('./arrancar');
 const git = require('./git');
+const github = require('./github');
+const terreno = require('./terreno');
 const marca = require('./marca');
 
 // Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
@@ -148,8 +150,10 @@ ${cabecera}
       comoSeLlama: identidad.deQuien(),
       // Como mucho uno, y siempre con un botón que lo resuelve ahí mismo.
       consejo: await this.elConsejoQueToca(),
-      // Solo si el alumno tiene puesta esa conexión: nada predefinido.
-      puedeSubir: copias.puedeSubir(),
+      // Con la sesión de GitHub del editor basta; si no la hay, el botón no
+      // desaparece — lleva a la guía, que es lo que hace falta cuando no sabes
+      // qué es una cuenta de esas.
+      puedeSubir: await copias.puedeSubir(),
     });
   }
 
@@ -251,6 +255,9 @@ ${cabecera}
       arreglar: () => this.arreglar(),
       arrancar: () => this.arrancar(),
       instalarGit: () => this.instalarGit(),
+      conectarGitHub: () => this.conectarGitHub(),
+      verCopiaFuera: () => this.verCopiaFuera(),
+      verRadiografia: () => this.verRadiografia(),
       ponerLaCara: () => this.ponerLaCara(),
       elegirCarpeta: () => this.elegirCarpeta(),
       abrirAsistente: () => puente.abrirConversacion(),
@@ -412,11 +419,47 @@ ${cabecera}
     this.enviar({ tipo: 'copias', copias: await copias.copias(8) });
   }
 
+  // La pantalla de la copia de fuera. Enseña en qué punto está esto —si ha
+  // entrado en su cuenta y a dónde va la copia— antes de ofrecer nada, porque
+  // "guardar fuera" son tres cosas distintas y de ahí viene la confusión: una
+  // cuenta, un sitio donde guardar, y el acto de subir.
+  // "¿Hasta qué punto está montada esta carpeta?", pieza por pieza. Existe
+  // porque la pantalla principal solo sabe decir si hay arnés o no, y quien no
+  // ve conexiones no sabe si es que no hay o es que no se encuentran.
+  async verRadiografia() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'esperando', que: 'Mirando qué hay aquí…' });
+    this.enviar({ tipo: 'radiografia', ...(await terreno.radiografia()) });
+  }
+
+  async verCopiaFuera() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'esperando', que: 'Un momento…' });
+    this.enviar({ tipo: 'copiaFuera', github: await github.estado() });
+  }
+
+  // Entrar en la cuenta. Lo hace el editor, con su propio diálogo y su
+  // navegador: aquí no se pide ni se guarda ninguna clave.
+  async conectarGitHub() {
+    const hecho = await github.conectar();
+    if (!hecho.ok) {
+      if (!hecho.cancelado) this.salida.appendLine(`[conectarGitHub] ${hecho.detalle}`);
+      return this.verCopiaFuera();
+    }
+    await this.refrescar(true);
+    this.enviar({ tipo: 'aviso', texto: `Ya estás dentro${hecho.usuario ? ` como ${hecho.usuario}` : ''}. Ya puedes guardar copias fuera.` });
+    return undefined;
+  }
+
   async subirCopia() {
     this.enviar({ tipo: 'esperando', que: 'Guardando una copia fuera de este ordenador…' });
-    const { ok, mensaje } = await copias.subirCopia();
+    const hecho = await copias.subirCopia();
+    // Sin cuenta no se enseña un error: se enseña cómo entrar.
+    if (hecho.faltaGitHub) return this.verCopiaFuera();
+
     await this.refrescar(true);
-    this.enviar({ tipo: 'aviso', texto: mensaje, malo: !ok });
+    this.enviar({ tipo: 'aviso', texto: hecho.mensaje, malo: !hecho.ok });
+    return undefined;
   }
 
   async guardarCopia() {
@@ -642,6 +685,8 @@ function activate(contexto) {
     comando('executiveLab.guardar', () => panel.guardarCopia()),
     comando('executiveLab.conexiones', () => panel.verConexiones()),
     comando('executiveLab.cerebro', () => panel.verCerebro()),
+    comando('executiveLab.radiografia', () => panel.verRadiografia()),
+    comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),
     comando('executiveLab.documentos', () => panel.anadirDocumentos()),
     comando('executiveLab.algoVaMal', () => panel.algoVaMal()),
     comando('executiveLab.empezarEmpresa', () => panel.arrancar()),

@@ -115,4 +115,82 @@ async function queHay() {
 // con su mensaje y en su momento.
 const podemosGuardarElPuntoDePartida = async () => !(await historialAjeno(proyecto.raiz()));
 
-module.exports = { queHay, podemosGuardarElPuntoDePartida };
+// ---------------------------------------------------------- la radiografía
+
+// "¿Hasta qué punto está montada esta carpeta?" — pieza por pieza, y sin
+// esconder lo que falta.
+//
+// Existe porque la pantalla principal solo sabe decir dos cosas: o hay arnés o
+// no. Y entre medias hay mucho: un arnés montado sin conexiones, conexiones a
+// medias, claves que están pero fuera de sitio, una wiki vacía. Quien mira la
+// barra y no ve conexiones no sabe si es que no hay o es que no las encuentra.
+// Esto lo dice.
+async function radiografia() {
+  const conexiones = require('./conexiones');
+  const cerebro = require('./cerebro');
+  const acciones = require('./acciones');
+  const github = require('./github');
+
+  const hay = await queHay();
+  if (hay.tipo === 'sinCarpeta') return { tipo: hay.tipo, piezas: [] };
+
+  const conArnes = hay.tipo === 'conArnes' || hay.tipo === 'aMedias';
+  const proveedores = conArnes ? conexiones.proveedores() : [];
+  const aMedias = proveedores.filter((p) => p.faltan > 0).length;
+  const fuera = sueltas.resumen();
+  const temas = conArnes ? cerebro.catalogo().length : 0;
+  const botones = conArnes ? acciones.acciones().length : 0;
+  const cuenta = await github.estado();
+
+  // Cada pieza: si está, cuánto hay, y qué se puede hacer si falta. `estado` es
+  // 'si' | 'no' | 'aMedias', y de ahí sale cómo se pinta.
+  const piezas = [
+    {
+      nombre: 'El asistente, montado aquí',
+      estado: hay.tipo === 'conArnes' ? 'si' : hay.tipo === 'aMedias' ? 'aMedias' : 'no',
+      detalle: hay.tipo === 'conArnes' ? 'Listo' : hay.tipo === 'aMedias' ? 'Se quedó a medias' : 'Todavía no',
+    },
+    {
+      nombre: 'Conexiones con tus herramientas',
+      estado: !proveedores.length ? 'no' : (aMedias ? 'aMedias' : 'si'),
+      detalle: !proveedores.length
+        ? 'Ninguna todavía'
+        : `${proveedores.length}${aMedias ? `, y ${aMedias} sin terminar` : ''}`,
+    },
+    {
+      nombre: 'Claves que ya tenías, fuera de sitio',
+      estado: fuera ? 'aMedias' : 'si',
+      detalle: fuera
+        ? `${fuera.claves} en ${fuera.sitios} sitio(s); el asistente puede ordenarlas`
+        : 'Nada suelto',
+    },
+    {
+      nombre: 'Lo que sabe de tu trabajo',
+      estado: temas ? 'si' : 'no',
+      detalle: temas ? `${temas} tema(s)` : 'Todavía no ha aprendido nada',
+    },
+    {
+      nombre: 'Botones que ha aprendido',
+      estado: botones ? 'si' : 'no',
+      detalle: botones ? `${botones}` : 'Ninguno todavía',
+    },
+    {
+      nombre: 'Copias de seguridad aquí',
+      estado: hay.tipo === 'empezada' && hay.conHistorial ? 'si' : (conArnes ? 'si' : 'no'),
+      detalle: hay.tipo === 'empezada' && hay.conHistorial
+        ? 'Ya tenías un historial tuyo; no lo toco'
+        : (conArnes ? 'Listas' : 'Cuando prepares la carpeta'),
+    },
+    {
+      nombre: 'Copias fuera de este ordenador',
+      estado: cuenta.conectado ? 'si' : 'no',
+      detalle: cuenta.conectado
+        ? `Dentro${cuenta.usuario ? ` como ${cuenta.usuario}` : ''}${cuenta.remoto && cuenta.remoto.esGitHub ? ` · ${cuenta.remoto.corto}` : ''}`
+        : 'Aún no has entrado en tu cuenta',
+    },
+  ];
+
+  return { tipo: hay.tipo, piezas };
+}
+
+module.exports = { queHay, podemosGuardarElPuntoDePartida, radiografia };

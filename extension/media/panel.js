@@ -160,6 +160,90 @@ function cajaDeBusqueda(valor = '') {
     aria-label="Buscar">`;
 }
 
+// -------------------------------------------------- qué hay en esta carpeta
+
+// Pieza por pieza, y sin esconder lo que falta. Quien abre la barra y no ve
+// conexiones no sabe si es que no tiene ninguna o es que no se encuentran; esto
+// lo dice con todas las letras.
+function pantallaRadiografia(datos) {
+  const MARCA = { si: '✓', no: '·', aMedias: '!' };
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Qué hay aquí' }])}
+    ${bloqueAviso()}
+
+    <div class="brujula">
+      <h2>Qué hay en esta carpeta</h2>
+      <p class="hiciste">Todo lo que la barra enseña sale de leer esta carpeta. Esto es lo que ha encontrado.</p>
+    </div>
+
+    <div class="radiografia">
+      ${(datos.piezas || []).map((pieza) => `
+        <div class="pieza ${pieza.estado}">
+          <span class="pieza-marca" aria-hidden="true">${MARCA[pieza.estado] || '·'}</span>
+          <span class="pieza-nombre">${texto(pieza.nombre)}</span>
+          <span class="pieza-detalle">${texto(pieza.detalle)}</span>
+        </div>`).join('')}
+    </div>
+
+    ${volver()}
+  `;
+}
+
+// ------------------------------------------------- la copia de fuera
+
+// "Guardar una copia fuera" son tres cosas y se confunden entre sí: una cuenta
+// donde guardar, un sitio dentro de esa cuenta, y el acto de subir. Esta
+// pantalla las separa y dice en cuál estás.
+//
+// La guía se enseña ENTERA aunque no haga falta: quien no sabe qué es esto
+// necesita entender qué va a pasar antes de pulsar, y quien ya lo sabe la
+// ignora de un vistazo. Es más barato que un botón que abre un diálogo del que
+// no sabes salir.
+function pantallaCopiaFuera(datos) {
+  const g = datos.github || {};
+  const dentro = Boolean(g.conectado);
+  const donde = g.remoto;
+
+  const paso = (n, titulo, cuerpo, hecho) => `
+    <div class="paso ${hecho ? 'hecho' : ''}">
+      <p class="paso-titulo">${hecho ? '✓' : n} ${texto(titulo)}</p>
+      <p class="paso-cuerpo">${texto(cuerpo)}</p>
+    </div>`;
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'La copia de fuera' }])}
+    ${bloqueAviso()}
+
+    <div class="brujula">
+      <h2>Una copia fuera de este ordenador</h2>
+      <p class="hiciste">Las copias que guardas viven en este ordenador. Si se rompe o se pierde, se pierden con él. Una copia fuera es la misma copia, guardada además en internet, en un sitio privado que solo tú ves.</p>
+    </div>
+
+    ${paso(1, 'Entrar en tu cuenta',
+      dentro
+        ? `Ya estás dentro${g.usuario ? ` como ${g.usuario}` : ''}. No hay que hacer nada más.`
+        : 'Hace falta una cuenta gratuita en GitHub, que es donde se guardan. Al pulsar, el editor abre su ventana de siempre y tú entras ahí; aquí no se escribe ninguna contraseña.',
+      dentro)}
+
+    ${paso(2, 'El sitio donde se guarda',
+      donde && donde.esGitHub
+        ? `Ya tienes uno: ${donde.corto}. Las copias van ahí.`
+        : 'Lo creo yo la primera vez, privado, con el nombre de tu carpeta. No tienes que preparar nada.',
+      Boolean(donde && donde.esGitHub))}
+
+    ${paso(3, 'Guardar',
+      'Cada vez que pulses, se guarda primero aquí y después fuera. Puedes hacerlo tantas veces como quieras.',
+      false)}
+
+    ${dentro
+      ? boton({ etiqueta: 'Guardar una copia fuera ahora', icono: '☁️', principal: true, accion: { tipo: 'subirCopia' } })
+      : boton({ etiqueta: 'Entrar en mi cuenta', icono: '🔑', principal: true, accion: { tipo: 'conectarGitHub' } })}
+    ${dentro ? '' : `<p class="detalle">¿No tienes cuenta? Se hace en dos minutos en github.com y es gratis.</p>`}
+    ${volver()}
+  `;
+}
+
 // ---------------------------------------------------------------- pantallas
 
 function pantallaEsperando(que = 'Un momento…') {
@@ -303,8 +387,9 @@ function pantallaPrincipal() {
     ${boton({ etiqueta: 'Mis conexiones', icono: '🔌', accion: { tipo: 'verConexiones' } })}
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Guardar copia de seguridad', icono: '💾', accion: { tipo: 'guardarCopia' } })}
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', accion: { tipo: 'verCopias' } })}
-    ${estado.puedeSubir ? boton({ etiqueta: 'Guardar una copia fuera de este ordenador', icono: '☁️', accion: { tipo: 'subirCopia' } }) : ''}
+    ${estado.faltaGit ? '' : boton({ etiqueta: 'Guardar una copia fuera de este ordenador', icono: '☁️', accion: { tipo: 'verCopiaFuera' } })}
     ${estado.faltaGit ? bloqueFaltaGit() : ''}
+    ${boton({ etiqueta: 'Qué hay en esta carpeta', icono: '🔎', accion: { tipo: 'verRadiografia' } })}
     ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
 
     <hr class="separador">
@@ -741,6 +826,8 @@ window.addEventListener('message', ({ data }) => {
     case 'tema': return pintar(pantallaTema(data));
     case 'articulo': return pintar(pantallaArticulo(data));
     case 'copias': return pintar(pantallaCopias(data));
+    case 'copiaFuera': return pintar(pantallaCopiaFuera(data));
+    case 'radiografia': return pintar(pantallaRadiografia(data));
     case 'incidencia': return pintar(pantallaIncidencia(data));
     case 'aviso':
       aviso = { texto: data.texto, malo: data.malo };

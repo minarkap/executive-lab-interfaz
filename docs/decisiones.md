@@ -728,3 +728,78 @@ Dos comprobaciones nuevas. Una monta un proyecto de mentira con su `package.json
 firmado por otro y un cambio sin guardar, y exige que salga `empezada`, que la brújula lo avise y que
 `podemosGuardarElPuntoDePartida()` diga que **no**. La otra exige que una carpeta vacía siga
 preparándose sin preguntar nada.
+
+---
+
+## 29. La cuenta de GitHub la pone el editor, no una clave a mano
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«tenemos que ver cómo lo de la copia de seguridad interactúa con git y GitHub, y se tiene que
+detectar si VS Code está conectado a GitHub y si no ofrecer una guía muuuy muy didáctica»*.
+
+### Qué estaba mal
+
+"Guardar una copia fuera de este ordenador" solo aparecía si había una clave escrita a mano en
+`01-TOOLS/github/.env`. Para alguien que no programa, sacar un token de GitHub es de las cosas más
+difíciles que se le pueden pedir: ajustes de desarrollador, elegir permisos, y copiar una cadena que
+solo se ve una vez. Y si no la tenía, el botón **no existía** — así que ni siquiera sabía que eso se
+podía hacer.
+
+### Qué se hace
+
+**VS Code ya sabe iniciar sesión en GitHub.** Trae su proveedor dentro, con su botón y su navegador.
+`vscode.authentication.getSession('github', ['repo'], { silent: true })` dice si esa persona ya está
+dentro **sin abrir ningún diálogo**, que es lo que hace falta para pintar un panel.
+
+- Si ya entró alguna vez —por sus ajustes, por Copilot, por lo que sea—, no hay nada que pedir.
+- Si no, el botón sigue estando y lleva a una guía, no a un error.
+- La clave a mano sigue valiendo para quien ya la tuviera puesta.
+
+### La guía
+
+Una pantalla que separa las tres cosas que hoy se confunden entre sí, y dice en cuál estás:
+
+1. **Entrar en tu cuenta** — lo hace el editor; aquí no se escribe ninguna contraseña.
+2. **El sitio donde se guarda** — se crea solo, privado, con el nombre de la carpeta.
+3. **Guardar** — primero aquí, después fuera.
+
+Se enseña entera aunque no haga falta: quien no sabe qué es esto necesita entender qué va a pasar
+antes de pulsar, y quien ya lo sabe la ignora de un vistazo.
+
+---
+
+## 30. "Qué hay en esta carpeta": hasta qué punto está montada
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose, con la extensión ya instalada en sus ventanas: *«no las detecta en otros repos las conexiones.
+Si es posible debe detectar todo, o debe haber una forma de ver si la carpeta ya está inicializada y
+hasta qué punto»*.
+
+### El malentendido, que era culpa nuestra
+
+No estaba roto: en esas carpetas no hay conexiones que leer. Pero **el panel no sabía decir la
+diferencia** entre "no tienes ninguna" y "no encuentro ninguna", y son cosas muy distintas cuando
+estás mirando una barra que no entiendes.
+
+La pantalla principal solo sabía dos estados: hay arnés o no lo hay. Y entre medias hay mucho — un
+arnés montado sin conexiones, conexiones a medias, claves que están pero fuera de sitio, una wiki
+vacía, copias sin cuenta donde subirlas.
+
+### Qué se hace
+
+`terreno.radiografia()` y una pantalla que lo enseña pieza por pieza, sin esconder lo que falta:
+
+| Pieza | Qué dice |
+|---|---|
+| El asistente, montado aquí | Listo · a medias · todavía no |
+| Conexiones con tus herramientas | Cuántas, y cuántas sin terminar |
+| Claves que ya tenías, fuera de sitio | Cuántas y en cuántos sitios (`sueltas.js`) |
+| Lo que sabe de tu trabajo | Cuántos temas |
+| Botones que ha aprendido | Cuántos |
+| Copias de seguridad aquí | Y si el historial ya era tuyo, que no se toca |
+| Copias fuera de este ordenador | Si has entrado en tu cuenta, y a dónde van |
+
+Cada pieza lleva una marca —`✓`, `!`, `·`— que se lee igual en blanco y negro y con daltonismo: el
+color solo acompaña.

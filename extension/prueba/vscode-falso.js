@@ -28,6 +28,8 @@ const guion = {
   extensionesInstaladas: ['anthropic.claude-code'],
   comandosDeCodex: ['chatgpt.openSidebar', 'chatgpt.addToThread'],
   raiz: null,
+  // La sesión de GitHub del editor. null = no ha entrado; un objeto = dentro.
+  sesionGitHub: null,
 };
 
 const uri = (p) => ({ fsPath: p, path: p, toString: () => p });
@@ -79,6 +81,19 @@ module.exports = {
     },
     showOpenDialog: async () => (guion.ficheros.length ? guion.ficheros.map(uri) : undefined),
     withProgress: async (_opciones, tarea) => tarea({ report() {} }),
+  },
+
+  // El proveedor de sesiones del editor. `silent` mira sin molestar y
+  // `createIfNone` abre el diálogo: el falso lo simula devolviendo lo que diga
+  // el guion, y si no hay nada y se pide crearla, se comporta como un "cancelar"
+  // (que en el editor de verdad llega como excepción).
+  authentication: {
+    getSession: async (proveedor, _permisos, opciones = {}) => {
+      if (proveedor !== 'github') return undefined;
+      if (guion.sesionGitHub) return guion.sesionGitHub;
+      if (opciones.createIfNone) throw new Error('el usuario canceló');
+      return undefined;
+    },
   },
 
   commands: {
