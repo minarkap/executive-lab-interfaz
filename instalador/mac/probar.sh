@@ -84,25 +84,21 @@ comprobar 'la app instaladora está dentro' bash -c '
   [ -d "$app" ] || { echo "no está"; exit 1; }
   /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$app/Contents/Info.plist"'
 
-comprobar 'el Node de la carga arranca' bash -c '
-  n="'"$AQUI"'/carga/runtime/bin/node"
-  [ -x "$n" ] || { echo "no está"; exit 1; }
-  echo "$("$n" -v)"'
+# El Node ya NO viaja dentro: lo descarga arrancar.sh al instalar, solo para la
+# arquitectura de ese Mac. Eran 236 de los 242 MB de la carga.
+comprobar 'la carga NO lleva el Node' bash -c '
+  [ -d "'"$AQUI"'/carga/runtime" ] && { echo "sigue llevando el Node: son 236 MB para nada"; exit 1; }
+  echo "lo descarga arrancar.sh"'
 
-comprobar 'ese Node vale para los dos tipos de Mac' bash -c '
-  n="'"$AQUI"'/carga/runtime/bin/node"
-  [ -x "$n" ] || { echo "no está"; exit 1; }
-  if head -c 2 "$n" | grep -q "#!"; then
-    [ -x "$(dirname "$n")/node-arm64" ] && [ -x "$(dirname "$n")/node-x64" ] || { echo "el elector no tiene los dos binarios"; exit 1; }
-    echo "elector + los dos binarios"
-  else
-    arcos="$(lipo -archs "$n" 2>/dev/null)" || { echo "no puedo mirarlo (¿licencia de Xcode?)"; exit 1; }
-    echo "$arcos" | grep -q arm64 && echo "$arcos" | grep -q x86_64 || { echo "solo $arcos"; exit 1; }
-    echo "universal: $arcos"
-  fi'
+comprobar 'arrancar.sh sabe conseguir un Node' bash -c '
+  a="'"$AQUI"'/escenario/Instalar Executive Lab.app/Contents/Resources/arrancar.sh"
+  [ -f "$a" ] || { echo "SALTADA"; exit 0; }
+  [ -x "$a" ] || { echo "no tiene permiso de ejecucion"; exit 1; }
+  sh -n "$a" || { echo "no es sh valido"; exit 1; }
+  grep -q "nodejs.org/dist" "$a" || { echo "no sabe de donde bajarlo"; exit 1; }
+  grep -q "command -v node" "$a" || { echo "no mira si ya hay uno"; exit 1; }
+  echo "descarga, o usa el que haya"'
 
-# El instalador pone las piezas y nada más (decisión 26 y el reparto nuevo):
-# el arnés y los raíles viajan dentro del .vsix, que es quien los usa.
 comprobar 'la carga NO lleva el arnés ni los raíles' bash -c '
   [ -d "'"$AQUI"'/carga/harness" ] && { echo "sigue llevando el arnés: eso ahora va en el .vsix"; exit 1; }
   [ -d "'"$AQUI"'/carga/skills" ] && { echo "sigue llevando los raíles: eso ahora va en el .vsix"; exit 1; }

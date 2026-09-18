@@ -11,8 +11,8 @@ espacio de trabajo es el arnés [RSC](https://github.com/ericrisco/rsc-harness).
 > Salta directo a **[Para agentes: instrucciones ejecutables](#-para-agentes-instrucciones-ejecutables)**.
 > Está escrito para que lo sigas sin interpretar nada.
 
-**Última release:** [v0.9.0](https://github.com/minarkap/executive-lab-interfaz/releases/latest) ·
-`executive-lab-0.9.0.vsix`, 6 MB.
+**Última release:** [v0.9.1](https://github.com/minarkap/executive-lab-interfaz/releases/latest) ·
+`executive-lab-0.9.1.vsix`, 6 MB.
 
 ---
 
@@ -81,8 +81,7 @@ panel cuando esa persona elige carpeta, igual que por el camino de la extensión
 
 - **Windows:** `ExecutiveLab-Setup.exe`, **29 MB**. `instalador/windows/preparar-carga.sh` y luego
   Inno Setup (ver [instalador/README.md](instalador/README.md)).
-- **macOS:** `Executive Lab <version>.dmg`, **93 MB** — y bajaría a la mitad en cuanto se acepte la
-  licencia de Xcode, porque entonces `lipo` junta los dos Node en uno solo.
+- **macOS:** `Executive Lab <version>.dmg`, **6,8 MB**. Node y el editor se descargan al instalar.
 
 ⚠️ **Hoy no se reparten.** Ninguno de los dos está firmado, así que macOS los bloquea con Gatekeeper
 y Windows enseña *«Windows protegió tu PC»*. Antes de repartir cualquiera de los dos hay que
@@ -237,14 +236,14 @@ Las tres llevan lo mismo, porque el arnés viaja en un solo sitio: dentro del `.
 
 | | `.vsix` (extensión) | `.dmg` (macOS) | `.exe` (Windows) |
 |---|---|---|---|
-| Versión del panel | **0.9.0** | **0.9.0** | **0.9.0** |
-| Tamaño | 6 MB | 93 MB | **29 MB** |
+| Versión del panel | **0.9.1** | **0.9.1** | **0.9.1** |
+| Tamaño | 6 MB | **6,8 MB** | **29 MB** |
 | Arnés RSC 1.4.1 | ✅ dentro del paquete | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Raíles | ✅ `media/railes/` | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Módulos compartidos | ✅ `media/comun/` | ✅ | ✅ |
 | Disfraz (`disfraz.json`) | ✅ | ✅ | ✅ |
 | git | ✅ obligatorio; lo instala el panel | ✅ lo instala el de Apple | ✅ lo instala el oficial de Git |
-| Node | El que trae VS Code | `runtime/` dentro | `runtime/` dentro |
+| Node | El que trae VS Code | Se descarga al instalar | `runtime/` dentro |
 | Instala VS Code | ❌ | ✅ (lo descarga) | ✅ (lo lleva dentro) |
 | Monta el arnés | El panel | El panel | El panel |
 | Firmado | No hace falta | ❌ pendiente | ❌ pendiente |
@@ -296,7 +295,7 @@ npm install --prefix extension/media/harness @ericrisco/rsc@1.4.1
 ### Probarlo
 
 ```bash
-cd extension && npm run probar          # 79 comprobaciones con un vscode de mentira
+cd extension && npm run probar          # 80 comprobaciones, con un vscode y un navegador de mentira
 node extension/prueba/humo.js --con-arnes   # + monta un arnés de verdad (tarda minutos)
 node docs/comprobar-diccionario.js      # ningún texto de pantalla usa palabra prohibida
 node herramientas/revisar-powershell.js # los .ps1, antes de llevarlos a Windows
@@ -319,6 +318,7 @@ tarda un par de minutos. `rm -rf .demo` para empezar de cero.
 ```bash
 cd extension && npm run empaquetar   # valida el manifiesto y genera el .vsix
 ./publicar.sh                        # todas las comprobaciones + .vsix + notas, en publicacion/
+./publicar-tiendas.sh                # dice qué falta para publicar en Marketplace y Open VSX
 ./publicar.sh --rapido               # sin montar un arnés de verdad (minutos menos)
 ```
 

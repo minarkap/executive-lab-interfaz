@@ -1105,6 +1105,21 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   // git es obligatorio (extension/src/git.js dice por qué). Estas tres prueban
   // las tres formas en que eso puede volver a romperse sin que nadie lo note.
 
+  await comprobar('bash se busca donde lo deja el Git oficial de Windows', () => {
+    // Antes bash lo traía MinGit dentro de nuestra carpeta. Desde que lo
+    // instala el Git oficial, vive en la suya — y su instalador pone `cmd/` en
+    // el PATH, que lleva git.exe pero NO bash.exe. Sin ir a buscarlo, "Probar
+    // la conexión" no funcionaría en Windows.
+    const sitios = cargar('entorno').dondeViveBash();
+    if (process.platform !== 'win32') {
+      assert.deepEqual(sitios, [], 'fuera de Windows no hay nada que buscar: bash está en el PATH');
+      return 'no es Windows: bash del sistema';
+    }
+    assert.ok(sitios.some((s) => /Programs..Git/.test(s)), 'la instalación por usuario, que es la que hacemos');
+    assert.ok(sitios.some((s) => /Program Files..Git/.test(s)), 'y la de todo el sistema, por si ya lo tenía');
+    return `${sitios.length} sitios donde mirar`;
+  });
+
   await comprobar('en un Mac no se elige nunca el git señuelo', () => {
     const entorno = cargar('entorno');
     const sitios = entorno.GITS_DE_MAC();

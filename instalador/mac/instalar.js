@@ -130,6 +130,16 @@ function copiarLasHerramientas() {
   for (const pieza of fs.readdirSync(CARGA)) {
     fs.cpSync(path.join(CARGA, pieza), path.join(APP, pieza), { recursive: true, force: true });
   }
+
+  // El Node ya no viaja dentro del paquete: lo descarga `arrancar.sh` a una
+  // carpeta temporal —así el .dmg pasa de 93 MB a unos 10— y aquí se copia a su
+  // sitio definitivo. Tiene que quedarse: los enganches del arnés llaman a
+  // `node` por su nombre mucho después de que esa carpeta temporal desaparezca.
+  const bajado = process.env.EXECUTIVE_LAB_NODE_BAJADO;
+  if (bajado && fs.existsSync(bajado)) {
+    fs.cpSync(bajado, path.join(APP, 'runtime'), { recursive: true, force: true });
+    anotar(`Node descargado, copiado desde ${bajado}`);
+  }
   // cpSync respeta los permisos, pero el bit de ejecución del Node portable es
   // lo único que no se puede perder sin que todo lo demás falle.
   for (const binario of [path.join(APP, 'runtime', 'bin', 'node'), path.join(APP, 'runtime', 'bin', 'npm')]) {

@@ -99,19 +99,42 @@ function git() {
   );
 }
 
-// Los test_connection.sh de RSC piden bash. MinGit no trae bash.exe, pero su
-// usr/bin/sh.exe es el mismo bash en modo POSIX (comprobado con la 2.55):
-// entiende BASH_SOURCE y pipefail, que es lo que esos scripts usan.
-function bash() {
+// Los test_connection.sh de RSC piden bash, y en Windows bash lo trae git.
+//
+// Antes lo traía MinGit dentro de nuestra carpeta; desde la decisión 26 lo
+// instala el Git oficial, que lo deja en su propia carpeta y NO lo pone en el
+// PATH (el instalador añade `cmd/`, que lleva git.exe pero no bash.exe). Así
+// que hay que ir a buscarlo donde ese instalador lo deja, o "Probar la
+// conexión" no funcionaría en Windows.
+//
+// Se mira, por este orden: lo que dejara un instalador nuestro antiguo, la
+// instalación por usuario del Git oficial —que es la que hacemos, sin
+// administrador— y la de todo el sistema, por si esa persona ya lo tenía.
+function dondeViveBash() {
+  if (!ES_WINDOWS) return [];
+
   const app = carpetaDeLaApp();
-  return binarioDelSistema(
-    app ? [
-      path.join(app, 'git', 'usr', 'bin', 'bash.exe'),
-      path.join(app, 'git', 'bin', 'bash.exe'),
-      path.join(app, 'git', 'usr', 'bin', 'sh.exe'),
-    ] : [],
-    ES_WINDOWS ? 'bash.exe' : 'bash',
-  );
+  const local = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+  const programas = [
+    process.env.ProgramFiles || 'C:\\Program Files',
+    process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)',
+  ];
+
+  const dentroDeGit = (raiz) => [
+    path.join(raiz, 'bin', 'bash.exe'),
+    path.join(raiz, 'usr', 'bin', 'bash.exe'),
+    path.join(raiz, 'usr', 'bin', 'sh.exe'),
+  ];
+
+  return [
+    ...(app ? dentroDeGit(path.join(app, 'git')) : []),
+    ...dentroDeGit(path.join(local, 'Programs', 'Git')),
+    ...programas.flatMap((p) => dentroDeGit(path.join(p, 'Git'))),
+  ];
+}
+
+function bash() {
+  return binarioDelSistema(dondeViveBash(), ES_WINDOWS ? 'bash.exe' : 'bash');
 }
 
 // El punto de entrada del arnés: el instalador lo deja preinstalado con la
@@ -192,4 +215,4 @@ function entornoConHerramientas(base = process.env) {
   };
 }
 
-module.exports = { ES_WINDOWS, GITS_DE_MAC, carpetaDeLaApp, node, git, bash, entradaDelArnes, moduloComun, npxCli, entornoConHerramientas, usaElNodeDeVsCode };
+module.exports = { ES_WINDOWS, GITS_DE_MAC, dondeViveBash, carpetaDeLaApp, node, git, bash, entradaDelArnes, moduloComun, npxCli, entornoConHerramientas, usaElNodeDeVsCode };

@@ -32,6 +32,7 @@ const github = require('./github');
 const terreno = require('./terreno');
 const saberes = require('./saberes');
 const salidas = require('./salidas');
+const version = require('./version');
 const marca = require('./marca');
 
 // Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
@@ -54,6 +55,7 @@ class Panel {
 
   resolveWebviewView(vista) {
     this.vista = vista;
+    this.ponerleElNombre();
     this.pintarPagina();
     vista.webview.onDidReceiveMessage((m) => this.manejar(m));
 
@@ -120,6 +122,21 @@ ${cabecera}
 </html>`;
   }
 
+  // El rótulo de la barra, con el nombre que puso el alumno.
+  //
+  // El del contenedor ("Mi Empresa") es estático y VS Code no deja cambiarlo,
+  // pero el de la vista sí. Y hacía falta: llamarle "empresa" al departamento
+  // de marketing de alguien es justo lo que la decisión 16 dice que no se
+  // haga —"puede ser un arnés para llevar contabilidad, o solo rrhh"— y
+  // llevaba desde entonces sin aplicarse aquí.
+  ponerleElNombre() {
+    if (!this.vista) return;
+    const { arnes, empresa } = identidad.leer();
+    this.vista.title = arnes || 'Tu trabajo';
+    // El segundo nombre va de subtítulo, en gris y a la derecha.
+    this.vista.description = arnes && empresa ? empresa : undefined;
+  }
+
   enviar(mensaje) {
     if (this.vista) this.vista.webview.postMessage(mensaje);
   }
@@ -138,6 +155,7 @@ ${cabecera}
 
   async refrescar(fresco = false) {
     this.donde = { tipo: 'principal' };
+    this.ponerleElNombre();
     this.enviar({ tipo: 'cargando' });
     const suya = marca.leer();
     this.enviar({
@@ -159,6 +177,9 @@ ${cabecera}
       // desaparece — lleva a la guía, que es lo que hace falta cuando no sabes
       // qué es una cuenta de esas.
       puedeSubir: await copias.puedeSubir(),
+      // Mientras esto se reparta a mano, nadie se entera de que hay algo
+      // mejor. Se mira una vez al día y solo se avisa: no se instala nada.
+      hayVersionNueva: await version.hayUnaNueva(this.contexto, this.contexto.extension ? this.contexto.extension.packageJSON.version : null),
     });
   }
 
@@ -235,6 +256,7 @@ ${cabecera}
       volver: () => this.refrescar(),
       pedir: () => this.pedir(mensaje.prompt),
       abrir: () => vscode.env.openExternal(vscode.Uri.parse(mensaje.url)),
+      bajarLaNueva: () => vscode.env.openExternal(version.dondeBajarla()),
 
       verConexiones: () => this.verConexiones(),
       verConexion: () => this.verConexion(mensaje.proveedor),

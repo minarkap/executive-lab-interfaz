@@ -16,8 +16,9 @@ property TOTAL : 6
 
 on run
 	set recursos to (POSIX path of (path to me)) & "Contents/Resources/"
-	set elNode to recursos & "carga/runtime/bin/node"
-	set elScript to recursos & "instalar.js"
+	-- Ya no se llama a Node directamente: puede no estar. arrancar.sh es `sh`,
+	-- que macOS trae siempre, y es quien consigue un Node antes de seguir.
+	set elArranque to recursos & "arrancar.sh"
 
 	try
 		display dialog "Voy a dejar tu espacio de trabajo listo en este Mac.
@@ -29,7 +30,7 @@ Tarda unos minutos, hace falta internet y no te voy a pedir ninguna contraseña.
 	end try
 
 	set progreso to do shell script "mktemp /tmp/executive-lab-progreso.XXXXXX"
-	set elPid to do shell script quoted form of elNode & " " & quoted form of elScript & " --progreso " & quoted form of progreso & " >/dev/null 2>&1 & echo $!"
+	set elPid to do shell script "/bin/sh " & quoted form of elArranque & " --progreso " & quoted form of progreso & " >/dev/null 2>&1 & echo $!"
 
 	set progress total steps to TOTAL
 	set progress completed steps to 0

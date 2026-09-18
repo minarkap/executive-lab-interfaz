@@ -545,6 +545,13 @@ function pantallaPrincipal() {
   // Sin el asistente instalado, todo lo demás de esta pantalla es decorado: los
   // botones mandan texto a algo que no está. Se dice arriba del todo y en
   // cuanto pasa, no solo el primer día.
+  // Hay algo mejor y quien lo usa no se ha enterado. Va discreto y abajo: no
+  // es urgente, y una barra que te da la lata con actualizaciones es peor que
+  // una barra desactualizada.
+  const versionNueva = estado.hayVersionNueva ? `
+    <p class="detalle">Hay una versión más nueva de esto (${texto(estado.hayVersionNueva)}).</p>
+    ${boton({ etiqueta: 'Ir a por ella', icono: '⬆', discreto: true, pequeno: true, accion: { tipo: 'bajarLaNueva' } })}` : '';
+
   const sinAsistente = estado.faltaElAsistente && !estado.primerPaso ? `
     <div class="aviso malo">
       <p>Falta ${texto(estado.faltaElAsistente)} en este ordenador, y sin él no puedo hablar con nadie.</p>
@@ -634,6 +641,7 @@ function pantallaPrincipal() {
     ${modo === 'avanzado'
       ? boton({ etiqueta: 'Volver al modo sencillo', icono: '◂', discreto: true, accion: { tipo: 'modoSencillo' } })
       : boton({ etiqueta: 'Ver el editor completo', icono: '▸', discreto: true, accion: { tipo: 'verEditorCompleto' } })}
+    ${versionNueva}
   `;
 }
 

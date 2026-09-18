@@ -23,10 +23,15 @@ NODE_VERSION="v24.21.0"          # la misma que lleva el instalador de Windows
 # en extension/media/harness/package.json.
 
 SIN_DESCARGAS=0
+CON_NODE=0
 VERSION=""
 for arg in "$@"; do
   case "$arg" in
     --sin-descargas) SIN_DESCARGAS=1 ;;
+    # El Node dentro del paquete. Por defecto NO va: son 236 de los 242 MB de
+    # la carga, y `arrancar.sh` lo descarga al instalar, igual que el editor.
+    # Esto es para repartir a un sitio sin red.
+    --con-node) CON_NODE=1 ;;
     *) VERSION="$arg" ;;
   esac
 done
@@ -41,8 +46,13 @@ paso() { printf '\n\033[1m▸ %s\033[0m\n' "$1"; }
 paso "La carga (Node, el arnés, los raíles, la extensión)"
 mkdir -p "$CARGA"
 
-# --- Node universal: el binario de Apple Silicon y el de Intel, en uno solo.
-if [ ! -x "$CARGA/runtime/bin/node" ] || [ "$SIN_DESCARGAS" = "0" ]; then
+# --- Node. Por defecto NO viaja: lo descarga arrancar.sh durante la
+#     instalación, solo para la arquitectura de ese Mac. Eran 236 de los 242 MB
+#     de la carga, o sea el 97% del .dmg para algo que se baja en 20 segundos.
+if [ "$CON_NODE" = "0" ]; then
+  rm -rf "$CARGA/runtime"
+  echo "  Node: no viaja dentro (lo descarga arrancar.sh). --con-node para meterlo."
+elif [ ! -x "$CARGA/runtime/bin/node" ] || [ "$SIN_DESCARGAS" = "0" ]; then
   if [ -x "$CARGA/runtime/bin/node" ] && [ "$SIN_DESCARGAS" = "1" ]; then
     echo "  El Node de la carga ya está."
   else
@@ -156,6 +166,9 @@ mkdir -p "$ESCENARIO"
 osacompile -o "$APP" "$AQUI/instalar.applescript"
 
 cp "$AQUI/instalar.js" "$APP/Contents/Resources/instalar.js"
+# Lo primero que corre: consigue un Node y le pasa el trabajo a instalar.js.
+cp "$AQUI/arrancar.sh" "$APP/Contents/Resources/arrancar.sh"
+chmod 755 "$APP/Contents/Resources/arrancar.sh"
 cp -R "$CARGA" "$APP/Contents/Resources/carga"
 [ -f "$CARGA/executivelab.icns" ] && cp "$CARGA/executivelab.icns" "$APP/Contents/Resources/applet.icns"
 
