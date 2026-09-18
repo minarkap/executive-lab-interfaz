@@ -981,6 +981,84 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'con botón de volver';
   });
 
+  // ------------------------------------------------------- el panel pinta
+  //
+  // El panel es un fichero de navegador y hasta ahora no lo probaba nadie. Si
+  // revienta al pintar, o si el mensaje llega con un nombre que no conoce, NO
+  // PASA NADA VISIBLE: se queda la pantalla anterior y la barra parece
+  // colgada. Ha pasado dos veces y las dos las encontró Jose mirando.
+
+  const { montarPanel } = require('./panel-falso');
+
+  await comprobar('todo mensaje que la extensión manda, el panel sabe pintarlo', () => {
+    const fuente = fs.readFileSync(path.join(RAIZ, 'src', 'extension.js'), 'utf8');
+    const panel = fs.readFileSync(path.join(RAIZ, 'media', 'panel.js'), 'utf8');
+
+    const manda = new Set([...fuente.matchAll(/enviar\(\{\s*tipo:\s*'([a-zA-Z]+)'/g)].map((m) => m[1]));
+    const sabe = new Set([...panel.matchAll(/case '([a-zA-Z]+)':/g)].map((m) => m[1]));
+
+    const huerfanos = [...manda].filter((t) => !sabe.has(t));
+    assert.deepEqual(huerfanos, [], `la extensión manda mensajes que el panel no sabe pintar: ${huerfanos.join(', ')}`);
+    return `${manda.size} mensajes, todos con pantalla`;
+  });
+
+  await comprobar('cada pantalla pinta algo con los datos de verdad', () => {
+    const p = montarPanel();
+    const cerebroM = cargar('cerebro');
+    const copiasM = cargar('guardar');
+
+    // Los datos salen de los módulos de verdad sobre la empresa de mentira, no
+    // de un objeto inventado a mano: así la prueba se entera si cambia la forma.
+    const radio = { queEs: 'conArnes', piezas: [{ nombre: 'x', estado: 'si', detalle: 'y' }] };
+    const sabe = cargar('saberes').queSabe(RAIZ);
+
+    const pantallas = [
+      ['esperando', { tipo: 'esperando', que: 'Un momento…' }, /Volver/],
+      ['estado', { tipo: 'estado', estado: { listo: true, donde: 'Tu trabajo', sabe: 1, conectados: 1 }, acciones: [], deUnVistazo: [], modo: 'sencillo', marcaPuesta: true, comoSeLlama: 'tu trabajo' }, /Tu trabajo/],
+      ['radiografia', { tipo: 'radiografia', ...radio }, /Qué hay en esta carpeta/],
+      ['saberes', { tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie }, /Qué sabe hacer/],
+      ['salidas', { tipo: 'salidas', herramientas: cargar('salidas').loQueHaProducido() }, /Llevarte un archivo/],
+      // Con la forma exacta que manda la extensión: si a una pantalla le falta
+      // un campo, revienta y antes eso no se veía.
+      ['cerebro', {
+        tipo: 'cerebro',
+        temas: cerebroM.catalogo(),
+        sinOrdenar: cerebroM.sinOrdenar().slice(0, 8),
+        aprendido: cerebroM.aprendidoUltimamente(5),
+        huecos: cerebroM.loQueAunNoSabe(4),
+        esperando: cerebroM.esperandoLectura(),
+        yaLeidos: cerebroM.yaLeidos(),
+        hayPanel: cerebroM.hayPanel(),
+        aviso: null,
+      }, /Facturacion|Lo que sabe|tema/i],
+      ['conexiones', { tipo: 'conexiones', proveedores: conexiones.proveedores() }, /Holded/],
+      ['copias', { tipo: 'copias', copias: [] }, /./],
+      ['copiaFuera', { tipo: 'copiaFuera', github: { conectado: false, usuario: null, remoto: null } }, /Entrar en mi cuenta/],
+      ['incidencia', { tipo: 'incidencia', codigo: 'ABC234', sano: true }, /ABC234/],
+      ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
+    ];
+
+    for (const [nombre, mensaje, espera] of pantallas) {
+      let pintado;
+      try {
+        pintado = p.mandar(mensaje);
+      } catch (error) {
+        throw new Error(`"${nombre}" revienta al pintar: ${error.message}`);
+      }
+      assert.ok(pintado && pintado.length > 20, `"${nombre}" no pinta nada: la barra se quedaría como estaba`);
+      // Y que no se haya salvado pintando la pantalla de "algo no se ha podido
+      // pintar", que es la red de seguridad y no un aprobado.
+      assert.ok(!/no se ha podido pintar/.test(pintado), `"${nombre}" cae en la pantalla de fallo`);
+      assert.match(pintado, espera, `"${nombre}" pinta algo que no se parece a lo suyo`);
+    }
+    // Y la red de seguridad, que también tiene que funcionar: un mensaje que
+    // el panel no conoce no puede dejar la barra congelada.
+    const raro = p.mandar({ tipo: 'esto-no-existe' });
+    assert.match(raro, /no se ha podido pintar/, 'un mensaje desconocido tiene que verse, no congelar la pantalla');
+
+    return `${pantallas.length} pantallas, y los mensajes raros se ven`;
+  });
+
   // -------------------------------------------------- carpetas de alguien
 
   await comprobar('una carpeta con trabajo de alguien no se confunde con una vacía', async () => {

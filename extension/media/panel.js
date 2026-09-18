@@ -1045,7 +1045,28 @@ function engancharLaBusqueda() {
   });
 }
 
+// Si pintar revienta, ANTES no pasaba nada visible: se quedaba la pantalla
+// anterior puesta y la barra parecía colgada. Eso ha pasado dos veces y las dos
+// hubo que descubrirlas mirando. Ahora un fallo se ve, y con salida.
+function pintarElFallo(error) {
+  pintar(`
+    <p class="titulo">Algo no se ha podido pintar</p>
+    <p>Se me ha atragantado esta pantalla. Lo de abajo es para tu tutor.</p>
+    <p class="detalle">${texto(String((error && error.message) || error))}</p>
+    ${boton({ etiqueta: 'Volver', icono: '←', principal: true, accion: { tipo: 'volver' } })}
+  `);
+}
+
 window.addEventListener('message', ({ data }) => {
+  try {
+    return atender(data);
+  } catch (error) {
+    pintarElFallo(error);
+    return undefined;
+  }
+});
+
+function atender(data) {
   switch (data.tipo) {
     case 'cargando': return pintar(pantallaEsperando());
     case 'esperando':
@@ -1080,7 +1101,11 @@ window.addEventListener('message', ({ data }) => {
       aviso = { texto: data.texto, malo: data.malo };
       return pintar(pantallaPrincipal());
     default:
+      // Un mensaje que no conocemos no puede dejar la pantalla congelada: eso
+      // fue exactamente lo que pasó cuando un campo `tipo` de los datos pisó el
+      // del mensaje.
+      return pintarElFallo(`No sé qué hacer con "${data.tipo}".`);
   }
-});
+}
 
 pedir('listo');
