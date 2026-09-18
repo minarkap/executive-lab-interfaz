@@ -1,8 +1,10 @@
 # Binarios de terceros que monta el instalador. No se versionan: pesan y no son
 # nuestros. instalador/README.md dice de dónde sale cada uno.
 instalador/*/carga/
-instalador/mac/*.pkg
 instalador/windows/Output/
+instalador/mac/escenario/
+instalador/mac/*.dmg
+instalador/mac/informe-*.txt
 
 # Se generan
 perfil/executive-lab.code-profile
@@ -22,4 +24,4 @@ node_modules/
 
 # Lo que genera publicar.sh
 publicacion/
-extension/media/harness/
+extension/media/harness/node_modules/

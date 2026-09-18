@@ -129,9 +129,13 @@ A final de mes, **todas de golpe**. Las de obra, cuando el cliente firma el part
 
 - El número de pedido del cliente
 - El albarán firmado, si es obra
-- Ver [el contrato marco](../contratos/marco.md) cuando haya dudas`));
+- Ver [el contrato marco](../contratos/marco.md) cuando haya dudas
+- Y lo que sabemos de [Ferretería Soler](../clientes/ferreteria-soler.md)`));
   escribir(raiz, '02-DOCS/wiki/facturacion/morosos.md', articulo('Clientes que pagan tarde'));
   escribir(raiz, '02-DOCS/wiki/clientes/ferreteria-soler.md', articulo('Ferretería Soler'));
+  // Escrito pero sin entrar en el índice: el panel tiene que enseñarlo igual,
+  // que si no existe en el disco y no hay forma de llegar a ello.
+  escribir(raiz, '02-DOCS/wiki/clientes/talleres-ruiz.md', articulo('Talleres Ruiz', 'Paga a 60 días con pagaré.'));
   escribir(raiz, '02-DOCS/wiki/log.md', `# Wiki Log
 
 ## [${HOY}] ingest | Ciclo de facturación

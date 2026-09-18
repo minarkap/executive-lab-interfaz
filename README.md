@@ -40,7 +40,7 @@ virgen: instala también VS Code, git y el asistente. Es lo único que cubre el 
 
 | Carpeta | Qué es |
 |---|---|
-| [instalador/](instalador/) | Un doble clic: Node, VS Code, extensiones, perfil, RSC y la carpeta de trabajo |
+| [instalador/](instalador/) | Un doble clic: Node, VS Code, extensiones, perfil, RSC y la carpeta de trabajo. `.exe` en Windows, `.dmg` en Mac |
 | [perfil/](perfil/) | El disfraz para probar a mano; el de verdad lo aplica la extensión |
 | [extension/](extension/) | La barra lateral: brújula, herramientas, wiki y los botones que el arnés tenga |
 | [skills/](skills/) | Los raíles conversacionales sobre RSC (configuración, no código) |
@@ -105,32 +105,66 @@ empezar de cero.
 ## Comprobaciones
 
 ```bash
-cd extension && npm run probar       # 26 comprobaciones con un vscode de mentira
+cd extension && npm run probar       # 59 comprobaciones con un vscode de mentira
 node extension/prueba/humo.js --con-arnes   # + monta un arnés de verdad (tarda)
 node docs/comprobar-diccionario.js   # ningún texto de pantalla usa palabra prohibida
 cd extension && npm run empaquetar   # valida el manifiesto y genera el .vsix
 node perfil/construir-perfil.js      # .code-profile para probar el disfraz a mano
+
+cd instalador/mac && ./construir.sh  # el .dmg de macOS (~122 MB)
+./probar.sh --casa /tmp/casa-falsa   # 19 comprobaciones, sin tocar tu Mac
 ```
+
+Cómo probar el instalador de Mac entero sin ensuciar el tuyo:
+[instalador/mac/COMO-PROBARLO.md](instalador/mac/COMO-PROBARLO.md).
 
 ## Estado
 
-Prototipo, **auditado el 17 de septiembre de 2026**: [docs/auditoria.md](docs/auditoria.md) tiene los
-hallazgos, qué se corrigió y qué queda abierto. Dos decisiones del plan original cambiaron al
-auditar (5 y 6 en [docs/decisiones.md](docs/decisiones.md)).
+Prototipo **usable**, auditado el 17 de septiembre de 2026. Los hallazgos, qué se corrigió y qué
+queda están en [docs/auditoria.md](docs/auditoria.md); las decisiones y lo que se descartó, con sus
+pruebas, en [docs/decisiones.md](docs/decisiones.md); y dónde queda fricción, ordenada por cuánta
+gente pierde cada punto, en [docs/friccion.md](docs/friccion.md).
 
-Probado de verdad, en este Mac: los raíles contra un perfil con el formato real de RSC (tres pasadas:
-aplica, respeta el dial que bajó el alumno, `--forzar` lo repone); la extensión cargada y activada
-contra un `vscode` de mentira (11 módulos, 9 comandos, disfraz, brújula, puente); el empaquetado con
-`vsce`; el comprobador del diccionario; y el arnés RSC instalado en este mismo repo en modo
-desarrollador (`rsc doctor` sano, hooks activos).
+**Probado de verdad:**
 
-Lo que **no** se ha ejecutado nunca: la extensión dentro de un VS Code real, el instalador de Windows
-y `preparar.js` de principio a fin. Hacen falta máquinas limpias: son las preguntas de
-[docs/spike.md](docs/spike.md), y hasta responderlas no hay que construir más encima.
+- El arnés montado desde cero en una carpeta vacía, **con solo el Node que lleva VS Code** y la copia
+  de RSC que viaja en la extensión: `RSC_ONBOARDING_READY` con el suelo completo.
+- El instalador de Windows, **ejecutado en una máquina real** por Jose: instaló, montó el arnés y
+  trabajó con ello. De esa tarde salieron doce fallos que ninguna prueba automática habría visto.
+- 45 comprobaciones con un `vscode` de mentira y una empresa con la forma que deja RSC
+  (`cd extension && npm run probar`), más el wizard completo con `--con-arnes`.
+- El comprobador del diccionario sobre todo el texto de pantalla.
+
+**Lo que sigue sin probarse:** la extensión instalada desde el `.vsix` en una máquina limpia de
+verdad, el instalador de macOS —que nunca se ha construido— y una sesión con un alumno real.
+
+## Cómo se prueba
+
+```bash
+cd extension && npm run probar          # 45 comprobaciones
+node extension/prueba/humo.js --con-arnes   # + monta un arnés de verdad
+node docs/comprobar-diccionario.js      # ninguna palabra prohibida en pantalla
+node herramientas/revisar-powershell.js # los .ps1, antes de llevarlos a Windows
+./demo.sh --con-datos                   # verlo funcionando, sin tocar tu VS Code
+./publicar.sh                           # deja el .vsix listo para la release
+```
+
+## Si clonas esto
+
+El arnés que viaja dentro de la extensión no está versionado. Antes de empaquetar:
+
+```bash
+npm install --prefix extension/media/harness @ericrisco/rsc@1.4.1
+```
+
+Y para el instalador de escritorio, monta `instalador/windows/carga/` como dice
+[instalador/README.md](instalador/README.md).
 
 ## Este repo también lleva el arnés
 
-Este proyecto está equipado con RSC en modo desarrollador (`technical`, `L1`, `software`): skills
-`orient`, `bro`, `eli5`, `show-me`, `suggest`, `unslop`, `harness`, `init`, memoria local y hooks en
-`.claude/`. Se versionan `.rsc.json`, `.claude/settings.json` y `.claude/rsc-bootstrap.mjs`; el resto
-está en `.gitignore`. Para retomar el arnés en otra máquina: `npx @ericrisco/rsc@1.4.1 sync`.
+Está equipado con RSC en modo desarrollador. Se versionan `.rsc.json`, `.claude/settings.json` y
+`.claude/rsc-bootstrap.mjs`; el resto está en `.gitignore`. Para retomarlo en otra máquina:
+`npx @ericrisco/rsc@1.4.1 sync`.
+
+> RSC 2.0.0 está publicado y aquí va fijada la 1.4.1 a propósito. Un salto de versión mayor puede
+> cambiar el arnés, y hay que probarlo antes de que llegue a un alumno.

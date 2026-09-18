@@ -17,14 +17,23 @@ const path = require('node:path');
 const ES_WINDOWS = process.platform === 'win32';
 
 // La carpeta de la app que deja el instalador, si existe.
+//
+// En macOS va dentro de la carpeta del alumno y no en /usr/local: escribir ahí
+// pide contraseña de administrador, y eso deja fuera a todo el que tenga el
+// portátil gestionado por el IT de su empresa — que en pyme es más gente de la
+// que parece. /usr/local se sigue mirando después, para los que instalaron con
+// la versión vieja.
 function carpetaDeLaApp() {
   const declarada = process.env.EXECUTIVE_LAB_HOME;
   if (declarada && fs.existsSync(declarada)) return declarada;
 
-  const candidata = ES_WINDOWS
-    ? path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'ExecutiveLab')
-    : '/usr/local/executive-lab';
-  return fs.existsSync(candidata) ? candidata : null;
+  const candidatas = ES_WINDOWS
+    ? [path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'ExecutiveLab')]
+    : [
+      path.join(os.homedir(), 'Library', 'Application Support', 'ExecutiveLab'),
+      '/usr/local/executive-lab',
+    ];
+  return primeroQueExista(candidatas, null);
 }
 
 function primeroQueExista(rutas, respaldo) {
@@ -103,6 +112,23 @@ function entradaDelArnes(raizDelProyecto, carpetaDeLaExtension) {
   );
 }
 
+// Los módulos que la extensión comparte con el instalador (hoy, historial.js).
+//
+// No se copian dentro del .vsix a propósito: el instalador los deja en la
+// carpeta de la app, junto a preparar.js, y desde ahí los lee todo el mundo. En
+// el portátil de quien desarrolla esto no hay carpeta de app, así que se cae al
+// propio repositorio, que está dos niveles por encima de este fichero.
+function moduloComun(nombre) {
+  const app = carpetaDeLaApp();
+  return primeroQueExista(
+    [
+      app && path.join(app, `${nombre}.js`),
+      path.join(__dirname, '..', '..', 'instalador', 'comun', `${nombre}.js`),
+    ],
+    null,
+  );
+}
+
 // El npx-cli.js que acompaña al node que vayamos a usar. Es el último recurso
 // cuando el arnés no está preinstalado, y sigue evitando el .cmd.
 function npxCli() {
@@ -137,4 +163,4 @@ function entornoConHerramientas(base = process.env) {
   };
 }
 
-module.exports = { ES_WINDOWS, carpetaDeLaApp, node, git, bash, entradaDelArnes, npxCli, entornoConHerramientas, usaElNodeDeVsCode };
+module.exports = { ES_WINDOWS, carpetaDeLaApp, node, git, bash, entradaDelArnes, moduloComun, npxCli, entornoConHerramientas, usaElNodeDeVsCode };

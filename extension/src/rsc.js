@@ -5,6 +5,7 @@
 // clase. Y siempre a través de node + el punto de entrada del paquete: sin npx
 // por medio, que en Windows es un .cmd y en cualquier sitio tarda segundos.
 
+const fs = require('node:fs');
 const procesos = require('./procesos');
 const proyecto = require('./proyecto');
 const entorno = require('./entorno');
@@ -44,6 +45,33 @@ async function retomar() {
   const texto = salida.trim();
   if (!texto || /^\(no local continuation/i.test(texto)) return null;
   return texto;
+}
+
+// Enseñarle algo nuevo del catálogo. El catálogo viaja dentro del paquete,
+// así que esto no necesita red.
+//
+// OJO: `rsc add` de la 1.4.1 dice "Installed" pase lo que pase, incluso con un
+// identificador que no existe (comprobado el 17-09-2026 con `add --help`). Por
+// eso no se cree a su código de salida: se mira si la habilidad ha aparecido
+// de verdad en el disco.
+async function anadir(id) {
+  if (!/^[a-z0-9-]{2,40}$/.test(id)) return { ok: false };
+
+  const quien = ((proyecto.declaracion() || {}).targets || ['claude'])[0];
+  await correr(['add', id, '--target', quien], { tiempoMaximo: 180000 });
+  return { ok: habilidadesPuestas().includes(id) };
+}
+
+// Las habilidades que esta carpeta ya tiene puestas.
+function habilidadesPuestas() {
+  const carpeta = proyecto.ruta('.claude', 'skills');
+  const enDisco = carpeta && fs.existsSync(carpeta)
+    ? fs.readdirSync(carpeta, { withFileTypes: true })
+      .filter((e) => (e.isDirectory() || e.isSymbolicLink()) && !e.name.startsWith('.'))
+      .map((e) => e.name)
+    : [];
+  const declaracion = proyecto.declaracion() || {};
+  return [...new Set([...enDisco, ...(declaracion.skills || []), ...(declaracion.ownSkills || [])])];
 }
 
 const revisar = () => correr(['doctor'], { tiempoMaximo: 120000 });

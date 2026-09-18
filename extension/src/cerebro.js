@@ -99,6 +99,26 @@ function dentroDeLaWiki(rutaRelativa) {
   return completa.startsWith(wiki + path.sep) && fs.existsSync(completa) ? completa : null;
 }
 
+// Los enlaces que un artículo hace a otros. Se resuelven aquí, con la misma
+// guarda que todo lo demás, y el panel solo pinta como clicables los que
+// existen de verdad: antes se pintaban todos como texto muerto, y un artículo
+// que remitía a otro era un callejón sin salida.
+function enlacesDe(cuerpo, rutaRelativa) {
+  const carpeta = path.dirname(rutaRelativa);
+  const encontrados = {};
+
+  for (const [, destino] of cuerpo.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
+    if (/^https?:|^mailto:|^#/.test(destino) || encontrados[destino]) continue;
+    // El ancla de dentro del fichero no lleva a otro documento.
+    const limpio = destino.split('#')[0];
+    if (!limpio) continue;
+
+    const relativa = path.posix.normalize(path.posix.join(carpeta === '.' ? '' : carpeta, limpio));
+    if (dentroDeLaWiki(relativa)) encontrados[destino] = relativa;
+  }
+  return encontrados;
+}
+
 // El artículo se lee DENTRO del panel, no en la vista previa de VS Code: esa
 // enseña el frontmatter —`type: article`, `score: 7.0`— antes que el texto, y
 // eso es exactamente lo que este proyecto existe para no enseñar.
@@ -117,11 +137,59 @@ function leerArticulo(rutaRelativa) {
   const cuerpo = texto.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trimStart();
   const titulo = (cuerpo.match(/^#\s+(.+)$/m) || [])[1] || path.basename(completa, '.md');
 
+  const sinTitulo = cuerpo.replace(/^#\s+.+\r?\n/, '').trimStart();
   return {
     ok: true,
     titulo: titulo.trim(),
-    cuerpo: cuerpo.replace(/^#\s+.+\r?\n/, '').trimStart(),
+    cuerpo: sinTitulo,
+    enlaces: enlacesDe(sinTitulo, rutaRelativa),
   };
+}
+
+// Todo lo que hay escrito en la wiki, lo mencione el índice o no.
+function todosLosDocumentos() {
+  const wiki = proyecto.ruta(...WIKI);
+  if (!wiki || !fs.existsSync(wiki)) return [];
+
+  const fuera = ['harness', 'brand'];
+  const raiz = ['index.md', 'log.md', 'gaps.md'];
+  const encontrados = [];
+
+  const recorrer = (carpeta) => {
+    let entradas;
+    try {
+      entradas = fs.readdirSync(carpeta, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entrada of entradas) {
+      if (entrada.name.startsWith('.')) continue;
+      const completa = path.join(carpeta, entrada.name);
+      const relativa = path.relative(wiki, completa);
+      if (entrada.isDirectory()) {
+        if (!fuera.includes(entrada.name)) recorrer(completa);
+      } else if (entrada.name.endsWith('.md') && !raiz.includes(relativa)) {
+        encontrados.push(relativa);
+      }
+    }
+  };
+  recorrer(wiki);
+  return encontrados;
+}
+
+// Lo que está escrito pero el índice no menciona. Hasta ahora era invisible
+// desde el panel: existía en el disco y no había forma de llegar a ello.
+function sinOrdenar() {
+  const indexados = new Set(catalogo().flatMap((t) => t.articulos.map((a) => a.ruta.replace(/^\.\//, ''))));
+  return todosLosDocumentos()
+    .filter((r) => !indexados.has(r))
+    .map((ruta) => ({
+      ruta,
+      titulo: (leer(...WIKI, ruta) || '')
+        .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '')
+        .match(/^#\s+(.+)$/m)?.[1]?.trim()
+        || humanizar(path.basename(ruta, '.md')),
+    }));
 }
 
 // Lo que no es markdown (un archivado en HTML, un original) se abre fuera.
@@ -195,6 +263,23 @@ const esperandoLectura = () => {
     .filter((e) => e.isFile() && !e.name.startsWith('.') && e.name !== 'README.md').length;
 };
 
+// Cuántos días lleva esperando el documento más viejo de la bandeja. Sirve
+// para no dar la lata el mismo día que se dejan, y sí a los tres días.
+function esperandoDesdeHace() {
+  const inbox = proyecto.ruta(...INBOX);
+  if (!inbox || !fs.existsSync(inbox)) return null;
+
+  let masViejo = null;
+  for (const entrada of fs.readdirSync(inbox, { withFileTypes: true })) {
+    if (!entrada.isFile() || entrada.name.startsWith('.') || entrada.name === 'README.md') continue;
+    try {
+      const cuando = fs.statSync(path.join(inbox, entrada.name)).mtimeMs;
+      if (masViejo === null || cuando < masViejo) masViejo = cuando;
+    } catch { /* uno que no se pueda mirar no tumba el resto */ }
+  }
+  return masViejo === null ? null : Math.floor((Date.now() - masViejo) / 86400000);
+}
+
 const yaLeidos = () => contar(...INBOX, '_processed');
 const originales = () => contar('02-DOCS', 'raw');
 
@@ -240,6 +325,8 @@ async function anadirDocumentos() {
 module.exports = {
   catalogo,
   articulos,
+  sinOrdenar,
+  todosLosDocumentos,
   cuantoSabe,
   leerArticulo,
   abrirFuera,
@@ -248,6 +335,7 @@ module.exports = {
   hayPanel,
   abrirPanel,
   esperandoLectura,
+  esperandoDesdeHace,
   yaLeidos,
   originales,
   anadirDocumentos,

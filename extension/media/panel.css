@@ -384,3 +384,86 @@ body.vscode-dark .codigo { background: var(--vscode-textBlockQuote-background, r
 .articulo .enlace-interno {
   border-bottom: 1px dotted var(--apagado);
 }
+
+/* ----------------------------------------------------- buscar y navegar */
+
+/* La caja de buscar. Es un `search` y no un `text` para que el teclado del
+   sistema enseñe la lupa y la equis de limpiar. */
+input.buscar {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 11px;
+  margin-bottom: var(--hueco);
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--tinta-texto);
+  background: var(--papel);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-sizing: border-box;
+}
+
+input.buscar::placeholder { color: var(--apagado); }
+
+/* Lo encontrado, marcado. Nunca solo con color: también en negrita, que hay
+   quien no distingue el fondo. */
+mark {
+  padding: 0 1px;
+  background: #ffe9c7;
+  color: inherit;
+  font-weight: 700;
+  border-radius: 2px;
+}
+
+.resultado .pista { line-height: 1.45; }
+
+/* El rastro de por dónde has llegado. Cada tramo menos el último lleva de
+   vuelta a su sitio, así que desde un artículo se puede subir sin ir pulsando
+   "Volver" una vez por escalón. */
+.migas {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--apagado);
+  line-height: 1.5;
+}
+
+.migas a {
+  color: var(--apagado);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.migas a:hover { color: var(--tinta-texto); }
+.migas a:focus-visible { outline: 3px solid var(--rojo); outline-offset: 2px; border-radius: 3px; }
+.migas .separa { margin: 0 5px; }
+.migas .aqui { color: var(--tinta-texto); font-weight: 700; }
+
+/* Lo anterior y lo siguiente del mismo tema, al pie del artículo. */
+.hermanos { display: flex; flex-direction: column; gap: 6px; margin-top: 18px; }
+.hermanos button { margin-bottom: 0; }
+
+/* Un enlace de la wiki que lleva de verdad a otro documento se puede pulsar;
+   el que no lleva a ninguna parte se queda en texto subrayado y punto. */
+.articulo a.enlace-interno.vivo {
+  border-bottom: 1px solid var(--rojo);
+  color: inherit;
+  cursor: pointer;
+}
+
+.articulo a.enlace-interno.vivo:hover { background: var(--crema-2); }
+.articulo a.enlace-interno.vivo:focus-visible { outline: 3px solid var(--rojo); outline-offset: 2px; }
+
+/* La tarjeta que avisa de algo que puede ayudar. Sale como mucho una, va
+   pegada a la brújula —es la continuación de "dónde estás"— y siempre lleva
+   la salida al lado: un aviso sin botón es un aviso que estorba. */
+.consejo {
+  padding: 14px 15px 8px;
+  margin: -8px 0 22px;
+  border-radius: var(--radio-lg);
+  background: var(--superficie);
+  border: 1px solid var(--rojo);
+  box-shadow: var(--sombra);
+}
+
+.consejo .que { margin: 0 0 12px; font-size: 15px; line-height: 1.5; }
+.consejo button { margin-bottom: 8px; }

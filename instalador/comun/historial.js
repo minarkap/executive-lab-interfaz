@@ -41,6 +41,10 @@ const RAMA = 'main';
 function bibliotecaJs() {
   const app = process.env.EXECUTIVE_LAB_HOME;
   const candidatas = [
+    // Instalado: este fichero vive en la raíz de la carpeta de la app, con el
+    // arnés al lado. Se mira antes que la variable de entorno porque no
+    // depende de que nadie la haya puesto.
+    path.join(__dirname, 'harness', 'node_modules', 'isomorphic-git'),
     app && path.join(app, 'harness', 'node_modules', 'isomorphic-git'),
     path.join(__dirname, '..', 'mac', 'carga', 'harness', 'node_modules', 'isomorphic-git'),
     path.join(__dirname, '..', 'windows', 'carga', 'harness', 'node_modules', 'isomorphic-git'),
@@ -188,6 +192,7 @@ function motorBinario(ejecutable) {
 
   return {
     nombre: 'binario',
+    ejecutable,
 
     async iniciar(dir) {
       await exigir(dir, ['init', '-q', '-b', RAMA]);
@@ -324,7 +329,18 @@ async function cuantosCambios(carpeta, opciones) {
   } catch { return 0; }
 }
 
+// ¿Se pueden guardar copias en este ordenador? Con el motor de JavaScript la
+// respuesta es que sí siempre: viaja con nosotros. Solo hay algo que preguntar
+// cuando hemos caído al binario, que puede no estar.
+function disponible(opciones) {
+  const m = motor(opciones);
+  if (m.nombre === 'js') return Promise.resolve(true);
+  return new Promise((resolver) => {
+    execFile(m.ejecutable, ['--version'], (error) => resolver(!error));
+  });
+}
+
 // Para el informe de "Algo va mal" y para las pruebas.
 const queMotor = (opciones) => motor(opciones).nombre;
 
-module.exports = { iniciar, guardar, historial, volverA, enlazar, subir, cuantosCambios, queMotor, RAMA };
+module.exports = { iniciar, guardar, historial, volverA, enlazar, subir, cuantosCambios, disponible, queMotor, RAMA };

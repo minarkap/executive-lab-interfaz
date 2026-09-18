@@ -43,6 +43,16 @@ jerga por goteo.
 | quitar el disfraz en esta ventana | Ver el editor completo |
 | poner el disfraz en esta ventana | Volver al modo sencillo |
 | `02-DOCS/wiki/brand/marca.md` | La marca de tu empresa |
+| buscar en la wiki, los comandos y `01-TOOLS/` | Busca lo que quieras: un cliente, una factura, una norma… |
+| los resultados, por dónde salen | Cosas que sabe · Cosas que puedes hacer · Conexiones |
+| un `.md` de la wiki que no está en `index.md` | Sin ordenar todavía |
+| pedirle que actualice `index.md` | Que los ordene |
+| el rastro de navegación (migas) | Lo que sabe de <nombre> › Tema › Título |
+| `git push` a un remoto | Guardar una copia fuera de este ordenador |
+| una sugerencia de la barra | (no se nombra: se enseña la frase y su botón) |
+| apartar una sugerencia | Ahora no |
+| `rsc add <skill>` desde la barra | Que lo aprenda |
+| crear un `.claude/commands/` nuevo por repetición | Que se quede como botón |
 | la web de la empresa del alumno | Tu web |
 | escribir el récord de marca | Ponerle la cara de tu empresa |
 

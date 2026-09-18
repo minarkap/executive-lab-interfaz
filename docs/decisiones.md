@@ -458,3 +458,106 @@ asistente. Pasa a ser el camino secundario, para el alumno que llega con el port
 **Lo que la extensión no puede traer: git.** Se usa para «Guardar copia de seguridad». macOS lo trae o
 lo ofrece; Windows a menudo no. Sin él, todo lo demás funciona y ese botón avisa de que no puede. Es
 el único hueco de este camino.
+
+---
+
+## 21. En Mac, un .dmg con app propia — no el .pkg de Apple
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+### Qué se descartó
+
+El `.pkg`, que es lo que había empezado. Dos motivos, y los dos se ven en el primer minuto:
+
+- **Instalando en `/usr/local` pide contraseña de administrador.** Eso deja fuera a cualquiera con el
+  portátil gestionado por el IT de su empresa, que en pyme es más gente de la que parece. El
+  instalador de Windows lleva `PrivilegesRequired=lowest` desde el principio: no había paridad.
+- **Instalando en la carpeta del usuario, macOS 26 enseña un aviso de privacidad del propio
+  Instalador** — *«quiere acceder a datos de otras apps»*— nada más pasar la portada, porque el
+  elemento `<domains>` hace que sondee `current-user-home`. Un aviso de permisos del sistema en el
+  minuto uno es exactamente lo que este proyecto existe para no tener.
+
+### Qué se hace
+
+Un `.dmg` con una app instaladora nuestra (`instalador/mac/instalar.applescript` para la cara,
+`instalar.js` para el trabajo). Escribe solo dentro de la carpeta del alumno: ni contraseña, ni aviso
+de privacidad, y las frases son nuestras y están en el diccionario.
+
+**Lo que costó:** la app hay que firmarla y notarizarla igual que el `.pkg` — eso no cambia.
+
+## 22. Las preguntas se hacen en el panel, no en el instalador
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+El instalador de Windows tiene tres páginas de preguntas (objetivo, nombres, asistente). El de macOS
+no tiene ninguna, y **no hace falta que la tenga**: el wizard ya existe dentro del producto
+(`extension/src/arrancar.js`), pregunta exactamente lo mismo y sale con nuestra tipografía y nuestros
+colores en vez de con las de Apple.
+
+Así que en Mac el instalador deja las herramientas, el editor y el acceso directo, crea la carpeta
+**vacía**, y el panel abre con *«Aquí todavía no hay nada» → «Preparar esta carpeta»*.
+
+De paso quita una duplicación: las seis opciones de objetivo estaban copiadas en el `.iss` y en
+`arrancar.js`. Unificar Windows por este mismo camino es la mejora obvia, pero no se ha hecho: el
+`.exe` ya está compilado y probado, y tocarlo ahora es arriesgar lo que funciona.
+
+## 23. El historial es git escrito en JavaScript, no el git del sistema
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+### El problema
+
+En macOS **no hay git**. El `/usr/bin/git` que parece haber es un señuelo: al invocarlo abre el
+diálogo de instalar las herramientas de Xcode —uno o dos gigas y contraseña de administrador— y ahí
+se acaba la clase. Y no se puede renunciar al historial: de ahí salen *Guardar copia de seguridad*,
+*Volver a como estaba antes* y subir el arnés a GitHub.
+
+### Qué se hace
+
+`isomorphic-git` (4,8 MB, JavaScript puro) sobre el Node que ya llevamos dentro, en
+`instalador/comun/historial.js`, con el binario de git como red de seguridad para quien lo tenga.
+Para GitHub es incluso mejor que el git de verdad: se autentica con una clave por HTTPS, sin
+llaveros, sin claves SSH y sin el gestor de credenciales de Windows.
+
+**Dos fallos que salieron al probarlo, y que estaban antes:**
+
+- `read-tree -m -u --reset` —lo que hacía *Volver a como estaba antes*— lo **rechaza git desde la
+  2.4x** con un solo árbol: *"Which one? -m, --reset, or --prefix?"*. O sea que ese botón nunca
+  funcionó por el camino del binario. Ahora es `--reset -u`.
+- `statusMatrix` de isomorphic-git dice que un fichero no ha cambiado si se reescribe **en el mismo
+  segundo y con el mismo tamaño** (se fía de la fecha para no leerlo). Escribiendo documentos a
+  máquina eso pasa, y una copia se habría dejado el cambio dentro sin avisar. Por eso `guardar` no
+  usa esa columna: mete todo en el índice, que sí lee el contenido, y compara resúmenes.
+
+**Lo que abre:** el camino sin instalador (decisión 20) decía que su único hueco era git. Ya no lo
+es: la biblioteca cabe dentro del `.vsix`. Falta decidir si se mete, porque son 5 MB sobre 6.
+
+## 24. Buscar lo resuelve la barra, no el asistente
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+Buscar es mirar, no conversar. Preguntárselo al asistente cuesta una conversación nueva y unos
+segundos de espera para algo que está en el disco y se resuelve en milisegundos. `buscar.js` indexa
+la wiki entera, los botones y las conexiones, sin dependencias, y solo cuando no hay resultados
+aparece el botón que se lo pregunta a él.
+
+Es el primer trozo de `docs/friccion.md` §4 —*"los botones que solo consultan no deberían hablar con
+el asistente"*— que está hecho.
+
+## 25. Sugerir, sí; dar la lata, no
+
+**Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
+
+`consejos.js` puede avisar de seis cosas (documentos sin leer, una conexión a medias, días sin copia,
+una tarea repetida tres veces, una habilidad del catálogo que encaja, un hueco de la wiki). Tres
+reglas para que eso no acabe siendo ruido:
+
+1. **Una tarjeta como mucho**, la que más desatasca.
+2. **Siempre "Ahora no"**, y entonces no vuelve en dos semanas.
+3. **Nada que no se resuelva ahí mismo con un botón.**
+
+Y sobre ofrecer habilidades de RSC: el catálogo trae 272, todas descritas en inglés y en jerga.
+`rsc consult` rankea solo en inglés —probado: la misma consulta en español devuelve
+*(no recommendations)*—. Así que no se usa: hay un catálogo curado de 25 en
+`extension/media/capacidades.json`, dichas en español de negocio, y **lo que no está ahí no se
+ofrece nunca**. Hay una comprobación que falla si alguna deja de existir en el catálogo de verdad.

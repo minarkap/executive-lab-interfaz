@@ -31,7 +31,7 @@ Los dos necesitan una carpeta `carga/` que **no está versionada** porque son bi
 | Fichero | De dónde sale |
 |---|---|
 | `runtime/` | Node LTS portable: el `.zip` de nodejs.org para Windows, el `.tar.gz` para macOS |
-| `git/` | **Windows:** MinGit (`MinGit-*-64-bit.zip` de las releases de Git for Windows) · **macOS:** un git portable, o se depende de las herramientas de Xcode |
+| `git/` | **Solo Windows**, y ya no hace falta: MinGit (`MinGit-*-64-bit.zip`). El historial lo lleva `isomorphic-git`, que `construir.sh` instala junto al arnés |
 | `harness/` | `npm install --prefix carga/harness @ericrisco/rsc@1.4.1` en la máquina que construye |
 | `executive-lab.vsix` | `cd extension && npm run empaquetar` |
 | `executivelab.ico` | El icono. Solo Windows |
@@ -46,8 +46,8 @@ docker run --rm --platform linux/amd64 -v "$PWD/instalador/windows:/work" amake/
 # O en un Windows con Inno Setup 6.3+ (el .iss lleva acentos: guardarlo como UTF-8)
 iscc windows\ExecutiveLab.iss
 
-# El de macOS
-./mac/construir.sh 0.1.0
+# El de macOS (ver más abajo)
+./mac/construir.sh
 ```
 
 ## Lo que todavía no está probado
@@ -71,17 +71,79 @@ Dos cosas que ya fallaron en el papel y están arregladas: Node rechaza lanzar u
 Inno crea los accesos directos **antes** de ejecutar nada, así que la ruta de trabajo se le pasa ya
 resuelta a `preparar.js` con `--destino`.
 
-## macOS: dos huecos
+## macOS
 
-- El `.pkg` no tiene pantalla para elegir objetivo. Se monta con uno genérico y el asistente lo
-  afina en la primera conversación.
-- Si `carga/git` no existe, el git del sistema pide instalar las herramientas de Xcode con un
-  diálogo. `postinstall` lo avisa; no lo resuelve.
+Lo que sale es un **`.dmg` con una app instaladora**, no un `.pkg`: el `.pkg` pide contraseña de
+administrador si instala fuera de la carpeta del alumno, y si instala dentro, macOS 26 enseña un
+aviso de privacidad del propio Instalador nada más empezar (decisión 21 en
+[docs/decisiones.md](../docs/decisiones.md)).
+
+```bash
+./mac/construir.sh                  # carga + app + .dmg  (~122 MB)
+./mac/firmar.sh                     # firma, notariza y grapa
+./mac/probar.sh                     # 19 comprobaciones
+./mac/desinstalar.command           # lo quita todo y deja el Mac como estaba
+```
+
+| Pieza | Qué es |
+|---|---|
+| `instalar.applescript` | Lo único que ve el alumno: el diálogo, la barra de progreso y el final |
+| `instalar.js` | El trabajo: copia la carga, baja el editor, pone las dos piezas, crea el acceso directo |
+| `node.entitlements` | Los dos permisos que Node necesita para arrancar bajo el "hardened runtime" |
+
+Diferencias con Windows, y por qué:
+
+- **No pregunta nada.** Las preguntas las hace el panel en el primer arranque, con el wizard que ya
+  existe (decisión 22).
+- **No lleva el editor dentro.** Se descarga al instalar, y si el alumno ya lo tiene no se descarga
+  nada: 122 MB en vez de 380.
+- **No lleva git.** No hace falta en ningún sistema desde que el historial es JavaScript
+  (decisión 23). En Windows sigue viajando MinGit porque el `.exe` ya está compilado con él.
+- **No toca nada fuera de la carpeta del alumno**, así que no pide administrador.
+
+Cómo probarlo, con y sin Mac limpio: [mac/COMO-PROBARLO.md](mac/COMO-PROBARLO.md).
 
 ## Firma
 
 Sin firmar, Windows enseña *"Windows protegió tu PC"* y macOS lo bloquea con Gatekeeper. Para un
-alumno no técnico eso es el final del recorrido, no un obstáculo.
+alumno no técnico eso es el final del recorrido, no un obstáculo. Y en macOS es **peor** que en
+Windows: desde macOS 15 ya no vale el clic derecho para saltárselo, hay que entrar en Ajustes del
+sistema → Privacidad y seguridad → *Abrir igualmente*.
 
-Para el prototipo se puede convivir con ello acompañándolo de un vídeo de 30 segundos. Para la
-cohorte hace falta certificado de firma de código en Windows, y Developer ID + notarización en macOS.
+### macOS — qué falta exactamente (17-09-2026)
+
+La cuenta de Apple Developer está, pero **los certificados que hacen falta no**. Lo que hay en este
+Mac son dos *Apple Development*, que sirven para probar en tus propios aparatos y que Gatekeeper
+rechaza igual que si no hubiera nada:
+
+```
+security find-identity -v -p codesigning
+  1) … "Apple Development: José María Sanchis Llopis (…)"
+  2) … "Apple Development: apple@strattonapps.com (…)"
+```
+
+Tres cosas, y las tres las tiene que hacer el titular de la cuenta:
+
+1. **Aceptar la licencia de Xcode.** Hasta que no se acepte, `notarytool` y `lipo` se niegan a
+   funcionar (`lipo` es lo que junta los dos Node en un binario universal; sin él el paquete engorda
+   50 MB y sigue funcionando).
+   ```bash
+   sudo xcodebuild -license accept
+   ```
+2. **Crear un certificado *Developer ID Application*** en developer.apple.com → Certificates → `+`.
+   Solo lo puede crear el titular de la cuenta, y el `.cer` se descarga y se abre para que entre en
+   el llavero.
+3. **Guardar el perfil de notarización**, con una clave de app de appleid.apple.com (no la del
+   Apple ID):
+   ```bash
+   xcrun notarytool store-credentials executivelab \
+     --apple-id <correo> --team-id <equipo> --password <clave de app>
+   ```
+
+Con eso, `./mac/firmar.sh` hace el resto y `./mac/probar.sh` lo confirma. Mientras tanto, el
+comprobador da ese punto por malo a propósito.
+
+### Windows
+
+Sigue abierto: certificado OV (~300 €/año, con reputación diferida) o EV (~600 €/año, desde el
+primer día). Está discutido en [docs/friccion.md](../docs/friccion.md) §2.

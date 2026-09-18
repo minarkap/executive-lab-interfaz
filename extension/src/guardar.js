@@ -2,8 +2,38 @@
 //
 // Por debajo es git. Por delante, la palabra commit no aparece nunca: el
 // diccionario (docs/diccionario.md) la tiene en la lista de prohibidas.
+//
+// El trabajo sucio lo hace instalador/comun/historial.js, que es el mismo
+// módulo que usa el instalador al montar la carpeta. Aquí solo queda lo que
+// esto tiene de propio: las palabras. Antes se llamaba al git del sistema
+// directamente, y eso en un Mac sin las herramientas de Xcode no existe.
 
-const { git } = require('./procesos');
+const fs = require('node:fs');
+const path = require('node:path');
+const proyecto = require('./proyecto');
+const entorno = require('./entorno');
+const conexiones = require('./conexiones');
+
+// Se busca una vez y se recuerda, aunque no esté: si no hay módulo no lo va a
+// haber más tarde, y no tiene sentido tocar el disco en cada pulsación.
+let modulo;
+let yaBuscado = false;
+
+function historial() {
+  if (!yaBuscado) {
+    yaBuscado = true;
+    const ruta = entorno.moduloComun('historial');
+    try {
+      modulo = ruta ? require(ruta) : null;
+    } catch {
+      modulo = null;
+    }
+  }
+  return modulo;
+}
+
+// El binario solo se usa si no está la biblioteca; se le pasa por si acaso.
+const comoLlamar = () => ({ git: entorno.git() });
 
 function fechaLarga(cuando = new Date()) {
   return new Intl.DateTimeFormat('es-ES', { dateStyle: 'full', timeStyle: 'short' }).format(cuando);
@@ -22,67 +52,47 @@ function haceCuanto(iso) {
 }
 
 const NO_PUEDO = 'No puedo guardar copias en este ordenador. Pulsa "Algo va mal".';
+const SIN_PIEZA = 'Para guardar copias hace falta una pieza que este ordenador no tiene. Pídesela a tu tutor: se llama git.';
 
-// Sin git no hay copias de seguridad. Es el único hueco de instalar esto como
-// extensión: VS Code trae Node dentro, pero git no. macOS lo trae o lo ofrece;
-// en Windows hay que ponerlo.
-//
-// No se calla ni se rompe: se dice qué falta y quién lo arregla.
+// Antes esto preguntaba si había git instalado. Ahora pregunta algo más
+// amplio: si se pueden guardar copias, que con la biblioteca dentro es que sí
+// en cualquier ordenador. El nombre se queda porque la brújula lo usa.
 let sabemosSiHayGit = null;
 
 async function hayGit() {
   if (sabemosSiHayGit === null) {
-    const { codigo } = await git('--version');
-    sabemosSiHayGit = codigo === 0;
+    const h = historial();
+    sabemosSiHayGit = h ? await h.disponible(comoLlamar()) : false;
   }
   return sabemosSiHayGit;
 }
 
-// git se niega a guardar sin saber quién eres. En el ordenador de un alumno
-// nadie lo ha configurado nunca, así que se pone una identidad local y ya.
-async function asegurarIdentidad() {
-  const nombre = await git('config', 'user.name');
-  if (nombre.codigo === 0 && nombre.salida.trim()) return;
-  await git('config', 'user.name', 'Executive Lab');
-  await git('config', 'user.email', 'alumno@executivelab.local');
-}
-
 async function guardar(mensaje) {
-  if (!(await hayGit())) {
-    return {
-      ok: false,
-      faltaGit: true,
-      mensaje: 'Para guardar copias hace falta una pieza que este ordenador no tiene. Pídesela a tu tutor: se llama git.',
-    };
-  }
+  const h = historial();
+  if (!h || !(await hayGit())) return { ok: false, faltaGit: true, mensaje: SIN_PIEZA };
 
-  const cambios = await git('status', '--porcelain');
-  if (cambios.codigo !== 0) return { ok: false, mensaje: NO_PUEDO };
-  if (!cambios.salida.trim()) {
+  const donde = proyecto.raiz();
+  if (!donde) return { ok: false, mensaje: NO_PUEDO };
+
+  const hecho = await h.guardar(donde, mensaje || `Copia de seguridad — ${fechaLarga()}`, comoLlamar());
+  if (!hecho.ok) return { ok: false, mensaje: NO_PUEDO };
+  if (hecho.sinCambios) {
     return { ok: true, sinCambios: true, mensaje: 'No ha cambiado nada desde la última copia. No hace falta guardar.' };
   }
 
-  await asegurarIdentidad();
-  await git('add', '-A');
-  const hecho = await git('commit', '-q', '-m', mensaje || `Copia de seguridad — ${fechaLarga()}`);
-  if (hecho.codigo !== 0) return { ok: false, mensaje: 'No he podido guardar la copia. Prueba con "Algo va mal".' };
-
-  const cuantos = cambios.salida.trim().split('\n').length;
   return {
     ok: true,
-    mensaje: cuantos === 1 ? 'Copia guardada. Había un cambio.' : `Copia guardada. Había ${cuantos} cambios.`,
+    mensaje: hecho.cuantos === 1 ? 'Copia guardada. Había un cambio.' : `Copia guardada. Había ${hecho.cuantos} cambios.`,
   };
 }
 
 async function copias(cuantas = 10) {
-  // %x09 es un tabulador: separador seguro porque nuestros textos no lo llevan.
-  const { codigo, salida } = await git('log', `-n${cuantas}`, '--pretty=format:%H%x09%cI%x09%s');
-  if (codigo !== 0 || !salida.trim()) return [];
+  const h = historial();
+  const donde = proyecto.raiz();
+  if (!h || !donde) return [];
 
-  return salida.trim().split('\n').map((linea) => {
-    const [id, cuando, asunto] = linea.split('\t');
-    return { id, cuando, asunto, etiqueta: `Como estaba ${haceCuanto(cuando)}` };
-  });
+  const { copias: lista } = await h.historial(donde, cuantas, comoLlamar());
+  return lista.map((c) => ({ ...c, etiqueta: `Como estaba ${haceCuanto(c.cuando)}` }));
 }
 
 // Deja la carpeta exactamente como estaba en esa copia — también quita lo que
@@ -90,20 +100,112 @@ async function copias(cuantas = 10) {
 // vuelta atrás queda registrada como una copia más, así que también se puede
 // deshacer.
 async function volverA(id) {
-  if (!/^[0-9a-f]{7,64}$/i.test(id)) return { ok: false, mensaje: 'Esa copia no existe.' };
+  const h = historial();
+  const donde = proyecto.raiz();
+  if (!h || !donde) return { ok: false, mensaje: NO_PUEDO };
 
   const previa = await guardar(`Copia de seguridad antes de volver atrás — ${fechaLarga()}`);
   if (!previa.ok) return previa;
 
-  const cuando = await git('show', '-s', '--format=%cI', id);
-  const movido = await git('read-tree', '-m', '-u', '--reset', id);
-  if (movido.codigo !== 0) return { ok: false, mensaje: 'No he podido volver atrás. Prueba con "Algo va mal".' };
+  const movido = await h.volverA(donde, id, comoLlamar());
+  if (!movido.ok) {
+    return movido.error === 'identificador con mala pinta'
+      ? { ok: false, mensaje: 'Esa copia no existe.' }
+      : { ok: false, mensaje: 'No he podido volver atrás. Prueba con "Algo va mal".' };
+  }
 
-  await asegurarIdentidad();
-  const etiqueta = cuando.codigo === 0 ? haceCuanto(cuando.salida.trim()) : 'entonces';
-  await git('commit', '-q', '--allow-empty', '-m', `Vuelta a como estaba ${etiqueta}`);
+  const etiqueta = movido.cuando ? haceCuanto(movido.cuando) : 'entonces';
+  await h.guardar(donde, `Vuelta a como estaba ${etiqueta}`, comoLlamar());
 
   return { ok: true, mensaje: 'Listo. Tu empresa ha vuelto a como estaba entonces.' };
 }
 
-module.exports = { guardar, copias, volverA, fechaLarga, haceCuanto, hayGit };
+// --------------------------------------- la copia que no está en este Mac
+//
+// Una copia en el ordenador no salva de que el ordenador se rompa o se pierda.
+// Por eso, si el alumno tiene puesta esa conexión, se le ofrece además
+// guardarla fuera.
+//
+// El nombre del sitio NO se escribe en la interfaz: sale de la carpeta que el
+// alumno tenga en sus conexiones, como todo lo demás (docs/diccionario.md, "no
+// hay ninguna herramienta escrita en el código"). Aquí solo se sabe leer la
+// clave y empujar.
+const CONEXION = 'github';
+
+function laClave() {
+  const carpeta = proyecto.ruta('01-TOOLS', CONEXION);
+  if (!carpeta || !fs.existsSync(carpeta)) return null;
+
+  const env = conexiones.leerEnv(path.join(carpeta, '.env'));
+  const clave = env.get('GITHUB_TOKEN') || env.get('GH_TOKEN');
+  return clave ? { clave, donde: env.get('GITHUB_REPO') || null, usuario: env.get('GITHUB_USER') || null } : null;
+}
+
+// ¿Se puede guardar fuera? Solo si la conexión está puesta.
+const puedeSubir = () => Boolean(laClave());
+
+// Crea el sitio la primera vez, privado, y devuelve a dónde hay que empujar.
+async function dondeSubir({ clave, donde, usuario }) {
+  if (donde) return `https://github.com/${donde}.git`;
+
+  const nombre = (proyecto.raiz() || 'mi-trabajo').split(/[\\/]/).pop()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'mi-trabajo';
+
+  const respuesta = await fetch('https://api.github.com/user/repos', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${clave}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+    },
+    // Privado siempre: son los papeles de su empresa.
+    body: JSON.stringify({ name: nombre, private: true, auto_init: false }),
+  });
+
+  if (respuesta.ok) {
+    const creado = await respuesta.json();
+    return `${creado.clone_url}`;
+  }
+  // 422 es "ya existe uno con ese nombre", que es exactamente lo que queremos.
+  if (respuesta.status === 422 && usuario) return `https://github.com/${usuario}/${nombre}.git`;
+  return null;
+}
+
+async function subirCopia() {
+  const credenciales = laClave();
+  if (!credenciales) return { ok: false, mensaje: 'Todavía no tienes puesta la conexión para guardar fuera.' };
+
+  const h = historial();
+  const donde = proyecto.raiz();
+  if (!h || !donde) return { ok: false, mensaje: NO_PUEDO };
+
+  // Primero lo de aquí: no tendría sentido subir una foto vieja.
+  const antes = await guardar();
+  if (!antes.ok) return antes;
+
+  let url;
+  try {
+    url = await dondeSubir(credenciales);
+  } catch {
+    url = null;
+  }
+  if (!url) return { ok: false, mensaje: 'No he podido preparar el sitio donde guardarla. Revisa la clave en Mis conexiones.' };
+
+  await h.enlazar(donde, url, comoLlamar());
+  const subida = await h.subir(donde, { url, token: credenciales.clave }, comoLlamar());
+  return subida.ok
+    ? { ok: true, mensaje: 'Copia guardada fuera de este ordenador.' }
+    : { ok: false, mensaje: 'No he podido guardarla fuera. Revisa la clave en Mis conexiones.' };
+}
+
+// Cuánto ha cambiado desde la última copia. Es para avisar, no para decidir:
+// si no se puede saber, se dice que cero y no se avisa de nada.
+async function cambiosSinGuardar() {
+  const h = historial();
+  const donde = proyecto.raiz();
+  if (!h || !donde) return 0;
+  return h.cuantosCambios(donde, comoLlamar());
+}
+
+module.exports = { guardar, copias, volverA, cambiosSinGuardar, subirCopia, puedeSubir, fechaLarga, haceCuanto, hayGit };

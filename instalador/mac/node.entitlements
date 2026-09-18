@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Los permisos mínimos que necesita Node bajo el "hardened runtime" que Apple
+  exige para notarizar.
+
+  Node compila JavaScript a código máquina mientras corre (JIT). Sin estos dos
+  permisos, el sistema mata el proceso en cuanto V8 intenta escribir en una
+  página de memoria ejecutable: arranca y se cae, sin decir por qué.
+
+  No se añade `disable-library-validation` a propósito: haría falta si
+  cargáramos módulos nativos de terceros, y ni el arnés ni la biblioteca del
+  historial tienen ninguno. Si algún día hace falta, se añade aquí y se dice
+  por qué.
+-->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+</dict>
+</plist>

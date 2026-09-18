@@ -38,6 +38,20 @@ function leer() {
   };
 }
 
+// Para qué dijo el alumno que era esto, cuando montó la carpeta. RSC lo deja
+// en el cuerpo del perfil, no en el frontmatter: `Goal: organizar mis
+// facturas`. Se usa para saber qué le vendría bien, y no sale en pantalla.
+function objetivo() {
+  const ruta = proyecto.ruta(...PERFIL);
+  if (!ruta) return '';
+  try {
+    const cuerpo = require('node:fs').readFileSync(ruta, 'utf8').replace(/^---\r?\n[\s\S]*?\r?\n---/, '');
+    return (cuerpo.match(/^\s*(?:Goal|Objetivo):\s*(.+)$/mi) || [])[1] || '';
+  } catch {
+    return '';
+  }
+}
+
 // El rótulo de la ventana: "Contabilidad · Nexus Consulting", o lo que haya.
 function titulo() {
   const { arnes, empresa } = leer();
@@ -48,4 +62,4 @@ function titulo() {
 // De quién se habla cuando el panel dice "lo que sabe de…".
 const deQuien = () => leer().arnes || 'tu trabajo';
 
-module.exports = { leer, titulo, deQuien, PERFIL };
+module.exports = { leer, titulo, deQuien, objetivo, PERFIL };

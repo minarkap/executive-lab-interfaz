@@ -20,12 +20,20 @@ const acciones = require('./acciones');
 const conexiones = require('./conexiones');
 const sueltas = require('./sueltas');
 const cerebro = require('./cerebro');
+const buscador = require('./buscar');
+const consejos = require('./consejos');
 const copias = require('./guardar');
 const soporte = require('./soporte');
 const rsc = require('./rsc');
 const disfraz = require('./disfraz');
 const arrancar = require('./arrancar');
 const marca = require('./marca');
+
+// Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
+// peticiones (para detectar la que se repite) y los consejos que el alumno
+// apartó con "ahora no".
+const CLAVE_PETICIONES = 'executiveLab.peticiones';
+const CLAVE_SILENCIADOS = 'executiveLab.consejosApartados';
 
 class Panel {
   constructor(contexto, salida) {
@@ -137,6 +145,76 @@ ${cabecera}
       marcaPuesta: Boolean(suya && suya.tokens),
       // Cómo llama el alumno a esto: sale en "lo que sabe de…".
       comoSeLlama: identidad.deQuien(),
+      // Como mucho uno, y siempre con un botón que lo resuelve ahí mismo.
+      consejo: await this.elConsejoQueToca(),
+      // Solo si el alumno tiene puesta esa conexión: nada predefinido.
+      puedeSubir: copias.puedeSubir(),
+    });
+  }
+
+  // ------------------------------------------------------- los consejos
+
+  // El almacén de esta carpeta: lo que se ha ido pidiendo y lo que el alumno
+  // apartó con "ahora no". No se ve, no se versiona y no sale de aquí.
+  almacen() {
+    return this.contexto.workspaceState || this.contexto.globalState;
+  }
+
+  // Lo que el alumno ya tiene escrito, todo junto: de ahí se saca qué le
+  // vendría bien. No se manda a ninguna parte; se lee aquí y se tira.
+  corpus() {
+    return [
+      identidad.objetivo(),
+      identidad.deQuien(),
+      cerebro.catalogo().map((t) => `${t.etiqueta} ${t.descripcion || ''} ${t.articulos.map((a) => `${a.titulo} ${a.resumen}`).join(' ')}`).join(' '),
+      acciones.acciones().map((a) => a.etiqueta).join(' '),
+      conexiones.proveedores().map((p) => p.etiqueta).join(' '),
+      cerebro.loQueAunNoSabe(5).join(' '),
+    ].join(' ');
+  }
+
+  async elConsejoQueToca() {
+    try {
+      if (!proyecto.arnesCompleto()) return null;
+
+      const [ultima] = await copias.copias(1);
+      return consejos.elQueToca({
+        esperando: cerebro.esperandoLectura(),
+        esperandoDesdeHace: cerebro.esperandoDesdeHace(),
+        conexionesAMedias: conexiones.proveedores().filter((p) => p.faltan > 0),
+        diasSinCopia: ultima ? Math.floor((Date.now() - new Date(ultima.cuando).getTime()) / 86400000) : null,
+        cambiosSinGuardar: await copias.cambiosSinGuardar(),
+        peticiones: this.almacen().get(CLAVE_PETICIONES) || [],
+        corpus: this.corpus(),
+        yaInstaladas: rsc.habilidadesPuestas(),
+        catalogo: consejos.capacidades(this.contexto.extensionPath),
+        huecos: cerebro.loQueAunNoSabe(1),
+        silenciados: this.almacen().get(CLAVE_SILENCIADOS) || {},
+      });
+    } catch (error) {
+      // Un consejo es un extra: si falla, la barra sigue funcionando igual.
+      this.salida.appendLine(`[consejos] ${error.stack || error.message}`);
+      return null;
+    }
+  }
+
+  async ahoraNo(id) {
+    const silenciados = { ...(this.almacen().get(CLAVE_SILENCIADOS) || {}), [id]: Date.now() };
+    await this.almacen().update(CLAVE_SILENCIADOS, silenciados);
+    return this.refrescar(true);
+  }
+
+  // Enseñarle algo nuevo del catálogo, sin que el alumno vea nada de esto.
+  async aprenderCapacidad(id, nombre) {
+    this.enviar({ tipo: 'esperando', que: `Aprendiendo a ${nombre}…` });
+    const { ok } = await rsc.anadir(id);
+    await this.refrescar(true);
+    this.enviar({
+      tipo: 'aviso',
+      texto: ok
+        ? `Ya sabe ${nombre}. Pídeselo cuando quieras.`
+        : 'No he podido enseñárselo. Prueba con "Algo va mal".',
+      malo: !ok,
     });
   }
 
@@ -154,9 +232,10 @@ ${cabecera}
       probar: () => this.probar(mensaje.proveedor),
       hacerCosita: () => this.hacerCosita(mensaje.proveedor, mensaje.fichero, mensaje.etiqueta, mensaje.pideDatos),
 
+      buscar: () => this.buscar(mensaje.texto),
       verCerebro: () => this.verCerebro(),
       verTema: () => this.verTema(mensaje.tema),
-      leerArticulo: () => this.leerArticulo(mensaje.ruta, mensaje.tema),
+      leerArticulo: () => this.leerArticulo(mensaje.ruta, mensaje.tema, mensaje.desde),
       abrirFuera: () => this.abrirFuera(mensaje.ruta),
       cambiarArticulo: () => this.pedir(`Quiero cambiar lo que sabes sobre "${mensaje.titulo}". Ábrelo, enséñame qué dice y pregúntame qué hay que corregir.`),
       anadirDocumentos: () => this.anadirDocumentos(),
@@ -164,6 +243,7 @@ ${cabecera}
 
       verCopias: () => this.verCopias(),
       guardarCopia: () => this.guardarCopia(),
+      subirCopia: () => this.subirCopia(),
       volverA: () => this.volverA(mensaje.id),
 
       algoVaMal: () => this.algoVaMal(),
@@ -172,6 +252,8 @@ ${cabecera}
       ponerLaCara: () => this.ponerLaCara(),
       elegirCarpeta: () => this.elegirCarpeta(),
       abrirAsistente: () => puente.abrirConversacion(),
+      ahoraNo: () => this.ahoraNo(mensaje.id),
+      aprenderCapacidad: () => this.aprenderCapacidad(mensaje.capacidad, mensaje.nombre),
       verEditorCompleto: () => this.verEditorCompleto(),
       modoSencillo: () => this.modoSencillo(),
     };
@@ -189,8 +271,18 @@ ${cabecera}
   }
 
   async pedir(prompt) {
+    await this.anotarLaPeticion(prompt);
     const como = await puente.enviar(prompt, this.salida);
     if (como === 'directo') this.enviar({ tipo: 'aviso', texto: 'Se lo he pedido. Mira la conversación.' });
+  }
+
+  // Se guardan las últimas peticiones para poder ver cuál se repite y ofrecer
+  // dejarla como botón. Solo el texto que el alumno ya ha mandado, aquí, en su
+  // ordenador: ni se envía ni se versiona.
+  async anotarLaPeticion(prompt) {
+    if (!prompt || prompt.startsWith('/')) return; // un botón ya es un botón
+    const antes = this.almacen().get(CLAVE_PETICIONES) || [];
+    await this.almacen().update(CLAVE_PETICIONES, [...antes, prompt].slice(-20));
   }
 
   // ------------------------------------------------------- conexiones
@@ -247,6 +339,7 @@ ${cabecera}
     this.enviar({
       tipo: 'cerebro',
       temas: cerebro.catalogo(),
+      sinOrdenar: cerebro.sinOrdenar().slice(0, 8),
       aprendido: cerebro.aprendidoUltimamente(5),
       huecos: cerebro.loQueAunNoSabe(4),
       esperando: cerebro.esperandoLectura(),
@@ -263,13 +356,37 @@ ${cabecera}
     return this.enviar({ tipo: 'tema', tema: encontrado });
   }
 
+  // Buscar es mirar, no conversar: lo resuelve la barra leyendo el disco, sin
+  // abrir una conversación ni hacer esperar a nadie (docs/friccion.md §4).
+  buscar(texto) {
+    // Mientras se busca no se repinta por detrás: el vigía borraría lo escrito
+    // en la caja a media palabra.
+    this.donde = { tipo: 'quieto' };
+    return this.enviar({ tipo: 'resultados', ...buscador.buscar(texto) });
+  }
+
   // Se lee dentro del panel: la vista previa de VS Code enseña el frontmatter
   // antes que el texto, y eso es justo lo que aquí no se enseña nunca.
-  leerArticulo(ruta, tema) {
+  leerArticulo(ruta, tema, desde) {
     const leido = cerebro.leerArticulo(ruta);
     if (!leido.ok) return this.enviar({ tipo: 'aviso', texto: leido.mensaje, malo: true });
     this.donde = { tipo: 'quieto' };
-    return this.enviar({ tipo: 'articulo', ...leido, tema });
+
+    // Con qué sigue y con qué venía, dentro del mismo tema: leer una cosa y
+    // tener que volver dos pantallas para leer la siguiente es una tontería.
+    let hermanos = null;
+    if (tema) {
+      const lista = cerebro.articulos(tema);
+      const i = lista.findIndex((a) => a.ruta === ruta);
+      if (i !== -1) {
+        hermanos = {
+          anterior: i > 0 ? lista[i - 1] : null,
+          siguiente: i < lista.length - 1 ? lista[i + 1] : null,
+        };
+      }
+    }
+
+    return this.enviar({ tipo: 'articulo', ...leido, tema, desde, hermanos, ruta });
   }
 
   async abrirFuera(ruta) {
@@ -291,6 +408,13 @@ ${cabecera}
 
   async verCopias() {
     this.enviar({ tipo: 'copias', copias: await copias.copias(8) });
+  }
+
+  async subirCopia() {
+    this.enviar({ tipo: 'esperando', que: 'Guardando una copia fuera de este ordenador…' });
+    const { ok, mensaje } = await copias.subirCopia();
+    await this.refrescar(true);
+    this.enviar({ tipo: 'aviso', texto: mensaje, malo: !ok });
   }
 
   async guardarCopia() {
@@ -422,7 +546,7 @@ async function vestir(contexto, salida) {
 // esto, el alumno tendría que cerrar y abrir para ver lo que acaba de pedir.
 //
 // Lo que se vigila es exactamente lo que el panel lee (ver `decisiones.md` §7).
-const LO_QUE_MIRA = '{.rsc.json,.claude/commands/*.md,01-TOOLS/**,02-DOCS/wiki/index.md,02-DOCS/wiki/log.md,02-DOCS/wiki/gaps.md,02-DOCS/inbox/*,02-DOCS/wiki/brand/**}';
+const LO_QUE_MIRA = '{.rsc.json,.claude/commands/*.md,01-TOOLS/**,02-DOCS/wiki/**,02-DOCS/inbox/*}';
 
 function vigilarElArnes(contexto, panel) {
   const carpetas = vscode.workspace.workspaceFolders;
@@ -437,6 +561,8 @@ function vigilarElArnes(contexto, panel) {
   let reloj = null;
   const alCambiar = (uri) => {
     const esMarca = uri.fsPath.includes(`${marca.CARPETA.join('/')}/`) || uri.fsPath.includes(marca.FICHERO);
+    // El índice del buscador se hizo con lo que había antes de este cambio.
+    buscador.olvidar();
     clearTimeout(reloj);
     reloj = setTimeout(() => {
       // La marca cambia los colores y el logotipo, así que hay que rehacer la

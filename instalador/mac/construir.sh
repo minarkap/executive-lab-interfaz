@@ -1,48 +1,193 @@
 #!/bin/bash
-# Construye ExecutiveLab.pkg para macOS.
+# Construye el instalador de macOS: una app dentro de un .dmg.
 #
+#   ./construir.sh                # usa la versión del package.json de la extensión
 #   ./construir.sh 0.1.0
+#   ./construir.sh --sin-descargas  # no vuelve a bajar Node si ya está la carga
 #
-# Antes hay que dejar en carga/ lo mismo que lleva el instalador de Windows:
-# el Node portable, el arnés preinstalado, el .vsix y, si se puede, git.
+# Lo que sale: instalador/mac/Executive Lab <version>.dmg, SIN FIRMAR. Para
+# poder dárselo a alguien hay que pasarlo después por ./firmar.sh, porque un
+# .dmg sin firmar lo bloquea Gatekeeper y desde macOS 15 ya no vale el clic
+# derecho: hay que ir a Ajustes del sistema.
+#
+# Por qué una app y no un .pkg: instalador/mac/instalar.applescript lo explica.
 
 set -euo pipefail
 
-VERSION="${1:-0.1.0}"
 AQUI="$(cd "$(dirname "$0")" && pwd)"
+RAIZ="$(cd "$AQUI/../.." && pwd)"
 CARGA="$AQUI/carga"
-RAIZ="$AQUI/../.."
 
-for pieza in runtime harness; do
-  [ -d "$CARGA/$pieza" ] || { echo "Falta $CARGA/$pieza — mira instalador/README.md." >&2; exit 1; }
+NODE_VERSION="v24.21.0"          # la misma que lleva el instalador de Windows
+VERSION_DEL_ARNES="1.4.1"        # fijada a propósito: toda la cohorte igual
+
+SIN_DESCARGAS=0
+VERSION=""
+for arg in "$@"; do
+  case "$arg" in
+    --sin-descargas) SIN_DESCARGAS=1 ;;
+    *) VERSION="$arg" ;;
+  esac
 done
-[ -d "$CARGA/git" ] || echo "AVISO: sin carga/git el alumno necesitará las herramientas de Xcode." >&2
+if [ -z "$VERSION" ]; then
+  VERSION="$(node -p "require('$RAIZ/extension/package.json').version" 2>/dev/null || echo 0.1.0)"
+fi
 
-# Se arma el payload tal y como quedará en el disco del alumno.
-ESTANCIA="$(mktemp -d)"
-trap 'rm -rf "$ESTANCIA"' EXIT
+paso() { printf '\n\033[1m▸ %s\033[0m\n' "$1"; }
 
-DESTINO="$ESTANCIA/usr/local/executive-lab"
-mkdir -p "$DESTINO"
-cp -R "$CARGA/runtime" "$DESTINO/"
-cp -R "$CARGA/harness" "$DESTINO/"
-[ -d "$CARGA/git" ] && cp -R "$CARGA/git" "$DESTINO/"
-cp "$RAIZ/instalador/comun/preparar.js" "$DESTINO/"
-cp -R "$RAIZ/skills" "$DESTINO/"
-cp "$RAIZ/extension/media/disfraz.json" "$DESTINO/"
-[ -f "$CARGA/executive-lab.vsix" ] && cp "$CARGA/executive-lab.vsix" "$DESTINO/"
+# ─────────────────────────────────────────────────────────── 1. la carga
 
-pkgbuild \
-  --root "$ESTANCIA" \
-  --scripts "$AQUI/scripts" \
-  --identifier ai.executivelab.arnes \
-  --version "$VERSION" \
-  --install-location / \
-  "$AQUI/ExecutiveLab-$VERSION.pkg"
+paso "La carga (Node, el arnés, los raíles, la extensión)"
+mkdir -p "$CARGA"
+
+# --- Node universal: el binario de Apple Silicon y el de Intel, en uno solo.
+if [ ! -x "$CARGA/runtime/bin/node" ] || [ "$SIN_DESCARGAS" = "0" ]; then
+  if [ -x "$CARGA/runtime/bin/node" ] && [ "$SIN_DESCARGAS" = "1" ]; then
+    echo "  El Node de la carga ya está."
+  else
+    TMP="$(mktemp -d)"
+    trap 'rm -rf "$TMP"' EXIT
+    for arco in arm64 x64; do
+      echo "  Bajando Node $NODE_VERSION para ${arco}…"
+      curl -fL --retry 3 -o "$TMP/node-$arco.tar.gz" \
+        "https://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-darwin-$arco.tar.gz"
+      tar -xzf "$TMP/node-$arco.tar.gz" -C "$TMP"
+    done
+
+    rm -rf "$CARGA/runtime"
+    mkdir -p "$CARGA/runtime"
+    # De base, el árbol de Apple Silicon: npm y las bibliotecas son JavaScript
+    # y valen para los dos. Solo el binario de node es de una arquitectura.
+    cp -R "$TMP/node-$NODE_VERSION-darwin-arm64/bin" "$CARGA/runtime/"
+    cp -R "$TMP/node-$NODE_VERSION-darwin-arm64/lib" "$CARGA/runtime/"
+    cp "$TMP/node-$NODE_VERSION-darwin-arm64/LICENSE" "$CARGA/runtime/" 2>/dev/null || true
+
+    # Lo bonito es un solo binario para las dos arquitecturas. lipo pasa por
+    # xcrun, y xcrun se niega mientras no se haya aceptado la licencia de
+    # Xcode (sudo xcodebuild -license accept). Si no se puede, se llevan los
+    # dos binarios y un elector de tres líneas: pesa 50 MB más y funciona igual.
+    if lipo -create \
+      "$TMP/node-$NODE_VERSION-darwin-arm64/bin/node" \
+      "$TMP/node-$NODE_VERSION-darwin-x64/bin/node" \
+      -output "$CARGA/runtime/bin/node" 2>/dev/null; then
+      chmod 755 "$CARGA/runtime/bin/node"
+      echo "  Node universal: $(lipo -archs "$CARGA/runtime/bin/node")"
+    else
+      echo "  AVISO: lipo no está disponible (¿licencia de Xcode sin aceptar?)."
+      echo "         Se llevan los dos binarios y un elector."
+      cp "$TMP/node-$NODE_VERSION-darwin-arm64/bin/node" "$CARGA/runtime/bin/node-arm64"
+      cp "$TMP/node-$NODE_VERSION-darwin-x64/bin/node" "$CARGA/runtime/bin/node-x64"
+      cat > "$CARGA/runtime/bin/node" <<'ELECTOR'
+#!/bin/sh
+# Elige el Node de esta máquina. Lo escribe instalador/mac/construir.sh cuando
+# no ha podido dejar un binario universal.
+AQUI="$(cd "$(dirname "$0")" && pwd)"
+case "$(uname -m)" in
+  arm64) exec "$AQUI/node-arm64" "$@" ;;
+  *) exec "$AQUI/node-x64" "$@" ;;
+esac
+ELECTOR
+      chmod 755 "$CARGA/runtime/bin/node" "$CARGA/runtime/bin/node-arm64" "$CARGA/runtime/bin/node-x64"
+    fi
+  fi
+fi
+
+# --- El arnés y la biblioteca del historial, preinstalados: nada de npx en la
+#     máquina del alumno, y la misma versión para toda la cohorte.
+if [ ! -d "$CARGA/harness/node_modules/@ericrisco/rsc" ] || [ "$SIN_DESCARGAS" = "0" ]; then
+  echo "  Instalando el arnés $VERSION_DEL_ARNES y el historial…"
+  mkdir -p "$CARGA/harness"
+  # Sin un package.json aquí, npm se pone a buscar uno hacia arriba y acaba
+  # tocando el node_modules de la carpeta personal de quien construye esto.
+  [ -f "$CARGA/harness/package.json" ] || cat > "$CARGA/harness/package.json" <<'PAQUETE'
+{
+  "name": "executive-lab-carga",
+  "private": true,
+  "description": "Lo que el instalador deja preinstalado. Lo genera construir.sh."
+}
+PAQUETE
+  (cd "$CARGA/harness" && npm install --no-audit --no-fund --silent \
+    "@ericrisco/rsc@$VERSION_DEL_ARNES" isomorphic-git)
+fi
+
+# --- Lo nuestro.
+rm -rf "$CARGA/skills"
+cp -R "$RAIZ/skills" "$CARGA/skills"
+for modulo in preparar.js historial.js ajustes.js enganches.js; do
+  cp "$RAIZ/instalador/comun/$modulo" "$CARGA/$modulo"
+done
+cp "$RAIZ/extension/media/disfraz.json" "$CARGA/disfraz.json"
+
+if [ ! -f "$RAIZ/extension/executive-lab.vsix" ]; then
+  echo "  Empaquetando la extensión…"
+  (cd "$RAIZ/extension" && npm run --silent empaquetar >/dev/null)
+fi
+cp "$RAIZ/extension/executive-lab.vsix" "$CARGA/executive-lab.vsix"
+
+# --- El icono. Da igual de dónde salga mientras acabe siendo un .icns.
+if [ ! -f "$CARGA/executivelab.icns" ]; then
+  ORIGEN=""
+  [ -f "$RAIZ/instalador/windows/carga/executivelab.ico" ] && ORIGEN="$RAIZ/instalador/windows/carga/executivelab.ico"
+  if [ -n "$ORIGEN" ]; then
+    echo "  Icono…"
+    TMPI="$(mktemp -d)"
+    if sips -s format png "$ORIGEN" --out "$TMPI/base.png" >/dev/null 2>&1; then
+      mkdir -p "$TMPI/icono.iconset"
+      for tam in 16 32 64 128 256 512; do
+        sips -z $tam $tam "$TMPI/base.png" --out "$TMPI/icono.iconset/icon_${tam}x${tam}.png" >/dev/null 2>&1 || true
+        sips -z $((tam * 2)) $((tam * 2)) "$TMPI/base.png" --out "$TMPI/icono.iconset/icon_${tam}x${tam}@2x.png" >/dev/null 2>&1 || true
+      done
+      iconutil -c icns "$TMPI/icono.iconset" -o "$CARGA/executivelab.icns" 2>/dev/null \
+        || echo "  AVISO: no he podido armar el icono; la app saldrá con el genérico."
+    fi
+    rm -rf "$TMPI"
+  else
+    echo "  AVISO: sin icono de origen; la app saldrá con el genérico."
+  fi
+fi
+
+echo "  Carga: $(du -sh "$CARGA" | cut -f1)"
+
+# ─────────────────────────────────────────────────────── 2. la app instaladora
+
+paso "La app"
+ESCENARIO="$AQUI/escenario"
+APP="$ESCENARIO/Instalar Executive Lab.app"
+rm -rf "$ESCENARIO"
+mkdir -p "$ESCENARIO"
+
+osacompile -o "$APP" "$AQUI/instalar.applescript"
+
+cp "$AQUI/instalar.js" "$APP/Contents/Resources/instalar.js"
+cp -R "$CARGA" "$APP/Contents/Resources/carga"
+[ -f "$CARGA/executivelab.icns" ] && cp "$CARGA/executivelab.icns" "$APP/Contents/Resources/applet.icns"
+
+# El Info.plist que deja osacompile es el de un applet cualquiera.
+PLIST="$APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleName Instalar Executive Lab" "$PLIST"
+/usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Instalar Executive Lab" "$PLIST" 2>/dev/null \
+  || /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Instalar Executive Lab" "$PLIST"
+/usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string ai.executivelab.instalador" "$PLIST" 2>/dev/null \
+  || /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ai.executivelab.instalador" "$PLIST"
+/usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$PLIST" 2>/dev/null \
+  || /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST"
+/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $VERSION" "$PLIST" 2>/dev/null \
+  || /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$PLIST"
+/usr/libexec/PlistBuddy -c "Add :LSMinimumSystemVersion string 12.0" "$PLIST" 2>/dev/null || true
+# Sin esto, el applet enseña en el Dock el nombre del script.
+/usr/libexec/PlistBuddy -c "Add :NSHumanReadableCopyright string Executive Lab" "$PLIST" 2>/dev/null || true
+
+echo "  App: $(du -sh "$APP" | cut -f1)"
+
+# ─────────────────────────────────────────────────────────────── 3. el .dmg
+
+paso "El .dmg"
+DMG="$AQUI/Executive Lab $VERSION.dmg"
+rm -f "$DMG"
+hdiutil create -volname "Executive Lab" -srcfolder "$ESCENARIO" -ov -format UDZO -quiet "$DMG"
 
 echo
-echo "Hecho: $AQUI/ExecutiveLab-$VERSION.pkg"
+echo "Hecho: $DMG  ($(du -sh "$DMG" | cut -f1))"
 echo
-echo "Sin firmar, Gatekeeper lo bloqueará. Para la cohorte hace falta:"
-echo "  productsign --sign \"Developer ID Installer: ...\" entrada.pkg salida.pkg"
-echo "  xcrun notarytool submit salida.pkg --wait"
+echo "Sin firmar. Antes de dárselo a nadie:"
+echo "  ./firmar.sh \"$DMG\""

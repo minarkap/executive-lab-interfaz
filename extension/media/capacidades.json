@@ -1,0 +1,170 @@
+{
+  "_comentario": [
+    "Las habilidades del catálogo de RSC que tienen sentido en una pyme, dichas en español de negocio.",
+    "",
+    "REGLA: lo que no esté en esta lista no se le ofrece nunca al alumno. El catálogo trae 272",
+    "habilidades, todas descritas en inglés y en jerga ('instrumenting product analytics',",
+    "'wiring server code'), y docs/diccionario.md manda: nada aparece en pantalla si no está escrito",
+    "en sus palabras. Preferimos ofrecer 18 cosas bien dichas que 272 mal dichas.",
+    "",
+    "Tampoco se usa `rsc consult` para decidir: rankea en inglés (probado el 17-09-2026: la misma",
+    "consulta en español devuelve '(no recommendations)'), y un alumno escribe en español.",
+    "El emparejamiento lo hace consejos.js con las palabras de aquí abajo.",
+    "",
+    "Cada 'id' tiene que existir en el catálogo instalado; hay una comprobación en prueba/humo.js.",
+    "'palabras' son las que se buscan en lo que el alumno ya tiene escrito: su objetivo, sus temas,",
+    "sus botones y sus conexiones."
+  ],
+  "capacidades": [
+    {
+      "id": "invoicing",
+      "nombre": "llevar tus facturas de principio a fin",
+      "frase": "Presupuesto, factura y cobro, sin perder ninguna por el camino.",
+      "palabras": ["factura", "facturas", "facturacion", "facturar", "presupuesto", "albaran", "abono", "cobro", "cobrar", "iva"]
+    },
+    {
+      "id": "bookkeeping",
+      "nombre": "llevar las cuentas al día",
+      "frase": "Ingresos, gastos y cierres de mes que cuadren cuando los pida la gestoría.",
+      "palabras": ["contabilidad", "cuentas", "gastos", "ingresos", "gestoria", "cierre", "banco", "conciliacion", "asiento"]
+    },
+    {
+      "id": "finance-ops",
+      "nombre": "saber cuánto dinero vas a tener",
+      "frase": "La caja de los próximos meses, y qué pasa si un cliente se retrasa.",
+      "palabras": ["tesoreria", "caja", "liquidez", "previsiones", "flujo", "margen", "rentabilidad"]
+    },
+    {
+      "id": "sales-pipeline",
+      "nombre": "seguir a tus clientes y oportunidades",
+      "frase": "Quién te ha pedido precio, en qué punto está y a quién toca llamar.",
+      "palabras": ["cliente", "clientes", "venta", "ventas", "oportunidad", "presupuestos", "seguimiento", "comercial", "crm", "leads"]
+    },
+    {
+      "id": "proposals",
+      "nombre": "escribir propuestas que se acepten",
+      "frase": "El documento que el cliente lee para decir que sí.",
+      "palabras": ["propuesta", "propuestas", "oferta", "licitacion", "concurso", "presupuesto"]
+    },
+    {
+      "id": "contracts",
+      "nombre": "revisar y preparar contratos",
+      "frase": "Contratos y cláusulas, con lo que hay que mirar antes de firmar.",
+      "palabras": ["contrato", "contratos", "clausula", "firma", "arrendamiento", "acuerdo", "convenio"]
+    },
+    {
+      "id": "sop-builder",
+      "nombre": "dejar por escrito cómo se hacen las cosas",
+      "frase": "Convertir lo que solo sabe una persona en un paso a paso que sigue cualquiera.",
+      "palabras": ["proceso", "procesos", "procedimiento", "manual", "protocolo", "instrucciones", "checklist", "rutina"]
+    },
+    {
+      "id": "automation-strategy",
+      "nombre": "decidir qué merece la pena automatizar",
+      "frase": "Cuáles de tus tareas repetidas compensa quitarse de encima, y por dónde empezar.",
+      "palabras": ["automatizar", "automatico", "repetitivo", "repetir", "manual", "tiempo", "tarea"]
+    },
+    {
+      "id": "email-connector",
+      "nombre": "mandar correos por su cuenta",
+      "frase": "Avisos y envíos que salen solos, sin que nadie se acuerde de mandarlos.",
+      "palabras": ["correo", "correos", "email", "mail", "aviso", "recordatorio", "envio"]
+    },
+    {
+      "id": "google-workspace",
+      "nombre": "trabajar con tu correo, tu calendario y tus documentos",
+      "frase": "Leer y escribir en Gmail, Drive y Calendar sin abrirlos a mano.",
+      "palabras": ["gmail", "drive", "calendario", "agenda", "google", "hoja", "documento"]
+    },
+    {
+      "id": "spreadsheet-ops",
+      "nombre": "manejar tus hojas de cálculo",
+      "frase": "Leer, limpiar y rellenar hojas sin abrirlas una por una.",
+      "palabras": ["excel", "hoja", "hojas", "csv", "tabla", "listado", "columna"]
+    },
+    {
+      "id": "calendar-scheduling",
+      "nombre": "dar cita a tus clientes",
+      "frase": "Que elijan hueco y quede puesto en tu agenda.",
+      "palabras": ["cita", "citas", "agenda", "reserva", "turno", "calendario", "horario"]
+    },
+    {
+      "id": "whatsapp-telegram",
+      "nombre": "hablar con tus clientes por mensajería",
+      "frase": "Avisos y respuestas por WhatsApp o Telegram.",
+      "palabras": ["whatsapp", "telegram", "mensaje", "mensajes", "sms", "chat"]
+    },
+    {
+      "id": "inventory",
+      "nombre": "saber qué tienes y cuándo pedir más",
+      "frase": "Existencias, mínimos y cuándo toca reponer.",
+      "palabras": ["stock", "almacen", "existencias", "inventario", "material", "pedido", "proveedor"]
+    },
+    {
+      "id": "procurement",
+      "nombre": "comprar mejor a tus proveedores",
+      "frase": "A quién comprar, a qué precio y con qué condiciones.",
+      "palabras": ["proveedor", "proveedores", "compra", "compras", "pedido", "precio"]
+    },
+    {
+      "id": "pricing",
+      "nombre": "poner bien tus precios",
+      "frase": "Qué cobrar y por qué, con los números delante.",
+      "palabras": ["precio", "precios", "tarifa", "tarifas", "margen", "descuento", "cobrar"]
+    },
+    {
+      "id": "hiring",
+      "nombre": "contratar a alguien sin liarte",
+      "frase": "La oferta, las preguntas de la entrevista y cómo comparar candidatos.",
+      "palabras": ["contratar", "contratacion", "empleado", "candidato", "entrevista", "personal", "plantilla", "curriculum"]
+    },
+    {
+      "id": "people-ops",
+      "nombre": "llevar el día a día de tu equipo",
+      "frase": "Altas, vacaciones, nóminas y todo lo que viene después de firmar.",
+      "palabras": ["nomina", "nominas", "vacaciones", "empleado", "equipo", "personal", "baja", "horario"]
+    },
+    {
+      "id": "gdpr-privacy",
+      "nombre": "cumplir con la protección de datos",
+      "frase": "Lo que la ley te pide tener escrito sobre los datos de tus clientes.",
+      "palabras": ["datos", "privacidad", "rgpd", "lopd", "consentimiento", "proteccion", "legal"]
+    },
+    {
+      "id": "reporting",
+      "nombre": "recibir el informe de siempre sin pedirlo",
+      "frase": "El resumen del mes o de la semana, hecho y enviado solo.",
+      "palabras": ["informe", "informes", "resumen", "reporte", "mensual", "semanal", "cuadro"]
+    },
+    {
+      "id": "kpi-framework",
+      "nombre": "elegir qué números mirar",
+      "frase": "Los cuatro o cinco números que de verdad dicen cómo va esto.",
+      "palabras": ["indicador", "indicadores", "kpi", "objetivo", "objetivos", "medir", "metrica"]
+    },
+    {
+      "id": "data-cleaning",
+      "nombre": "poner en orden un listado hecho un desastre",
+      "frase": "Duplicados, huecos y formatos raros, arreglados antes de usarlos.",
+      "palabras": ["duplicado", "duplicados", "limpiar", "listado", "base de datos", "desordenado", "importar"]
+    },
+    {
+      "id": "knowledge-ops",
+      "nombre": "mantener en orden lo que va aprendiendo",
+      "frase": "Repasar lo que sabe de tu empresa, quitar lo viejo y llenar los huecos.",
+      "palabras": ["documentacion", "documentos", "wiki", "conocimiento", "ordenar", "archivo", "desactualizado"]
+    },
+    {
+      "id": "marketing",
+      "nombre": "contar mejor lo que haces",
+      "frase": "Qué decir de tu empresa, y dónde decirlo.",
+      "palabras": ["marketing", "publicidad", "captar", "clientes nuevos", "anuncio", "campaña", "web"]
+    },
+    {
+      "id": "newsletter",
+      "nombre": "mandar un boletín a tus clientes",
+      "frase": "Un correo periódico que la gente abra, con su lista y su calendario.",
+      "palabras": ["boletin", "newsletter", "suscriptores", "lista de correo", "envio", "campaña"]
+    }
+  ]
+}

@@ -12,6 +12,11 @@ let modo = 'sencillo';
 let marcaPuesta = true;
 let comoSeLlama = 'tu trabajo';
 let aviso = null;
+// Lo último que se buscó: desde un artículo abierto desde el buscador, el
+// "Volver" tiene que devolver a los resultados, no a la lista de temas.
+let ultimaBusqueda = '';
+// Lo último que se pintó, para saber si un repintado es de la misma pantalla.
+let ultimoPintado = '';
 
 const pedir = (tipo, extra = {}) => vscode.postMessage({ tipo, ...extra });
 
@@ -50,20 +55,29 @@ const volver = (accion = { tipo: 'volver' }) => boton({ etiqueta: 'Volver', icon
 // No es un analizador completo a propósito: cubre lo que hay en un artículo de
 // la wiki —títulos, párrafos, listas, tablas, citas, negrita y enlaces— y nada
 // más. Una biblioteca entera para esto sería una dependencia que mantener.
+// Los enlaces del artículo que se está leyendo y que llevan a otro documento
+// de verdad. Los resuelve la extensión (cerebro.enlacesDe), que es quien puede
+// mirar el disco; aquí solo se pintan.
+let enlacesDelArticulo = {};
+
 function enLinea(t) {
   return texto(t)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
-    // Los enlaces a otros artículos navegan por dentro; los de fuera, fuera.
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, rotulo, destino) => (
-      /^https?:/.test(destino)
-        ? `<a href="${atributo(destino)}">${rotulo}</a>`
-        : `<span class="enlace-interno">${rotulo}</span>`
-    ));
+    // Los de fuera se abren fuera; los de dentro navegan por dentro, y los que
+    // no llevan a ningún sitio se quedan en texto: mejor eso que un clic roto.
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, rotulo, destino) => {
+      if (/^https?:/.test(destino)) return `<a href="${atributo(destino)}">${rotulo}</a>`;
+      const dentro = enlacesDelArticulo[destino];
+      return dentro
+        ? `<a class="enlace-interno vivo" data-accion="${atributo(JSON.stringify({ tipo: 'leerArticulo', ruta: dentro }))}">${rotulo}</a>`
+        : `<span class="enlace-interno">${rotulo}</span>`;
+    });
 }
 
-function comoMarkdown(fuente) {
+function comoMarkdown(fuente, enlaces = {}) {
+  enlacesDelArticulo = enlaces || {};
   const salida = [];
   let lista = null;
   let tabla = null;
@@ -125,6 +139,26 @@ function cuando(iso) {
   return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' }).format(entonces);
 }
 const plural = (n, uno, varios) => (n === 1 ? uno : varios.replace('{n}', n));
+
+// El rastro de por dónde se ha llegado, con cada tramo clicable menos el
+// último. Antes cada pantalla tenía su "Volver" escrito a mano y desde un
+// artículo no había forma de saber en qué tema estabas.
+function migas(tramos) {
+  const utiles = tramos.filter(Boolean);
+  if (utiles.length < 2) return '';
+  return `<nav class="migas">${utiles.map((tramo, i) => (
+    i === utiles.length - 1
+      ? `<span class="aqui">${texto(tramo.etiqueta)}</span>`
+      : `<a data-accion="${atributo(JSON.stringify(tramo.accion))}">${texto(tramo.etiqueta)}</a><span class="separa">›</span>`
+  )).join('')}</nav>`;
+}
+
+// Buscar es mirar: lo resuelve la barra sin abrir una conversación.
+function cajaDeBusqueda(valor = '') {
+  return `<input class="buscar" type="search" data-buscar value="${atributo(valor)}"
+    placeholder="Busca lo que quieras: un cliente, una factura, una norma…"
+    aria-label="Buscar">`;
+}
 
 // ---------------------------------------------------------------- pantallas
 
@@ -191,6 +225,15 @@ function pantallaPrincipal() {
     </div>
     <hr class="separador">` : '';
 
+  // Como mucho una, y siempre con un botón que la resuelve ahí mismo. Un
+  // aviso que solo informa de un problema es un aviso que estorba.
+  const elConsejo = estado.consejo ? `
+    <div class="consejo">
+      <p class="que">${texto(estado.consejo.texto)}</p>
+      ${boton({ etiqueta: estado.consejo.boton, icono: '✨', principal: true, accion: estado.consejo.accion })}
+      ${boton({ etiqueta: 'Ahora no', discreto: true, accion: { tipo: 'ahoraNo', id: estado.consejo.id } })}
+    </div>` : '';
+
   const documentos = estado.esperando
     ? boton({
       etiqueta: plural(estado.esperando, 'Tienes 1 documento sin leer', 'Tienes {n} documentos sin leer'),
@@ -210,6 +253,7 @@ function pantallaPrincipal() {
     </div>
 
     ${primerPaso}
+    ${elConsejo}
     ${documentos}
     ${descubiertos ? `<h2>Qué quieres hacer</h2>${descubiertos}<hr class="separador">` : ''}
 
@@ -217,6 +261,7 @@ function pantallaPrincipal() {
     ${boton({ etiqueta: 'Mis conexiones', icono: '🔌', accion: { tipo: 'verConexiones' } })}
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Guardar copia de seguridad', icono: '💾', accion: { tipo: 'guardarCopia' } })}
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', accion: { tipo: 'verCopias' } })}
+    ${estado.puedeSubir ? boton({ etiqueta: 'Guardar una copia fuera de este ordenador', icono: '☁️', accion: { tipo: 'subirCopia' } }) : ''}
     ${estado.faltaGit ? `<p class="detalle">Las copias de seguridad están apagadas: falta una pieza en este ordenador. Díselo a tu tutor, se llama git.</p>` : ''}
     ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
 
@@ -331,7 +376,7 @@ function pantallaResultado({ titulo, texto: salida, proveedor }) {
 
 // ---------------------------------------------------------------- cerebro
 
-function pantallaCerebro({ temas, aprendido, huecos, esperando, yaLeidos, hayPanel, aviso: avisoLocal }) {
+function pantallaCerebro({ temas, sinOrdenar = [], aprendido, huecos, esperando, yaLeidos, hayPanel, aviso: avisoLocal }) {
   const porTemas = temas.length
     ? temas.map((t) => `
         <div class="conexion">
@@ -360,9 +405,30 @@ function pantallaCerebro({ temas, aprendido, huecos, esperando, yaLeidos, hayPan
       })).join('')
     : '';
 
+  // Lo que está escrito pero el índice no menciona. Hasta ahora no había forma
+  // de llegar a ello desde aquí: existía en el disco y punto.
+  const sueltos = sinOrdenar.length
+    ? `<hr class="separador"><h2>Sin ordenar todavía</h2>` +
+      `<p class="detalle">${texto(plural(sinOrdenar.length,
+        'Hay 1 documento escrito que aún no está en su tema.',
+        'Hay {n} documentos escritos que aún no están en su tema.'))}</p>` +
+      sinOrdenar.map((d) => boton({
+        etiqueta: d.titulo,
+        icono: '▸',
+        accion: { tipo: 'leerArticulo', ruta: d.ruta },
+      })).join('') +
+      boton({
+        etiqueta: 'Que los ordene',
+        icono: '🗂️',
+        discreto: true,
+        accion: { tipo: 'pedir', prompt: 'Hay documentos en la wiki que no están en el índice. Ponlos en su tema, con su resumen y su fecha, y deja el índice al día.' },
+      })
+    : '';
+
   return `
     ${bloqueAviso(avisoLocal)}
     <p class="titulo">Lo que sabe de ${texto(comoSeLlama)}</p>
+    ${cajaDeBusqueda()}
     ${porTemas}
 
     <hr class="separador">
@@ -370,6 +436,7 @@ function pantallaCerebro({ temas, aprendido, huecos, esperando, yaLeidos, hayPan
     ${esperando ? `<p class="detalle">${texto(plural(esperando, 'Hay 1 documento esperando a que lo lea.', 'Hay {n} documentos esperando a que los lea.'))}</p>` : ''}
     ${yaLeidos ? `<p class="detalle">${texto(plural(yaLeidos, 'Ya ha leído 1 documento.', 'Ya ha leído {n} documentos.'))}</p>` : ''}
     ${hayPanel ? boton({ etiqueta: 'Ver el panel completo', icono: '🗂️', accion: { tipo: 'abrirPanelCompleto' } }) : ''}
+    ${sueltos}
     ${ultimo}
     ${pendiente}
 
@@ -378,8 +445,95 @@ function pantallaCerebro({ temas, aprendido, huecos, esperando, yaLeidos, hayPan
   `;
 }
 
+// Lo que ha salido de buscar. La caja se repinta con lo escrito dentro, así
+// que se puede seguir tecleando y los resultados se van afinando solos.
+function pantallaResultados({ texto: consulta, cuantos, grupos }) {
+  const vacio = `
+    ${nada(`No he encontrado nada con "${consulta}".`)}
+    ${boton({
+      etiqueta: 'Pregúntaselo al asistente',
+      icono: '💬',
+      principal: true,
+      accion: { tipo: 'pedir', prompt: `He buscado "${consulta}" y no aparece nada. ¿Sabes algo de esto? Si no, dime qué necesitas para aprenderlo.` },
+    })}`;
+
+  const listas = grupos.map((g) => `
+    <h2>${texto(g.titulo)}</h2>
+    ${g.aciertos.map((a) => `
+      <div class="conexion resultado">
+        <p class="nombre">${resaltar(a.titulo, a.resaltar)}</p>
+        ${a.frase ? `<p class="pista">${resaltar(a.frase, a.resaltar)}</p>` : ''}
+        ${boton({ etiqueta: 'Verlo', icono: a.icono || '▸', accion: { ...a.accion, desde: 'buscar' } })}
+      </div>`).join('')}`).join('');
+
+  return `
+    <p class="titulo">Lo que sabe de ${texto(comoSeLlama)}</p>
+    ${cajaDeBusqueda(consulta)}
+    <p class="detalle">${texto(cuantos ? plural(cuantos, '1 resultado', '{n} resultados') : '')}</p>
+    ${cuantos ? listas : vacio}
+    <hr class="separador">
+    ${volver({ tipo: 'verCerebro' })}
+  `;
+}
+
+// Marcar lo buscado dentro de un texto, sin que marcarlo pueda convertirlo en
+// etiquetas: se localiza sobre el texto crudo y se escapa cada trozo al
+// pegarlo. Lo que se busca viene ya sin tildes y en minúsculas, así que hace
+// falta un mapa de posiciones para saber a qué letra del original corresponde
+// cada letra pelada (una "é" pelada ocupa una y en el original también, pero
+// hay letras que al pelarse cambian de tamaño).
+function pelarConMapa(valor) {
+  let pelado = '';
+  const mapa = [];
+  for (let i = 0; i < valor.length; i += 1) {
+    const trozo = valor[i].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    for (const letra of trozo) { pelado += letra; mapa.push(i); }
+  }
+  mapa.push(valor.length);
+  return { pelado, mapa };
+}
+
+function resaltar(valor, terminos = []) {
+  const crudo = valor == null ? '' : String(valor);
+  // Si llega una palabra suelta en vez de una lista, recorrerla daría letra a
+  // letra y se marcaría medio texto.
+  const lista = Array.isArray(terminos) ? terminos : [terminos];
+  const { pelado, mapa } = pelarConMapa(crudo);
+
+  const rangos = [];
+  for (const termino of lista) {
+    if (!termino) continue;
+    let donde = pelado.indexOf(termino);
+    while (donde !== -1) {
+      rangos.push([mapa[donde], mapa[donde + termino.length]]);
+      donde = pelado.indexOf(termino, donde + termino.length);
+    }
+  }
+  if (!rangos.length) return texto(crudo);
+
+  rangos.sort((a, b) => a[0] - b[0]);
+  const limpios = [];
+  for (const rango of rangos) {
+    const ultimo = limpios[limpios.length - 1];
+    if (ultimo && rango[0] <= ultimo[1]) ultimo[1] = Math.max(ultimo[1], rango[1]);
+    else limpios.push([...rango]);
+  }
+
+  let salida = '';
+  let cursor = 0;
+  for (const [desde, hasta] of limpios) {
+    salida += `${texto(crudo.slice(cursor, desde))}<mark>${texto(crudo.slice(desde, hasta))}</mark>`;
+    cursor = hasta;
+  }
+  return salida + texto(crudo.slice(cursor));
+}
+
 function pantallaTema({ tema }) {
   return `
+    ${migas([
+      { etiqueta: `Lo que sabe de ${comoSeLlama}`, accion: { tipo: 'verCerebro' } },
+      { etiqueta: tema.etiqueta },
+    ])}
     <p class="titulo">${texto(tema.descripcion || tema.etiqueta)}</p>
     ${tema.articulos.map((a) => `
       <div class="conexion">
@@ -400,13 +554,35 @@ function pantallaTema({ tema }) {
 
 // El artículo, dentro del panel. La vista previa de VS Code enseñaría primero
 // su cabecera técnica, que es justo lo que aquí no se enseña nunca.
-function pantallaArticulo({ titulo, cuerpo, tema }) {
+function pantallaArticulo({ titulo, cuerpo, tema, enlaces, hermanos, desde }) {
+  const atras = desde === 'buscar'
+    ? { tipo: 'buscar', texto: ultimaBusqueda }
+    : (tema ? { tipo: 'verTema', tema } : { tipo: 'verCerebro' });
+
+  const rastro = migas([
+    { etiqueta: `Lo que sabe de ${comoSeLlama}`, accion: { tipo: 'verCerebro' } },
+    desde === 'buscar' ? { etiqueta: `Buscando "${ultimaBusqueda}"`, accion: { tipo: 'buscar', texto: ultimaBusqueda } } : null,
+    tema && desde !== 'buscar' ? { etiqueta: tema, accion: { tipo: 'verTema', tema } } : null,
+    { etiqueta: titulo },
+  ]);
+
+  // Leer una cosa y tener que volver dos pantallas para leer la siguiente del
+  // mismo tema era una tontería.
+  const seguir = hermanos && (hermanos.anterior || hermanos.siguiente)
+    ? `<div class="hermanos">
+        ${hermanos.anterior ? boton({ etiqueta: hermanos.anterior.titulo, icono: '←', discreto: true, accion: { tipo: 'leerArticulo', ruta: hermanos.anterior.ruta, tema } }) : ''}
+        ${hermanos.siguiente ? boton({ etiqueta: hermanos.siguiente.titulo, icono: '→', discreto: true, accion: { tipo: 'leerArticulo', ruta: hermanos.siguiente.ruta, tema } }) : ''}
+      </div>`
+    : '';
+
   return `
+    ${rastro}
     <p class="titulo">${texto(titulo)}</p>
-    <div class="articulo">${comoMarkdown(cuerpo)}</div>
+    <div class="articulo">${comoMarkdown(cuerpo, enlaces)}</div>
+    ${seguir}
     <hr class="separador">
     ${boton({ etiqueta: 'Pídele que lo cambie', icono: '✎', accion: { tipo: 'cambiarArticulo', titulo } })}
-    ${volver(tema ? { tipo: 'verTema', tema } : { tipo: 'verCerebro' })}
+    ${volver(atras)}
   `;
 }
 
@@ -440,8 +616,15 @@ function pantallaIncidencia({ codigo, sano, hayQueTocarAlgo }) {
 // ------------------------------------------------------------------ pintado
 
 function pintar(html) {
+  // Repintar tira el scroll al principio. Si se está en la misma pantalla —el
+  // vigía repinta sola cuando el arnés escribe— se repone donde estaba.
+  const desplazado = document.scrollingElement ? document.scrollingElement.scrollTop : 0;
+  const mismaPantalla = html.slice(0, 200) === ultimoPintado.slice(0, 200);
+  ultimoPintado = html;
+
   app.innerHTML = html;
-  app.querySelectorAll('button[data-accion]').forEach((b) => {
+
+  app.querySelectorAll('[data-accion]').forEach((b) => {
     b.addEventListener('click', () => {
       const accion = JSON.parse(b.dataset.accion);
       if (accion.tipo === 'guardarClave') {
@@ -452,6 +635,44 @@ function pintar(html) {
       aviso = null;
       pedir(accion.tipo, accion);
     });
+  });
+
+  engancharLaBusqueda();
+
+  if (mismaPantalla && document.scrollingElement) document.scrollingElement.scrollTop = desplazado;
+}
+
+// La caja de buscar: se escribe y los resultados se van afinando solos, sin
+// pulsar nada. Cada resultado repinta la pantalla entera —así es todo este
+// panel— así que hay que devolver el cursor a donde estaba.
+function engancharLaBusqueda() {
+  const caja = app.querySelector('input[data-buscar]');
+  if (!caja) return;
+
+  if (caja.value) {
+    caja.focus();
+    caja.setSelectionRange(caja.value.length, caja.value.length);
+  }
+
+  let reloj = null;
+  caja.addEventListener('input', () => {
+    clearTimeout(reloj);
+    const loEscrito = caja.value;
+    // Un cuarto de segundo: lo justo para no buscar a cada tecla y que siga
+    // pareciendo instantáneo.
+    reloj = setTimeout(() => {
+      ultimaBusqueda = loEscrito;
+      aviso = null;
+      if (loEscrito.trim()) pedir('buscar', { texto: loEscrito });
+      else pedir('verCerebro');
+    }, 250);
+  });
+
+  caja.addEventListener('keydown', (evento) => {
+    if (evento.key !== 'Escape') return;
+    clearTimeout(reloj);
+    ultimaBusqueda = '';
+    pedir('verCerebro');
   });
 }
 
@@ -469,7 +690,12 @@ window.addEventListener('message', ({ data }) => {
     case 'conexiones': return pintar(pantallaConexiones(data));
     case 'conexion': return pintar(pantallaConexion(data));
     case 'resultado': return pintar(pantallaResultado(data));
-    case 'cerebro': return pintar(pantallaCerebro(data));
+    case 'cerebro':
+      ultimaBusqueda = '';
+      return pintar(pantallaCerebro(data));
+    case 'resultados':
+      ultimaBusqueda = data.texto;
+      return pintar(pantallaResultados(data));
     case 'tema': return pintar(pantallaTema(data));
     case 'articulo': return pintar(pantallaArticulo(data));
     case 'copias': return pintar(pantallaCopias(data));

@@ -364,4 +364,4 @@ async function ejecutar(proveedorId, fichero) {
   };
 }
 
-module.exports = { proveedores, claves, escribir, probar, scripts, ejecutar, etiquetaDeClave, enmascarar };
+module.exports = { proveedores, claves, escribir, probar, scripts, ejecutar, etiquetaDeClave, enmascarar, leerEnv };

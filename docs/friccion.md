@@ -12,9 +12,10 @@ alumno que se cae en el paso 2 no llega nunca al 9.
 
 | # | Momento | Qué puede salir mal | Estado |
 |---|---|---|---|
-| 1 | Recibe el enlace y descarga | 277 MB. Con mala conexión, cinco minutos mirando una barra | Abierto |
-| 2 | **SmartScreen** | *«Windows protegió tu PC»*. El botón visible es *No ejecutar* | **Abierto — el peor** |
-| 3 | Instalación | ¿Pide administrador? No debería | Por confirmar |
+| 1 | Recibe el enlace y descarga | 277 MB en Windows. **En Mac son 122**: el editor se descarga al instalar | Abierto en Windows |
+| 2 | **SmartScreen** (Windows) | *«Windows protegió tu PC»*. El botón visible es *No ejecutar* | **Abierto — el peor** |
+| 2b | **Gatekeeper** (Mac) | Peor que SmartScreen: desde macOS 15 hay que ir a Ajustes del sistema | Hay cuenta de Apple; **faltan los certificados** |
+| 3 | Instalación | ¿Pide administrador? No debería | **Mac: resuelto** (todo en su carpeta) · Windows: por confirmar |
 | 4 | Responde el wizard | Seis páginas: asistente, de qué va, objetivo, cómo te manejas, cuánto te explico, nombres. ¿Se entienden solas? | Por confirmar |
 | 5 | Espera | Unos minutos con una barra de progreso | Aceptable |
 | 6 | Abre el acceso directo | Debería salir su barra, sin barras ni pestañas | Hecho |
@@ -41,6 +42,10 @@ la red ni de que el alumno tenga nada.
 
 **Recomendación:** lo primero, cuando haya medido cuánto tarda de verdad en una conexión de pyme.
 
+**Hecho en Mac (17-09-2026):** el `.dmg` son **122 MB** porque el editor se descarga durante la
+instalación —y no se descarga si el alumno ya lo tiene—. El mismo camino serviría en Windows y se
+llevaría los 225 MB del instalador de VS Code por delante.
+
 ## 2. SmartScreen — el peor de todos
 
 Un `.exe` sin firmar enseña una pantalla que dice, en esencia, *esto es peligroso*. El botón grande
@@ -55,6 +60,13 @@ es *No ejecutar*. El de continuar está escondido detrás de *Más información*
 
 **Recomendación:** EV si la cohorte es grande, porque el aviso aparece justo en el primer minuto del
 curso y no hay segunda oportunidad. Es la decisión más cara y la que más alumnos salva.
+
+**En Mac esto sale mucho más barato y está a medio hacer.** La cuenta de Apple Developer (99 €/año)
+ya está; lo que falta son tres pasos de media hora que solo puede dar el titular de la cuenta:
+aceptar la licencia de Xcode, crear un certificado *Developer ID Application* y guardar el perfil de
+notarización. Los detalles están en [instalador/README.md](../instalador/README.md) § Firma. Hasta
+que eso pase, el Mac enseña un aviso **peor** que el de Windows: desde macOS 15 ya no vale el clic
+derecho, hay que entrar en Ajustes del sistema.
 
 ## 3. La cuenta de Claude o de Codex
 
@@ -73,19 +85,26 @@ pide iniciar sesión, y ahí se queda parado el que no la tenga.
 
 ## 4. Lo que sigue costando dentro, ya instalado
 
+**Buscar ya no habla con el asistente** (hecho el 17-09-2026). La barra indexa la wiki, los botones
+y las conexiones, y enseña el resultado al momento; solo cuando no encuentra nada ofrece
+preguntárselo a él. Falta el resto:
+
 **Los botones abren conversación nueva.** Claude no permite escribir en la que ya tienes abierta; con
 Codex no permite ni eso, así que se copia al portapapeles. Lo honesto sería que los botones que solo
 consultan **no hablaran con el asistente**: que la barra haga el trabajo y enseñe el resultado, como
 ya hace con los scripts de una herramienta. Menos conversación, menos espera, menos fricción.
 
 **El primer documento.** *Darle documentos* copia a la bandeja y avisa al asistente. Sería mejor
-poder **arrastrar** un fichero sobre la barra.
+poder **arrastrar** un fichero sobre la barra. (Sin hacer: antes hay que comprobar si la barra puede
+recibir un fichero soltado encima, que no está claro.)
 
 **Cuando algo tarda.** El arnés puede tardar minutos y la barra solo dice *«Un momento…»*. Debería
 decir qué está haciendo y cuánto lleva.
 
 **El que llega al día siguiente.** Abre y no sabe si lo de ayer se guardó. La brújula lo dice, pero en
-pequeño. Un *«Ayer dejaste X a medias»* arriba del todo valdría más.
+pequeño. Un *«Ayer dejaste X a medias»* arriba del todo valdría más. (Sin hacer. Lo que sí hay ahora
+es una tarjeta que avisa de lo que se ha quedado a medias: documentos sin leer, una conexión sin
+terminar, días sin guardar copia.)
 
 ## 5. Lo que ya no cuesta (y por qué)
 
@@ -96,6 +115,9 @@ pequeño. Un *«Ayer dejaste X a medias»* arriba del todo valdría más.
 - **Git**: se llama *Guardar copia de seguridad* y *Volver a como estaba antes*.
 - **Cuando se rompe**: un código de seis letras para el tutor, no una pantalla roja.
 - **El editor de quien ya lo usaba**: un interruptor por carpeta. Su VS Code no se entera.
+- **Buscar algo**: se escribe y aparece, sin abrir una conversación ni esperar (§4, primer punto).
+- **Las copias de seguridad en un Mac**: ya no dependen de que alguien instale las herramientas de
+  Xcode. El historial va escrito en JavaScript y viaja dentro.
 
 ---
 

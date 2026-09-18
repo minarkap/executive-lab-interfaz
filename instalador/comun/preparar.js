@@ -16,6 +16,9 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
+const historial = require('./historial');
+const { escribirAjustes } = require('./ajustes');
+const { fijarElNodeDeLosEnganches } = require('./enganches');
 
 const VERSION_DEL_CATALOGO = '1.4.1'; // fijada a propósito: toda la cohorte igual
 // Si el alumno no da nombre. Un arnés puede ser la contabilidad, el personal o
@@ -100,17 +103,20 @@ function crearCarpeta(nombre) {
 }
 
 // Hace falta para que "Guardar copia de seguridad" tenga dónde guardar. Sin
-// git no hay producto, así que aquí sí se falla en alto.
-function prepararHistorial(destino) {
-  if (existe(destino, '.git')) return true;
-  if (correr(GIT, ['init', '-q'], { cwd: destino }).codigo !== 0) {
-    anotar('ERROR: no hay git. Las copias de seguridad no funcionarían.');
+// historial no hay producto, así que aquí sí se falla en alto.
+//
+// Ya no se llama al git del sistema: en macOS no existe —invocarlo abre el
+// diálogo de las herramientas de Xcode— y en Windows obligaba a cargar MinGit.
+// historial.js lleva su propio motor y elige.
+async function prepararHistorial(destino) {
+  const hecho = await historial.iniciar(destino, { git: GIT });
+  if (!hecho.ok) {
+    anotar(`ERROR: no he podido preparar el historial (${hecho.error}). Las copias de seguridad no funcionarían.`);
     return false;
   }
-  correr(GIT, ['config', 'user.name', 'Executive Lab'], { cwd: destino });
-  correr(GIT, ['config', 'user.email', 'alumno@executivelab.local'], { cwd: destino });
+  anotar(`Historial: motor ${historial.queMotor({ git: GIT })}${hecho.yaEstaba ? ' (ya estaba)' : ''}`);
   // El registro de esta instalación no es trabajo del alumno.
-  fs.appendFileSync(path.join(destino, '.gitignore'), 'instalacion.log\n');
+  if (!hecho.yaEstaba) fs.appendFileSync(path.join(destino, '.gitignore'), 'instalacion.log\n');
   return true;
 }
 
@@ -169,10 +175,11 @@ function ponerLosRailes(destino) {
 
 // La primera copia de seguridad. Sin ella, "Volver a como estaba antes" no
 // tendría a dónde volver hasta que el alumno guardara la primera.
-function primeraCopia(destino) {
-  correr(GIT, ['add', '-A'], { cwd: destino });
+async function primeraCopia(destino) {
   const fecha = new Intl.DateTimeFormat('es-ES', { dateStyle: 'full', timeStyle: 'short' }).format(new Date());
-  return correr(GIT, ['commit', '-q', '-m', `Punto de partida — ${fecha}`], { cwd: destino }).codigo === 0;
+  const hecha = await historial.guardar(destino, `Punto de partida — ${fecha}`, { git: GIT });
+  if (!hecha.ok) anotar(`AVISO: no he podido guardar la primera copia (${hecha.error}).`);
+  return hecha.ok;
 }
 
 // Los dos nombres, al frontmatter del perfil del arnés: de ahí salen el rótulo
@@ -194,49 +201,6 @@ function ponerLosNombres(destino, arnes, empresa) {
   }
   fs.writeFileSync(perfil, texto.replace(bloque[0], `---\n${cabecera}\n---`));
   anotar(`Nombres: ${arnes}${empresa ? ` · ${empresa}` : ''}`);
-}
-
-// Los dos nombres, al frontmatter del perfil del arnés: de ahí salen el rótulo
-// de la ventana y los textos del panel. Es el mismo sitio que usa el wizard
-// cuando se monta un arnés desde dentro del editor.
-function ponerLosNombres(destino, arnes, empresa) {
-  const perfil = path.join(destino, '02-DOCS', 'wiki', 'harness', 'user-profile.md');
-  if (!fs.existsSync(perfil)) return;
-
-  const texto = fs.readFileSync(perfil, 'utf8');
-  const bloque = texto.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!bloque) return;
-
-  let cabecera = bloque[1];
-  for (const [clave, valor] of [['arnes', arnes], ['empresa', empresa]]) {
-    if (!valor) continue;
-    const linea = new RegExp(`^${clave}:.*$`, 'm');
-    cabecera = linea.test(cabecera) ? cabecera.replace(linea, `${clave}: ${valor}`) : `${cabecera}\n${clave}: ${valor}`;
-  }
-  fs.writeFileSync(perfil, texto.replace(bloque[0], `---\n${cabecera}\n---`));
-  anotar(`Nombres: ${arnes}${empresa ? ` · ${empresa}` : ''}`);
-}
-
-// En la máquina de un alumno la vista sencilla va encendida desde el primer
-// arranque: es la única carpeta que hay y no tiene por qué saber que existe un
-// interruptor. En cualquier otra, se enciende a mano.
-function encenderVistaSencilla(destino) {
-  const carpeta = path.join(destino, '.vscode');
-  fs.mkdirSync(carpeta, { recursive: true });
-  const fichero = path.join(carpeta, 'settings.json');
-
-  let ajustes = {};
-  if (fs.existsSync(fichero)) {
-    try {
-      ajustes = JSON.parse(fs.readFileSync(fichero, 'utf8'));
-    } catch {
-      anotar('AVISO: el settings.json de la carpeta no es JSON; no lo toco.');
-      return;
-    }
-  }
-  ajustes['executiveLab.vistaSencilla'] = true;
-  fs.writeFileSync(fichero, `${JSON.stringify(ajustes, null, 2)}\n`);
-  anotar('Vista sencilla encendida en esta carpeta');
 }
 
 // La línea de comandos de VS Code, por su ruta completa: recién instalado, el
@@ -246,7 +210,13 @@ function code() {
     const local = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
     return primero([path.join(local, 'Programs', 'Microsoft VS Code', 'bin', 'code.cmd')], 'code.cmd');
   }
-  return primero(['/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code'], 'code');
+  // El instalador de macOS lo pone en ~/Applications, que no pide
+  // administrador. Si esa persona ya lo tenía en /Applications, se usa el suyo.
+  const dentroDeLaApp = path.join('Visual Studio Code.app', 'Contents', 'Resources', 'app', 'bin', 'code');
+  return primero([
+    path.join(os.homedir(), 'Applications', dentroDeLaApp),
+    path.join('/Applications', dentroDeLaApp),
+  ], 'code');
 }
 
 const EXTENSION_DEL_ASISTENTE = { claude: 'anthropic.claude-code', codex: 'openai.chatgpt' };
@@ -300,9 +270,17 @@ function vestirAntesDeAbrir(destino) {
     ? [argumento('arnes'), argumento('empresa')].filter(Boolean).join(' \u00b7 ')
     : disfraz['window.title'];
 
-  escribirAjustes(path.join(destino, '.vscode', 'settings.json'), deLaCarpeta, 'la carpeta de trabajo');
+  escribirAjustes(path.join(destino, '.vscode', 'settings.json'), deLaCarpeta, 'la carpeta de trabajo', anotar);
 
-  // 2. Las cuatro de ambito de programa, en el editor.
+  // 2. Las cinco de ambito de programa, en el editor.
+  //
+  // --sin-editor tambien se las salta: si no, "probar sin tocar el VS Code de
+  // quien prueba" le apagaba las actualizaciones y la telemetria de verdad.
+  if (process.argv.includes('--sin-editor')) {
+    anotar('Ajustes del editor: omitidos (--sin-editor).');
+    return;
+  }
+
   const usuario = ES_WINDOWS
     ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User')
     : process.platform === 'darwin'
@@ -313,93 +291,12 @@ function vestirAntesDeAbrir(destino) {
   for (const clave of SOLO_DEL_EDITOR) {
     if (clave in disfraz) delEditor[clave] = disfraz[clave];
   }
-  escribirAjustes(path.join(usuario, 'settings.json'), delEditor, 'los ajustes del editor');
-}
-
-// Donde acaba el codigo de una linea: en el primer // que no este dentro de
-// una cadena. Sin esto, una linea como  "url": "https://x"  se cortaria por
-// la mitad, y una coma puesta despues de un comentario queda comentada.
-function finDelCodigo(linea) {
-  let dentro = false;
-  for (let i = 0; i < linea.length; i += 1) {
-    const c = linea[i];
-    if (c === '"' && linea[i - 1] !== '\\') dentro = !dentro;
-    else if (!dentro && c === '/' && linea[i + 1] === '/') return i;
-  }
-  return linea.length;
-}
-
-// Pone una coma al final de la ultima linea con contenido, antes de su
-// comentario si lo tiene. Si lo ultimo es la llave de apertura, no hace falta.
-function ponerComaAlFinal(texto) {
-  const lineas = texto.split('\n');
-  for (let i = lineas.length - 1; i >= 0; i -= 1) {
-    const codigo = lineas[i].slice(0, finDelCodigo(lineas[i])).replace(/\s+$/, '');
-    if (!codigo.trim()) continue;                 // linea vacia o solo comentario
-    if (codigo.trim().endsWith('{')) return texto; // el objeto estaba vacio
-    if (codigo.trim().endsWith(',')) return texto; // ya la tiene
-    lineas[i] = codigo + ',' + lineas[i].slice(finDelCodigo(lineas[i]));
-    return lineas.join('\n');
-  }
-  return texto;
-}
-
-// Escribe sin pisar lo que ya hubiera.
-//
-// El settings.json de VS Code admite comentarios, y mucha gente los tiene. Si
-// se reparsea y se reescribe, se los cargamos. Asi que cuando no es JSON puro
-// se insertan las claves como texto, justo antes de la llave de cierre: entra
-// lo nuestro y lo suyo queda intacto, comentarios incluidos.
-function escribirAjustes(fichero, nuevos, donde) {
-  fs.mkdirSync(path.dirname(fichero), { recursive: true });
-
-  const claves = Object.keys(nuevos);
-  if (!claves.length) return;
-
-  if (!fs.existsSync(fichero)) {
-    fs.writeFileSync(fichero, `${JSON.stringify(nuevos, null, 2)}\n`);
-    anotar(`${claves.length} ajustes en ${donde} (nuevo)`);
-    return;
-  }
-
-  const crudo = fs.readFileSync(fichero, 'utf8');
-
-  // Camino limpio: JSON de verdad.
-  try {
-    const actuales = JSON.parse(crudo);
-    fs.writeFileSync(fichero, `${JSON.stringify({ ...actuales, ...nuevos }, null, 2)}\n`);
-    anotar(`${claves.length} ajustes en ${donde}`);
-    return;
-  } catch {
-    /* tiene comentarios: se inserta a mano */
-  }
-
-  const cierre = crudo.lastIndexOf('}');
-  if (cierre === -1) {
-    anotar(`AVISO: no entiendo ${donde}; no lo toco.`);
-    return;
-  }
-
-  // Las que ya estan escritas no se tocan: no vamos a duplicar una clave ni a
-  // pisar lo que esa persona haya puesto a proposito.
-  const faltan = claves.filter((c) => !new RegExp(`"${c.replace(/\./g, '\\.')}"\\s*:`).test(crudo));
-  if (!faltan.length) {
-    anotar(`${donde}: ya estaban puestas`);
-    return;
-  }
-
-  fs.copyFileSync(fichero, `${fichero}.antes-de-executive-lab`);
-
-  const lineas = faltan.map((c) => `  ${JSON.stringify(c)}: ${JSON.stringify(nuevos[c])}`).join(',\n');
-  const antes = ponerComaAlFinal(crudo.slice(0, cierre).replace(/\s*$/, ''));
-
-  fs.writeFileSync(fichero, `${antes}\n${lineas}\n${crudo.slice(cierre)}`);
-  anotar(`${faltan.length} ajustes insertados en ${donde} (tiene comentarios: copia al lado)`);
+  escribirAjustes(path.join(usuario, 'settings.json'), delEditor, 'los ajustes del editor', anotar);
 }
 
 // -------------------------------------------------------------------- main
 
-function main() {
+async function main() {
   const objetivo = argumento('objetivo', 'llevar mi trabajo con ayuda de la IA');
   const asistente = argumento('asistente', 'claude');
   const arnes = (argumento('arnes') || NOMBRE_POR_DEFECTO).trim();
@@ -409,12 +306,13 @@ function main() {
   anotar(`git: ${GIT} · arnés: ${ARNES || `npx (${NPX_CLI || 'no encontrado'})`}`);
 
   const destino = crearCarpeta(arnes);
-  let bien = prepararHistorial(destino);
+  let bien = await prepararHistorial(destino);
   if (bien) bien = montarElArnes(destino, objetivo, asistente);
   if (bien) bien = comprobarElSuelo(destino);
   if (bien) ponerLosRailes(destino);
   if (bien) ponerLosNombres(destino, arnes, empresa);
-  if (bien) primeraCopia(destino);
+  if (bien) fijarElNodeDeLosEnganches(destino, NODE, anotar);
+  if (bien) await primeraCopia(destino);
 
   // El disfraz de la carpeta es un fichero suyo: se escribe siempre, no
   // depende de que haya editor.
@@ -435,4 +333,10 @@ function main() {
   process.exit(bien ? 0 : 1);
 }
 
-main();
+main().catch((error) => {
+  anotar(`ERROR sin recoger: ${error && error.stack ? error.stack : error}`);
+  try {
+    fs.writeFileSync(path.join(os.tmpdir(), 'executive-lab-instalacion.log'), `${registro.join('\n')}\n`);
+  } catch { /* si ni eso se puede, queda el código de salida */ }
+  process.exit(1);
+});

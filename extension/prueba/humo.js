@@ -57,6 +57,8 @@ async function main() {
   const acciones = cargar('acciones');
   const conexiones = cargar('conexiones');
   const cerebro = cargar('cerebro');
+  const buscador = cargar('buscar');
+  const consejos = cargar('consejos');
   const brujula = cargar('brujula');
   const disfraz = cargar('disfraz');
   const puente = cargar('puente');
@@ -251,6 +253,60 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(facturacion.descripcion, 'Cómo se factura en esta empresa.');
     assert.equal(facturacion.articulos.length, 2, 'la descripción no cuenta como artículo');
     return facturacion.descripcion;
+  });
+
+  // ------------------------------------------------- navegar y buscar
+
+  await comprobar('los enlaces de un artículo a otro llevan a alguna parte', () => {
+    const leido = cerebro.leerArticulo('facturacion/ciclo.md');
+    assert.ok(leido.ok);
+    assert.equal(leido.enlaces['../clientes/ferreteria-soler.md'], 'clientes/ferreteria-soler.md',
+      'el que existe se resuelve');
+    assert.equal(leido.enlaces['../contratos/marco.md'], undefined,
+      'el que no existe no se pinta como clicable: mejor texto que un clic roto');
+    return `${Object.keys(leido.enlaces).length} enlace vivo de 2`;
+  });
+
+  await comprobar('lo escrito que el índice no menciona también se ve', () => {
+    const sueltos = cerebro.sinOrdenar();
+    assert.deepEqual(sueltos.map((d) => d.ruta), ['clientes/talleres-ruiz.md']);
+    assert.equal(sueltos[0].titulo, 'Talleres Ruiz', 'con su título de dentro, no el del fichero');
+    return sueltos[0].titulo;
+  });
+
+  await comprobar('buscar encuentra por el título, con tildes o sin ellas', () => {
+    buscador.olvidar();
+    const conTilde = buscador.buscar('facturación');
+    const sinTilde = buscador.buscar('facturacion');
+    assert.equal(conTilde.cuantos, sinTilde.cuantos, 'la tilde no cambia nada');
+    const sabe = conTilde.grupos.find((g) => g.titulo === 'Cosas que sabe');
+    assert.equal(sabe.aciertos[0].titulo, 'Ciclo de facturación', 'lo que se llama así, primero');
+    return `${conTilde.cuantos} resultados`;
+  });
+
+  await comprobar('buscar mira también los botones y las conexiones', () => {
+    const botones = buscador.buscar('resumen del mes').grupos.find((g) => g.titulo === 'Cosas que puedes hacer');
+    assert.ok(botones, 'los botones del arnés también se buscan');
+    assert.equal(botones.aciertos[0].titulo, 'Preparar el resumen del mes');
+
+    const conexiones = buscador.buscar('holded').grupos.find((g) => g.titulo === 'Conexiones');
+    assert.ok(conexiones, 'las conexiones también');
+    assert.equal(conexiones.aciertos[0].accion.tipo, 'verConexion');
+    return 'botones y conexiones';
+  });
+
+  await comprobar('lo que no está da cero, y con una salida', () => {
+    const nada = buscador.buscar('criptomonedas');
+    assert.equal(nada.cuantos, 0);
+    assert.deepEqual(nada.grupos, []);
+    return 'cero, y la pantalla ofrece preguntárselo';
+  });
+
+  await comprobar('buscar enseña la frase donde aparece, no el documento entero', () => {
+    const [acierto] = buscador.buscar('pagaré').grupos[0].aciertos;
+    assert.ok(acierto.frase.toLowerCase().includes('pagar'), 'la frase lleva lo buscado');
+    assert.ok(acierto.frase.length < 200, 'y es una frase, no el artículo');
+    return acierto.frase.slice(0, 48);
   });
 
   await comprobar('una ruta que se sale de la wiki se rechaza', () => {
@@ -536,6 +592,149 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${disfraz.CLAVES_VISIBLES.length} claves visibles`;
   });
 
+  // ---------------------------------------------- que no se separen las copias
+
+  await comprobar('los raíles del .vsix son los mismos que los del repositorio', () => {
+    // skills/ es la fuente; extension/media/railes/ es la copia que viaja
+    // dentro del .vsix, y las cargas de los instaladores son otras dos. Se han
+    // separado ya una vez —el .exe de Windows salió con raíles viejos— así que
+    // ahora se comprueba.
+    const origen = path.join(RAIZ, '..', 'skills');
+    const copias = [
+      path.join(RAIZ, 'media', 'railes'),
+      path.join(RAIZ, '..', 'instalador', 'windows', 'carga', 'skills'),
+      path.join(RAIZ, '..', 'instalador', 'mac', 'carga', 'skills'),
+    ].filter((c) => fs.existsSync(c));
+
+    const recorrer = (base, dentro = '') => fs.readdirSync(path.join(base, dentro), { withFileTypes: true })
+      .flatMap((e) => (e.isDirectory() ? recorrer(base, path.join(dentro, e.name)) : [path.join(dentro, e.name)]));
+
+    const suyos = recorrer(origen).filter((f) => f !== 'README.md');
+    for (const copia of copias) {
+      for (const fichero of suyos) {
+        const alla = path.join(copia, fichero);
+        assert.ok(fs.existsSync(alla), `a ${path.basename(copia)} le falta ${fichero}`);
+        assert.equal(fs.readFileSync(alla, 'utf8'), fs.readFileSync(path.join(origen, fichero), 'utf8'),
+          `${fichero} ha cambiado en skills/ y no en ${path.basename(copia)}`);
+      }
+    }
+    return `${suyos.length} ficheros · ${copias.length} copias al día`;
+  });
+
+  await comprobar('las copias de seguridad funcionan sin git en el sistema', async () => {
+    const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
+    if (historial.queMotor({ recalcular: true }) !== 'js') return 'SALTADA';
+
+    const donde = fs.mkdtempSync(path.join(os.tmpdir(), 'historial-'));
+    assert.ok((await historial.iniciar(donde)).ok);
+
+    fs.writeFileSync(path.join(donde, 'factura.txt'), 'uno');
+    const primera = await historial.guardar(donde, 'Punto de partida');
+    assert.equal(primera.cuantos, 1);
+
+    // El mismo tamaño y el mismo segundo: isomorphic-git dice que no ha
+    // cambiado si se le pregunta por la fecha. Por eso no se le pregunta.
+    fs.writeFileSync(path.join(donde, 'factura.txt'), 'dos');
+    const segunda = await historial.guardar(donde, 'Otra copia');
+    assert.equal(segunda.cuantos, 1, 'un cambio del mismo tamaño en el mismo segundo también se guarda');
+
+    const { copias: guardadas } = await historial.historial(donde, 5);
+    assert.equal(guardadas.length, 2);
+
+    await historial.volverA(donde, guardadas[1].id);
+    assert.equal(fs.readFileSync(path.join(donde, 'factura.txt'), 'utf8'), 'uno', 'vuelve a como estaba');
+
+    fs.rmSync(donde, { recursive: true, force: true });
+    return 'guardar, listar y volver atrás';
+  });
+
+  // ------------------------------------------------ que avise cuando ayuda
+
+  const CATALOGO = require(path.join(RAIZ, 'media', 'capacidades.json')).capacidades;
+
+  await comprobar('cada capacidad que ofrecemos existe en el catálogo de verdad', () => {
+    const manifiesto = path.join(RAIZ, '..', 'instalador', 'mac', 'carga', 'harness',
+      'node_modules', '@ericrisco', 'rsc', 'manifest.json');
+    if (!fs.existsSync(manifiesto)) return 'SALTADA';
+
+    const catalogo = require(manifiesto);
+    const existentes = new Set((Array.isArray(catalogo) ? catalogo : catalogo.skills || []).map((s) => s.name || s.id));
+    const fantasmas = CATALOGO.map((c) => c.id).filter((id) => !existentes.has(id));
+    assert.deepEqual(fantasmas, [], 'ofrecer algo que no se puede instalar es peor que no ofrecer nada');
+    return `${CATALOGO.length} capacidades, todas reales`;
+  });
+
+  await comprobar('solo se ofrece lo que encaja con lo que ya tiene escrito', () => {
+    const facturas = consejos.loQuePodriaAprender({
+      corpus: 'Ciclo de facturación. Cuándo se factura y plazos de cobro. Clientes que pagan tarde.',
+      yaInstaladas: [],
+      catalogo: CATALOGO,
+    });
+    assert.equal(facturas[0].id, 'invoicing', 'una empresa que habla de facturas');
+
+    const nada = consejos.loQuePodriaAprender({ corpus: 'Hola qué tal', yaInstaladas: [], catalogo: CATALOGO });
+    assert.deepEqual(nada, [], 'con una palabra suelta no se ofrece nada: eso es ruido');
+
+    const puesta = consejos.loQuePodriaAprender({
+      corpus: 'facturas, facturación y cobros',
+      yaInstaladas: ['invoicing'],
+      catalogo: CATALOGO,
+    });
+    assert.ok(!puesta.some((c) => c.id === 'invoicing'), 'lo que ya sabe no se ofrece');
+    return `${facturas[0].nombre}`;
+  });
+
+  await comprobar('lo que se pide tres veces se ofrece como botón', () => {
+    const tres = [
+      'Prepárame el resumen del mes con las facturas',
+      'Hazme el resumen del mes de facturas, por favor',
+      'quiero el resumen mensual de las facturas',
+      'Busca el teléfono de Talleres Ruiz',
+    ];
+    const repetida = consejos.loQueRepite(tres);
+    assert.ok(repetida, 'tres parecidas son un patrón');
+    assert.equal(repetida.veces, 3);
+    assert.equal(consejos.loQueRepite(tres.slice(0, 2)), null, 'con dos todavía no');
+    return `${repetida.veces} veces`;
+  });
+
+  await comprobar('sale un consejo como mucho, y el que más desatasca', () => {
+    const contexto = {
+      esperando: 3,
+      esperandoDesdeHace: 4,
+      conexionesAMedias: [{ id: 'HOLDED', etiqueta: 'Holded', faltan: 1 }],
+      diasSinCopia: 9,
+      cambiosSinGuardar: 12,
+      huecos: ['Cuánto se tarda en cobrar'],
+      catalogo: CATALOGO,
+    };
+    const todos = consejos.consejos(contexto);
+    assert.ok(todos.length > 1, 'hay varias cosas que decir');
+    assert.equal(consejos.elQueToca(contexto).id, 'documentos-esperando', 'pero solo se enseña la primera');
+    return `${todos.length} candidatos · sale 1`;
+  });
+
+  await comprobar('lo que se aparta con "ahora no" no vuelve en dos semanas', () => {
+    const contexto = {
+      esperando: 3,
+      esperandoDesdeHace: 4,
+      conexionesAMedias: [{ id: 'HOLDED', etiqueta: 'Holded', faltan: 2 }],
+      silenciados: { 'documentos-esperando': Date.now() },
+    };
+    assert.equal(consejos.elQueToca(contexto).id, 'conexion-HOLDED', 'pasa el siguiente');
+
+    const viejo = { ...contexto, silenciados: { 'documentos-esperando': Date.now() - 20 * 86400000 } };
+    assert.equal(consejos.elQueToca(viejo).id, 'documentos-esperando', 'a las dos semanas vuelve');
+    return 'apartado y de vuelta';
+  });
+
+  await comprobar('sin nada que decir, no se dice nada', () => {
+    assert.equal(consejos.elQueToca({}), null);
+    assert.equal(consejos.elQueToca({ esperando: 2, esperandoDesdeHace: 0 }), null, 'el mismo día no se da la lata');
+    assert.equal(consejos.elQueToca({ diasSinCopia: 9, cambiosSinGuardar: 0 }), null, 'sin cambios no hay nada que guardar');
+    return 'callado';
+  });
+
   // ------------------------------------------------------------- el arranque
   await comprobar('los comandos registrados son los del manifiesto', () => {
     vscode.registrado.comandos.length = 0;
@@ -550,8 +749,17 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   await comprobar('el panel se ajusta al arnés conforme se monta', async () => {
     const vigia = vscode.registrado.vigia;
     assert.ok(vigia, 'hay que vigilar lo que el arnés escribe');
-    for (const trozo of ['.rsc.json', '.claude/commands', '01-TOOLS', '02-DOCS/wiki/index.md', '02-DOCS/inbox', 'brand']) {
-      assert.ok(vigia.patron.includes(trozo), `no se vigila ${trozo}`);
+    // Se comprueba que el patrón cubra cada sitio, no que lo nombre: desde que
+    // el buscador lee la wiki entera, un solo `02-DOCS/wiki/**` cubre el
+    // índice, el historial, los huecos, la marca y los artículos.
+    const cubre = (ruta) => {
+      const partes = vigia.patron.replace(/^\{|\}$/g, '').split(',');
+      return partes.some((p) => new RegExp(`^${p.replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*')}$`).test(ruta));
+    };
+    for (const trozo of ['.rsc.json', '.claude/commands/lo-que-sea.md', '01-TOOLS/holded/.env',
+      '02-DOCS/wiki/index.md', '02-DOCS/wiki/facturacion/iva.md', '02-DOCS/inbox/factura.pdf',
+      '02-DOCS/wiki/brand/marca.md']) {
+      assert.ok(cubre(trozo), `no se vigila ${trozo}`);
     }
 
     // Un comando nuevo, como el que crea el asistente cuando algo se repite.
