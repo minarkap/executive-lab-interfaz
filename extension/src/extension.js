@@ -43,6 +43,7 @@ const pulso = require('./pulso');
 const fijadas = require('./fijadas');
 const tema = require('./tema');
 const proyectos = require('./proyectos');
+const agentes = require('./agentes');
 const asistentes = require('./asistentes');
 const trato = require('./trato');
 const marca = require('./marca');
@@ -225,6 +226,8 @@ ${cabecera}
       puedeTenerBotones: donde.puedeTenerBotones(),
       // El apartado de SDD sale solo si esa carpeta construye algo.
       hayProyectos: proyectos.hayAlgo(),
+      // Los ayudantes tampoco salen hasta que hay uno.
+      hayAgentes: agentes.hayAlguno(),
       modo: disfraz.modoDeEstaVentana(),
       // Si la empresa aún no tiene cara puesta, el panel la ofrece en vez de
       // esperar a que el alumno caiga en contarlo.
@@ -264,24 +267,33 @@ ${cabecera}
     ].join(' ');
   }
 
+  // Lo que la barra puede ver por sí misma leyendo el disco. Lo usan dos: el
+  // consejo suelto de la pantalla principal —como mucho uno— y la pantalla de
+  // sugerencias, que los enseña todos. Antes esto vivía dentro del primero, así
+  // que el segundo no habría podido existir sin copiarlo.
+  async queVeoYo() {
+    const [ultima] = await copias.copias(1);
+    return {
+      esperando: cerebro.esperandoLectura(),
+      esperandoDesdeHace: cerebro.esperandoDesdeHace(),
+      conexionesAMedias: conexiones.proveedores().filter((p) => p.faltan > 0),
+      diasSinCopia: ultima ? Math.floor((Date.now() - new Date(ultima.cuando).getTime()) / 86400000) : null,
+      cambiosSinGuardar: await copias.cambiosSinGuardar(),
+      peticiones: this.almacen().get(CLAVE_PETICIONES) || [],
+      corpus: this.corpus(),
+      yaInstaladas: rsc.habilidadesPuestas(),
+      catalogo: consejos.capacidades(this.contexto.extensionPath),
+      // Uno basta para el consejo suelto; la pantalla de sugerencias los
+      // enseña todos, así que aquí se piden unos cuantos.
+      huecos: cerebro.loQueAunNoSabe(4),
+      silenciados: this.almacen().get(CLAVE_SILENCIADOS) || {},
+    };
+  }
+
   async elConsejoQueToca() {
     try {
       if (!proyecto.arnesCompleto()) return null;
-
-      const [ultima] = await copias.copias(1);
-      return consejos.elQueToca({
-        esperando: cerebro.esperandoLectura(),
-        esperandoDesdeHace: cerebro.esperandoDesdeHace(),
-        conexionesAMedias: conexiones.proveedores().filter((p) => p.faltan > 0),
-        diasSinCopia: ultima ? Math.floor((Date.now() - new Date(ultima.cuando).getTime()) / 86400000) : null,
-        cambiosSinGuardar: await copias.cambiosSinGuardar(),
-        peticiones: this.almacen().get(CLAVE_PETICIONES) || [],
-        corpus: this.corpus(),
-        yaInstaladas: rsc.habilidadesPuestas(),
-        catalogo: consejos.capacidades(this.contexto.extensionPath),
-        huecos: cerebro.loQueAunNoSabe(1),
-        silenciados: this.almacen().get(CLAVE_SILENCIADOS) || {},
-      });
+      return consejos.elQueToca(await this.queVeoYo());
     } catch (error) {
       // Un consejo es un extra: si falla, la barra sigue funcionando igual.
       this.salida.appendLine(`[consejos] ${error.stack || error.message}`);
@@ -360,6 +372,9 @@ ${cabecera}
       verFijadas: () => this.verFijadas(),
       verLaCara: () => this.verLaCara(),
       verProyectos: () => this.verProyectos(),
+      verSugerencias: () => this.verSugerencias(),
+      verAgentes: () => this.verAgentes(),
+      verAgente: () => this.verAgente(mensaje.fichero),
       verProyecto: () => this.verProyecto(mensaje.fichero),
       materialDeMarca: () => this.materialDeMarca(),
       quitarLaCara: () => this.quitarLaCara(),
@@ -590,7 +605,9 @@ ${cabecera}
   async verSaberes() {
     this.donde = { tipo: 'quieto' };
     const sabe = saberes.queSabe(this.contexto.extensionPath);
-    this.enviar({ tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie });
+    this.enviar({
+      tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, suyas: sabe.suyas, deSerie: sabe.deSerie,
+    });
   }
 
   // El archivador: los papeles que han entrado, en sus tres montones. Antes de
@@ -646,6 +663,36 @@ ${cabecera}
       await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside, preview: true });
     }
     return undefined;
+  }
+
+  // Qué le vendría bien a esto: lo que ve la barra leyendo el disco, y un botón
+  // para lo que solo puede ver el asistente.
+  async verSugerencias() {
+    this.donde = { tipo: 'quieto' };
+    let ahora = [];
+    try {
+      ahora = consejos.consejos(await this.queVeoYo());
+    } catch (error) {
+      this.salida.appendLine(`[sugerencias] ${error.stack || error.message}`);
+    }
+    this.enviar({
+      tipo: 'sugerencias',
+      ahora,
+      hayAgentes: agentes.hayAlguno(),
+      hayProyectos: proyectos.hayAlgo(),
+    });
+  }
+
+  // Los ayudantes. No salen en la pantalla principal hasta que hay uno.
+  async verAgentes() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'agentes', agentes: agentes.queHay() });
+  }
+
+  async verAgente(fichero) {
+    const donde2 = agentes.dondeVive(fichero);
+    if (!donde2) return this.enviar({ tipo: 'aviso', texto: 'Ese ayudante ya no está.', malo: true });
+    return papeles.abrirFichero(donde2);
   }
 
   // Lo que se acordó construir. Solo existe donde se construya algo con SDD.
@@ -1152,6 +1199,8 @@ function activate(contexto) {
     comando('executiveLab.fijadas', () => panel.verFijadas()),
     comando('executiveLab.laCara', () => panel.verLaCara()),
     comando('executiveLab.proyectos', () => panel.verProyectos()),
+    comando('executiveLab.sugerencias', () => panel.verSugerencias()),
+    comando('executiveLab.agentes', () => panel.verAgentes()),
     comando('executiveLab.diario', () => panel.verDiario()),
     comando('executiveLab.trato', () => panel.verTrato()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),

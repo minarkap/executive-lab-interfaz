@@ -1820,3 +1820,73 @@ colores que la hoja de estilo nombra.
 negra y versión blanca del fichero— porque Jose mandó la versión blanca del logotipo y las dos
 tienen que funcionar igual. Se quedó la que ya estaba: la suya venía con
 `preserveAspectRatio="none"`, que estira el dibujo al ancho de la barra.
+
+---
+
+## 66. Sugerencias: lo que ve la barra y lo que solo ve el asistente
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«también metería un botón de sugerencias, que te diga si sugiere hacer una skill de algo, un
+comando, un agente, mejorar algo, atender algo, conectar algo, lo que sea»*.
+
+La pantalla tiene dos mitades y son distintas a propósito:
+
+**Lo que ve la barra** son hechos que se comprueban leyendo el disco: tres documentos sin leer desde
+el martes, a Odoo le falta una clave, nueve días sin guardar. Salen al momento y cada uno trae su
+botón. Esto ya existía —el consejero— pero solo enseñaba **uno** en la pantalla principal, el que
+más desatascaba. Aquí salen todos.
+
+**Lo que ve el asistente** es todo lo demás, y no lo podemos calcular nosotros: si lo que repites
+debería ser un botón, si te falta una habilidad, si algo que haces cada semana lo podría llevar un
+ayudante, si lo que quieres construir es lo bastante gordo como para acordarlo antes de empezar. Se
+le pregunta, porque es quien lee lo que hay escrito y lo que le pides.
+
+Para que las dos mitades pudieran existir hubo que sacar de `elConsejoQueToca()` lo que veía la
+barra: estaba dentro, así que la segunda pantalla no habría podido existir sin copiarlo.
+
+---
+
+## 67. Los ayudantes y lo de SDD no aparecen hasta que hay alguno
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«tanto SDD como agentes tiene que estar sin aparecer en el menú hasta que se acepte la
+sugerencia y haya el primer agente»*.
+
+Es la regla de siempre de esta barra —**nada está predefinido**— dicha para dos casos nuevos. Un
+apartado de ayudantes en una carpeta sin ayudantes es un hueco con rótulo, y un hueco con rótulo es
+peor que no tener el rótulo.
+
+Los agentes van en la carpeta del asistente para el que se montó el arnés, y **cada uno tiene la
+suya**: `.claude/agents/*.md`, `.codex/agents/*.toml`, `.cursor/agents/`… La tabla está en
+`donde.js`, copiada de `targets/agents.js` de RSC.
+
+En pantalla se llaman **ayudantes**, no agentes: un ayudante es alguien al que le das un encargo y
+lo hace por su cuenta, que es exactamente lo que son.
+
+---
+
+## 68. Una habilidad escrita aquí ya no se cuenta como fontanería
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Esto salió de escribir las habilidades de prueba que pidió Jose. Al escribir la primera propia de
+este repositorio, la barra pasó de decir «8 cosas que trae de serie» a decir «9».
+
+O sea: **la habilidad más pertinente de todas —la que alguien se molestó en escribir para esta
+carpeta— era justo la que no se veía**, contada como fontanería del arnés junto a `orient` y
+`suggest`.
+
+RSC ya las separa: `skills` son las del catálogo y `ownSkills` las tuyas. La barra no miraba la
+segunda lista. Ahora salen primero, bajo **Las tuyas**, con su nombre y para qué sirven sacados de
+su propia cabecera — cortando la descripción por la primera frase, porque están escritas para el
+asistente («úsala cuando…») y son largas.
+
+### Lo que se ha dejado en este repositorio, para poder verlo
+
+Tres botones (`revisar-la-barra`, `publicar-una-version`, `que-dice-el-diccionario`), dos ayudantes
+(el *vigía del diccionario* y el *guardián de las pruebas*) y una habilidad propia
+(`texto-de-la-barra`). No son ejemplos de mentira: los tres botones son cosas que se hacen aquí a
+diario, y los dos ayudantes vigilan justo los dos agujeros que más veces se han colado — palabras
+nuevas sin pasar por el diccionario, y cambios que ninguna comprobación cubre.

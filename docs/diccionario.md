@@ -35,6 +35,10 @@ jerga por goteo.
 | log / diagnóstico | Informe para tu tutor |
 | una carpeta de `01-TOOLS/` | Una conexión |
 | el catálogo de habilidades de RSC | Habilidades (skills) · Todo lo que sabe hacer (skills) |
+| `ownSkills` de `.rsc.json` | Las tuyas |
+| `.claude/agents/` (y su equivalente en cada asistente) | Ayudantes |
+| un agente | Un ayudante |
+| lo que el consejero y el asistente proponen | Sugerencias · Qué le vendría bien a esto |
 | `02-DOCS/wiki/sdd/constitution.md` | Innegociables |
 | `CLAUDE.md` / `AGENTS.md`, sección Working rules | Cómo se trabaja aquí |
 | los dos juntos | Las reglas |

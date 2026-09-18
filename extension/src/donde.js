@@ -26,17 +26,17 @@ const proyecto = require('./proyecto');
 // null si ese asistente no tiene. `ajustes` es el fichero de permisos, que solo
 // tiene Claude.
 const SITIOS = {
-  claude: { habilidades: ['.claude', 'skills'], comandos: ['.claude', 'commands'], ajustes: ['.claude', 'settings.json'] },
-  codex: { habilidades: ['.codex', 'rsc'], comandos: null, ajustes: null },
-  cursor: { habilidades: ['.cursor', 'rules'], comandos: ['.cursor', 'commands'], ajustes: null },
-  opencode: { habilidades: ['.opencode', 'rsc'], comandos: ['.opencode', 'commands'], ajustes: null },
-  copilot: { habilidades: ['.github', 'rsc'], comandos: ['.github', 'prompts'], ajustes: null },
+  claude: { habilidades: ['.claude', 'skills'], comandos: ['.claude', 'commands'], ajustes: ['.claude', 'settings.json'], agentes: ['.claude', 'agents'] },
+  codex: { habilidades: ['.codex', 'rsc'], comandos: null, ajustes: null, agentes: ['.codex', 'agents'] },
+  cursor: { habilidades: ['.cursor', 'rules'], comandos: ['.cursor', 'commands'], ajustes: null, agentes: ['.cursor', 'agents'] },
+  opencode: { habilidades: ['.opencode', 'rsc'], comandos: ['.opencode', 'commands'], ajustes: null, agentes: ['.opencode', 'agents'] },
+  copilot: { habilidades: ['.github', 'rsc'], comandos: ['.github', 'prompts'], ajustes: null, agentes: ['.github', 'agents'] },
   windsurf: { habilidades: ['.windsurf', 'rsc'], comandos: ['.windsurf', 'workflows'], ajustes: null },
   cline: { habilidades: ['.clinerules', 'rsc'], comandos: ['.clinerules', 'workflows'], ajustes: null },
   roo: { habilidades: ['.roo', 'rsc'], comandos: ['.roo', 'commands'], ajustes: null },
   // Gemini los escribe en TOML, que no es lo que sabemos leer. Se declara para
   // no tratarlo como desconocido, pero sin carpeta de botones.
-  gemini: { habilidades: ['.gemini', 'rsc'], comandos: null, ajustes: null },
+  gemini: { habilidades: ['.gemini', 'rsc'], comandos: null, ajustes: null, agentes: ['.gemini', 'agents'] },
   amp: { habilidades: ['.amp', 'rsc'], comandos: null, ajustes: null },
   jules: { habilidades: ['.jules', 'rsc'], comandos: null, ajustes: null },
   zed: { habilidades: ['.zed', 'rsc'], comandos: null, ajustes: null },
@@ -64,6 +64,11 @@ const carpetaDeComandos = () => {
   return partes ? proyecto.ruta(...partes) : null;
 };
 
+const carpetaDeAgentes = () => {
+  const partes = sitios().agentes;
+  return partes ? proyecto.ruta(...partes) : null;
+};
+
 const ficheroDeAjustes = () => {
   const partes = sitios().ajustes;
   return partes ? proyecto.ruta(...partes) : null;
@@ -75,5 +80,5 @@ const puedeTenerBotones = () => Boolean(sitios().comandos);
 const puedeTenerAjustes = () => Boolean(sitios().ajustes);
 
 module.exports = {
-  SITIOS, paraQuien, carpetaDeHabilidades, carpetaDeComandos, ficheroDeAjustes, puedeTenerBotones, puedeTenerAjustes,
+  SITIOS, paraQuien, carpetaDeHabilidades, carpetaDeComandos, carpetaDeAgentes, ficheroDeAjustes, puedeTenerBotones, puedeTenerAjustes,
 };

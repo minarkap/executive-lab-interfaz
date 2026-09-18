@@ -361,6 +361,12 @@ function pantallaSaberes(datos) {
       <p class="hiciste">Pídele cualquiera de estas con tus palabras. Y lo que no sepa todavía, puede aprenderlo aquí mismo.</p>
     </div>
 
+    ${datos.suyas && datos.suyas.length ? `
+      <h2>Las tuyas</h2>
+      <p class="detalle">Escritas para esta carpeta, no vienen de ningún catálogo.</p>
+      ${datos.suyas.map((c) => capacidad(c, false)).join('')}
+      <hr class="separador">` : ''}
+
     <h2>Ya sabe</h2>
     ${sabe.length
       ? sabe.map((c) => capacidad(c, false)).join('')
@@ -428,6 +434,104 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'c
 // Lo que RSC escribe cuando se construye algo con SDD: qué se quiere, por qué y
 // cómo. Aparece solo si esa carpeta lo tiene — una de contabilidad no lo tendrá
 // nunca, y una donde se monte una web, sí.
+// ------------------------------------------------------------- sugerencias
+
+// Dos mitades, y son distintas a propósito.
+//
+// **Lo que ve la barra** son hechos que se comprueban leyendo el disco: hay tres
+// documentos sin leer desde el martes, a Odoo le falta una clave, llevas nueve
+// días sin guardar. Salen al momento y cada uno trae su botón.
+//
+// **Lo que ve el asistente** es todo lo demás, y no lo podemos calcular
+// nosotros: si lo que repites debería ser un botón, si te vendría bien una
+// habilidad que no tienes, si algo que haces cada semana lo podría llevar un
+// ayudante, si lo que quieres construir merece acordarse antes de empezar. Eso
+// se le pregunta, porque es quien lee lo que hay escrito y lo que le pides.
+function pantallaSugerencias({ ahora = [], hayAgentes, hayProyectos }) {
+  const delDisco = ahora.length
+    ? ahora.map((c) => `
+      <div class="entrada">
+        <p class="nombre">${texto(c.texto)}</p>
+        ${boton({ etiqueta: c.boton, icono: '✨', pequeno: true, accion: c.accion })}
+      </div>`).join('')
+    : nada('Por aquí no veo nada que arreglar ahora mismo.');
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Sugerencias' }])}
+    ${bloqueAviso()}
+    ${volver()}
+
+    <div class="brujula">
+      <h2>Sugerencias</h2>
+      <p class="hiciste">Lo que le vendría bien a esto, mirado por los dos lados.</p>
+    </div>
+
+    <h2>Lo que veo yo</h2>
+    ${delDisco}
+
+    <hr class="separador">
+    <h2>Lo que ve el asistente</h2>
+    <p class="detalle">Mira lo que hay montado y lo que le pides, y propone. Tarda un poco.</p>
+    ${boton({
+      etiqueta: 'Que lo repase todo',
+      icono: '🔍',
+      principal: true,
+      accion: {
+        tipo: 'pedir',
+        prompt: [
+          'Repasa esta carpeta entera y dime qué le vendría bien. Mira lo que hay montado y lo que te vengo pidiendo, y propón como mucho cinco cosas, ordenadas por lo que más me ahorraría.',
+          '',
+          'Mira en concreto:',
+          '- Algo que te pida a menudo y que debería quedarse como botón.',
+          '- Alguna habilidad que no tenga puesta y que me haría falta.',
+          '- Algo que repito cada semana o cada mes y que podría llevar un ayudante por su cuenta, sin que yo esté delante.',
+          '- Algún programa mío que todavía no está conectado y debería estarlo.',
+          '- Algo que esté a medias o mal montado y convenga arreglar.',
+          '- Y si lo que quiero construir es lo bastante gordo como para acordarlo antes de empezar en vez de ir haciendo.',
+          '',
+          'De cada una dime qué es, qué me ahorra y qué hace falta para tenerla. Y pregúntame cuál quieres que monte antes de tocar nada.',
+        ].join('\n'),
+      },
+    })}
+
+    ${hayAgentes || hayProyectos ? '' : `
+      <hr class="separador">
+      <p class="detalle">Todavía no hay ayudantes montados ni nada acordado para construir. En cuanto los haya, aparecen solos en la pantalla principal.</p>`}
+  `;
+}
+
+// ------------------------------------------------------------- los ayudantes
+
+function pantallaAgentes({ agentes = [] }) {
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Ayudantes' }])}
+    ${bloqueAviso()}
+    ${volver()}
+
+    <div class="brujula">
+      <h2>Ayudantes</h2>
+      <p class="hiciste">Cada uno tiene un encargo y lo hace por su cuenta.</p>
+    </div>
+
+    ${agentes.length
+      ? agentes.map((a) => `
+        <div class="entrada">
+          <p class="nombre">${texto(a.nombre)}</p>
+          ${a.queHace ? `<p class="pista">${texto(a.queHace)}</p>` : ''}
+          ${boton({ etiqueta: 'Ponlo a trabajar', icono: '▸', pequeno: true, accion: { tipo: 'pedir', prompt: `Quiero que ${a.nombre} haga lo suyo ahora. Pregúntame lo que te falte.` } })}
+          ${boton({ etiqueta: 'Ver su encargo', icono: '📄', pequeno: true, discreto: true, accion: { tipo: 'verAgente', fichero: a.fichero } })}
+        </div>`).join('')
+      : nada('Todavía no hay ninguno.')}
+
+    <hr class="separador">
+    ${boton({
+      etiqueta: 'Montar otro',
+      icono: '➕',
+      accion: { tipo: 'pedir', prompt: 'Quiero un ayudante que se encargue de algo por su cuenta. Pregúntame de qué, cada cuánto y qué tiene que hacer exactamente, y móntalo.' },
+    })}
+  `;
+}
+
 function pantallaProyectos({ montones = [] }) {
   const ESTADOS = {
     draft: 'en borrador',
@@ -669,6 +773,7 @@ function pantallaAyuda({ github }) {
       principal: true,
       accion: { tipo: 'pedir', prompt: 'Mira cómo está esto y dime por dónde seguir: qué tengo a medias, qué sería lo siguiente y por qué. Dame dos o tres opciones concretas, no una lista larga.' },
     })}
+    ${boton({ etiqueta: 'Qué le vendría bien a esto', icono: '✨', accion: { tipo: 'verSugerencias' } })}
     ${boton({
       etiqueta: 'Pensemos ideas juntos',
       icono: '💡',
@@ -1215,6 +1320,14 @@ function pantallaPrincipal() {
 
     ${/* Aparece solo si esa carpeta construye algo con SDD. Una de contabilidad
           no tendrá specs nunca; una donde se monte una web, sí. */''}
+    ${/* Los ayudantes, como las specs: no salen hasta que hay al menos uno. Un
+          apartado con rótulo y nada dentro es peor que no tener el rótulo. */''}
+    ${estado.hayAgentes ? grupo({
+      id: 'grupo:agentes',
+      etiqueta: 'Ayudantes',
+      dentro: boton({ etiqueta: 'Ver los ayudantes', icono: '🤖', pequeno: true, accion: { tipo: 'verAgentes' } }),
+    }) : ''}
+
     ${estado.hayProyectos ? grupo({
       id: 'grupo:proyectos',
       etiqueta: 'En qué estamos',
@@ -1722,6 +1835,8 @@ function atender(data) {
     case 'asistente': return pintar(pantallaAsistente(data));
     case 'comoTrabaja': return pintar(pantallaComoTrabaja(data));
     case 'proyectos': return pintar(pantallaProyectos(data));
+    case 'sugerencias': return pintar(pantallaSugerencias(data));
+    case 'agentes': return pintar(pantallaAgentes(data));
     case 'laCara':
       dondeCaeLoQueSueltas = 'marca';
       return pintar(pantallaLaCara(data));

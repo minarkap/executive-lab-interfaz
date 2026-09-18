@@ -14,7 +14,9 @@
     "unslop"
   ],
   "agents": [],
-  "ownSkills": [],
+  "ownSkills": [
+    "texto-de-la-barra"
+  ],
   "catalogVersion": "1.4.1",
   "tier": null,
   "optOuts": [

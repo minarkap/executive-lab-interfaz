@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -1704,6 +1704,44 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'tres casos, y el nuestro teñido';
   });
 
+  await comprobar('los ayudantes no salen hasta que hay alguno', () => {
+    // Jose: "tiene que estar sin aparecer en el menú hasta que se acepte la
+    // sugerencia y haya el primer agente". Es la regla de siempre —nada
+    // predefinido— dicha para un caso nuevo.
+    const agentes = cargar('agentes');
+    assert.ok(agentes.hayAlguno(), 'la empresa de mentira tiene uno');
+    const [uno] = agentes.queHay();
+    assert.equal(uno.nombre, 'cobros atrasados', 'el nombre de su cabecera, no el del fichero');
+    assert.match(uno.queHace, /facturas que se han pasado de plazo/, 'y para qué sirve');
+
+    const sinAgentes = fs.mkdtempSync(path.join(os.tmpdir(), 'sin-agentes-'));
+    vscode.guion.raiz = sinAgentes;
+    assert.equal(cargar('agentes').hayAlguno(), false, 'sin ninguno, el apartado no existe');
+    vscode.guion.raiz = empresa;
+
+    // Y cada asistente los guarda en su sitio: Codex en `.codex/agents`.
+    const donde = cargar('donde');
+    assert.deepEqual(donde.SITIOS.claude.agentes, ['.claude', 'agents']);
+    assert.deepEqual(donde.SITIOS.codex.agentes, ['.codex', 'agents']);
+
+    assert.equal(agentes.dondeVive('../../../etc/passwd'), null, 'no se abre nada de fuera');
+    return `${agentes.queHay().length} ayudante`;
+  });
+
+  await comprobar('una habilidad escrita aquí no se cuenta como fontanería', () => {
+    // Era justo al revés: la más pertinente de todas —la que alguien se molestó
+    // en escribir para esta carpeta— acababa contada como "cosas que trae de
+    // serie" y no se veía por ningún lado.
+    const saberes = cargar('saberes');
+    vscode.guion.raiz = RAIZ.replace(/\/extension$/, '');
+    const suyo = saberes.queSabe(RAIZ);
+    vscode.guion.raiz = empresa;
+
+    assert.ok(suyo.suyas.some((c) => c.id === 'texto-de-la-barra'), 'la de este repositorio sale por su nombre');
+    assert.ok(suyo.suyas.every((c) => c.frase), 'y con para qué sirve, de su propia cabecera');
+    return suyo.suyas.map((c) => c.nombre).join(' · ');
+  });
+
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
     // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
     // había forma de salir de esa pantalla.
@@ -1790,6 +1828,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['comoTrabaja', { tipo: 'comoTrabaja', ...cargar('ajustes').comoEstamos(), aviso: null }, /Cada cuánto guarda solo/],
       ['laCara', { tipo: 'laCara', ...cargar('tema').comoEstamos(), aviso: null }, /Dale material/],
       ['proyectos', { tipo: 'proyectos', montones: cargar('proyectos').queHay() }, /Vender recambios/],
+      ['agentes', { tipo: 'agentes', agentes: cargar('agentes').queHay() }, /cobros atrasados/],
+      ['sugerencias', { tipo: 'sugerencias', ahora: [], hayAgentes: true, hayProyectos: true }, /Que lo repase todo/],
       ['trato', { tipo: 'trato', ...tratoM.comoEstamos(), aviso: null }, /Cuánto te explica/],
       ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
     ];

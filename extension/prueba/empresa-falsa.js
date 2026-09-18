@@ -162,6 +162,16 @@ empresa: Ferretería Soler
 Goal: organizar mis facturas
 `);
 
+  // --- un ayudante, para que la pantalla tenga algo que enseñar ---
+  escribir(raiz, '.claude/agents/cobros-atrasados.md', `---
+name: cobros atrasados
+description: Repasa cada lunes las facturas que se han pasado de plazo y prepara el aviso.
+model: sonnet
+---
+
+Mira las facturas vencidas y prepara el aviso de cobro, sin mandarlo.
+`);
+
   // --- SDD: lo que se escribe cuando se construye algo. Una carpeta de
   //     contabilidad no tiene nada de esto; una donde se monte una web, sí ---
   escribir(raiz, '02-DOCS/wiki/sdd/specs/tienda-de-recambios.md', `---
