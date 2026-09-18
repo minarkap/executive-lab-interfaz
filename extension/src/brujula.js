@@ -24,7 +24,7 @@ const cerebro = require('./cerebro');
 const asistentes = require('./asistentes');
 
 // Nombres del diccionario para las dos carpetas del arnés.
-const ZONAS = { '02-DOCS': 'Lo que sabe de tu empresa', '01-TOOLS': 'Conexiones' };
+const ZONAS = { '02-DOCS': 'Lo que sabe', '01-TOOLS': 'Tus programas' };
 
 function humanizar(texto) {
   const limpio = texto.replace(/[-_]+/g, ' ').trim().toLowerCase();
@@ -70,8 +70,25 @@ function interpretar(continuacion) {
 
   // Dos zonas informan más, pero en una barra estrecha y en serif grande se
   // comen tres líneas y dejan de leerse. Si no cabe, una.
-  const dos = zonas.slice(0, 2).join(' · ');
+  const dos = juntarLasIguales(zonas.slice(0, 2));
   return dos.length <= 42 ? dos : zonas[0];
+}
+
+// "Tus programas (Holded) · Tus programas (Gmail)" repite el rótulo dos veces
+// y se sale de la línea. Dicho como lo diría una persona —"Tus programas
+// (Holded, Gmail)"— cabe, y se lee mejor.
+function juntarLasIguales(zonas) {
+  const porRotulo = new Map();
+  for (const zona of zonas) {
+    const parte = zona.match(/^(.*?) \((.+)\)$/);
+    const rotulo = parte ? parte[1] : zona;
+    const detalle = parte ? parte[2] : null;
+    if (!porRotulo.has(rotulo)) porRotulo.set(rotulo, []);
+    if (detalle) porRotulo.get(rotulo).push(detalle);
+  }
+  return [...porRotulo]
+    .map(([rotulo, detalles]) => (detalles.length ? `${rotulo} (${detalles.join(', ')})` : rotulo))
+    .join(' · ');
 }
 
 // Calcular el estado lanza procesos; no hace falta repetirlo cada vez que la

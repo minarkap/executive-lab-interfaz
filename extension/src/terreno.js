@@ -165,7 +165,7 @@ async function radiografia() {
         : 'Nada suelto',
     },
     {
-      nombre: 'Lo que sabe de tu trabajo',
+      nombre: 'Lo que sabe',
       estado: temas ? 'si' : 'no',
       detalle: temas ? `${temas} tema(s)` : 'Todavía no ha aprendido nada',
     },

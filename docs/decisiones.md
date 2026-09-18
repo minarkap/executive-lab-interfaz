@@ -997,3 +997,108 @@ el botón de la cara y el montaje de una carpeta nueva. Las tres cosas que impor
 se llaman los campos, y **que los colores sean los de verdad de la web** — si es oscura, oscuros,
 porque desde la decisión 35 la barra sabe pintarse oscura y no hay que aclararlos «para que
 encajen».
+
+---
+
+## 37. Los rótulos dejan de ser preguntas y pasan a ser nombres de cosas
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«se nos está yendo el orden y los nombres abstractos. Eso de "Lo que sabe a medias" de
+descriptivo tiene cero»*.
+
+El inventario le daba la razón con números. **Once de los veintitrés rótulos de la interfaz
+empezaban igual:** *Qué quieres hacer · Qué sabe hacer · Qué hay en esta carpeta · Qué se ha hecho ·
+Qué ha aprendido últimamente · Qué decidisteis · Qué puedes hacer con esto · Qué hay aquí · Lo que
+sabe de X · Lo que aún no sabe · Lo que sabe a medias.*
+
+Ese era el problema, más que lo abstracto: **eran preguntas sobre lo que sabe la máquina, no nombres
+de cosas.** Cuando once rótulos arrancan con "Qué…", ninguno destaca y hay que leer la frase entera
+para distinguirlos. Y un contador al lado no salva nada: "Lo que sabe de Nexus · 7" — ¿siete qué?
+
+### La regla
+
+**Las cosas se llaman con sustantivos que la persona ya usa. Los verbos se guardan para las
+acciones.** Una lista de nombres se barre con la vista; una lista de preguntas hay que leerla.
+
+Queda **una sola pregunta** en toda la barra, *Qué quieres hacer*, que es la llamada principal.
+Siendo la única, destaca.
+
+### Qué se llamó cómo
+
+| Antes | Ahora |
+|---|---|
+| Mis conexiones | Tus programas |
+| Guardar | Copias de seguridad |
+| Qué se ha hecho | El diario |
+| Qué sabe hacer | Habilidades · Todo lo que sabe hacer |
+| Qué hay en esta carpeta | Qué falta por montar |
+| Mirar de un vistazo · Qué puedes hacer con esto | Consultar · Consultas |
+| Lo que aún no sabe | Preguntas sin contestar |
+| Qué decidisteis, y por qué | Decisiones |
+| Ajustes y ayuda | Ajustes · Si algo falla |
+| Cambiar de carpeta | Cambiar de proyecto |
+| Ponerle la cara de tu empresa | Poner el tema de mi empresa |
+
+Los dos últimos los dijo Jose con sus palabras, y se cogen tal cual. Lo de *tema* dejó de chocar con
+los temas de la wiki en cuanto los artículos pasaron a llamarse **conceptos**.
+
+*Elegir una carpeta* se queda como está en la pantalla de arranque: ahí todavía no hay proyecto
+ninguno y lo que se elige es literalmente una carpeta del ordenador.
+
+---
+
+## 38. El archivador y lo que el arnés ha entendido son dos cosas distintas
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«lo que peor entiendo es lo de ver los temas […] aquí hay que separar entre el archivador o
+los documentos y los conceptos que, entre comillas, sabe el arnés»*.
+
+Estaban en el mismo grupo, y no son lo mismo:
+
+- **Documentos** — el archivador. Los ficheros que entran (`02-DOCS/inbox/`) y los que salen
+  (`01-TOOLS/<lo que sea>/out/`). Papeles.
+- **Lo que sabe** — lo que el arnés ha entendido de todo eso: los conceptos de la wiki, ordenados
+  por asunto, y las preguntas que sabe que no tiene contestadas.
+
+Juntas, *Ver los temas* aparecía en medio de unos documentos sin que se supiera qué iba a salir al
+pulsarlo. Separadas, cada grupo dice lo que trae.
+
+**Las preguntas sin contestar salen a su propia pantalla.** Estaban al final de la de conceptos,
+detrás de todo lo demás, que es donde no las ve nadie — y es de lo más accionable que hay aquí:
+cada línea se pulsa y se le cuenta lo que falta.
+
+**Y las habilidades suben.** Jose: *«no están las skills»*. Estaban, enterradas en *Ajustes*. Ahora
+van pegadas a los botones que el asistente ha creado, que es exactamente donde surge la pregunta:
+vale, ¿y qué más sabe hacer?
+
+---
+
+## 39. Una anotación del diario se abre al lado, no dentro de la barra
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose lo probó y mandó la captura: *«al darle a ver "Días de trabajo" sale que no se lee bien. Mejor
+que se abra el archivo markdown compilado al lado»*.
+
+Tenía toda la razón. Una anotación de trabajo es media página de texto con nombres de fichero
+dentro; en una columna de 300 píxeles se lee a cuatro palabras por línea y los nombres largos se
+salen por el lado. La barra es para orientarse y para pulsar cosas, no para leer documentos.
+
+Así que se abre con `markdown.showPreviewToSide`: **compuesto, no en crudo**, porque quien lo lee no
+tiene por qué ver los asteriscos y las almohadillas. Si esa vista no estuviera disponible, se abre
+el documento a secas al lado.
+
+La pantalla que lo pintaba dentro se ha borrado.
+
+### Y de paso, dos cosas que enseñaba la misma captura
+
+**«…y sale a la luz el diario del arnéshoy».** La fecha iba detrás del título, dentro del mismo
+párrafo, y ese párrafo no es una fila flexible: se quedaban pegadas. Ahora la fecha va en su línea,
+encima. Hay una prueba que lo vigila.
+
+**El texto apagado se apagaba dos veces.** `--apagado` ya viene calculado para cumplir contraste
+sobre el fondo; encima llevaba una opacidad del 0,65 al 0,85 según el sitio. Sobre fondo claro
+molestaba; con tema oscuro acababa en gris sobre gris, que es lo que se veía en la captura. Se han
+quitado todas y ahora se pinta con el color, que es el que está comprobado. Otra prueba lo vigila.

@@ -279,7 +279,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const conTilde = buscador.buscar('facturación');
     const sinTilde = buscador.buscar('facturacion');
     assert.equal(conTilde.cuantos, sinTilde.cuantos, 'la tilde no cambia nada');
-    const sabe = conTilde.grupos.find((g) => g.titulo === 'Cosas que sabe');
+    const sabe = conTilde.grupos.find((g) => g.titulo === 'Lo que sabe');
     assert.equal(sabe.aciertos[0].titulo, 'Ciclo de facturación', 'lo que se llama así, primero');
     return `${conTilde.cuantos} resultados`;
   });
@@ -289,7 +289,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.ok(botones, 'los botones del arnés también se buscan');
     assert.equal(botones.aciertos[0].titulo, 'Preparar el resumen del mes');
 
-    const conexiones = buscador.buscar('holded').grupos.find((g) => g.titulo === 'Conexiones');
+    const conexiones = buscador.buscar('holded').grupos.find((g) => g.titulo === 'Tus programas');
     assert.ok(conexiones, 'las conexiones también');
     assert.equal(conexiones.aciertos[0].accion.tipo, 'verConexion');
     return 'botones y conexiones';
@@ -329,9 +329,9 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   // --------------------------------------------------------------- brújula
   await comprobar('la brújula traduce rutas a zonas del diccionario', () => {
     const dos = brujula.interpretar('files: 02-DOCS/wiki/facturacion/ciclo.md, 01-TOOLS/HOLDED/.env, .rsc/x');
-    assert.equal(dos, 'Lo que sabe de tu empresa (Facturacion)', 'dos zonas no caben: se queda la primera');
+    assert.equal(dos, 'Lo que sabe (Facturacion)', 'dos zonas no caben: se queda la primera');
     const donde = brujula.interpretar('files: 01-TOOLS/HOLDED/.env, 01-TOOLS/GMAIL/.env');
-    assert.equal(donde, 'Conexiones (Holded) · Conexiones (Gmail)', 'si caben, las dos');
+    assert.equal(donde, 'Tus programas (Holded, Gmail)', 'dos del mismo sitio no repiten el rótulo');
     assert.equal(brujula.interpretar('(no local continuation for this branch/worktree)'), null);
     return donde;
   });
@@ -892,7 +892,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(por['El asistente, montado aquí'].estado, 'si');
     assert.equal(por['Conexiones con tus herramientas'].detalle, '1', 'la empresa de mentira tiene una');
     assert.equal(por['Copias fuera de este ordenador'].estado, 'no', 'sin sesión, se dice que no');
-    assert.ok(por['Lo que sabe de tu trabajo'], 'la wiki también se cuenta');
+    assert.ok(por['Lo que sabe'], 'la wiki también se cuenta');
     return `${radio.piezas.length} piezas`;
   });
 
@@ -987,7 +987,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     // Salía "Conexiones (Readme.md)" en la brújula, que no significa nada.
     const zonas = brujula.zonasTocadas(['01-TOOLS/README.md', '01-TOOLS/ODOO/.env', '01-TOOLS/_TEMPLATE/x.sh']);
     assert.ok(!zonas.some((z) => /\./.test(z)), `ninguna zona lleva un nombre de fichero: ${zonas.join(' · ')}`);
-    assert.ok(zonas.includes('Conexiones (Odoo)'), 'la herramienta de verdad sí sale');
+    assert.ok(zonas.includes('Tus programas (Odoo)'), 'la herramienta de verdad sí sale');
     return zonas.join(' · ');
   });
 
@@ -1087,12 +1087,14 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${sesiones.length} anotaciones · ${decisiones.length} decisiones`;
   });
 
-  await comprobar('no se lee nada de fuera del diario', () => {
+  await comprobar('no se abre nada de fuera del diario', () => {
     const diario = cargar('diario');
     for (const truco of ['../../../etc/passwd', '../../wiki/index.md', 'algo.txt']) {
-      assert.equal(diario.leerSesion(truco), null, `${truco} no puede leerse desde aquí`);
+      assert.equal(diario.dondeVive(truco), null, `${truco} no se abre desde aquí`);
     }
-    return '3 intentos, ninguno pasa';
+    // Y una de verdad sí, que si no la prueba pasaría con la función rota.
+    assert.ok(diario.dondeVive(diario.sesiones()[0].fichero), 'la que existe sí');
+    return '3 intentos fuera, ninguno pasa';
   });
 
   await comprobar('cambiar cómo te habla reescribe el perfil sin romper lo demás', () => {
@@ -1133,7 +1135,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const principal = panel.slice(panel.indexOf('function pantallaPrincipal'), panel.indexOf('function pantallaConexiones'));
 
     const imprescindibles = [
-      'verCerebro', 'anadirDocumentos', 'verSalidas', 'verConexiones',
+      'verCerebro', 'verHuecos', 'anadirDocumentos', 'verSalidas', 'verConexiones',
       'guardarCopia', 'verCopiaFuera', 'verCopias',
       'verDiario', 'verSaberes', 'verTrato', 'verRadiografia', 'algoVaMal',
       'elegirCarpeta', 'ponerLaCara', 'verEditorCompleto', 'bajarLaNueva',
@@ -1148,6 +1150,17 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.ok(ids.length >= 5, 'las cinco filas');
 
     return `${imprescindibles.length} acciones · ${ids.length} filas`;
+  });
+
+  await comprobar('el texto apagado no se apaga dos veces', () => {
+    // `--apagado` ya viene calculado para cumplir contraste sobre el fondo.
+    // Ponerle encima una opacidad lo hunde otra vez, y con tema oscuro acaba
+    // en gris sobre gris. Pasó con las pistas del diario.
+    const css = fs.readFileSync(path.join(RAIZ, 'media', 'panel.css'), 'utf8');
+    const culpables = css.split('\n')
+      .filter((l) => /opacity/.test(l) && /\.(pista|detalle|cuando|cuantos|paso-cuerpo|pieza-detalle)\b/.test(l));
+    assert.deepEqual(culpables, [], `texto apagado con opacidad encima: ${culpables.join(' | ')}`);
+    return 'ninguno';
   });
 
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
@@ -1196,8 +1209,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const pantallas = [
       ['esperando', { tipo: 'esperando', que: 'Un momento…' }, /Volver/],
       ['estado', { tipo: 'estado', estado: { listo: true, donde: 'Tu trabajo', sabe: 1, conectados: 1 }, acciones: [], deUnVistazo: [], modo: 'sencillo', marcaPuesta: true, comoSeLlama: 'tu trabajo' }, /Tu trabajo/],
-      ['radiografia', { tipo: 'radiografia', ...radio }, /Qué hay en esta carpeta/],
-      ['saberes', { tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie }, /Qué sabe hacer/],
+      ['radiografia', { tipo: 'radiografia', ...radio }, /Qué falta por montar/],
+      ['saberes', { tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie }, /Habilidades/],
       ['salidas', { tipo: 'salidas', herramientas: cargar('salidas').loQueHaProducido() }, /Llevarte un archivo/],
       // Con la forma exacta que manda la extensión: si a una pantalla le falta
       // un campo, revienta y antes eso no se veía.
@@ -1205,8 +1218,6 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
         tipo: 'cerebro',
         temas: cerebroM.catalogo(),
         sinOrdenar: cerebroM.sinOrdenar().slice(0, 8),
-        aprendido: cerebroM.aprendidoUltimamente(5),
-        huecos: cerebroM.loQueAunNoSabe(4),
         esperando: cerebroM.esperandoLectura(),
         yaLeidos: cerebroM.yaLeidos(),
         hayPanel: cerebroM.hayPanel(),
@@ -1216,8 +1227,13 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['copias', { tipo: 'copias', copias: [] }, /./],
       ['copiaFuera', { tipo: 'copiaFuera', github: { conectado: false, usuario: null, remoto: null } }, /Entrar en mi cuenta/],
       ['incidencia', { tipo: 'incidencia', codigo: 'ABC234', sano: true }, /ABC234/],
-      ['diario', { tipo: 'diario', sesiones: diarioM.sesiones(), decisiones: diarioM.decisiones() }, /Talleres Ruiz/],
-      ['sesion', { tipo: 'sesion', ...(diarioM.leerSesion(diarioM.sesiones()[0].fichero) || {}) }, /Ferretería Soler/],
+      ['diario', {
+        tipo: 'diario',
+        sesiones: diarioM.sesiones(),
+        decisiones: diarioM.decisiones(),
+        aprendido: cerebroM.aprendidoUltimamente(5),
+      }, /Talleres Ruiz/],
+      ['huecos', { tipo: 'huecos', huecos: cerebroM.loQueAunNoSabe(4) }, /Preguntas sin contestar/],
       ['trato', { tipo: 'trato', ...tratoM.comoEstamos(), aviso: null }, /Cuánto te explica/],
       ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
     ];
@@ -1241,6 +1257,23 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.match(raro, /no se ha podido pintar/, 'un mensaje desconocido tiene que verse, no congelar la pantalla');
 
     return `${pantallas.length} pantallas, y los mensajes raros se ven`;
+  });
+
+  await comprobar('en el diario, la fecha no se pega al título', () => {
+    // Salía "…y sale a la luz el diario del arnéshoy": la fecha iba detrás del
+    // título dentro del mismo párrafo, y ese párrafo no es una fila flexible,
+    // así que se quedaban pegadas. Lo vio Jose en la barra.
+    const p = montarPanel();
+    const diarioM = cargar('diario');
+    const pintado = p.mandar({ tipo: 'diario', sesiones: diarioM.sesiones(), decisiones: diarioM.decisiones() });
+
+    for (const s of diarioM.sesiones()) {
+      const sinEspacio = new RegExp(`${s.titulo.slice(-6).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}<`);
+      assert.ok(sinEspacio.test(pintado), 'el título tiene que cerrar su propio trozo');
+    }
+    assert.ok(!/<\/p><span class="cuando"/.test(pintado));
+    assert.match(pintado, /<p class="cuando">/, 'la fecha va en su línea');
+    return 'fecha arriba, título debajo';
   });
 
   // -------------------------------------------------- carpetas de alguien

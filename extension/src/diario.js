@@ -100,30 +100,17 @@ function sesiones(cuantas = TOPE) {
     .map((s) => ({ ...s, titulo: s.titulo || s.resumen }));
 }
 
-// Abrir una: se lee del disco y se pinta dentro de la barra, sin sacar a nadie
-// a otra ventana. Solo de esta carpeta, y solo un `.md` de ahí dentro.
-function leerSesion(fichero) {
+// Dónde está una anotación, comprobando que es de esta carpeta y que es un
+// `.md` de ahí dentro. El nombre viene de un mensaje del panel, así que se
+// comprueba igual que si viniera de fuera.
+function dondeVive(fichero) {
   const carpeta = proyecto.ruta(...SESIONES);
   if (!carpeta) return null;
 
   const completa = path.resolve(carpeta, fichero);
   const dentro = path.resolve(carpeta) + path.sep;
   if (!completa.startsWith(dentro) || !completa.endsWith('.md')) return null;
-
-  let crudo;
-  try {
-    crudo = fs.readFileSync(completa, 'utf8');
-  } catch {
-    return null;
-  }
-
-  const campos = frontmatter.analizar(crudo);
-  const cuerpo = crudo.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
-  return {
-    titulo: String(campos.title || '').trim() || path.basename(fichero, '.md'),
-    fecha: laFecha(path.basename(fichero), campos),
-    cuerpo,
-  };
+  return fs.existsSync(completa) ? completa : null;
 }
 
 // ----------------------------------------------------------- las decisiones
@@ -184,4 +171,4 @@ function hayDiario() {
   return sesiones(1).length > 0 || decisiones(1).length > 0;
 }
 
-module.exports = { sesiones, leerSesion, decisiones, hayDiario };
+module.exports = { sesiones, dondeVive, decisiones, hayDiario };

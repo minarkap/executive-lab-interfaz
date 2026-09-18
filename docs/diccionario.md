@@ -13,33 +13,34 @@ jerga por goteo.
 | carpeta del proyecto / repo / workspace | Mi Empresa |
 | `git commit` | Guardar en git |
 | `git log` / `git restore` / checkout | Volver a como estaba el martes |
-| `.env` / variables de entorno / secretos | Mis conexiones |
+| `.env` / variables de entorno / secretos | Tus programas |
 | API key / token / credencial | Clave de acceso |
 | `rsc doctor` / `rsc repair` | Revisar y arreglar |
-| `rsc add <skill>` | Enseñarle a hacer algo nuevo |
+| la radiografía de la carpeta | Qué falta por montar |
+| `rsc add <skill>` | Que lo aprenda |
 | skill | Habilidad |
 | `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |
-| `01-TOOLS/` | Conexiones |
+| `01-TOOLS/` | Tus programas |
 | `rsc memory resume` | Seguir donde lo dejé |
 | sesión / contexto / conversación del agente | Conversación |
 | prompt | Lo que le pides |
 | agente / modelo / LLM | El asistente |
 | error / excepción / stack trace | Algo va mal |
 | log / diagnóstico | Informe para tu tutor |
-| `01-TOOLS/` | Mis conexiones |
-| una carpeta de `01-TOOLS/` | Una conexión |
-| los scripts de una herramienta | Qué puedes hacer con esto |
+| una carpeta de `01-TOOLS/` | Un programa |
+| el catálogo de habilidades de RSC | Habilidades · Todo lo que sabe hacer |
+| los scripts de una herramienta | Consultar · Consultas |
 | `.claude/commands/` con `boton:` | Qué quieres hacer |
 | `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |
 | un tema de la wiki | Un tema |
-| un artículo de la wiki | Una cosa que sabe |
-| `02-DOCS/wiki/log.md` | Qué ha aprendido últimamente |
-| `02-DOCS/wiki/gaps.md` | Lo que aún no sabe |
+| un artículo de la wiki | Un concepto |
+| `02-DOCS/wiki/log.md` | Lo último que ha anotado (dentro de El diario) |
+| `02-DOCS/wiki/gaps.md` | Preguntas sin contestar |
 | `02-DOCS/inbox/` | Darle documentos |
 | `02-DOCS/inbox/_processed/` | Documentos que ya ha leído |
 | `02-DOCS/wiki/dashboard.html` | El panel completo |
 | `rsc onboard` en una carpeta nueva | Preparar esta carpeta |
-| abrir otra carpeta | Elegir una carpeta · Cambiar de carpeta |
+| abrir otra carpeta | Elegir una carpeta (la primera vez) · Cambiar de proyecto |
 | quitar el disfraz en esta ventana | Ver el editor completo |
 | poner el disfraz en esta ventana | Volver al modo sencillo |
 | `02-DOCS/wiki/brand/marca.md` | La marca de tu empresa |
@@ -54,17 +55,17 @@ jerga por goteo.
 | `rsc add <skill>` desde la barra | Que lo aprenda |
 | crear un `.claude/commands/` nuevo por repetición | Que se quede como botón |
 | la web de la empresa del alumno | Tu web |
-| escribir el récord de marca | Ponerle la cara de tu empresa |
+| escribir el récord de marca | Poner el tema de mi empresa |
 | un logotipo que es solo el símbolo | (se pinta el símbolo y, al lado, el nombre de la empresa) |
-| `02-DOCS/raw/worklog/` | Días de trabajo |
+| `02-DOCS/raw/worklog/` | Días de trabajo (se abren al lado, no en la barra) |
 | una ficha de `raw/worklog/` | Una anotación |
-| `02-DOCS/wiki/harness/decisions.md` | Qué decidisteis, y por qué |
-| las dos cosas juntas, en la barra | Qué se ha hecho · El diario y las decisiones |
+| `02-DOCS/wiki/harness/decisions.md` | Decisiones |
+| las dos cosas juntas, en la barra | El diario |
 | `accompaniment_level` y `technical_level` del perfil | Cómo te habla |
 | `accompaniment_level` | Cuánto te explica |
 | `technical_level` | Con qué palabras |
 | elegir uno de esos escalones | Ponme así |
-| los grupos plegados de la pantalla principal | Lo que sabe de <nombre> · Mis conexiones · Guardar · Qué se ha hecho · Ajustes y ayuda |
+| los grupos plegados de la pantalla principal | Lo que sabe · Documentos · Tus programas · Copias de seguridad · El diario · Ajustes · Si algo falla |
 
 ## Dos excepciones: git y GitHub
 

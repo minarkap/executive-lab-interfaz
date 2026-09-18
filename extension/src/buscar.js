@@ -173,9 +173,9 @@ function fraseCon(texto, termino) {
 // ------------------------------------------------------------- la busca
 
 const GRUPOS = [
-  { tipo: 'sabe', titulo: 'Cosas que sabe' },
+  { tipo: 'sabe', titulo: 'Lo que sabe' },
   { tipo: 'hacer', titulo: 'Cosas que puedes hacer' },
-  { tipo: 'conexion', titulo: 'Conexiones' },
+  { tipo: 'conexion', titulo: 'Tus programas' },
   { tipo: 'esperando', titulo: 'Documentos esperando a que los lea' },
 ];
 

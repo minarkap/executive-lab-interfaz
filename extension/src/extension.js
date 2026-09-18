@@ -297,6 +297,7 @@ ${cabecera}
       verRadiografia: () => this.verRadiografia(),
       verSaberes: () => this.verSaberes(),
       verSalidas: () => this.verSalidas(),
+      verHuecos: () => this.verHuecos(),
       verDiario: () => this.verDiario(),
       verSesion: () => this.verSesion(mensaje.fichero),
       verTrato: () => this.verTrato(),
@@ -396,8 +397,6 @@ ${cabecera}
       tipo: 'cerebro',
       temas: cerebro.catalogo(),
       sinOrdenar: cerebro.sinOrdenar().slice(0, 8),
-      aprendido: cerebro.aprendidoUltimamente(5),
-      huecos: cerebro.loQueAunNoSabe(4),
       esperando: cerebro.esperandoLectura(),
       yaLeidos: cerebro.yaLeidos(),
       hayPanel: cerebro.hayPanel(),
@@ -514,18 +513,44 @@ ${cabecera}
     this.enviar({ tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie });
   }
 
+  // Lo que sabe que no sabe. Estaba al final de la pantalla de conceptos,
+  // detrás de todo lo demás, que es donde no lo ve nadie.
+  async verHuecos() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'huecos', huecos: cerebro.loQueAunNoSabe(20) });
+  }
+
   // El diario del arnés: lo que se hizo cada día y lo que se decidió. Las dos
   // cosas las escribe RSC solo y hasta ahora no las veía nadie.
   async verDiario() {
     this.donde = { tipo: 'quieto' };
-    this.enviar({ tipo: 'diario', sesiones: diario.sesiones(), decisiones: diario.decisiones() });
+    this.enviar({
+      tipo: 'diario',
+      sesiones: diario.sesiones(),
+      decisiones: diario.decisiones(),
+      // `log.md` es el registro de operaciones del arnés: es diario, no
+      // documentación. Salía en la pantalla de documentos, que no es su sitio.
+      aprendido: cerebro.aprendidoUltimamente(5),
+    });
   }
 
+  // Una anotación entera NO cabe en la barra. Se probó y se vio: media página
+  // de texto en una columna de 300px, con los nombres de fichero saliéndose
+  // por el lado, no hay quien la lea. Así que se abre al lado, ya compuesta,
+  // que es donde se lee un documento largo.
   async verSesion(fichero) {
-    const leido = diario.leerSesion(fichero);
-    if (!leido) return this.enviar({ tipo: 'aviso', texto: 'Esa anotación ya no está.', malo: true });
-    this.donde = { tipo: 'quieto' };
-    return this.enviar({ tipo: 'sesion', titulo: leido.titulo, fecha: leido.fecha, cuerpo: leido.cuerpo });
+    const donde = diario.dondeVive(fichero);
+    if (!donde) return this.enviar({ tipo: 'aviso', texto: 'Esa anotación ya no está.', malo: true });
+
+    const uri = vscode.Uri.file(donde);
+    try {
+      // Compuesto, no en crudo: quien lee esto no tiene por qué ver los
+      // asteriscos y las almohadillas.
+      await vscode.commands.executeCommand('markdown.showPreviewToSide', uri);
+    } catch {
+      await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside, preview: true });
+    }
+    return undefined;
   }
 
   // Cuánto te explica y con qué palabras. Lo guarda el arnés en su perfil y lo
@@ -833,6 +858,7 @@ function activate(contexto) {
     comando('executiveLab.radiografia', () => panel.verRadiografia()),
     comando('executiveLab.saberes', () => panel.verSaberes()),
     comando('executiveLab.salidas', () => panel.verSalidas()),
+    comando('executiveLab.huecos', () => panel.verHuecos()),
     comando('executiveLab.diario', () => panel.verDiario()),
     comando('executiveLab.trato', () => panel.verTrato()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),

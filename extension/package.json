@@ -3,7 +3,7 @@
   "displayName": "Executive Lab",
   "description": "Convierte VS Code en una sola pantalla sencilla para trabajar con un arnés de IA, sin ver ficheros, rutas ni terminales.",
   "publisher": "executivelab",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "license": "UNLICENSED",
   "engines": {
     "vscode": "^1.98.0"
@@ -51,7 +51,7 @@
       },
       {
         "command": "executiveLab.cerebro",
-        "title": "Executive Lab: Lo que sabe de tu empresa"
+        "title": "Executive Lab: Lo que sabe"
       },
       {
         "command": "executiveLab.documentos",
@@ -59,7 +59,7 @@
       },
       {
         "command": "executiveLab.conexiones",
-        "title": "Executive Lab: Mis conexiones"
+        "title": "Executive Lab: Tus programas"
       },
       {
         "command": "executiveLab.guardar",
@@ -99,7 +99,7 @@
       },
       {
         "command": "executiveLab.radiografia",
-        "title": "Executive Lab: Qué hay en esta carpeta"
+        "title": "Executive Lab: Qué falta por montar"
       },
       {
         "command": "executiveLab.copiaFuera",
@@ -107,15 +107,19 @@
       },
       {
         "command": "executiveLab.saberes",
-        "title": "Executive Lab: Qué sabe hacer"
+        "title": "Executive Lab: Habilidades"
       },
       {
         "command": "executiveLab.salidas",
         "title": "Executive Lab: Llevarte un archivo"
       },
       {
+        "command": "executiveLab.huecos",
+        "title": "Executive Lab: Preguntas sin contestar"
+      },
+      {
         "command": "executiveLab.diario",
-        "title": "Executive Lab: Qué se ha hecho"
+        "title": "Executive Lab: El diario"
       },
       {
         "command": "executiveLab.trato",
