@@ -60,13 +60,16 @@ const SIN_DOCK = process.argv.includes('--sin-dock');
 const registro = [];
 const anotar = (linea) => registro.push(`[${new Date().toISOString()}] ${linea}`);
 
-const PASOS = 6;
+// Cuántas veces se llama a contar(). Si añades un paso, súbelo: la barra de la
+// app se dibuja con esto, y contar() deja un AVISO en el registro si se pasa.
+const PASOS = 7;
 let paso = 0;
 
 // La app lee este fichero cada medio segundo. Una línea por paso, y la última
 // dice cómo ha acabado.
 function contar(texto) {
   paso += 1;
+  if (paso > PASOS) anotar(`AVISO: hay más pasos que los ${PASOS} declarados; sube PASOS.`);
   anotar(`PASO ${paso}/${PASOS} ${texto}`);
   const fichero = argumento('progreso');
   if (!fichero) return;
@@ -206,8 +209,8 @@ async function asegurarGit() {
     return;
   }
 
-  contar('Instalando git — tu Mac te pedirá permiso');
-  const hecho = await git.instalar({}, (que) => anotar(`git: ${que}`));
+  detalle('Instalando git — tu Mac te pedirá permiso');
+  const hecho = await git.instalar({}, (que) => detalle(`git: ${que}`));
   anotar(hecho.ok ? 'git: instalado.' : `AVISO: git no ha quedado puesto (${hecho.mensaje}). Lo ofrecerá el panel.`);
 }
 

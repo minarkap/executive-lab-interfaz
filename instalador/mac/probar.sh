@@ -180,9 +180,15 @@ comprobar 'las dos piezas del editor están instaladas' bash -c '
   ls "$ext" | grep -q "^anthropic.claude-code" || { echo "falta la del asistente"; exit 1; }
   echo "la nuestra y la del asistente"'
 
+# El instalador escribe en os.tmpdir(), que en macOS NO es /tmp: es el $TMPDIR
+# privado de cada usuario. Mirar solo en /tmp hacía que esto se saltara siempre,
+# y una comprobación que nunca se ejecuta no comprueba nada.
 comprobar 'el informe de la instalación no tiene errores' bash -c '
-  log=/tmp/executive-lab-instalacion.log
-  [ -f "$log" ] || { echo "SALTADA"; exit 0; }
+  log=""
+  for donde in "${TMPDIR:-/tmp}/executive-lab-instalacion.log" /tmp/executive-lab-instalacion.log; do
+    [ -f "$donde" ] && log="$donde" && break
+  done
+  [ -n "$log" ] || { echo "SALTADA"; exit 0; }
   malas="$(grep -c "^ERROR\|ERROR " "$log" || true)"
   [ "$malas" = "0" ] || { echo "$malas líneas con error"; exit 1; }
   echo "limpio"'
