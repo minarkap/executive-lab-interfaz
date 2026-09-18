@@ -1309,3 +1309,74 @@ Así que se separa por estado, que es lo único honesto:
   el único que sabe qué conceptos salieron de ese papel y puede quitarlos con él. Además `raw/` es
   la prueba de lo que entró: el protocolo del arnés dice que no se borra, y hacerlo a sus espaldas
   le rompería la contabilidad de lo ingerido.
+
+---
+
+## 49. "Cómo quieres que trabaje": la personalización, junta y en su subapartado
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«hazlo, sí! pero igual todo eso si es tantas cosas debería ir en subapartado»*. Tiene razón:
+cuatro cosas más sueltas en Ajustes lo convertían en el cajón del que veníamos huyendo.
+
+Dentro van las cuatro que cambian el día a día:
+
+**Qué puede hacer sin preguntarte.** Es el ajuste que más miedo da a alguien no técnico —«¿y si me
+borra algo?»— y vivía en un fichero de configuración que no se enseña. Se escribe en
+`.claude/settings.json` como `permissions.defaultMode`, con tres opciones dichas por lo que le pasa
+a quien lo usa. El cuarto modo que existe —saltarse los permisos— **no se ofrece**: no es un ajuste,
+es quitarle el freno de mano a alguien que no sabe que lo tiene. Y se escribe respetando el resto
+del fichero, porque ahí viven los enganches del arnés y perderlos dejaría la carpeta a medias sin
+que se note.
+
+**Cada cuánto guarda solo.** No existía: guardar era siempre a mano, y quien no se acuerda de pulsar
+el botón no tiene copias — que es exactamente el público de esto, alguien que está pensando en sus
+facturas y no en su historial. Tres opciones, y por defecto sigue siendo a mano.
+
+Las tres cosas que el guardado automático **no** hace, que son lo importante:
+
+- **No toca el historial de otra persona.** La decisión 28 lo exigía para el primer guardado; aquí
+  vale con más razón, porque no hay nadie mirando.
+- **No guarda si no hay nada nuevo.** Una copia idéntica a la anterior es ruido en una lista que
+  alguien tiene que poder leer.
+- **No avisa.** Una barra que interrumpe cada hora para decir que todo va bien acaba cerrada.
+
+**Para qué es esto, y los límites.** Se escriben el día que se monta la carpeta y no se vuelven a
+ver nunca. Están en el perfil, que es lo que el asistente lee antes de contestar: si el objetivo ya
+no es el de entonces, está trabajando para el de entonces.
+
+**Cómo te habla**, que ya estaba, con un acceso desde aquí además del suyo.
+
+### Un fallo que encontró la prueba
+
+El reloj del guardado automático dejaba el proceso vivo para siempre: las pruebas se quedaban
+colgadas al arrancar la extensión. Se arregla con `unref()`. En el editor daba igual —la ventana
+sigue abierta de todos modos— pero es la clase de cosa que solo se ve cuando algo la ejercita.
+
+---
+
+## 50. Codex: lo que se ha podido adaptar, y lo que no se ha podido comprobar
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** parcial, a propósito
+
+Jose pidió revisar que todo esté bien adaptado para Codex. Lo que se ha hecho:
+
+**Las reglas de quien lee.** `CLAUDE.md` y `AGENTS.md` llevan las mismas reglas por diseño del
+arnés, así que se enseña una sola lista — pero la del asistente con el que se está hablando. Con
+Codex, `CLAUDE.md` no lo lee nadie: enseñar sus reglas sería enseñar reglas que no se están
+aplicando, que es peor que no enseñar ninguna.
+
+**Lo que ya estaba bien:** la pantalla *Con quién hablas* dice qué cambia con cada uno, y lo dice
+donde se lee en vez de en una nota al pie — con Codex los botones abren su barra y dejan el texto
+copiado, porque su extensión no admite que se lo pasen (comprobado leyéndola el 17 de septiembre, no
+adivinado). Y *Qué puede hacer sin preguntarte* avisa de que es cosa de Claude.
+
+**Lo que NO se ha podido comprobar, y hay que decirlo:** tres sitios de la barra leen rutas de
+Claude — los botones (`.claude/commands/`), las habilidades (`.claude/skills/`) y los permisos.
+Si RSC, al montar un arnés para Codex, escribe esas cosas en otro sitio, en esa carpeta la barra
+enseñaría cero botones y cero habilidades **sin dar ningún error**, que es la peor forma de fallar
+que tiene este proyecto.
+
+Para saberlo hay que leer el paquete de RSC, y el que está instalado en esta máquina es un enlace a
+**otro proyecto de Jose** (`dashboard-formacion/rsc-harness`). Eso queda fuera del límite de ámbito,
+así que no se ha mirado. Pendiente de que él lo autorice o lo confirme de memoria.

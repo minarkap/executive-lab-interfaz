@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -1274,6 +1274,57 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'se ofrece y se puede rechazar';
   });
 
+  await comprobar('con Codex se enseñan las reglas de AGENTS.md, no las de Claude', () => {
+    // Con Codex, `CLAUDE.md` no lo lee nadie. Enseñar sus reglas sería enseñar
+    // reglas que no se están aplicando, que es peor que no enseñar ninguna.
+    const reglas = cargar('reglas');
+    const fs2 = require('node:fs');
+    const declaracion = path.join(vscode.guion.raiz, '.rsc.json');
+    const antes = fs2.readFileSync(declaracion, 'utf8');
+
+    assert.equal(reglas.queHay().cual, 'claude');
+
+    fs2.writeFileSync(declaracion, JSON.stringify({ ...JSON.parse(antes), targets: ['codex'] }, null, 2));
+    vscode.guion.extensionesInstaladas = ['openai.chatgpt'];
+    assert.equal(reglas.queHay().cual, 'otros', 'con Codex manda AGENTS.md');
+
+    fs2.writeFileSync(declaracion, antes);
+    vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    return 'cada uno lee las suyas';
+  });
+
+  await comprobar('lo que puede hacer solo se escribe sin perder los enganches', () => {
+    // En `.claude/settings.json` viven los enganches del arnés. Escribir ahí
+    // pisando el fichero dejaría la carpeta a medias sin que se note.
+    const ajustes = cargar('ajustes');
+    const fichero = path.join(vscode.guion.raiz, '.claude/settings.json');
+    fs.mkdirSync(path.dirname(fichero), { recursive: true });
+    fs.writeFileSync(fichero, JSON.stringify({ hooks: { SessionStart: ['algo'] } }, null, 2));
+
+    assert.equal(ajustes.comoEstamos().permiso, 'default', 'sin nada escrito, lo prudente');
+    assert.ok(ajustes.ponerPermiso('plan').ok);
+
+    const despues = JSON.parse(fs.readFileSync(fichero, 'utf8'));
+    assert.equal(despues.permissions.defaultMode, 'plan');
+    assert.deepEqual(despues.hooks.SessionStart, ['algo'], 'los enganches siguen ahí');
+
+    assert.ok(!ajustes.ponerPermiso('bypassPermissions').ok, 'quitarle el freno de mano no es un ajuste que ofrezcamos');
+    return 'escrito sin pisar nada';
+  });
+
+  await comprobar('guardar solo no toca el historial de otra persona', () => {
+    // Guardar a mano lo pulsa alguien que está mirando. Guardar solo, no: si
+    // la carpeta ya venía con trabajo de otro, no se escribe nada.
+    const fuente = fs.readFileSync(path.join(RAIZ, 'src', 'extension.js'), 'utf8');
+    const trozo = fuente.slice(fuente.indexOf('function guardarSolo'), fuente.indexOf('function activate'));
+
+    assert.match(trozo, /podemosGuardarElPuntoDePartida/, 'la guardia de la decisión 28 también aquí');
+    assert.match(trozo, /cambiosSinGuardar/, 'y no guarda si no hay nada nuevo');
+    assert.match(trozo, /unref/, 'y el reloj no mantiene vivo el proceso');
+    assert.ok(!/showInformationMessage|showWarningMessage/.test(trozo), 'y no interrumpe para decir que todo va bien');
+    return 'tres guardias';
+  });
+
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
     // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
     // había forma de salir de esa pantalla.
@@ -1349,6 +1400,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['ayuda', { tipo: 'ayuda', github: { conectado: false } }, /Estoy atascado|por dónde seguir/],
       ['reglas', { tipo: 'reglas', ...cargar('reglas').queHay() }, /albarán firmado/],
       ['asistente', { tipo: 'asistente', ...cargar('asistentes').comoEstamos(), aviso: null }, /Claude|Codex/],
+      ['comoTrabaja', { tipo: 'comoTrabaja', ...cargar('ajustes').comoEstamos(), aviso: null }, /Cada cuánto guarda solo/],
       ['trato', { tipo: 'trato', ...tratoM.comoEstamos(), aviso: null }, /Cuánto te explica/],
       ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
     ];

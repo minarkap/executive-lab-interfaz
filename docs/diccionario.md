@@ -36,6 +36,11 @@ jerga por goteo.
 | `CLAUDE.md` / `AGENTS.md`, sección Working rules | Cómo se trabaja aquí |
 | los dos juntos | Las reglas |
 | `targets` de `.rsc.json` (Claude o Codex) | Con quién hablas |
+| el subapartado de personalización | Cómo quieres que trabaje |
+| `permissions.defaultMode` de Claude | Qué puede hacer sin preguntarte |
+| `plan` / `default` / `acceptEdits` | Que me lo proponga antes · Que me pregunte al cambiar algo · Que cambie ficheros sin preguntar |
+| guardar en git con un reloj | Cada cuánto guarda solo |
+| `Goals` y `Constraints` del perfil | Para qué es esto · Los límites que pusiste |
 | borrar un documento sin leer | Quitar |
 | borrar uno ya leído, con lo que aprendió de él | Quitar algo que ya ha leído |
 | los scripts de una herramienta | Consultar · Consultas |

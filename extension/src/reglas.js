@@ -21,6 +21,7 @@
 
 const fs = require('node:fs');
 const proyecto = require('./proyecto');
+const asistentes = require('./asistentes');
 
 const CONSTITUCION = ['02-DOCS', 'wiki', 'sdd', 'constitution.md'];
 const DE_CLAUDE = ['CLAUDE.md'];
@@ -86,14 +87,22 @@ function queHay() {
   const deClaude = leer(...DE_CLAUDE);
   const deLosDemas = leer(...DE_LOS_DEMAS);
 
+  // `AGENTS.md` repite las de `CLAUDE.md` por diseño, así que se enseña una
+  // sola lista: dos listas iguales seguidas solo hacen dudar de si son
+  // distintas. Manda la del asistente con el que se está hablando — con Codex,
+  // `CLAUDE.md` no lo lee nadie, así que enseñarlo sería enseñar reglas que no
+  // se están aplicando.
+  const conCodex = asistentes.elDeAhora().id !== 'claude';
+  const primero = conCodex ? deLosDemas : deClaude;
+  const segundo = conCodex ? deClaude : deLosDemas;
+
   return {
     innegociables: principios(constitucion),
-    // `AGENTS.md` repite las de `CLAUDE.md` por diseño, así que si las dos
-    // están se enseña una sola lista: dos listas iguales seguidas solo hacen
-    // dudar de si son distintas.
-    deLaCasa: puntosDe(deClaude, 'Working rules').length
-      ? puntosDe(deClaude, 'Working rules')
-      : puntosDe(deLosDemas, 'Working rules'),
+    deLaCasa: puntosDe(primero, 'Working rules').length
+      ? puntosDe(primero, 'Working rules')
+      : puntosDe(segundo, 'Working rules'),
+    // Cuál se está leyendo, para que el botón de "verlas enteras" abra ese.
+    cual: conCodex ? 'otros' : 'claude',
     hay: {
       constitucion: Boolean(constitucion),
       claude: Boolean(deClaude),

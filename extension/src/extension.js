@@ -36,6 +36,7 @@ const version = require('./version');
 const diario = require('./diario');
 const papeles = require('./papeles');
 const reglas = require('./reglas');
+const ajustes = require('./ajustes');
 const asistentes = require('./asistentes');
 const trato = require('./trato');
 const marca = require('./marca');
@@ -308,6 +309,9 @@ ${cabecera}
       verReglas: () => this.verReglas(),
       abrirReglas: () => this.abrirReglas(mensaje.cual),
       verAsistente: () => this.verAsistente(),
+      verComoTrabaja: () => this.verComoTrabaja(),
+      ponerPermiso: () => this.cambiarAjuste(ajustes.ponerPermiso, mensaje.cual),
+      ponerCadaCuanto: () => this.cambiarAjuste(ajustes.ponerCadaCuanto, mensaje.cual),
       elegirAsistente: () => this.elegirAsistente(mensaje.cual),
       verDiario: () => this.verDiario(),
       verSesion: () => this.verSesion(mensaje.fichero),
@@ -577,6 +581,17 @@ ${cabecera}
       await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside, preview: true });
     }
     return undefined;
+  }
+
+  // El subapartado de personalización: cuatro cosas que cambian el día a día.
+  async verComoTrabaja(avisoLocal = null) {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'comoTrabaja', ...ajustes.comoEstamos(), aviso: avisoLocal });
+  }
+
+  async cambiarAjuste(poner, cual) {
+    const { ok, mensaje } = await poner(cual);
+    return this.verComoTrabaja({ texto: mensaje, malo: !ok });
   }
 
   async verAsistente(avisoLocal = null) {
@@ -937,6 +952,59 @@ function vigilarElModo(contexto) {
   return repintar;
 }
 
+// Guardar solo, cada tanto.
+//
+// ── Por qué existe ───────────────────────────────────────────────────────
+//
+// Guardar era siempre a mano, y quien no se acuerda de pulsar el botón no
+// tiene copias. Que es exactamente el público de esto: alguien que está
+// pensando en sus facturas, no en su historial.
+//
+// ── Las tres cosas que NO hace, que son lo importante ────────────────────
+//
+//   · **No toca el historial de otra persona.** Si la carpeta ya venía con
+//     trabajo de alguien, no se guarda nada solo: la decisión 28 lo dice para
+//     el primer guardado y aquí vale igual, o con más razón, porque aquí no
+//     hay nadie mirando.
+//   · **No guarda si no hay nada nuevo.** Una copia idéntica a la anterior es
+//     ruido en una lista que alguien tiene que poder leer.
+//   · **No avisa.** Una barra que interrumpe cada hora para decir que todo va
+//     bien es una barra que se acaba cerrando. Si falla, se apunta en la salida
+//     y ya; es un extra, no puede estropearle el rato a nadie.
+function guardarSolo(panel, salida) {
+  // Se mira cada cuarto de hora y se guarda cuando toque: así cambiar el ajuste
+  // no obliga a reiniciar nada, y un portátil que se suspende no pierde el turno.
+  const MIRAR_CADA = 15 * 60 * 1000;
+  let ultima = Date.now();
+
+  const reloj = setInterval(async () => {
+    try {
+      const horas = ajustes.cadaCuantoGuarda();
+      if (!horas) return;
+      if (Date.now() - ultima < horas * 60 * 60 * 1000) return;
+
+      if (!(await copias.hayGit())) return;
+      if (!(await copias.cambiosSinGuardar())) return;
+      if (!(await terreno.podemosGuardarElPuntoDePartida())) return;
+
+      const hecho = await copias.guardar(`Copia automática — ${copias.fechaLarga()}`);
+      ultima = Date.now();
+      if (!hecho.ok) salida.appendLine(`[guardarSolo] ${hecho.mensaje}`);
+      else await panel.refrescar(true);
+    } catch (error) {
+      salida.appendLine(`[guardarSolo] ${error.stack || error.message}`);
+    }
+  }, MIRAR_CADA);
+
+  // Que no sea este reloj lo que mantenga vivo el proceso. En el editor da
+  // igual —la ventana sigue abierta de todos modos— pero sin esto las pruebas
+  // se quedan colgadas para siempre al arrancar la extensión, que es como se
+  // descubrió.
+  if (typeof reloj.unref === 'function') reloj.unref();
+
+  return { dispose: () => clearInterval(reloj) };
+}
+
 function activate(contexto) {
   const salida = vscode.window.createOutputChannel('Executive Lab');
   rsc.saberDondeEstamos(contexto.extensionPath);
@@ -946,6 +1014,7 @@ function activate(contexto) {
 
   contexto.subscriptions.push(
     salida,
+    guardarSolo(panel, salida),
     vscode.window.registerWebviewViewProvider('executiveLab.panel', panel),
     comando('executiveLab.refrescar', () => panel.refrescar(true)),
     comando('executiveLab.guardar', () => panel.guardarCopia()),
@@ -959,6 +1028,7 @@ function activate(contexto) {
     comando('executiveLab.ayuda', () => panel.verAyuda()),
     comando('executiveLab.reglas', () => panel.verReglas()),
     comando('executiveLab.asistente', () => panel.verAsistente()),
+    comando('executiveLab.comoTrabaja', () => panel.verComoTrabaja()),
     comando('executiveLab.diario', () => panel.verDiario()),
     comando('executiveLab.trato', () => panel.verTrato()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),

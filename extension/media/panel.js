@@ -371,7 +371,7 @@ function pantallaSaberes(datos) {
 // ninguno se veía: la constitución (los innegociables, que el arnés pone en su
 // mapa bajo "léete esto siempre"), y las reglas de la casa del CLAUDE.md y del
 // AGENTS.md.
-function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {} }) {
+function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'claude' }) {
   const lista = (reglas, vacio, comoQuitar) => (reglas.length
     ? reglas.map((r) => `<div class="entrada"><p class="nombre">${enLinea(r)}</p></div>`).join('')
     : nada(vacio));
@@ -392,7 +392,7 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {} }) {
     <hr class="separador">
     <h2>Cómo se trabaja aquí</h2>
     ${lista(deLaCasa, 'Todavía no hay ninguna.')}
-    ${hay.claude ? boton({ etiqueta: 'Verlas enteras', icono: '▸', pequeno: true, discreto: true, accion: { tipo: 'abrirReglas', cual: 'claude' } }) : ''}
+    ${hay[cual] ? boton({ etiqueta: 'Verlas enteras', icono: '▸', pequeno: true, discreto: true, accion: { tipo: 'abrirReglas', cual } }) : ''}
 
     <hr class="separador">
     ${boton({
@@ -406,6 +406,61 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {} }) {
       icono: '🚫',
       accion: { tipo: 'pedir', prompt: 'Hay cosas que no quiero que hagas nunca en esta carpeta. Pregúntame cuáles son, una a una, y déjalas escritas donde te las leas siempre.' },
     })}
+
+    <hr class="separador">
+    ${volver()}
+  `;
+}
+
+// ------------------------------------------------- cómo quieres que trabaje
+
+// El subapartado de personalización. Son cuatro cosas y cada una cambia el día
+// a día, así que van juntas y no repartidas por la barra.
+function pantallaComoTrabaja({
+  permisos = [], permiso, cadaCuanto = [], guarda, objetivo, metas = [], limites = [], aviso: avisoLocal,
+}) {
+  const elegir = (opciones, puesto, accion) => opciones.map((o) => `
+    <div class="capacidad${o.id === puesto ? ' puesta' : ''}">
+      <p class="nombre">${texto(o.nombre)}${o.id === puesto ? ' <span class="cuantos">ahora mismo</span>' : ''}</p>
+      <p class="pista">${texto(o.frase)}</p>
+      ${o.id === puesto ? '' : boton({ etiqueta: 'Ponme así', icono: '▸', pequeno: true, accion: { ...accion, cual: o.id } })}
+    </div>`).join('');
+
+  const puntos = (lista) => `<ul class="lista">${lista.map((t) => `<li>${enLinea(t)}</li>`).join('')}</ul>`;
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Cómo quieres que trabaje' }])}
+    ${bloqueAviso(avisoLocal)}
+
+    <div class="brujula">
+      <h2>Cómo quieres que trabaje</h2>
+      <p class="hiciste">Cuatro cosas que cambian el día a día.</p>
+    </div>
+
+    <h2>Qué puede hacer sin preguntarte</h2>
+    ${elegir(permisos, permiso, { tipo: 'ponerPermiso' })}
+    <p class="detalle">Esto es para Claude. Codex lo lleva por su cuenta, en sus propios ajustes.</p>
+
+    <hr class="separador">
+    <h2>Cada cuánto guarda solo</h2>
+    ${elegir(cadaCuanto, guarda, { tipo: 'ponerCadaCuanto' })}
+    <p class="detalle">Solo mientras tengas esto abierto, y solo si hay algo nuevo. Nunca toca el historial de otra persona.</p>
+
+    <hr class="separador">
+    <h2>Para qué es esto</h2>
+    ${objetivo ? `<p class="hiciste">${enLinea(objetivo)}</p>` : nada('No lo dijiste al montar la carpeta.')}
+    ${metas.length ? puntos(metas) : ''}
+    ${limites.length ? `<h2>Los límites que pusiste</h2>${puntos(limites)}` : ''}
+    <p class="detalle">Se lo lee antes de contestarte. Si ya no es esto, díselo.</p>
+    ${boton({
+      etiqueta: 'Cambiar para qué es esto',
+      icono: '✏️',
+      accion: { tipo: 'pedir', prompt: 'Quiero repasar para qué es esta carpeta y qué límites tengo. Enséñame lo que tienes apuntado, pregúntame qué ha cambiado y déjalo al día en mi perfil.' },
+    })}
+
+    <hr class="separador">
+    <h2>Cómo te habla</h2>
+    ${boton({ etiqueta: 'Cuánto te explica y con qué palabras', icono: '🗣️', accion: { tipo: 'verTrato' } })}
 
     <hr class="separador">
     ${volver()}
@@ -1043,6 +1098,7 @@ function pantallaPrincipal() {
       id: 'grupo:ajustes',
       etiqueta: 'Ajustes',
       dentro: `
+        ${boton({ etiqueta: 'Cómo quieres que trabaje', icono: '🎛️', pequeno: true, accion: { tipo: 'verComoTrabaja' } })}
         ${boton({ etiqueta: 'Las reglas', icono: '📜', pequeno: true, accion: { tipo: 'verReglas' } })}
         ${boton({ etiqueta: 'Con quién hablas', icono: '💬', pequeno: true, accion: { tipo: 'verAsistente' } })}
         ${boton({
@@ -1507,6 +1563,7 @@ function atender(data) {
     case 'ayuda': return pintar(pantallaAyuda(data));
     case 'reglas': return pintar(pantallaReglas(data));
     case 'asistente': return pintar(pantallaAsistente(data));
+    case 'comoTrabaja': return pintar(pantallaComoTrabaja(data));
     case 'huecos': return pintar(pantallaHuecos(data));
     case 'diario': return pintar(pantallaDiario(data));
     case 'trato': return pintar(pantallaTrato(data));

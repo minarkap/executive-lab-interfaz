@@ -3,7 +3,7 @@
   "displayName": "Executive Lab",
   "description": "Convierte VS Code en una sola pantalla sencilla para trabajar con un arnés de IA, sin ver ficheros, rutas ni terminales.",
   "publisher": "executivelab",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "license": "UNLICENSED",
   "engines": {
     "vscode": "^1.98.0"
@@ -114,6 +114,10 @@
         "title": "Executive Lab: Llevarte un archivo"
       },
       {
+        "command": "executiveLab.comoTrabaja",
+        "title": "Executive Lab: Cómo quieres que trabaje"
+      },
+      {
         "command": "executiveLab.reglas",
         "title": "Executive Lab: Las reglas"
       },
@@ -145,6 +149,22 @@
     "configuration": {
       "title": "Executive Lab",
       "properties": {
+        "executiveLab.guardarSolo": {
+          "type": "number",
+          "default": 0,
+          "enum": [
+            0,
+            1,
+            8
+          ],
+          "enumDescriptions": [
+            "Solo cuando lo pidas",
+            "Cada hora",
+            "Un par de veces al día"
+          ],
+          "scope": "resource",
+          "description": "Cada cuántas horas se guarda una copia sola, mientras esta ventana esté abierta y haya algo nuevo. Nunca escribe en el historial de otra persona."
+        },
         "executiveLab.vistaSencilla": {
           "type": "boolean",
           "default": false,
