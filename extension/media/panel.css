@@ -50,6 +50,8 @@
   --resaltado: #ffe9c7;
   --bien: #2e7d32;
   --mal: #c62828;
+  /* El fondo de debajo de un logotipo que no se vería sobre su propio fondo. */
+  --placa: #ffffff;
 
   --alto-boton: 40px;
   --radio: 10px;
@@ -118,6 +120,34 @@ body {
 
 /* Cuando la empresa no tiene un logotipo que se lea sobre su fondo, su nombre
    escrito hace de rótulo. Se lee siempre, que es lo que importa. */
+/* La plaquita de debajo de un logotipo ajeno que no se vería sobre su propio
+   fondo: un logotipo negro sobre una marca azul marino, o cualquier imagen que
+   no se puede medir sobre un fondo oscuro. No se tiñe el logotipo —es de esa
+   empresa— se le pone un sitio donde se lea, que es lo que hace cualquiera al
+   meter una marca ajena en un fondo que no es el suyo. */
+.marca.con-placa {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--placa);
+  box-sizing: content-box;
+}
+
+/* Nuestro logotipo va dentro de la página en vez de como imagen, para poder
+   teñirlo: el nombre toma el color del texto —blanco en oscuro, negro en
+   claro— y el asterisco el del acento. Escrito en negro a pelo, sobre un tema
+   oscuro no se veía. */
+.marca--nuestra {
+  color: var(--texto-fuerte);
+  max-width: 62%;
+  max-height: 44px;
+}
+.marca--nuestra svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 44px;
+}
+
 .marca--nombre {
   width: auto;
   max-height: none;

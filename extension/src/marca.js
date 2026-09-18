@@ -87,6 +87,49 @@ function masApagadoQueSeLea(texto, fondo, superficie) {
   return color.contraste(candidato, otro) >= 4.5 ? candidato : texto;
 }
 
+// ¿Se va a ver el logotipo de la empresa sobre el fondo que le toca?
+//
+// El nuestro se tiñe y asunto resuelto. El suyo no se toca: es su marca. Lo que
+// sí se puede es ponerle una plaquita detrás cuando no se lea — que es lo que
+// hace cualquiera al meter un logotipo ajeno sobre un fondo que no es el suyo.
+//
+// Tres casos, y el tercero importa:
+//
+//   · Es un SVG y alguno de sus colores contrasta con el fondo → se ve, nada
+//     que hacer. Es el caso de la ene de Nexus Consulting sobre su azul marino.
+//   · Es un SVG y ninguno contrasta → plaquita.
+//   · No se puede medir (un PNG, un JPG) → plaquita **solo si el fondo es
+//     oscuro**. Un logotipo se diseña para papel y para webs blancas, así que
+//     sobre oscuro es donde desaparece; sobre claro casi siempre se ve. Es una
+//     apuesta, pero es la que falla menos.
+const SE_DISTINGUE = 3;
+
+// Devuelve el color de la plaquita, o null si no hace falta ninguna. La plaquita
+// se elige **contra el logotipo**, no contra el fondo: un logotipo oscuro
+// necesita una clara y uno claro una oscura, y da igual de qué color sea la
+// página.
+function placaPara(fichero, fondo) {
+  if (!fichero) return null;
+
+  const CLARA = '#ffffff';
+  const OSCURA = '#101114';
+
+  const colores = (medidas.coloresDe(fichero) || []).filter((c) => color.esColor(c));
+  if (!colores.length) {
+    // No se puede medir (un PNG, un JPG). Sobre claro casi siempre se ve —los
+    // logotipos se hacen para papel y para webs blancas— así que solo se pone
+    // plaquita sobre oscuro, que es donde desaparecen.
+    return color.luz(fondo) <= 0.5 ? CLARA : null;
+  }
+
+  if (colores.some((c) => color.contraste(c, fondo) >= SE_DISTINGUE)) return null;
+
+  // Ninguno se distingue del fondo. La plaquita va del lado contrario al
+  // logotipo: se mira el más claro que tenga, que es el que manda para verlo.
+  const masClaro = colores.reduce((a, b) => (color.luz(a) >= color.luz(b) ? a : b));
+  return color.luz(masClaro) > 0.5 ? OSCURA : CLARA;
+}
+
 // Devuelve los colores ya comprobados, o null si no hay marca utilizable.
 function leer() {
   const donde = carpeta();
@@ -140,6 +183,8 @@ function leer() {
     logo,
     // Solo tiene sentido preguntárselo si hay logotipo y hay nombre que poner.
     logoSinNombre: Boolean(logo && nombre && !llevaElNombre(campos, logo)),
+    // Si hace falta plaquita detrás del logotipo para que se vea.
+    placa: Boolean(logo && placaPara(logo, esquema.superficie)),
     carpeta: donde,
     oscura: esOscura,
     tipografia: typeof campos.tipografia === 'string' ? campos.tipografia.trim() : null,
@@ -166,6 +211,10 @@ function leer() {
       // pero llevado al tono que se ve sobre SU fondo.
       '--bien': color.deAviso(color.VERDE, esOscura),
       '--mal': color.deAviso(color.ROJO, esOscura),
+      // Siempre, aunque no haga falta plaquita: la regla que la usa solo se
+      // aplica cuando el logotipo la lleva, y así se mantiene la regla de que
+      // la marca calcula TODOS los colores que la hoja de estilo nombra.
+      '--placa': (logo && placaPara(logo, esquema.superficie)) || '#ffffff',
     },
   };
 }

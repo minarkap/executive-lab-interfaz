@@ -10,6 +10,7 @@
 
 const vscode = require('vscode');
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const path = require('node:path');
 
 const proyecto = require('./proyecto');
@@ -90,6 +91,30 @@ class Panel {
     this.vista.webview.html = this.html(this.vista.webview, medios, suya);
   }
 
+  // ── Nuestro logotipo, teñido ─────────────────────────────────────────
+  //
+  // Va escrito en negro. Sobre un tema oscuro del editor eso es un logotipo
+  // negro sobre fondo negro: no se ve. Como imagen no hay forma de arreglarlo
+  // —una `<img>` no se puede repintar desde la hoja de estilo— así que se mete
+  // el dibujo dentro de la página y sus dos colores pasan a ser los de la
+  // barra: el nombre toma el color del texto y el asterisco el del acento.
+  //
+  // Solo el nuestro. El logotipo de una empresa es suyo y se pinta como ella lo
+  // hizo; teñirlo sería cambiarle la marca.
+  nuestroLogo(medios) {
+    try {
+      const dibujo = fs.readFileSync(path.join(medios.fsPath, 'logo.svg'), 'utf8');
+      return `<div class="marca marca--nuestra" role="img" aria-label="Executive Lab">${dibujo
+        .replace(/fill="#0a0a0a"/gi, 'fill="currentColor"')
+        .replace(/fill="#EC4429"/gi, 'fill="var(--acento)"')}</div>`;
+    } catch {
+      // Si no se puede leer, la imagen de siempre: mejor un logotipo que no se
+      // ve en oscuro que una cabecera vacía.
+      const uri = (f) => this.vista.webview.asWebviewUri(vscode.Uri.joinPath(medios, f));
+      return `<img class="marca" src="${uri('logo.svg')}" alt="Executive Lab">`;
+    }
+  }
+
   html(webview, medios, suya) {
     const nonce = crypto.randomBytes(16).toString('base64');
     const uri = (fichero) => webview.asWebviewUri(vscode.Uri.joinPath(medios, fichero));
@@ -108,20 +133,25 @@ class Panel {
     // Sin logotipo utilizable, su nombre escrito: siempre se lee, y en muchas
     // pymes es lo único que hay.
     const escapar = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    // Una plaquita detrás del logotipo cuando no se vea sobre su propio fondo.
+    // No se tiñe: el logotipo de una empresa es suyo. El color va en el estilo
+    // de la página, junto al resto de la marca.
+    const placa = suya && suya.placa ? ' con-placa' : '';
+
     let cabecera;
     if (suya && suya.logo && suya.logoSinNombre) {
       // El logotipo es solo el símbolo: una ene de puntos preciosa que no dice
       // de quién es esto. El nombre va al lado, como en su propia web.
       cabecera = `<div class="marca-fila">
-  <img class="marca marca--simbolo" src="${webview.asWebviewUri(vscode.Uri.file(suya.logo))}" alt="">
+  <img class="marca marca--simbolo${placa}" src="${webview.asWebviewUri(vscode.Uri.file(suya.logo))}" alt="">
   <p class="marca--nombre">${escapar(suya.nombre)}</p>
 </div>`;
     } else if (suya && suya.logo) {
-      cabecera = `<img class="marca" src="${webview.asWebviewUri(vscode.Uri.file(suya.logo))}" alt="${escapar(suya.nombre || 'Tu empresa')}">`;
+      cabecera = `<img class="marca${placa}" src="${webview.asWebviewUri(vscode.Uri.file(suya.logo))}" alt="${escapar(suya.nombre || 'Tu empresa')}">`;
     } else if (suya && suya.nombre) {
       cabecera = `<p class="marca marca--nombre">${escapar(suya.nombre)}</p>`;
     } else {
-      cabecera = `<img class="marca" src="${uri('logo.svg')}" alt="Executive Lab">`;
+      cabecera = nuestroLogo(medios);
     }
 
     return `<!DOCTYPE html>

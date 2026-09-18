@@ -1608,6 +1608,40 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return '3 intentos fuera, ninguno pasa';
   });
 
+  await comprobar('un logotipo se ve siempre, tiña o no se pueda teñir', () => {
+    // El nuestro se tiñe: va dentro de la página y sus colores son los de la
+    // barra. El de una empresa NO se tiñe —es su marca— así que cuando no se
+    // vería sobre su propio fondo se le pone una plaquita detrás.
+    const fs2 = require('node:fs');
+    const brand = path.join(empresa, '02-DOCS/wiki/brand');
+    const ponerLogo = (svg) => {
+      fs2.writeFileSync(path.join(brand, 'logo.svg'), svg);
+      return marca.leer();
+    };
+
+    montarMarca(empresa, { fondo: '#0d1117', texto: '#e6edf3', acento: '#22d3ee' });
+    assert.equal(ponerLogo('<svg viewBox="0 0 10 10"><path fill="#111111" d="M0 0h10v10H0z"/></svg>').placa,
+      true, 'un logotipo negro sobre azul marino necesita plaquita');
+    assert.equal(marca.leer().tokens['--placa'], '#ffffff', 'y la plaquita va clara');
+
+    assert.equal(ponerLogo('<svg viewBox="0 0 10 10"><path fill="#ffffff" d="M0 0h10v10H0z"/></svg>').placa,
+      false, 'uno blanco sobre azul marino ya se ve');
+
+    montarMarca(empresa, { fondo: '#ffffff', texto: '#111111', acento: '#0057b8' });
+    const claroSobreClaro = ponerLogo('<svg viewBox="0 0 10 10"><path fill="#fafafa" d="M0 0h10v10H0z"/></svg>');
+    assert.equal(claroSobreClaro.placa, true, 'uno casi blanco sobre blanco no se ve');
+    assert.ok(cargar('color').luz(marca.leer().tokens['--placa']) < 0.5, 'y ahí la plaquita va oscura');
+
+    // Y el nuestro, el que sí se tiñe.
+    const fuente = fs.readFileSync(path.join(RAIZ, 'src', 'extension.js'), 'utf8');
+    const nuestro = fuente.slice(fuente.indexOf('nuestroLogo('), fuente.indexOf('html(webview'));
+    assert.match(nuestro, /currentColor/, 'el nombre toma el color del texto');
+    assert.match(nuestro, /var\(--acento\)/, 'y el asterisco el del acento');
+
+    montarMarca(empresa);
+    return 'tres casos, y el nuestro teñido';
+  });
+
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
     // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
     // había forma de salir de esa pantalla.

@@ -1730,3 +1730,36 @@ cinco segundos y contesta *«8 skills installed — nothing to flag»*. Un botó
 
 Lo que sí queda pendiente de ese aviso es la **versión de RSC** (2.0.4 frente a la 1.4.1 que se fija
 a propósito), que nadie ve y sería una línea en *Qué falta por montar*.
+
+---
+
+## 63. Un logotipo se ve siempre: el nuestro se tiñe, el ajeno lleva plaquita
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose, con la captura: el nombre de Executive Lab en negro sobre fondo negro. Y después, la regla
+general: *«con todos los logos tiene que ser así. O pon un fondo o algo pero tiene que quedar bien»*.
+
+Son dos problemas distintos con dos soluciones distintas:
+
+**El nuestro se tiñe.** Va escrito en negro y como imagen no hay forma de repintarlo desde la hoja de
+estilo. Así que el dibujo se mete dentro de la página y sus dos colores pasan a ser los de la barra:
+el nombre toma el color del texto —blanco en oscuro, negro en claro— y el asterisco el del acento.
+
+**El de una empresa no se toca.** Es su marca; teñirlo sería cambiársela. Lo que se hace es lo que
+haría cualquiera al meter una marca ajena en un fondo que no es el suyo: ponerle una plaquita
+detrás. Y solo cuando hace falta:
+
+| El logotipo | Qué se hace |
+|---|---|
+| Es un SVG y alguno de sus colores se distingue del fondo | Nada. Es el caso de la ene de Nexus sobre su azul marino |
+| Es un SVG y ninguno se distingue | Plaquita, del lado contrario al logotipo: clara si es oscuro, oscura si es claro |
+| No se puede medir (PNG, JPG) | Plaquita solo sobre fondo oscuro |
+
+Ese último caso es una apuesta y conviene saberlo: un logotipo se diseña para papel y para webs
+blancas, así que sobre oscuro es donde desaparece y sobre claro casi siempre se ve. Es la que falla
+menos, no la que nunca falla. Medir un PNG exigiría descodificarlo, y eso es traer una biblioteca
+para una pregunta que tiene una salida razonable sin ella.
+
+**Y el color de la plaquita es un token más**, no un blanco escrito a fuego — lo cazó la prueba de
+la decisión 57 en cuanto lo escribí así.

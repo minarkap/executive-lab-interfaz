@@ -104,4 +104,40 @@ function medir(fichero) {
   return medida;
 }
 
-module.exports = { medir };
+// ── De qué colores es un logotipo ────────────────────────────────────────
+//
+// Hace falta para saber si se va a ver sobre el fondo que toque. El nuestro se
+// tiñe y ya está, pero **el de una empresa es suyo**: teñirlo sería cambiarle
+// la marca. Lo que sí se puede hacer es ponerle una plaquita detrás cuando no
+// se lea, que es lo que hace cualquiera al meter un logotipo ajeno en un fondo
+// que no es el suyo.
+//
+// Solo se puede medir un SVG, que es texto y lleva los colores escritos. Un PNG
+// habría que descodificarlo, y eso ya es traer una biblioteca para responder a
+// una pregunta que tiene una salida razonable sin ella.
+const UN_COLOR = /(?:fill|stroke)\s*[:=]\s*["']?\s*(#[0-9a-fA-F]{3,8}|rgb\([^)]*\))/g;
+
+function coloresDe(fichero) {
+  if (!/\.svg$/i.test(fichero)) return null;
+
+  let texto;
+  try {
+    texto = fs.readFileSync(fichero, 'utf8');
+  } catch {
+    return null;
+  }
+
+  const encontrados = [];
+  for (const [, color] of texto.matchAll(UN_COLOR)) {
+    const limpio = color.trim().toLowerCase();
+    if (limpio === 'none' || limpio === 'transparent') continue;
+    encontrados.push(limpio);
+  }
+
+  // Sin ningún color escrito, el navegador pinta negro por defecto. Eso es un
+  // dato, no una falta de datos: un SVG sin `fill` sale negro.
+  if (!encontrados.length) return /<(path|circle|rect|polygon|ellipse)/i.test(texto) ? ['#000000'] : null;
+  return [...new Set(encontrados)];
+}
+
+module.exports = { medir, coloresDe };
