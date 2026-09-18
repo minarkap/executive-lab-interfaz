@@ -71,6 +71,30 @@ if [ "$FALTA" = "1" ]; then
   exit 1
 fi
 
+# La versión del .iss tiene que ir con la del panel, o el .exe sale rotulado
+# con una que no es. Se avisa en vez de corregirlo a la callada: subir de
+# versión es una decisión.
+EN_ISS="$(grep -o '#define Version "[^"]*"' "$AQUI/ExecutiveLab.iss" | cut -d'"' -f2)"
+if [ "$EN_ISS" != "$VERSION" ]; then
+  echo
+  echo "AVISO: ExecutiveLab.iss dice $EN_ISS y el panel va por la $VERSION."
+  echo "       Cámbialo antes de compilar, o el .exe saldrá con la versión que no es."
+fi
+
+# Y lo que me ha mordido tres veces en una tarde: reempaquetar la extensión y
+# olvidar recompilar el .exe, que se queda con la versión anterior dentro.
+#
+# Se compara con el .vsix de extension/, no con la copia de carga/: esa la
+# acabamos de escribir nosotros dos líneas más arriba, y siempre sería la más
+# nueva. El de extension/ solo cambia cuando alguien reempaqueta, que es
+# justamente el momento en que el .exe se queda viejo.
+COMPILADO="$AQUI/Output/ExecutiveLab-Setup.exe"
+if [ -f "$COMPILADO" ] && [ "$RAIZ/extension/executive-lab.vsix" -nt "$COMPILADO" ]; then
+  echo
+  echo "AVISO: el .exe que hay compilado es MÁS VIEJO que esta carga."
+  echo "       Lleva dentro una versión anterior del panel. Recompílalo."
+fi
+
 echo
 echo "Carga lista. Para compilar el .exe desde este Mac, con Inno bajo Wine:"
 echo "  docker run --rm --platform linux/amd64 -v \"$AQUI:/work\" amake/innosetup ExecutiveLab.iss"
