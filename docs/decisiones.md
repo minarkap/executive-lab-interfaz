@@ -1482,3 +1482,75 @@ ve. En cuanto la carpeta tiene algo, se pliega como los demás: a partir de ese 
 a diario ya está arriba y desplegado, y abrir uno por nuestra cuenta sería decidir por esa persona.
 
 En cuanto alguien abre o cierra cualquiera, manda lo suyo y esto no vuelve a actuar.
+
+---
+
+## 54. Acciones rápidas: lo de arriba lo elige quien usa la barra
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Lo más alto de la barra lo ocupaban las consultas de cada programa, desplegadas. Jose: *«no son ni
+comandos, ni skills, ni acciones… creo que casi que molestan»*. Tenía razón: son los scripts que RSC
+mete dentro de cada herramienta, así que su sitio es la herramienta, no la portada.
+
+Pero el hueco que dejaban es el mejor de la pantalla. Y lo que esa persona use de verdad **no lo
+sabemos nosotros**, así que lo elige ella: hasta **cinco**, de entre las tres cosas que esta carpeta
+tenga —sus botones, las consultas de sus programas y sus habilidades.
+
+Sin elegir nada, arriba salen los botones que el asistente ha ido creando, que es lo que hacía la
+barra antes. Es un default, no una elección: por eso ninguno sale marcado con la estrella.
+
+Cinco y no más: con más deja de ser «lo de siempre» y vuelve a ser una lista que hay que leer, que
+es justo lo que se venía a quitar. Se guarda por carpeta y no en el arnés — es de esta persona y de
+esta máquina, no una decisión del proyecto que deba viajar en las copias.
+
+Y de paso, el fallo que señaló: al volver de una consulta aterrizabas en la pantalla de las claves
+del programa, que es lo último que quiere ver quien acaba de mirar sus facturas.
+
+---
+
+## 55. El modo sencillo se pone la cara de la empresa, no la nuestra
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose, con su carpeta de Nexus Consulting: *«he vuelto al modo sencillo y me carga los putos colores
+de executivelab»*.
+
+Y era literal. El disfraz traía dos cosas escritas a fuego:
+
+- `"workbench.colorTheme": "Default Light Modern"` — un tema **claro**, fijo. Su marca es azul
+  marino, así que el modo sencillo le encendía un editor blanco detrás de una barra oscura.
+- `"window.title": "Mi Empresa — Executive Lab"` — nuestro nombre en la ventana de su empresa.
+
+La barra ya se pintaba con su marca desde hacía tres versiones. Lo que faltaba es que **el resto de
+la ventana hiciera lo mismo**, porque si no la barra es una isla de su empresa dentro de una ventana
+de la nuestra.
+
+Ahora el disfraz lee la marca y, si la hay, pone el tema del lado que sea, el rótulo con el nombre
+que ella le dio, y `workbench.colorCustomizations` con sus colores en la barra lateral, la de
+actividad, la de estado y el título. Sin marca, se queda lo de siempre.
+
+---
+
+## 56. Tres arreglos que salieron de mirar la barra
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+**Los números no decían de qué eran.** Al lado de *Lo que sabe* un «4» eran conceptos; al lado de
+*Acciones*, un «1» eran programas. El mismo sitio, dos significados, y ninguno de los dos era «lo
+que hay dentro de esta fila», que es lo que parecía. Ahora llevan su palabra: «4 conceptos», «1
+programa».
+
+**El «Volver» estaba al final de cada pantalla.** En una barra estrecha el final está a dos
+pantallazos, así que salir de un sitio costaba más que entrar. Sube arriba en las veintiuna
+pantallas, y va pequeño porque justo debajo está el rótulo que dice dónde estás.
+
+**Los documentos se abren dentro del editor**, al lado, siempre que sepa enseñarlos —texto,
+markdown compuesto, imágenes—. Sacar a alguien a otro programa para leer tres líneas rompe lo único
+que este proyecto intenta, que es que todo pase en un sitio. Un PDF, un Word o una hoja de cálculo
+siguen abriéndose con su programa, porque enseñarlos como texto sería enseñar basura.
+
+**Y los tres tipos de documento dejan de llamarse parecido.** Jose: *«llevarte un archivo y ver
+documentos puede dar confusión porque no son los mismos documentos»*. Estaban nombrados por el verbo;
+ahora por de quién son: **Darle documentos** (entra) · **Lo que le has dado** (su archivo) · **Lo
+que ha hecho** (sale).

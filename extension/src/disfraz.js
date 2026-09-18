@@ -69,7 +69,66 @@ const CLAVES_VISIBLES = [
 ];
 
 function ajustes(contexto) {
-  return JSON.parse(fs.readFileSync(path.join(contexto.extensionPath, 'media', 'disfraz.json'), 'utf8'));
+  const base = JSON.parse(fs.readFileSync(path.join(contexto.extensionPath, 'media', 'disfraz.json'), 'utf8'));
+  return { ...base, ...laCaraDeLaEmpresa() };
+}
+
+// ── El disfraz también se pone la cara de la empresa ──────────────────────
+//
+// El disfraz traía un tema CLARO fijo y el rótulo "Mi Empresa — Executive Lab".
+// Jose, con su carpeta de Nexus Consulting: *«he vuelto al modo sencillo y me
+// carga los putos colores de executivelab»*. Y era verdad, literalmente: su
+// marca es azul marino y el modo sencillo le encendía un editor blanco con
+// nuestro nombre en la ventana.
+//
+// La barra ya se pintaba con su marca. Lo que faltaba es que el resto de la
+// ventana —el tema, los bordes, el título— hiciera lo mismo, porque si no la
+// barra es una isla de su empresa dentro de una ventana de la nuestra.
+//
+// Si no hay marca, se queda lo de siempre, que es el default correcto.
+function laCaraDeLaEmpresa() {
+  let suya = null;
+  let comoSeLlama = null;
+  try {
+    suya = require('./marca').leer();
+    comoSeLlama = require('./identidad').titulo();
+  } catch {
+    return {};
+  }
+  if (!suya || !suya.tokens) {
+    return comoSeLlama ? { 'window.title': `${comoSeLlama} — \${activeEditorShort}` } : {};
+  }
+
+  const t = suya.tokens;
+  return {
+    // El tema del editor, del lado que sea la marca. Un tema claro detrás de
+    // una barra azul marino es lo que Jose estaba viendo.
+    'workbench.colorTheme': suya.oscura ? 'Default Dark Modern' : 'Default Light Modern',
+    'window.title': `${comoSeLlama || 'Mi trabajo'} — \${activeEditorShort}`,
+    // Y la ventana entera con sus colores, no solo nuestra barra.
+    'workbench.colorCustomizations': {
+      'sideBar.background': t['--fondo'],
+      'sideBar.foreground': t['--texto'],
+      'sideBar.border': t['--borde'],
+      'sideBarSectionHeader.background': t['--fondo'],
+      'sideBarSectionHeader.foreground': t['--apagado'],
+      'sideBarTitle.foreground': t['--texto-fuerte'],
+      'activityBar.background': t['--fondo'],
+      'activityBar.foreground': t['--texto-fuerte'],
+      'activityBar.inactiveForeground': t['--apagado'],
+      'activityBar.border': t['--borde'],
+      'activityBarBadge.background': t['--acento-relleno'],
+      'activityBarBadge.foreground': t['--sobre-acento'],
+      'titleBar.activeBackground': t['--fondo'],
+      'titleBar.activeForeground': t['--texto-fuerte'],
+      'titleBar.border': t['--borde'],
+      'statusBar.background': t['--fondo'],
+      'statusBar.foreground': t['--texto'],
+      'statusBar.border': t['--borde'],
+      'editorGroupHeader.tabsBackground': t['--fondo'],
+      'focusBorder': t['--acento'],
+    },
+  };
 }
 
 function estado(contexto) {

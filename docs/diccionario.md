@@ -11,6 +11,7 @@ jerga por goteo.
 | Lo técnico | Lo que ve el alumno |
 |---|---|
 | carpeta del proyecto / repo / workspace | Mi trabajo |
+| los números al lado de cada apartado | 4 conceptos · 1 programa (nunca un número a secas) |
 | `git commit` | Guardar en git |
 | `git log` / `git restore` / checkout | Ver las copias guardadas |
 | una copia concreta de la lista | Como estaba ayer · Como estaba el martes |
@@ -20,7 +21,7 @@ jerga por goteo.
 | el consejero y el «¿y ahora qué?» | Estoy atascado · Dime por dónde seguir |
 | pedirle ideas | Pensemos ideas juntos |
 | la radiografía de la carpeta | Qué falta por montar |
-| lo último que tocó el asistente | Lo último |
+| los datos de hoy, en una línea | 2 copias hoy · cambios sin guardar · 1 documento sin leer |
 | la tipografía de la marca | La de siempre · La de tu ordenador · Clásica · Fácil de leer |
 | `rsc add <skill>` | Que lo aprenda |
 | skill | Habilidad |
@@ -45,8 +46,9 @@ jerga por goteo.
 | `Goals` y `Constraints` del perfil | Para qué es esto · Los límites que pusiste |
 | borrar un documento sin leer | Quitar |
 | borrar uno ya leído, con lo que aprendió de él | Quitar algo que ya ha leído |
-| los scripts de una herramienta | Consultar · Consultas |
-| `.claude/commands/` con `boton:` | Qué quieres hacer |
+| los scripts de una herramienta | Consultas (dentro de cada programa) |
+| `.claude/commands/` con `boton:` | Tus botones |
+| lo que se fija arriba del todo | Acciones rápidas · Elegir cuáles |
 | `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |
 | un tema de la wiki | Un tema |
 | un artículo de la wiki | Un concepto |
@@ -54,7 +56,9 @@ jerga por goteo.
 | `02-DOCS/wiki/gaps.md` | Preguntas sin contestar |
 | `02-DOCS/inbox/` | Darle documentos · Sin leer todavía |
 | `02-DOCS/raw/` | Originales guardados |
-| los tres montones juntos | Ver los documentos |
+| `01-TOOLS/<lo que sea>/out/` | Lo que ha hecho |
+| sacar uno de ahí | Llevarte un archivo |
+| los tres montones juntos | Lo que le has dado |
 | `02-DOCS/inbox/_processed/` | Documentos que ya ha leído |
 | `02-DOCS/wiki/dashboard.html` | El panel completo |
 | `rsc onboard` en una carpeta nueva | Preparar esta carpeta |

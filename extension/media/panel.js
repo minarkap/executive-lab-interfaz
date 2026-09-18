@@ -8,9 +8,10 @@ const app = document.getElementById('app');
 
 let estado = null;
 let accionesDescubiertas = [];
-let deUnVistazo = [];
 // Si el asistente de esta carpeta llega a tener botones: Codex no tiene.
 let puedeTenerBotones = true;
+// Los cuatro datos de hoy, en una línea. Vacío si no hay nada que contar.
+let pulso = [];
 // Qué herramientas tiene abiertas en el acordeón. Vive aquí y no en el estado
 // del arnés porque es de esta persona y de este rato: el vigía repinta la
 // pantalla cada vez que el asistente toca un fichero, y sin esto se le cerraría
@@ -144,7 +145,11 @@ function bloqueAviso(cual = aviso) {
   return `<div class="aviso ${cual.malo ? 'malo' : ''}">${texto(cual.texto)}</div>`;
 }
 
-const volver = (accion = { tipo: 'volver' }) => boton({ etiqueta: 'Volver', icono: '←', accion });
+// Arriba, y pequeño. Arriba porque en una barra estrecha el final de la
+// pantalla está a dos pantallazos, y salir de un sitio no puede costar más que
+// entrar. Pequeño porque justo debajo va el rótulo que dice dónde estás, y dos
+// cosas grandes seguidas compiten entre ellas.
+const volver = (accion = { tipo: 'volver' }) => boton({ etiqueta: 'Volver', icono: '←', pequeno: true, accion });
 
 // --------------------------------------------------- leer un artículo
 
@@ -306,11 +311,12 @@ function pantallaSalidas(datos) {
     </div>`;
 
   return `
-    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Llevarte un archivo' }])}
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Lo que ha hecho' }])}
     ${bloqueAviso()}
+    ${volver()}
 
     <div class="brujula">
-      <h2>Llevarte un archivo</h2>
+      <h2>Lo que ha hecho</h2>
       <p class="hiciste">Lo que ha ido preparando para ti. Ábrelo para verlo, o guárdatelo donde quieras.</p>
     </div>
 
@@ -322,7 +328,6 @@ function pantallaSalidas(datos) {
       </details>`).join('')
       : nada('Todavía no ha preparado nada para llevarse.')}
 
-    ${volver()}
   `;
 }
 
@@ -345,6 +350,7 @@ function pantallaSaberes(datos) {
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Habilidades' }])}
     ${bloqueAviso()}
+    ${volver()}
 
     <div class="brujula">
       <h2>Habilidades</h2>
@@ -364,7 +370,6 @@ function pantallaSaberes(datos) {
       ? puede.map((c) => capacidad(c, true)).join('')
       : nada('Ya sabe todo lo que tenemos.')}
 
-    ${volver()}
   `;
 }
 
@@ -382,6 +387,7 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'c
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Las reglas' }])}
     ${bloqueAviso()}
+    ${volver()}
 
     <div class="brujula">
       <h2>Las reglas</h2>
@@ -410,8 +416,6 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'c
       accion: { tipo: 'pedir', prompt: 'Hay cosas que no quiero que hagas nunca en esta carpeta. Pregúntame cuáles son, una a una, y déjalas escritas donde te las leas siempre.' },
     })}
 
-    <hr class="separador">
-    ${volver()}
   `;
 }
 
@@ -435,6 +439,7 @@ function pantallaComoTrabaja({
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Cómo quieres que trabaje' }])}
     ${bloqueAviso(avisoLocal)}
+    ${volver()}
 
     <div class="brujula">
       <h2>Cómo quieres que trabaje</h2>
@@ -467,8 +472,6 @@ function pantallaComoTrabaja({
     <h2>Cómo te habla</h2>
     ${boton({ etiqueta: 'Cuánto te explica y con qué palabras', icono: '🗣️', accion: { tipo: 'verTrato' } })}
 
-    <hr class="separador">
-    ${volver()}
   `;
 }
 
@@ -478,6 +481,7 @@ function pantallaAsistente({ ahora, cuales = [], aviso: avisoLocal }) {
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Con quién hablas' }])}
     ${bloqueAviso(avisoLocal)}
+    ${volver()}
 
     <div class="brujula">
       <h2>Con quién hablas</h2>
@@ -504,8 +508,51 @@ function pantallaAsistente({ ahora, cuales = [], aviso: avisoLocal }) {
       accion: { tipo: 'pedir', prompt: 'Quiero repasar cómo estás configurado en esta carpeta: qué lees antes de contestar, qué permisos tienes y qué se ejecuta solo. Explícamelo en cristiano y dime qué me conviene cambiar.' },
     })}
 
-    <hr class="separador">
+  `;
+}
+
+// ------------------------------------------------------- acciones rápidas
+
+// Qué va arriba del todo. Hasta cinco, de entre todo lo que esta carpeta sepa
+// hacer: los botones que el asistente ha creado, las consultas de cada programa
+// y las habilidades puestas.
+function pantallaFijadas({ grupos = [], elegidas = [], tope = 5, aviso: avisoLocal }) {
+  const lleno = elegidas.length >= tope;
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Acciones rápidas' }])}
     ${volver()}
+    ${bloqueAviso(avisoLocal)}
+
+    <div class="brujula">
+      <h2>Acciones rápidas</h2>
+      <p class="hiciste">Lo que quieras tener arriba del todo, hasta ${texto(tope)}.</p>
+      <p class="detalle">${texto(elegidas.length
+        ? `Llevas ${elegidas.length} de ${tope}.`
+        : 'Sin elegir nada, arriba salen los botones que ha ido creando el asistente.')}</p>
+    </div>
+
+    ${grupos.length ? grupos.map((g) => `
+      <h2>${texto(g.titulo)}</h2>
+      ${g.cosas.map((c) => {
+        const puesta = elegidas.includes(c.id);
+        return `
+          <div class="archivo">
+            <div class="archivo-que">
+              <p class="nombre">${texto(c.etiqueta)}</p>
+              ${c.pista ? `<p class="pista">${texto(c.pista)}</p>` : ''}
+            </div>
+            <div class="archivo-acciones">
+              ${puesta
+                ? boton({ etiqueta: `Quitar ${c.etiqueta} de arriba`, icono: '★', pequeno: true, soloIcono: true, accion: { tipo: 'soltar', cual: c.id } })
+                : boton({ etiqueta: `Poner ${c.etiqueta} arriba`, icono: '☆', pequeno: true, soloIcono: true, accion: { tipo: 'fijar', cual: c.id } })}
+            </div>
+          </div>`;
+      }).join('')}`).join('')
+      : nada('Todavía no hay nada que fijar. Según vaya habiendo botones, programas y habilidades, aparecerán aquí.')}
+
+    ${lleno ? `<p class="detalle">${texto(`Ya tienes las ${tope}. Quita una para poner otra.`)}</p>` : ''}
+
   `;
 }
 
@@ -519,6 +566,7 @@ function pantallaAyuda({ github }) {
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Ayuda' }])}
     ${bloqueAviso()}
+    ${volver()}
 
     <div class="brujula">
       <h2>Ayuda</h2>
@@ -556,8 +604,6 @@ function pantallaAyuda({ github }) {
       accion: { tipo: 'pedir', prompt: 'Explícame de cero cómo funciona esto: qué es esta carpeta, qué haces tú, qué hago yo, y qué gano. Sin palabras técnicas y con ejemplos de mi trabajo.' },
     })}
 
-    <hr class="separador">
-    ${volver()}
   `;
 }
 
@@ -585,12 +631,13 @@ function pantallaPapeles({ esperando = [], leidos = [], originales = [], aviso: 
     : nada(vacio));
 
   return `
-    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Documentos' }])}
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Lo que le has dado' }])}
     ${bloqueAviso(avisoLocal)}
+    ${volver()}
 
     <div class="brujula">
-      <h2>Documentos</h2>
-      <p class="hiciste">Los papeles que han entrado aquí. Lo que ha entendido de ellos está en Lo que sabe.</p>
+      <h2>Lo que le has dado</h2>
+      <p class="hiciste">Los papeles que han entrado aquí. Lo que ha entendido de ellos está en Lo que sabe, y lo que ha producido él, en Lo que ha hecho.</p>
     </div>
 
     ${cajaDeBusqueda('papeles')}
@@ -620,8 +667,6 @@ function pantallaPapeles({ esperando = [], leidos = [], originales = [], aviso: 
       accion: { tipo: 'pedir', prompt: 'Quiero quitar un documento que ya has leído. Pregúntame cuál, dime antes qué has aprendido de él y qué conceptos se quedarían cojos, y cuando te diga que sí, quita el documento y lo que salió solo de él.' },
     })}
 
-    <hr class="separador">
-    ${volver()}
   `;
 }
 
@@ -634,6 +679,7 @@ function pantallaHuecos({ huecos = [] }) {
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Preguntas sin contestar' }])}
     ${bloqueAviso()}
+    ${volver()}
 
     <div class="brujula">
       <h2>Preguntas sin contestar</h2>
@@ -648,8 +694,6 @@ function pantallaHuecos({ huecos = [] }) {
       })).join('')
       : nada('Ninguna por ahora. Según vaya leyendo cosas irán saliendo.')}
 
-    <hr class="separador">
-    ${volver()}
   `;
 }
 
@@ -683,6 +727,7 @@ function pantallaDiario({ sesiones = [], decisiones = [], aprendido = [] }) {
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'El diario' }])}
     ${bloqueAviso()}
+    ${volver()}
 
     <div class="brujula">
       <h2>El diario</h2>
@@ -705,8 +750,6 @@ function pantallaDiario({ sesiones = [], decisiones = [], aprendido = [] }) {
         ${aprendido.map((a) => `<li>${texto(a.titulo)}<span class="cuando">${texto(cuando(a.fecha))}</span></li>`).join('')}
       </ul>` : ''}
 
-    <hr class="separador">
-    ${volver()}
   `;
 }
 
@@ -726,6 +769,7 @@ function pantallaTrato({ escalones = [], vocabularios = [], trato, palabras, ele
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Cómo te habla' }])}
     ${bloqueAviso(avisoLocal)}
+    ${volver()}
 
     <div class="brujula">
       <h2>Cómo te habla</h2>
@@ -740,8 +784,6 @@ function pantallaTrato({ escalones = [], vocabularios = [], trato, palabras, ele
     <h2>Con qué palabras</h2>
     ${vocabularios.map((v) => fila(v, palabras, { tipo: 'ponerPalabras' })).join('')}
 
-    <hr class="separador">
-    ${volver()}
   `;
 }
 
@@ -756,6 +798,7 @@ function pantallaRadiografia(datos) {
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Qué hay aquí' }])}
     ${bloqueAviso()}
+    ${volver()}
 
     <div class="brujula">
       <h2>Qué falta por montar</h2>
@@ -771,7 +814,6 @@ function pantallaRadiografia(datos) {
         </div>`).join('')}
     </div>
 
-    ${volver()}
   `;
 }
 
@@ -799,6 +841,7 @@ function pantallaCopiaFuera(datos) {
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'La copia de fuera' }])}
     ${bloqueAviso()}
+    ${volver()}
 
     <div class="brujula">
       <h2>Subir a GitHub</h2>
@@ -825,7 +868,6 @@ function pantallaCopiaFuera(datos) {
       ? boton({ etiqueta: 'Subir a GitHub ahora', icono: '☁️', principal: true, accion: { tipo: 'subirCopia' } })
       : boton({ etiqueta: 'Entrar en mi cuenta', icono: '🔑', principal: true, accion: { tipo: 'conectarGitHub' } })}
     ${dentro ? '' : `<p class="detalle">¿No tienes cuenta? Se hace en dos minutos en github.com y es gratis.</p>`}
-    ${volver()}
   `;
 }
 
@@ -948,17 +990,6 @@ function pantallaPrincipal() {
   // Cuántas conexiones y cuántas cosas sabe ya no se cuentan aquí: van en la
   // fila plegada de cada uno, que es donde se puede hacer algo con ese número.
 
-  // Lo que se puede mirar sin abrir conversación, agrupado por herramienta y
-  // plegado: son los scripts que la barra ejecuta ella (decisión 8). Antes
-  // estaban enterrados en Mis conexiones → la herramienta.
-  const vistazos = deUnVistazo.map((h) => `
-    <details class="acordeon" data-abrir="${atributo(h.id)}"${abiertas.has(h.id) ? ' open' : ''}>
-      <summary>${texto(h.etiqueta)} <span class="cuantos">${h.scripts.length}</span></summary>
-      ${h.scripts.map((s) => `
-        ${boton({ etiqueta: s.etiqueta, icono: '▸', pequeno: true, accion: { tipo: 'hacerCosita', proveedor: h.id, fichero: s.fichero, etiqueta: s.etiqueta, pideDatos: false } })}
-        ${s.queHace ? `<p class="pista">${texto(s.queHace)}</p>` : ''}`).join('')}
-    </details>`).join('');
-
   // Los botones no están predefinidos: son los comandos que tenga esta
   // empresa, y el asistente va creando más conforme se repiten tareas.
   const descubiertos = accionesDescubiertas
@@ -1016,24 +1047,32 @@ function pantallaPrincipal() {
     : '';
 
   return `
+    ${/* Aquí había un bloque que contaba dónde estabas y qué hiciste lo último.
+          Fuera: `orient`, la habilidad que RSC trae siempre puesta, es
+          exactamente eso y vive en la conversación, donde además puede
+          contestar preguntas. Repetirlo aquí era ocupar lo más alto de la barra
+          con algo que se pregunta mejor hablando. Lo que se queda es lo que no
+          es narración: los avisos y el consejo, que llevan botón. */''}
     ${bloqueAviso()}
-    <div class="brujula">
-      <h2>Lo último</h2>
-      <p class="donde">${texto(estado.donde)}</p>
-      ${estado.hiciste ? `<p class="hiciste">${texto(estado.hiciste)}</p>` : ''}
-      ${estado.aviso ? `<p class="hiciste">${texto(estado.aviso)}</p>` : ''}
-    </div>
+    ${pulso.length ? `<p class="pulso">${texto(pulso.join(' · '))}</p>` : ''}
 
     ${sinAsistente}
     ${primerPaso}
     ${elConsejo}
     ${documentos}
-    ${descubiertos ? `<h2>Qué quieres hacer</h2>${descubiertos}` : ''}
+    ${/* Lo más alto de la barra, para lo que esa persona use de verdad. Lo
+          elige ella entre sus botones, las consultas de sus programas y sus
+          habilidades: nosotros no sabemos cuáles son. */''}
+    ${descubiertos ? `<h2>Acciones rápidas</h2>${descubiertos}` : ''}
     ${!descubiertos && !puedeTenerBotones
-      ? `<h2>Qué quieres hacer</h2>${nada('Tu asistente no trabaja con botones. Pídele las cosas escribiéndolas en la conversación.')}`
+      ? `<h2>Acciones rápidas</h2>${nada('Tu asistente no trabaja con botones. Pídele las cosas escribiéndolas en la conversación.')}`
       : ''}
-    ${vistazos ? `<h2>Consultar</h2>${vistazos}` : ''}
-    ${descubiertos || vistazos ? '<hr class="separador">' : ''}
+    ${boton({ etiqueta: 'Elegir cuáles', icono: '☆', pequeno: true, discreto: true, accion: { tipo: 'verFijadas' } })}
+    ${/* Las consultas de cada programa estaban aquí arriba, desplegadas. No son
+          botones que haya creado nadie ni habilidades: son los scripts que RSC
+          mete dentro de cada herramienta, y aquí competían con lo que sí es un
+          botón. Vuelven a su programa, que es donde se entienden. */''}
+    ${descubiertos ? '<hr class="separador">' : ''}
 
     ${/* Seis apartados, y el criterio es de qué van, no dónde caían: papeles ·
           lo que ha entendido · lo que ha pasado · actuar · ayuda · configurar.
@@ -1047,15 +1086,22 @@ function pantallaPrincipal() {
       // o hay conexiones, se pliega como los demás.
       abiertoDeEntrada: !estado.sabe && !estado.conectados,
       dentro: `
-        ${boton({ etiqueta: 'Ver los documentos', icono: '📁', pequeno: true, accion: { tipo: 'verPapeles' } })}
+        ${/* Tres cosas distintas que se llamaban casi igual: lo que entra, lo
+              que guarda y lo que produce. Nombradas por el verbo —"ver los
+              documentos", "llevarte un archivo"— no se distinguían. Nombradas
+              por de quién son, sí. */''}
         ${boton({ etiqueta: 'Darle documentos', icono: '📎', pequeno: true, accion: { tipo: 'anadirDocumentos' } })}
-        ${boton({ etiqueta: 'Llevarte un archivo', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
+        ${boton({ etiqueta: 'Lo que le has dado', icono: '📁', pequeno: true, accion: { tipo: 'verPapeles' } })}
+        ${boton({ etiqueta: 'Lo que ha hecho', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
     })}
 
     ${grupo({
       id: 'grupo:saber',
       etiqueta: 'Lo que sabe',
-      cuantos: estado.sabe || '',
+      // El número dice de qué es. Un "4" a secas al lado de un rótulo no se
+      // sabe si son cuatro botones dentro, cuatro conceptos o cuatro de otra
+      // cosa; y al lado de otro rótulo significaba algo distinto.
+      cuantos: estado.sabe ? plural(estado.sabe, '1 concepto', '{n} conceptos') : '',
       dentro: `
         ${boton({ etiqueta: 'Ver los conceptos', icono: '📚', pequeno: true, accion: { tipo: 'verCerebro' } })}
         ${boton({ etiqueta: 'Preguntas sin contestar', icono: '❓', pequeno: true, accion: { tipo: 'verHuecos' } })}
@@ -1081,7 +1127,7 @@ function pantallaPrincipal() {
     ${grupo({
       id: 'grupo:acciones',
       etiqueta: 'Acciones',
-      cuantos: estado.conectados || '',
+      cuantos: estado.conectados ? plural(estado.conectados, '1 programa', '{n} programas') : '',
       dentro: `
         ${boton({ etiqueta: 'Tus programas', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
         ${boton({
@@ -1151,6 +1197,7 @@ function pantallaConexiones({ proveedores, sueltas }) {
 
   return `
     ${bloqueAviso()}
+    ${volver()}
     <p class="titulo">Tus programas</p>
     ${desordenadas}
     ${proveedores.map((p) => boton({
@@ -1160,8 +1207,6 @@ function pantallaConexiones({ proveedores, sueltas }) {
       icono: p.faltan ? '○' : '●',
       accion: { tipo: 'verConexion', proveedor: p.id },
     })).join('')}
-    <hr class="separador">
-    ${volver()}
   `;
 }
 
@@ -1199,6 +1244,7 @@ function pantallaConexion({ proveedor, claves, cositas, aviso: avisoLocal }) {
 
   return `
     ${bloqueAviso(avisoLocal)}
+    ${volver({ tipo: 'verConexiones' })}
     <p class="titulo">${texto(proveedor.etiqueta)}</p>
     ${guia ? `<h2>Cómo conectarla</h2>${guia}` : ''}
     ${proveedor.ayuda && faltaAlguna ? boton({ etiqueta: 'Abrir su página para sacar la clave', icono: '↗', principal: true, accion: { tipo: 'abrir', url: proveedor.ayuda } }) : ''}
@@ -1209,8 +1255,6 @@ function pantallaConexion({ proveedor, claves, cositas, aviso: avisoLocal }) {
     ${!proveedor.pasos.length ? boton({ etiqueta: 'Explícame cómo conectarla', icono: '💬', accion: { tipo: 'pedir', prompt: `Explícame paso a paso cómo conectar ${proveedor.etiqueta}: dónde entro, dónde saco cada clave y qué pego dónde. Y deja los pasos escritos para la próxima vez.` } }) : ''}
     ${boton({ etiqueta: 'Probar la conexión', icono: '🔎', accion: { tipo: 'probar', proveedor: proveedor.id } })}
     ${lasCositas}
-    <hr class="separador">
-    ${volver({ tipo: 'verConexiones' })}
   `;
 }
 
@@ -1219,7 +1263,11 @@ function pantallaResultado({ titulo, texto: salida, proveedor }) {
     <p class="titulo">${texto(titulo)}</p>
     <pre class="salida">${texto(salida)}</pre>
     ${boton({ etiqueta: 'Pregúntale por esto', icono: '💬', principal: true, accion: { tipo: 'pedir', prompt: `Acabo de ver el resultado de "${titulo}". Explícamelo y dime si hay algo que deba hacer.` } })}
-    ${volver({ tipo: 'verConexion', proveedor })}
+    ${/* Volver llevaba a la pantalla de las claves del programa, que es lo
+          último que quiere ver quien acaba de mirar sus facturas. Se vuelve a
+          la lista de programas, que es de donde se venía. */''}
+    ${volver({ tipo: 'verConexiones' })}
+    ${boton({ etiqueta: 'Otra consulta de este programa', icono: '▸', discreto: true, pequeno: true, accion: { tipo: 'verConexion', proveedor } })}
   `;
 }
 
@@ -1257,6 +1305,7 @@ function pantallaCerebro({ temas, sinOrdenar = [], esperando, yaLeidos, hayPanel
 
   return `
     ${bloqueAviso(avisoLocal)}
+    ${volver()}
     <p class="titulo">Lo que sabe de ${texto(comoSeLlama)}</p>
     ${cajaDeBusqueda('conceptos')}
     ${porTemas}
@@ -1268,8 +1317,6 @@ function pantallaCerebro({ temas, sinOrdenar = [], esperando, yaLeidos, hayPanel
     ${hayPanel ? boton({ etiqueta: 'Ver el panel completo', icono: '🗂️', accion: { tipo: 'abrirPanelCompleto' } }) : ''}
     ${sueltos}
 
-    <hr class="separador">
-    ${volver()}
   `;
 }
 
@@ -1296,11 +1343,10 @@ function pantallaResultados({ texto: consulta, cuantos, grupos }) {
 
   return `
     <p class="titulo">Lo que sabe de ${texto(comoSeLlama)}</p>
+    ${volver({ tipo: 'verCerebro' })}
     ${cajaDeBusqueda(ultimoBuscado, consulta)}
     <p class="detalle">${texto(cuantos ? plural(cuantos, '1 resultado', '{n} resultados') : '')}</p>
     ${cuantos ? listas : vacio}
-    <hr class="separador">
-    ${volver({ tipo: 'verCerebro' })}
   `;
 }
 
@@ -1362,6 +1408,7 @@ function pantallaTema({ tema }) {
       { etiqueta: `Lo que sabe de ${comoSeLlama}`, accion: { tipo: 'verCerebro' } },
       { etiqueta: tema.etiqueta },
     ])}
+    ${volver({ tipo: 'verCerebro' })}
     <p class="titulo">${texto(tema.descripcion || tema.etiqueta)}</p>
     ${tema.articulos.map((a) => `
       <div class="conexion">
@@ -1375,8 +1422,6 @@ function pantallaTema({ tema }) {
             : { tipo: 'abrirFuera', ruta: a.ruta },
         })}
       </div>`).join('')}
-    <hr class="separador">
-    ${volver({ tipo: 'verCerebro' })}
   `;
 }
 
@@ -1405,12 +1450,12 @@ function pantallaArticulo({ titulo, cuerpo, tema, enlaces, hermanos, desde }) {
 
   return `
     ${rastro}
+    ${volver(atras)}
     <p class="titulo">${texto(titulo)}</p>
     <div class="articulo">${comoMarkdown(cuerpo, enlaces)}</div>
     ${seguir}
     <hr class="separador">
     ${boton({ etiqueta: 'Pídele que lo cambie', icono: '✎', accion: { tipo: 'cambiarArticulo', titulo } })}
-    ${volver(atras)}
   `;
 }
 
@@ -1422,11 +1467,10 @@ function pantallaCopias({ copias }) {
   }
 
   return `
+    ${volver()}
     <p class="titulo">Volver atrás</p>
     <p class="detalle">Antes de mover nada guardo una copia de lo de ahora, así que esto también se puede deshacer.</p>
     ${copias.map((c) => boton({ etiqueta: c.etiqueta, icono: '↩️', accion: { tipo: 'volverA', id: c.id } })).join('')}
-    <hr class="separador">
-    ${volver()}
   `;
 }
 
@@ -1439,6 +1483,7 @@ function pantallaIncidencia({ codigo, sano, hayQueTocarAlgo, faltaGit, comoSeIns
 
   return `
     <p class="titulo">Algo va mal</p>
+    ${volver()}
     <p>${texto(queDigo)}</p>
     ${faltaGit ? `<p class="detalle">${texto(comoSeInstalaGit || '')}</p>` : ''}
     <p class="detalle">Si hablas con tu tutor, dale este código:</p>
@@ -1446,7 +1491,6 @@ function pantallaIncidencia({ codigo, sano, hayQueTocarAlgo, faltaGit, comoSeIns
     ${faltaGit
       ? boton({ etiqueta: 'Ponerla ahora', icono: '⬇️', principal: true, accion: { tipo: 'instalarGit' } })
       : (!sano || hayQueTocarAlgo ? boton({ etiqueta: 'Arreglarlo ahora', icono: '🛠️', principal: true, accion: { tipo: 'arreglar' } }) : '')}
-    ${volver()}
   `;
 }
 
@@ -1550,8 +1594,8 @@ function atender(data) {
     case 'estado':
       estado = data.estado;
       accionesDescubiertas = data.acciones || [];
-      deUnVistazo = data.deUnVistazo || [];
       puedeTenerBotones = data.puedeTenerBotones !== false;
+      pulso = data.pulso || [];
       modo = data.modo || 'sencillo';
       marcaPuesta = data.marcaPuesta !== false;
       comoSeLlama = data.comoSeLlama || 'tu trabajo';
@@ -1573,6 +1617,7 @@ function atender(data) {
     case 'saberes': return pintar(pantallaSaberes(data));
     case 'salidas': return pintar(pantallaSalidas(data));
     case 'papeles': return pintar(pantallaPapeles(data));
+    case 'fijadas': return pintar(pantallaFijadas(data));
     case 'ayuda': return pintar(pantallaAyuda(data));
     case 'reglas': return pintar(pantallaReglas(data));
     case 'asistente': return pintar(pantallaAsistente(data));

@@ -98,12 +98,48 @@ function donde(rutaRelativa) {
   return fs.existsSync(completa) ? completa : null;
 }
 
-// Con el programa de siempre: un PDF con el lector de PDF, una hoja con la
-// hoja de cálculo. La barra no se pone a enseñar documentos que no sabe pintar.
+// ── Dónde se abre un documento ───────────────────────────────────────────
+//
+// Al lado, dentro de la misma ventana, siempre que se pueda: sacar a alguien a
+// otro programa para leer un texto de tres líneas rompe justo lo que este
+// proyecto intenta, que es que todo pase en un sitio.
+//
+// "Siempre que se pueda" es literal: el editor sabe enseñar texto e imágenes, y
+// no sabe enseñar un PDF, un Word ni una hoja de cálculo. Con esos se abre el
+// programa de siempre, que es el que los entiende. Enseñar un `.xlsx` como
+// texto sería enseñar basura.
+const LAS_PINTA_EL_EDITOR = /\.(md|markdown|txt|csv|tsv|json|ya?ml|xml|html?|log|ini|conf|toml|svg|png|jpe?g|gif|webp|bmp)$/i;
+
 async function abrir(rutaRelativa) {
   const completa = donde(rutaRelativa);
   if (!completa) return { ok: false, mensaje: 'Ese documento ya no está.' };
-  await vscode.env.openExternal(vscode.Uri.file(completa));
+  return abrirFichero(completa);
+}
+
+async function abrirFichero(completa) {
+  const uri = vscode.Uri.file(completa);
+  if (!LAS_PINTA_EL_EDITOR.test(completa)) {
+    await vscode.env.openExternal(uri);
+    return { ok: true };
+  }
+
+  try {
+    // Un markdown, compuesto; lo demás, tal cual. Quien lee esto no tiene por
+    // qué ver los asteriscos y las almohadillas.
+    if (/\.(md|markdown)$/i.test(completa)) {
+      await vscode.commands.executeCommand('markdown.showPreviewToSide', uri);
+    } else {
+      await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside, preview: true });
+    }
+  } catch {
+    // Una imagen no se abre como texto: el editor tiene su propia vista y se
+    // llega a ella abriendo el fichero a secas.
+    try {
+      await vscode.commands.executeCommand('vscode.open', uri, { viewColumn: vscode.ViewColumn.Beside });
+    } catch {
+      await vscode.env.openExternal(uri);
+    }
+  }
   return { ok: true };
 }
 
@@ -152,4 +188,4 @@ function quitar(rutaRelativa) {
   return { ok: true, mensaje: `Quitado ${path.basename(completa)}.` };
 }
 
-module.exports = { queHay, donde, abrir, quitar, sinLeer };
+module.exports = { queHay, donde, abrir, abrirFichero, quitar, sinLeer, LAS_PINTA_EL_EDITOR };

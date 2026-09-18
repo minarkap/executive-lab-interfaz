@@ -1393,6 +1393,95 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'tres guardias';
   });
 
+  await comprobar('un documento se abre dentro del editor si sabe enseñarlo', () => {
+    // Sacar a alguien a otro programa para leer tres líneas rompe lo único que
+    // este proyecto intenta: que todo pase en un sitio. Pero un `.xlsx` como
+    // texto sería basura, así que esos sí salen fuera.
+    const papeles = cargar('papeles');
+    const dentro = ['informe.md', 'notas.txt', 'datos.csv', 'logo.png', 'cosas.json'];
+    const fuera = ['contrato.pdf', 'cuentas.xlsx', 'carta.docx', 'presentacion.pptx'];
+
+    for (const f of dentro) assert.ok(papeles.LAS_PINTA_EL_EDITOR.test(f), `${f} lo sabe enseñar el editor`);
+    for (const f of fuera) assert.ok(!papeles.LAS_PINTA_EL_EDITOR.test(f), `${f} necesita su programa`);
+    return `${dentro.length} dentro · ${fuera.length} fuera`;
+  });
+
+  await comprobar('los datos de hoy no se escriben cuando no hay nada que decir', () => {
+    // Una línea que ponga "0 copias · 0 documentos" es peor que no tener línea.
+    const panel = fs.readFileSync(path.join(RAIZ, 'media', 'panel.js'), 'utf8');
+    assert.match(panel, /pulso\.length \?/, 'la línea solo se pinta si trae algo');
+
+    // Y la tarjeta que contaba dónde estabas ya no está en la principal: eso lo
+    // hace `orient` en la conversación, y mejor.
+    const principal = panel.slice(panel.indexOf('function pantallaPrincipal'), panel.indexOf('function pantallaConexiones'));
+    assert.ok(!/Lo último|Dónde estás/.test(principal), 'la brújula sale de la principal');
+    assert.ok(!/deUnVistazo/.test(principal), 'y las consultas vuelven a su programa');
+    return 'sin tarjeta y sin consultas sueltas';
+  });
+
+  await comprobar('salir de una pantalla no cuesta más que entrar', () => {
+    // En una barra estrecha el final de la pantalla está a dos pantallazos. Un
+    // "Volver" ahí abajo obliga a recorrer todo para salir.
+    const panel = fs.readFileSync(path.join(RAIZ, 'media', 'panel.js'), 'utf8');
+    const abajo = panel.match(/\n(?:    <hr class="separador">\n)?    \$\{volver\([^\n]*\)\}\n  `;/g) || [];
+    assert.deepEqual(abajo, [], 'ningún "Volver" se queda al final de su pantalla');
+    return 'todos arriba';
+  });
+
+  await comprobar('cada número dice de qué es', () => {
+    // Un "4" a secas al lado de un rótulo no se sabe si son cuatro cosas dentro
+    // o cuatro de otra cosa — y al lado del rótulo siguiente significaba algo
+    // distinto. Lo vio Jose.
+    const panel = fs.readFileSync(path.join(RAIZ, 'media', 'panel.js'), 'utf8');
+    const principal = panel.slice(panel.indexOf('function pantallaPrincipal'), panel.indexOf('function pantallaConexiones'));
+    const sueltos = [...principal.matchAll(/cuantos: ([^\n,]+),/g)].map((m) => m[1].trim());
+    for (const c of sueltos) {
+      assert.ok(/plural\(/.test(c), `un número sin decir de qué es: ${c}`);
+    }
+    assert.ok(sueltos.length >= 2, 'los que haya, con su palabra');
+    return `${sueltos.length} números, todos con su palabra`;
+  });
+
+  await comprobar('lo que se fija arriba lo elige quien usa la barra', () => {
+    const fijadas = cargar('fijadas');
+    const almacen = (() => {
+      let dentro;
+      return { get: () => dentro, update: async (_, v) => { dentro = v; } };
+    })();
+
+    // Sin elegir nada, los botones que ha creado el asistente: es lo que hacía
+    // la barra antes de que esto existiera.
+    const porDefecto = fijadas.puestas(almacen, RAIZ);
+    assert.ok(porDefecto.length, 'algo tiene que salir arriba');
+    assert.ok(porDefecto.every((c) => c.id.startsWith('boton:')), 'y son sus botones');
+    assert.deepEqual(fijadas.elegidas(almacen), [], 'pero ninguno está "elegido": es un default');
+
+    const hay = fijadas.candidatos(RAIZ).flatMap((g) => g.cosas);
+    assert.ok(hay.some((c) => c.id.startsWith('consulta:')), 'las consultas de los programas también se pueden fijar');
+
+    return `${hay.length} cosas se pueden fijar · tope ${fijadas.TOPE}`;
+  });
+
+  await comprobar('no caben más de cinco arriba', async () => {
+    const fijadas = cargar('fijadas');
+    let dentro;
+    const almacen = { get: () => dentro, update: async (_, v) => { dentro = v; } };
+    const hay = fijadas.candidatos(RAIZ).flatMap((g) => g.cosas);
+
+    for (const c of hay.slice(0, fijadas.TOPE)) {
+      assert.ok((await fijadas.fijar(almacen, c.id, RAIZ)).ok);
+    }
+    if (hay.length > fijadas.TOPE) {
+      const sobra = await fijadas.fijar(almacen, hay[fijadas.TOPE].id, RAIZ);
+      assert.equal(sobra.ok, false, 'la sexta no entra');
+      assert.match(sobra.mensaje, /Quita una/, 'y se dice qué hacer');
+    }
+    assert.equal(fijadas.puestas(almacen, RAIZ).length, fijadas.TOPE);
+
+    assert.ok(!(await fijadas.fijar(almacen, 'boton:que-no-existe', RAIZ)).ok, 'lo que no existe no se fija');
+    return `${fijadas.TOPE} fijadas`;
+  });
+
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
     // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
     // había forma de salir de esa pantalla.
@@ -1438,10 +1527,18 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
 
     const pantallas = [
       ['esperando', { tipo: 'esperando', que: 'Un momento…' }, /Volver/],
-      ['estado', { tipo: 'estado', estado: { listo: true, donde: 'Tu trabajo', sabe: 1, conectados: 1 }, acciones: [], deUnVistazo: [], modo: 'sencillo', marcaPuesta: true, comoSeLlama: 'tu trabajo' }, /Tu trabajo/],
+      ['estado', {
+        tipo: 'estado',
+        estado: { listo: true, sabe: 1, conectados: 1 },
+        acciones: [],
+        modo: 'sencillo',
+        marcaPuesta: true,
+        comoSeLlama: 'tu trabajo',
+        pulso: ['1 copia hoy', 'cambios sin guardar'],
+      }, /Lo que sabe.*Histórico.*Ajustes/s],
       ['radiografia', { tipo: 'radiografia', ...radio }, /Qué falta por montar/],
       ['saberes', { tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie }, /Habilidades/],
-      ['salidas', { tipo: 'salidas', herramientas: cargar('salidas').loQueHaProducido() }, /Llevarte un archivo/],
+      ['salidas', { tipo: 'salidas', herramientas: cargar('salidas').loQueHaProducido() }, /Lo que ha hecho/],
       // Con la forma exacta que manda la extensión: si a una pantalla le falta
       // un campo, revienta y antes eso no se veía.
       ['cerebro', {

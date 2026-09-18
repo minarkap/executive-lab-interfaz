@@ -22,6 +22,7 @@ const path = require('node:path');
 const vscode = require('vscode');
 
 const proyecto = require('./proyecto');
+const papeles = require('./papeles');
 
 const CARPETA = '01-TOOLS';
 const SALIDA = 'out';
@@ -103,8 +104,10 @@ async function abrir(herramienta, fichero) {
   const completa = donde(herramienta, fichero);
   if (!completa) return { ok: false, mensaje: 'Ese archivo ya no está.' };
 
-  await vscode.env.openExternal(vscode.Uri.file(completa));
-  return { ok: true };
+  // Al lado y dentro de la misma ventana cuando el editor sepa enseñarlo; con
+  // el programa de siempre cuando no. Lo decide `papeles.js`, que es donde está
+  // escrito el porqué.
+  return papeles.abrirFichero(completa);
 }
 
 // Guardarlo donde esa persona diga, con el diálogo del sistema: acaba en el

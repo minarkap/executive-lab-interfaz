@@ -38,6 +38,8 @@ const papeles = require('./papeles');
 const reglas = require('./reglas');
 const ajustes = require('./ajustes');
 const donde = require('./donde');
+const pulso = require('./pulso');
+const fijadas = require('./fijadas');
 const asistentes = require('./asistentes');
 const trato = require('./trato');
 const marca = require('./marca');
@@ -175,14 +177,17 @@ ${cabecera}
     this.enviar({
       tipo: 'estado',
       estado: await brujula.estado({ fresco }),
-      acciones: acciones.acciones(),
+      // Lo más alto de la barra: hasta cinco cosas que elige quien la usa, de
+      // entre sus botones, sus consultas y sus habilidades. Sin elegir nada,
+      // los botones que el asistente ha creado.
+      acciones: fijadas.puestas(this.almacen(), this.contexto.extensionPath),
+      // Cuatro datos de hoy en una línea, en vez de la tarjeta que contaba
+      // dónde estabas: eso ya lo hace `orient` en la conversación, y mejor.
+      pulso: await pulso.deHoy(),
       // Si el asistente de esta carpeta llega a tener botones. Codex no: RSC no
       // le escribe comandos a ninguno de su familia. Sin esto, la barra
       // enseñaba un hueco y nadie sabía si era que no había o que no iban.
       puedeTenerBotones: donde.puedeTenerBotones(),
-      // Los scripts que solo miran, por herramienta: la barra los ejecuta ella
-      // y el resultado sale en un segundo, sin abrir conversación.
-      deUnVistazo: conexiones.loQueSePuedeMirar(),
       modo: disfraz.modoDeEstaVentana(),
       // Si la empresa aún no tiene cara puesta, el panel la ofrece en vez de
       // esperar a que el alumno caiga en contarlo.
@@ -315,6 +320,9 @@ ${cabecera}
       abrirReglas: () => this.abrirReglas(mensaje.cual),
       verAsistente: () => this.verAsistente(),
       verComoTrabaja: () => this.verComoTrabaja(),
+      verFijadas: () => this.verFijadas(),
+      fijar: () => this.cambiarFijada(fijadas.fijar, mensaje.cual),
+      soltar: () => this.cambiarFijada(fijadas.soltar, mensaje.cual),
       ponerPermiso: () => this.cambiarAjuste(ajustes.ponerPermiso, mensaje.cual),
       ponerCadaCuanto: () => this.cambiarAjuste(ajustes.ponerCadaCuanto, mensaje.cual),
       elegirAsistente: () => this.elegirAsistente(mensaje.cual),
@@ -586,6 +594,25 @@ ${cabecera}
       await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside, preview: true });
     }
     return undefined;
+  }
+
+  // Elegir qué va arriba del todo. Lo que use de verdad esa persona no lo
+  // sabemos nosotros, así que lo elige ella.
+  async verFijadas(avisoLocal = null) {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({
+      tipo: 'fijadas',
+      grupos: fijadas.candidatos(this.contexto.extensionPath),
+      elegidas: fijadas.elegidas(this.almacen()),
+      tope: fijadas.TOPE,
+      aviso: avisoLocal,
+    });
+  }
+
+  async cambiarFijada(cambiar, cual) {
+    const { ok, mensaje } = await cambiar(this.almacen(), cual, this.contexto.extensionPath);
+    await this.verFijadas(ok ? null : { texto: mensaje, malo: true });
+    if (ok) await this.refrescar(true);
   }
 
   // El subapartado de personalización: cuatro cosas que cambian el día a día.
@@ -1034,6 +1061,7 @@ function activate(contexto) {
     comando('executiveLab.reglas', () => panel.verReglas()),
     comando('executiveLab.asistente', () => panel.verAsistente()),
     comando('executiveLab.comoTrabaja', () => panel.verComoTrabaja()),
+    comando('executiveLab.fijadas', () => panel.verFijadas()),
     comando('executiveLab.diario', () => panel.verDiario()),
     comando('executiveLab.trato', () => panel.verTrato()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),
