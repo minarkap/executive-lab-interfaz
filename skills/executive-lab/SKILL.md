@@ -199,6 +199,22 @@ Cuando haya ficheros sueltos en `02-DOCS/inbox/`, el alumno los ha dejado ahí c
 documentos*. Procésalos con el barrido de bandeja de `harness` sin que tenga que pedírtelo dos veces,
 y cuéntale en dos líneas qué has aprendido — no le recites el índice.
 
+### 5. Un documento que te den en la conversación va a la bandeja
+
+Si el alumno te adjunta algo mientras habláis —un contrato, una factura, el logotipo de su empresa,
+una captura— **cópialo a `02-DOCS/inbox/` antes de nada** y dile que lo has guardado.
+
+Para él te lo ha dado, y punto. Que a ti te llegue por la conversación y no por el botón *Darle
+documentos* es un detalle de por dónde ha entrado, no de si lo ha entregado. Si no lo copias, la
+barra dirá que no tiene ningún documento suyo y tendrá razón en enfadarse: pasó, y con razón.
+
+Dos cosas que no se hacen aquí:
+
+- **No lo dejes en la raíz de la carpeta.** Ahí la barra lo enseña como *Sin colocar todavía*, que es
+  la red de seguridad para lo que cae por su cuenta, no el sitio donde se ponen las cosas a mano.
+- **No lo proceses sin decírselo.** Copiar es gratis; leerlo y escribir en la wiki cambia lo que
+  sabe, y eso se cuenta.
+
 ## Lo que no es esta habilidad
 
 No es `bro` (reescribir en lenguaje natural cuando lo pidan), ni `eli5` (explicar un tema desde cero),

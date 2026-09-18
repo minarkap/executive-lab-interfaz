@@ -25,7 +25,7 @@ jerga por goteo.
 | la tipografía de la marca | La de siempre · La de tu ordenador · Clásica · Fácil de leer |
 | `rsc add <skill>` | Que lo aprenda |
 | skill | Habilidad |
-| `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |
+| `02-DOCS/wiki/` | Conocimiento (dentro, «Lo que sabe de <nombre>») |
 | `01-TOOLS/` | Conexiones (tools) |
 | `rsc memory resume` | Seguir donde lo dejé |
 | sesión / contexto / conversación del agente | Conversación |
@@ -53,7 +53,7 @@ jerga por goteo.
 | los scripts de una herramienta | Consultas (dentro de cada programa) |
 | `.claude/commands/` con `boton:` | Tus botones (comandos) |
 | lo que se fija arriba del todo | Acciones rápidas · Elegir cuáles |
-| `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |
+| `02-DOCS/wiki/` | Conocimiento (dentro, «Lo que sabe de <nombre>») |
 | un tema de la wiki | Un tema |
 | un artículo de la wiki | Un concepto |
 | `02-DOCS/wiki/log.md` | Lo último que ha anotado (dentro de El diario) |
@@ -65,7 +65,16 @@ jerga por goteo.
 | los tres montones juntos | Lo que le has dado |
 | un documento tirado en la carpeta, sin colocar | Sin colocar todavía |
 | `.claude/commands/` entero | Procesos con un clic (comandos) |
-| una habilidad instalada fuera del catálogo curado | (se nombra con lo que diga su propia cabecera) |
+| una habilidad instalada fuera del catálogo curado | (se nombra con lo que diga su propia cabecera, y solo si está en español) |
+| `bro` | Escribirlo como lo diría una persona |
+| `eli5` | Explicártelo desde cero |
+| `show-me` | Enseñártelo con un dibujo |
+| `unslop` | Repasar un texto antes de mandarlo |
+| `resume-session` | Seguir donde lo dejé |
+| `save-session` | Guardar dónde vamos |
+| `learn` | Que aprenda algo de ti |
+| `checkpoint` | Congelar esto para revisarlo |
+| escribir una habilidad nueva a medida | Proponme habilidades para lo mío · Quiero enseñarle algo concreto |
 | `02-DOCS/inbox/_processed/` | Documentos que ya ha leído |
 | `02-DOCS/wiki/dashboard.html` | El panel completo |
 | `rsc onboard` en una carpeta nueva | Preparar esta carpeta |
@@ -78,7 +87,7 @@ jerga por goteo.
 | los resultados, por dónde salen | Cosas que sabe · Cosas que puedes hacer · Conexiones |
 | un `.md` de la wiki que no está en `index.md` | Sin ordenar todavía |
 | pedirle que actualice `index.md` | Que los ordene |
-| el rastro de navegación (migas) | Lo que sabe de <nombre> › Tema › Título |
+| el rastro de navegación (migas) | Conocimiento › Tema › Título |
 | `git push` a un remoto | Subir a GitHub |
 | una sugerencia de la barra | (no se nombra: se enseña la frase y su botón) |
 | apartar una sugerencia | Ahora no |
@@ -97,7 +106,7 @@ jerga por goteo.
 | `accompaniment_level` | Cuánto te explica |
 | `technical_level` | Con qué palabras |
 | elegir uno de esos escalones | Ponme así |
-| los apartados de la pantalla principal | Documentos · Lo que sabe · Histórico · En qué estamos · Acciones · Ayuda · Ajustes |
+| los apartados de la pantalla principal | Documentos · Conocimiento · Histórico · En qué estamos · Acciones · Ayuda · Ajustes |
 | `02-DOCS/wiki/sdd/specs/` | Qué queremos |
 | `02-DOCS/wiki/sdd/plans/` | Cómo se va a hacer |
 | `02-DOCS/wiki/sdd/proposals/` | Antes de empezar |

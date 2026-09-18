@@ -24,7 +24,7 @@ const cerebro = require('./cerebro');
 const asistentes = require('./asistentes');
 
 // Nombres del diccionario para las dos carpetas del arnés.
-const ZONAS = { '02-DOCS': 'Lo que sabe', '01-TOOLS': 'Conexiones' };
+const ZONAS = { '02-DOCS': 'Conocimiento', '01-TOOLS': 'Conexiones' };
 
 function humanizar(texto) {
   const limpio = texto.replace(/[-_]+/g, ' ').trim().toLowerCase();

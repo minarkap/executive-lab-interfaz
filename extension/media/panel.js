@@ -342,6 +342,7 @@ function pantallaSalidas(datos) {
 // se resume en una línea.
 function pantallaSaberes(datos) {
   const sabe = datos.sabe || [];
+  const otras = datos.otras || [];
   const puede = datos.puedeAprender || [];
 
   const capacidad = (c, conBoton) => `
@@ -367,11 +368,42 @@ function pantallaSaberes(datos) {
       ${datos.suyas.map((c) => capacidad(c, false)).join('')}
       <hr class="separador">` : ''}
 
-    <h2>Ya sabe</h2>
-    ${sabe.length
-      ? sabe.map((c) => capacidad(c, false)).join('')
-      : nada('Todavía nada de esta lista. Abajo están todas.')}
-    ${datos.deSerie ? `<p class="detalle">${texto(plural(datos.deSerie, 'Y 1 cosa más que trae de serie, para funcionar por dentro.', 'Y {n} cosas más que trae de serie, para funcionar por dentro.'))}</p>` : ''}
+    ${/* "Ya sabe: todavía nada de esta lista" no le dice nada a nadie, y contar
+          la fontanería del arnés menos todavía. Si no hay nada que enseñar en
+          un montón, ese montón no sale. */''}
+    ${sabe.length ? `<h2>Ya sabe</h2>${sabe.map((c) => capacidad(c, false)).join('')}` : ''}
+    ${otras.length ? `
+      <h2>Puestas por el camino</h2>
+      ${otras.map((c) => capacidad(c, false)).join('')}` : ''}
+
+    <hr class="separador">
+
+    ${/* No todo sale de un catálogo. Lo que hace falta en una carpeta depende de
+          para qué dijo esa persona que era, o —si ya venía con trabajo hecho— de
+          lo que haya dentro. Eso no lo sabemos nosotros: lo sabe el asistente
+          leyendo su perfil y su carpeta. */''}
+    <h2>Hazle una a medida</h2>
+    <p class="detalle">Si lo que necesitas no está en la lista, se le puede enseñar desde cero.</p>
+    ${boton({
+      etiqueta: 'Proponme habilidades para lo mío',
+      icono: '🧠',
+      principal: true,
+      accion: {
+        tipo: 'pedir',
+        prompt: [
+          'Mira para qué dije que era esta carpeta y lo que ya hay dentro, y proponme tres habilidades nuevas que me vendrían bien y que no existan ya.',
+          '',
+          'De cada una dime: cómo se llamaría en cristiano, qué me ahorraría, y con un ejemplo de algo concreto que yo le pediría.',
+          'No me propongas cosas genéricas: tienen que salir de lo que hay en esta carpeta.',
+          'Cuando elija una, escríbela y déjala puesta.',
+        ].join('\n'),
+      },
+    })}
+    ${boton({
+      etiqueta: 'Quiero enseñarle algo concreto',
+      icono: '✏️',
+      accion: { tipo: 'pedir', prompt: 'Quiero enseñarle a hacer algo que hago yo y que todavía no sabe. Pregúntame qué es, cómo lo hago paso a paso y qué tiene que salir al final, y déjalo escrito como habilidad suya.' },
+    })}
 
     <hr class="separador">
 
@@ -877,7 +909,7 @@ function pantallaPapeles({
 
     <div class="brujula">
       <h2>Lo que le has dado</h2>
-      <p class="hiciste">Los papeles que han entrado aquí. Lo que ha entendido de ellos está en Lo que sabe, y lo que ha producido él, en Lo que ha hecho.</p>
+      <p class="hiciste">Los papeles que han entrado aquí. Lo que ha entendido de ellos está en Conocimiento, y lo que ha producido él, en Lo que ha hecho.</p>
     </div>
 
     ${cajaDeBusqueda('papeles')}
@@ -1351,7 +1383,7 @@ function pantallaPrincipal() {
 
     ${grupo({
       id: 'grupo:saber',
-      etiqueta: 'Lo que sabe',
+      etiqueta: 'Conocimiento',
       // El número dice de qué es. Un "4" a secas al lado de un rótulo no se
       // sabe si son cuatro botones dentro, cuatro conceptos o cuatro de otra
       // cosa; y al lado de otro rótulo significaba algo distinto.
@@ -1395,24 +1427,14 @@ function pantallaPrincipal() {
     }) : ''}
 
     ${grupo({
-      id: 'grupo:comandos',
-      etiqueta: 'Procesos con un clic (comandos)',
-      cuantos: estado.comandos ? plural(estado.comandos, '1 proceso', '{n} procesos') : '',
-      dentro: boton({ etiqueta: 'Verlos todos', icono: '🔖', pequeno: true, accion: { tipo: 'verComandos' } }),
-    })}
-
-    ${grupo({
-      id: 'grupo:habilidades',
-      etiqueta: 'Habilidades (skills)',
-      cuantos: estado.habilidades ? plural(estado.habilidades, '1 habilidad', '{n} habilidades') : '',
-      dentro: boton({ etiqueta: 'Verlas todas', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } }),
-    })}
-
-    ${grupo({
       id: 'grupo:acciones',
       etiqueta: 'Acciones',
       cuantos: estado.conectados ? plural(estado.conectados, '1 programa', '{n} programas') : '',
       dentro: `
+        ${/* Todo lo que es actuar, junto: lo que ya está guardado para pedirlo
+              de una vez, lo que sabe hacer, y con qué está conectado. */''}
+        ${boton({ etiqueta: 'Procesos con un clic (comandos)', icono: '🔖', pequeno: true, accion: { tipo: 'verComandos' } })}
+        ${boton({ etiqueta: 'Habilidades (skills)', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } })}
         ${boton({ etiqueta: 'Conexiones (tools)', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
         ${boton({
           etiqueta: 'Conectar algo nuevo',
@@ -1420,12 +1442,7 @@ function pantallaPrincipal() {
           pequeno: true,
           accion: { tipo: 'pedir', prompt: 'Quiero conectar un programa nuevo con el que ya trabajo. Pregúntame cuál es, móntame la conexión con lo que haga falta y comprueba que funciona antes de darla por buena.' },
         })}
-        ${boton({
-          etiqueta: 'Que se quede como botón',
-          icono: '🔖',
-          pequeno: true,
-          accion: { tipo: 'pedir', prompt: 'Quiero que algo que hago a menudo se quede como botón aquí arriba. Pregúntame cuál es, qué tiene que hacer exactamente, y déjalo montado.' },
-        })}`,
+`,
     })}
 
     ${grupo({
@@ -1688,7 +1705,7 @@ function resaltar(valor, terminos = []) {
 function pantallaTema({ tema }) {
   return `
     ${migas([
-      { etiqueta: `Lo que sabe de ${comoSeLlama}`, accion: { tipo: 'verCerebro' } },
+      { etiqueta: 'Conocimiento', accion: { tipo: 'verCerebro' } },
       { etiqueta: tema.etiqueta },
     ])}
     ${volver({ tipo: 'verCerebro' })}
@@ -1716,7 +1733,7 @@ function pantallaArticulo({ titulo, cuerpo, tema, enlaces, hermanos, desde }) {
     : (tema ? { tipo: 'verTema', tema } : { tipo: 'verCerebro' });
 
   const rastro = migas([
-    { etiqueta: `Lo que sabe de ${comoSeLlama}`, accion: { tipo: 'verCerebro' } },
+    { etiqueta: 'Conocimiento', accion: { tipo: 'verCerebro' } },
     desde === 'buscar' ? { etiqueta: `Buscando "${ultimaBusqueda}"`, accion: { tipo: 'buscar', texto: ultimaBusqueda } } : null,
     tema && desde !== 'buscar' ? { etiqueta: tema, accion: { tipo: 'verTema', tema } } : null,
     { etiqueta: titulo },

@@ -42,31 +42,18 @@ const SOLO_DEL_INSTALADOR = [
   'extensions.ignoreRecommendations',
 ];
 
-// Lo que el interruptor devuelve a fábrica: lo que se ve. El resto de la base
-// (confianza, actualizaciones, telemetría, zoom) es de ámbito de programa y
-// ninguna ventana puede cambiarlo por su cuenta.
-// Pendiente de mirar con dos ventanas abiertas: si VS Code también fusiona
-// `workbench.colorCustomizations` entre ámbitos, los colores de la marca se
-// quedarían puestos en modo avanzado. Se ve a simple vista (barra lateral color
-// crema con el editor completo) y se arregla igual que las listas de exclusión.
-const CLAVES_VISIBLES = [
-  'window.title',
-  'window.commandCenter',
-  'window.menuBarVisibility',
-  'workbench.activityBar.location',
-  'workbench.statusBar.visible',
-  'workbench.editor.showTabs',
-  'workbench.layoutControl.enabled',
-  'workbench.colorTheme',
-  'workbench.colorCustomizations',
-  'breadcrumbs.enabled',
-  'editor.minimap.enabled',
-  'editor.lineNumbers',
-  'files.exclude',
-  'search.exclude',
-  'git.decorations.enabled',
-  'scm.diffDecorations',
-];
+// Lo que el interruptor quita: TODO lo que el modo sencillo escribió en esta
+// carpeta. Se BORRA la clave, no se escribe el valor de fábrica encima.
+//
+// Escribirlo encima era lo de antes y estaba mal: en la carpeta de quien
+// desarrolla —un repositorio cualquiera, abierto con la extensión puesta— el
+// editor completo le dejaba escrito en su .vscode/settings.json el tema, el
+// minimapa, las pestañas y el rótulo de la ventana. Sus preferencias pisadas
+// por "los valores de fábrica" en su propio proyecto. Borrando la clave manda
+// lo que esa persona tenga puesto, que es lo correcto.
+//
+// Las de ámbito de programa no entran: la extensión no las escribe nunca.
+const clavesDeLaCarpeta = (contexto) => Object.keys(ajustes(contexto)).filter((c) => !SOLO_DEL_INSTALADOR.includes(c));
 
 function ajustes(contexto) {
   const base = JSON.parse(fs.readFileSync(path.join(contexto.extensionPath, 'media', 'disfraz.json'), 'utf8'));
@@ -241,20 +228,7 @@ const quiereVistaSencilla = () => vscode.workspace.getConfiguration().get(CLAVE_
 // En qué está esta ventana, según el interruptor de la carpeta.
 const modoDeEstaVentana = () => (quiereVistaSencilla() ? 'sencillo' : 'avanzado');
 
-// Las listas de exclusión no se sustituyen entre ámbitos: VS Code fusiona el
-// valor de la carpeta con el del usuario. Escribir el de fábrica (vacío) no
-// desocultaría nada, así que hay que apagar una por una las que esconde la
-// base, poniéndolas a `false`.
-const SE_FUSIONAN = ['files.exclude', 'search.exclude'];
-
-function valorParaDestapar(contexto, clave, configuracion) {
-  if (!SE_FUSIONAN.includes(clave)) return configuracion.inspect(clave)?.defaultValue;
-
-  const base = ajustes(contexto)[clave] || {};
-  return Object.fromEntries(Object.keys(base).map((patron) => [patron, false]));
-}
-
-// Apaga el interruptor de ESTA carpeta y devuelve a fábrica lo que se ve.
+// Apaga el interruptor de ESTA carpeta y quita de ella lo que escribimos.
 async function verEditorCompleto(contexto, salida) {
   if (!hayCarpeta()) {
     return { ok: false, mensaje: 'Primero abre tu empresa; sin carpeta no puedo cambiar solo esta ventana.' };
@@ -262,18 +236,19 @@ async function verEditorCompleto(contexto, salida) {
 
   const configuracion = vscode.workspace.getConfiguration();
   await configuracion.update(CLAVE_INTERRUPTOR, false, vscode.ConfigurationTarget.Workspace);
+  const claves = clavesDeLaCarpeta(contexto);
   const rechazadas = [];
-  for (const clave of CLAVES_VISIBLES) {
-    // El valor de fábrica lo dice VS Code; no lo adivinamos ni lo copiamos.
+  for (const clave of claves) {
+    // Nada de valores de fábrica: se quita lo nuestro y vuelve lo suyo.
     try {
-      await configuracion.update(clave, valorParaDestapar(contexto, clave, configuracion), vscode.ConfigurationTarget.Workspace);
+      await configuracion.update(clave, undefined, vscode.ConfigurationTarget.Workspace);
     } catch (error) {
       rechazadas.push(clave);
       salida.appendLine(`[disfraz] ${clave} no admite ámbito de carpeta: ${error.message}`);
     }
   }
 
-  if (rechazadas.length === CLAVES_VISIBLES.length) {
+  if (rechazadas.length === claves.length) {
     return { ok: false, mensaje: 'No he podido cambiar solo esta ventana. Prueba con "Algo va mal".' };
   }
   return { ok: true, rechazadas, mensaje: 'Ya ves el editor completo en esta ventana. Las demás siguen igual.' };
@@ -286,7 +261,7 @@ async function volverAModoSencillo(contexto, salida) {
   }
 
   const configuracion = vscode.workspace.getConfiguration();
-  for (const clave of CLAVES_VISIBLES) {
+  for (const clave of clavesDeLaCarpeta(contexto)) {
     try {
       await configuracion.update(clave, undefined, vscode.ConfigurationTarget.Workspace);
     } catch (error) {
@@ -315,5 +290,5 @@ module.exports = {
   modoDeEstaVentana,
   proponerReabrir,
   estado,
-  CLAVES_VISIBLES,
+  clavesDeLaCarpeta,
 };

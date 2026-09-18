@@ -61,7 +61,15 @@ function acciones() {
 //
 // Los de RSC se marcan como suyos para poder ponerlos aparte: no los escribió
 // nadie de esta empresa y no se explican igual.
-const LOS_DE_RSC = ['checkpoint', 'learn', 'resume-session', 'save-session'];
+// Los que trae el arnés, dichos en cristiano. Salen en crudo —«Resume
+// session»— y así no significan nada: son cuatro y se sabe cuáles son, así que
+// se nombran a mano. Lo que no esté aquí se humaniza y punto.
+const LOS_DE_RSC = {
+  'resume-session': { etiqueta: 'Seguir donde lo dejé', queHace: 'Retoma lo que estabais haciendo la última vez.' },
+  'save-session': { etiqueta: 'Guardar dónde vamos', queHace: 'Deja apuntado en qué punto estáis, para poder retomarlo.' },
+  learn: { etiqueta: 'Que aprenda algo de ti', queHace: 'Guarda una cosa sobre cómo trabajas, si tú la apruebas.' },
+  checkpoint: { etiqueta: 'Congelar esto para revisarlo', queHace: 'Deja lo hecho a la espera de que alguien lo dé por bueno.' },
+};
 
 function humanizar(nombre) {
   const limpio = nombre.replace(/[-_]+/g, ' ').trim();
@@ -79,16 +87,21 @@ function todos() {
     const nombre = fichero.replace(/\.md$/, '');
     const campos = frontmatter.leer(path.join(carpeta, fichero));
     const etiqueta = typeof campos.boton === 'string' ? campos.boton.trim() : '';
+    const delArnes = LOS_DE_RSC[nombre];
+
+    // La descripción de un comando está escrita para el asistente y en inglés
+    // los del arnés. Media barra en cristiano y una línea en inglés queda peor
+    // que no decir nada.
+    const suya = typeof campos.description === 'string' ? campos.description.replace(/^["']|["']$/g, '').trim() : '';
+    const enEspanol = /\b(el|la|los|las|un|una|de|del|que|para|con|por|tu|tus)\b/i.test(suya);
 
     encontrados.push({
       nombre,
-      // El rótulo del botón si lo tiene; si no, su propio nombre en cristiano.
-      etiqueta: etiqueta || humanizar(nombre),
-      // La descripción está escrita para el asistente, pero dice para qué sirve.
-      queHace: typeof campos.description === 'string' ? campos.description.replace(/^["']|["']$/g, '').trim() : '',
+      etiqueta: (delArnes && delArnes.etiqueta) || etiqueta || humanizar(nombre),
+      queHace: (delArnes && delArnes.queHace) || (enEspanol ? suya : ''),
       icono: typeof campos.icono === 'string' ? campos.icono : '▸',
       esBoton: Boolean(etiqueta),
-      delArnes: LOS_DE_RSC.includes(nombre),
+      delArnes: Boolean(delArnes),
       prompt: `/${nombre}`,
     });
   }

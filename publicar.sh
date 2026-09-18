@@ -28,9 +28,10 @@ echo "Comprobando antes de empaquetar…"
 # `--rapido` se los salta, para cuando solo quieres el .vsix a mano.
 if [ "${1:-}" = "--rapido" ]; then
   echo "  (con --rapido: sin montar un arnés de verdad)"
-  npm run probar --silent | tail -1
+  npm run probar --silent | grep -E 'comprobaciones|empresas'
 else
   node "$R/extension/prueba/humo.js" --con-arnes | tail -1
+  node "$R/extension/prueba/empresas-distintas.js" | tail -1
 fi
 
 node "$R/docs/comprobar-diccionario.js" | tail -1

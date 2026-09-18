@@ -182,7 +182,7 @@ function fraseCon(texto, termino) {
 // ------------------------------------------------------------- la busca
 
 const GRUPOS = [
-  { tipo: 'sabe', titulo: 'Lo que sabe' },
+  { tipo: 'sabe', titulo: 'Conocimiento' },
   { tipo: 'hacer', titulo: 'Tus botones (comandos)' },
   { tipo: 'papel', titulo: 'Documentos' },
   { tipo: 'conexion', titulo: 'Conexiones (tools)' },

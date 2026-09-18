@@ -279,7 +279,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const conTilde = buscador.buscar('facturación');
     const sinTilde = buscador.buscar('facturacion');
     assert.equal(conTilde.cuantos, sinTilde.cuantos, 'la tilde no cambia nada');
-    const sabe = conTilde.grupos.find((g) => g.titulo === 'Lo que sabe');
+    const sabe = conTilde.grupos.find((g) => g.titulo === 'Conocimiento');
     assert.equal(sabe.aciertos[0].titulo, 'Ciclo de facturación', 'lo que se llama así, primero');
     return `${conTilde.cuantos} resultados`;
   });
@@ -345,7 +345,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   // --------------------------------------------------------------- brújula
   await comprobar('la brújula traduce rutas a zonas del diccionario', () => {
     const dos = brujula.interpretar('files: 02-DOCS/wiki/facturacion/ciclo.md, 01-TOOLS/HOLDED/.env, .rsc/x');
-    assert.equal(dos, 'Lo que sabe (Facturacion)', 'dos zonas no caben: se queda la primera');
+    assert.equal(dos, 'Conocimiento (Facturacion)', 'dos zonas no caben: se queda la primera');
     const donde = brujula.interpretar('files: 01-TOOLS/HOLDED/.env, 01-TOOLS/GMAIL/.env');
     assert.equal(donde, 'Conexiones (Holded, Gmail)', 'dos del mismo sitio no repiten el rótulo');
     assert.equal(brujula.interpretar('(no local continuation for this branch/worktree)'), null);
@@ -752,22 +752,19 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(hecho.ok, true, hecho.mensaje);
     assert.equal(disfraz.modoDeEstaVentana(), 'avanzado');
 
-    // Las listas de exclusión no se sustituyen entre ámbitos, se fusionan: hay
-    // que apagar cada patrón, no escribir una lista vacía.
-    const exclusiones = vscode.registrado.ajustes.workspace['files.exclude'];
-    assert.ok(Object.keys(exclusiones).length > 0, 'una lista vacía no destaparía nada');
-    assert.ok(Object.values(exclusiones).every((v) => v === false), 'cada patrón apagado');
-    assert.deepEqual(Object.keys(exclusiones).sort(),
-      Object.keys(JSON.parse(fs.readFileSync(path.join(RAIZ, 'media/disfraz.json'), 'utf8'))['files.exclude']).sort(),
-      'se apagan exactamente las que esconde la base');
-
+    // El editor completo no escribe nada encima: borra lo nuestro de la
+    // carpeta. Antes dejaba escritos "los valores de fábrica" —tema, minimapa,
+    // pestañas, rótulo— y eso pisaba las preferencias de quien abriera la
+    // carpeta en su propio proyecto.
     const { workspace } = vscode.registrado.ajustes;
-    assert.equal(workspace['workbench.activityBar.location'], 'FÁBRICA:workbench.activityBar.location',
-      'el valor de fábrica lo dice VS Code, no lo inventamos');
-    assert.ok(!('security.workspace.trust.enabled' in workspace), 'lo de ámbito de programa no se intenta por ventana');
+    const nuestras = disfraz.clavesDeLaCarpeta(contexto).filter((c) => c in workspace);
+    assert.deepEqual(nuestras, [], `la carpeta se queda con ${nuestras.join(', ')}`);
+    assert.ok(!('workbench.colorTheme' in workspace), 'el tema lo elige quien abre la carpeta, no nosotros');
+    assert.ok(!('files.exclude' in workspace), 'ni las listas de exclusión');
+    assert.deepEqual(Object.keys(workspace), [disfraz.CLAVE_INTERRUPTOR], 'solo queda el interruptor, apagado');
 
     assert.equal(disfraz.modoDeEstaVentana(), 'avanzado', 'apagado el interruptor, se ve el editor entero');
-    return `${disfraz.CLAVES_VISIBLES.length} claves visibles`;
+    return `${disfraz.clavesDeLaCarpeta(contexto).length} claves fuera de la carpeta`;
   });
 
   // ---------------------------------------------- que no se separen las copias
@@ -1038,7 +1035,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(por['El asistente, montado aquí'].estado, 'si');
     assert.equal(por['Conexiones con tus herramientas'].detalle, '1', 'la empresa de mentira tiene una');
     assert.equal(por['Copias fuera de este ordenador'].estado, 'no', 'sin sesión, se dice que no');
-    assert.ok(por['Lo que sabe'], 'la wiki también se cuenta');
+    assert.ok(por.Conocimiento, 'la wiki también se cuenta');
     return `${radio.piezas.length} piezas`;
   });
 
@@ -1821,7 +1818,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
         marcaPuesta: true,
         comoSeLlama: 'tu trabajo',
         pulso: ['1 copia hoy', 'cambios sin guardar'],
-      }, /Lo que sabe.*Histórico.*Ajustes/s],
+      }, /Conocimiento.*Histórico.*Ajustes/s],
       ['radiografia', { tipo: 'radiografia', ...radio }, /Qué falta por montar/],
       ['saberes', { tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie }, /Habilidades \(skills\)/],
       ['salidas', { tipo: 'salidas', herramientas: cargar('salidas').loQueHaProducido() }, /Lo que ha hecho/],

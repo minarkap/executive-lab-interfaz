@@ -1,35 +1,3 @@
 {
-    "executiveLab.vistaSencilla": false,
-    "window.title": "${activeEditorShort}${separator}${rootName}${separator}${profileName}",
-    "window.commandCenter": true,
-    "workbench.activityBar.location": "default",
-    "workbench.statusBar.visible": true,
-    "workbench.editor.showTabs": "multiple",
-    "workbench.layoutControl.enabled": true,
-    "workbench.tips.enabled": false,
-    "workbench.secondarySideBar.defaultVisibility": "visible",
-    "workbench.colorTheme": "Dark 2026",
-    "breadcrumbs.enabled": true,
-    "editor.lineNumbers": "on",
-    "problems.visibility": false,
-    "terminal.integrated.hideOnStartup": "always",
-    "git.openRepositoryInParentFolders": "never",
-    "git.decorations.enabled": true,
-    "git.enableStatusBarSync": false,
-    "scm.diffDecorations": "all",
-    "claudeCode.useTerminal": false,
-    "claudeCode.disableLoginPrompt": false,
-    "files.exclude": {
-        "**/.*": false,
-        "**/*.json": false,
-        "**/*.mjs": false,
-        "**/node_modules": false,
-        "**/package-lock.json": false
-    },
-    "search.exclude": {
-        "**/.*": false,
-        "**/node_modules": false
-    },
-    "workbench.colorCustomizations": {},
-    "editor.minimap.enabled": true
+  "executiveLab.vistaSencilla": false
 }

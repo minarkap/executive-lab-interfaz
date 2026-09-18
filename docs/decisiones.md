@@ -1939,3 +1939,164 @@ las demás detrás, sin esconderse, porque una carpeta recién montada no tiene 
 
 **Y Acciones rápidas ya solo enseña lo fijado.** Antes, sin fijar nada, salían los comandos; con los
 comandos en su propio apartado, los dos enseñaban lo mismo.
+
+---
+
+## 71. El disfraz no sale nunca de la carpeta, y el interruptor borra en vez de escribir fábrica
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose, abriendo la sesión: *«desinstálame la interfaz esta de Executive Lab, que se me ha puesto por
+defecto en el VS Code»*. Y después, con el editor delante: *«tengo el diseño rotísimo»*, *«no
+entiendo una mierda, está feísimo ahora el vscode»*, y la regla, que es lo que queda escrito aquí:
+
+> *«El diseño debe aplicarse SOLO a la extensión y al modo sencillo. NO a todo el vscode.»*
+
+Tenía dos causas distintas, y conviene separarlas porque solo una era un fallo de diseño.
+
+### Causa 1: el instalador de macOS, probado en la máquina de quien desarrolla
+
+`instalador/mac/instalar.js` escribe en los ajustes de usuario las cinco claves de ámbito de
+programa (confianza del workspace, actualizaciones, notas de versión, telemetría, recomendaciones).
+En el Mac del alumno es lo correcto y está decidido así. En el Mac de Jose, que es donde se probó,
+le cambió su VS Code entero. Además arrastraba `window.zoomLevel: 1` de una versión anterior del
+disfraz —esa es la que se lo ponía todo gigante—, clave que ya no está en `disfraz.json`.
+
+Se compararon sus ajustes contra los de la víspera: seis claves de más, ninguna suya perdida,
+ninguna cambiada. Quitadas esas seis y nada más, con copia al lado.
+
+### Causa 2 (el fallo de verdad): *ver el editor completo* escribía los valores de fábrica
+
+El interruptor no borraba el disfraz de la carpeta: escribía encima **el valor de fábrica de cada
+clave visible**, tomado de `configuracion.inspect().defaultValue`. La intención era buena —«el valor
+de fábrica lo dice VS Code, no lo inventamos»— y nació cuando la base del disfraz vivía en los
+ajustes de usuario: entonces borrar la clave de la carpeta dejaba ver la global, disfrazada.
+
+Desde que `aplicar()` escribe en ámbito de carpeta, eso ya no hace falta y hace daño. En el
+repositorio de Jose, abierto con la extensión puesta, el editor completo le dejó escrito en su
+`.vscode/settings.json` el tema `Dark 2026`, el minimapa **encendido** (él lo tiene apagado), las
+pestañas, las migas de pan y el rótulo de la ventana. Sus preferencias pisadas por «fábrica» en su
+propio proyecto. Eso es lo que veía feo, y pasa en cualquier carpeta que abra quien tenga la
+extensión instalada.
+
+**Ahora el interruptor borra.** `verEditorCompleto` recorre las claves del disfraz que no son de
+ámbito de programa y las quita de la carpeta (`update(clave, undefined, Workspace)`). Al no haber
+nada nuestro escrito, manda lo que esa persona tenga en sus ajustes, sea lo que sea. Desaparecen
+`CLAVES_VISIBLES`, `SE_FUSIONAN` y `valorParaDestapar`: la lista de exclusiones se fusionaba entre
+ámbitos y había que apagar patrón por patrón, problema que solo existía mientras algo nuestro vivía
+en los ajustes de usuario.
+
+La comprobación de `humo.js` ya no mira que se escriba el valor de fábrica; mira que **la carpeta se
+quede solo con el interruptor** y sin una sola clave nuestra.
+
+### Lo que queda abierto
+
+Las cinco de ámbito de programa del instalador siguen siendo lo único que toca VS Code entero. No
+son aspecto, son comportamiento, y VS Code no las deja fijar por carpeta. Quitarlas le devuelve al
+alumno el aviso de *¿confías en los autores de esta carpeta?* nada más abrir, que es justo lo que se
+decidió evitar. La vía intermedia por explorar: en vez de apagar la confianza para todo el editor,
+meter la carpeta de la empresa en la lista de carpetas de confianza de VS Code.
+
+### Y la salida de emergencia tiene dos agujeros
+
+`herramientas/quitar-disfraz.js` borra las claves cuyo valor coincide exactamente con el de
+`disfraz.json`. Con los ajustes reales de Jose delante:
+
+- **No habría quitado `window.zoomLevel`**, que era la que más se notaba, porque ya no está en
+  `disfraz.json`. Lo que el disfraz escribió en el pasado no lo cubre la lista de hoy.
+- **Habría borrado tres claves suyas** que por casualidad valen lo mismo que el disfraz:
+  `editor.minimap.enabled`, `workbench.startupEditor` y `claudeCode.hideOnboarding`. Las tenía él
+  desde antes.
+
+Coincidir en el valor no prueba quién lo escribió. Mientras no se anote qué claves se pusieron y
+dónde, esa herramienta se queda como está: útil para mirar, a revisar antes de venderla como el
+botón de pánico.
+
+---
+
+## 71. Lo que trae RSC se nombra en cristiano, o no se nombra
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose, viendo la pantalla: *«pon las skills y comandos de RSC y pon cosas con sentido y sin ocupar
+todo»*.
+
+Al empezar a detectar **todo** lo instalado (decisión 70) empezó a salir lo que trae RSC tal cual
+viene: habilidades llamadas «Bro», «Eli5», «Show me», comandos llamados «Resume session», y sus
+descripciones en inglés. Detectarlas estaba bien; enseñarlas así, no.
+
+Son ocho y se sabe cuáles son, así que se nombran a mano:
+
+| Lo que trae | En pantalla |
+|---|---|
+| `bro` | Escribirlo como lo diría una persona |
+| `eli5` | Explicártelo desde cero |
+| `show-me` | Enseñártelo con un dibujo |
+| `unslop` | Repasar un texto antes de mandarlo |
+| `resume-session` | Seguir donde lo dejé |
+| `save-session` | Guardar dónde vamos |
+| `learn` | Que aprenda algo de ti |
+| `checkpoint` | Congelar esto para revisarlo |
+
+Y para lo que no esté en esa lista, la regla es: **se enseña su descripción solo si está en
+español**. Media barra en cristiano y una línea en inglés queda peor que no decir nada.
+
+### Lo que se ha quitado por el camino
+
+- **«Ya sabe: todavía nada de esta lista».** Un rótulo con un hueco debajo no informa de nada. Si un
+  montón está vacío, ese montón no sale.
+- **«Y 4 cosas más que trae de serie, para funcionar por dentro».** Contar la fontanería del arnés no
+  le sirve a nadie.
+- **El comando de prueba que escribí para preguntar por una palabra.** Jose: *«¿qué mierda de comando
+  es decir una palabra?»*. Tenía razón: era una utilidad mía, no un proceso de nadie.
+- **El botón «Que se quede como botón» de Acciones**, que hacía lo mismo que el de dentro de la
+  pantalla de comandos.
+
+---
+
+## 72. Botones para crear habilidades, no solo para instalarlas
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«hay que meter ejemplos de potenciales skills adaptadas según lo que haya puesto al iniciar el
+arnés la persona o si es en brownfield lo que haya. Botones para crear skills»*.
+
+La pantalla solo sabía **instalar de un catálogo**. Y un catálogo, por bueno que sea, no puede tener
+lo que necesita una empresa concreta.
+
+Dos botones nuevos:
+
+- **Proponme habilidades para lo mío** — el asistente mira para qué dijo esa persona que era la
+  carpeta y lo que ya hay dentro, y propone tres que no existan, con un ejemplo concreto de cada una.
+  Esto es lo que resuelve el caso brownfield: en una carpeta que ya venía con trabajo hecho, las
+  propuestas salen de lo que hay, no de una lista.
+- **Quiero enseñarle algo concreto** — para cuando ya se sabe qué, y lo que hace falta es contarle el
+  paso a paso.
+
+Y las descripciones de las habilidades propias dejan de empezar por «úsala siempre que…»: están
+escritas para el asistente, y al alumno le suenan a instrucciones de otro.
+
+---
+
+## 73. La barra se prueba contra empresas que no se parecen en nada
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«quiero que pruebes con empresas de prueba y que veas que funcione»*.
+
+`humo.js` prueba módulo a módulo contra **una** empresa de mentira. Eso coge mucho, pero no coge lo
+que solo se ve de lejos: que en una carpeta recién montada no haya un apartado con un hueco dentro,
+que en un arnés de Codex no se enseñen cero botones sin decir por qué, que un despacho sin conexiones
+no acabe enseñando la pantalla de una gestoría.
+
+`prueba/empresas-distintas.js` monta tres y pasa las dieciséis pantallas por cada una:
+
+| Empresa | Qué tiene de particular |
+|---|---|
+| Gestoría Pérez | Claude, una conexión, un botón, wiki con temas |
+| Despacho Ruiz | **Codex**: sin carpeta de comandos, con un ayudante en `.codex/agents/`, un documento tirado en la carpeta y sus reglas en `AGENTS.md` |
+| Recién montada | Nada de nada |
+
+Lo que se comprueba no es el contenido —eso es de `humo.js`— sino que **ninguna pantalla revienta y
+ninguna cae en la pantalla de fallo**, que es la red de seguridad y no un aprobado. Va dentro de
+`npm run probar` y del guion de publicar.

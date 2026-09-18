@@ -40,13 +40,25 @@ function comoSeLlama(id, raizDeHabilidades) {
 
   const campos = frontmatter.leer(path.join(raizDeHabilidades, id, 'SKILL.md'));
   const frase = typeof campos.description === 'string' ? campos.description.trim() : '';
+
+  // La descripción de una habilidad está escrita **para el asistente**: empieza
+  // por «úsala cuando…» y es larga. Al alumno eso le suena a instrucciones de
+  // otro. Se le quita esa entradilla y se corta por la primera frase, que es la
+  // que dice de verdad para qué sirve.
+  const sinEntradilla = frase
+    .replace(/^(úsala|usala|use|used?|utilízala|utilizala)\s+(siempre\s+que|cuando|whenever|when|for)\s+/i, '')
+    .replace(/^(vayas a|you want to|the user)\s+/i, '');
+  const primera = sinEntradilla.split(/(?<=\.)\s/)[0] || sinEntradilla;
+
+  // Y si lo que hay escrito no está en español, mejor solo el nombre: media
+  // barra en cristiano y una línea en inglés queda peor que no decir nada. Las
+  // habilidades del catálogo de RSC vienen en inglés.
+  const enEspanol = /\b(el|la|los|las|un|una|de|del|que|para|con|por|cuando|siempre|tu|tus)\b/i.test(primera);
+
   return {
     id,
     nombre: humano,
-    // La descripción de una habilidad está escrita para el asistente —«úsala
-    // cuando…»— y es larga. Se corta por la primera frase, que es la que dice
-    // para qué sirve.
-    frase: frase.split(/(?<=\.)\s/)[0] || frase,
+    frase: enEspanol ? primera.charAt(0).toUpperCase() + primera.slice(1) : '',
   };
 }
 
@@ -94,11 +106,22 @@ function queSabe(carpetaDeLaExtension, corpus = '') {
   // el diccionario prohíbe.
   const laFontaneria = ['orient', 'suggest', 'harness', 'init'];
 
+  // Las que RSC trae de serie vienen con su descripción en inglés y su nombre
+  // en clave — «Bro», «Eli5», «Show me»— que no significan nada. Son cuatro y
+  // se sabe cuáles son, así que se nombran a mano. Las demás se quedan con lo
+  // que diga su cabecera, que para eso la traen.
+  const LAS_DE_RSC = {
+    bro: { nombre: 'Escribirlo como lo diría una persona', frase: 'Quita el tono de máquina de un texto sin cambiar lo que dice.' },
+    eli5: { nombre: 'Explicártelo desde cero', frase: 'Una página con dibujos y sin palabras raras, para algo que no conoces de nada.' },
+    'show-me': { nombre: 'Enseñártelo con un dibujo', frase: 'Cuando es más fácil verlo que leerlo.' },
+    unslop: { nombre: 'Repasar un texto antes de mandarlo', frase: 'Busca las marcas de que lo ha escrito una máquina, y las quita.' },
+  };
+
   const otras = puestas
     .filter((id) => !catalogo.some((c) => c.id === id))
     .filter((id) => !propias.includes(id))
     .filter((id) => !laFontaneria.includes(id))
-    .map((id) => comoSeLlama(id, raiz));
+    .map((id) => (LAS_DE_RSC[id] ? { id, ...LAS_DE_RSC[id] } : comoSeLlama(id, raiz)));
 
   const deSerie = puestas.filter((id) => laFontaneria.includes(id)).length;
 
