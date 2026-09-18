@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -293,6 +293,22 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.ok(conexiones, 'las conexiones también');
     assert.equal(conexiones.aciertos[0].accion.tipo, 'verConexion');
     return 'botones y conexiones';
+  });
+
+  await comprobar('con una sola caja se encuentran también los papeles y el diario', () => {
+    // Jose quería un buscador de documentos y otro de conceptos. Dos cajas
+    // obligan a elegir cuál antes de saber qué buscas, que es la peor pregunta
+    // que se le puede hacer a quien no sabe dónde está algo. Así que una, y que
+    // cubra todo.
+    const papel = buscador.buscar('contrato').grupos.find((g) => g.titulo === 'Documentos');
+    assert.ok(papel && papel.aciertos.length, 'el papel que espera sin leer sale');
+    assert.equal(papel.aciertos[0].accion.tipo, 'abrirPapel', 'y al pulsarlo se abre, no lleva a otra pantalla');
+
+    const dia = buscador.buscar('Talleres Ruiz').grupos.find((g) => g.titulo === 'El diario');
+    assert.ok(dia && dia.aciertos.length, 'y el día que se les reclamó el pago, también');
+    assert.equal(dia.aciertos[0].accion.tipo, 'verSesion');
+
+    return `${papel.aciertos.length} papeles · ${dia.aciertos.length} del diario`;
   });
 
   await comprobar('lo que no está da cero, y con una salida', () => {
@@ -1135,21 +1151,28 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const principal = panel.slice(panel.indexOf('function pantallaPrincipal'), panel.indexOf('function pantallaConexiones'));
 
     const imprescindibles = [
-      'verCerebro', 'verHuecos', 'anadirDocumentos', 'verSalidas', 'verConexiones',
-      'guardarCopia', 'verCopiaFuera', 'verCopias',
-      'verDiario', 'verSaberes', 'verTrato', 'verRadiografia', 'algoVaMal',
-      'elegirCarpeta', 'ponerLaCara', 'verEditorCompleto', 'bajarLaNueva',
+      'verPapeles', 'anadirDocumentos', 'verSalidas',
+      'verCerebro', 'verHuecos', 'verTrato',
+      'guardarCopia', 'verCopiaFuera', 'verCopias', 'verDiario',
+      'verConexiones', 'verSaberes',
+      'verAyuda', 'verRadiografia',
+      'ponerLaCara', 'elegirCarpeta', 'verEditorCompleto', 'bajarLaNueva',
     ];
     const faltan = imprescindibles.filter((t) => !principal.includes(`tipo: '${t}'`));
     assert.deepEqual(faltan, [], `la pantalla principal ya no lleva a: ${faltan.join(', ')}`);
+
+    // "Algo va mal" ya no cuelga de la principal: vive dentro de Ayuda, que es
+    // donde se busca. Pero tiene que seguir llegándose a él.
+    const ayuda = panel.slice(panel.indexOf('function pantallaAyuda'), panel.indexOf('function pantallaPapeles'));
+    assert.match(ayuda, /tipo: 'algoVaMal'/, 'a "Algo va mal" se llega desde Ayuda');
 
     // Y cada fila plegable tiene que tener nombre propio, o dos se pisarían el
     // recuerdo de abierta/cerrada.
     const ids = [...principal.matchAll(/id: '(grupo:[a-z]+)'/g)].map((m) => m[1]);
     assert.equal(new Set(ids).size, ids.length, 'dos filas con el mismo nombre se pisan');
-    assert.ok(ids.length >= 5, 'las cinco filas');
+    assert.equal(ids.length, 6, 'los seis apartados');
 
-    return `${imprescindibles.length} acciones · ${ids.length} filas`;
+    return `${imprescindibles.length} acciones · ${ids.length} apartados`;
   });
 
   await comprobar('el texto apagado no se apaga dos veces', () => {
@@ -1234,6 +1257,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
         aprendido: cerebroM.aprendidoUltimamente(5),
       }, /Talleres Ruiz/],
       ['huecos', { tipo: 'huecos', huecos: cerebroM.loQueAunNoSabe(4) }, /Preguntas sin contestar/],
+      ['papeles', { tipo: 'papeles', ...cargar('papeles').queHay() }, /contrato-talleres-ruiz/],
+      ['ayuda', { tipo: 'ayuda', github: { conectado: false } }, /Estoy atascado|por dónde seguir/],
       ['trato', { tipo: 'trato', ...tratoM.comoEstamos(), aviso: null }, /Cuánto te explica/],
       ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
     ];

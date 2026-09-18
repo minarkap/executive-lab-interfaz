@@ -341,6 +341,105 @@ function pantallaSaberes(datos) {
   `;
 }
 
+// -------------------------------------------------------------- la ayuda
+
+// Todo lo que sirve cuando alguien se atasca, en un sitio. Antes estaba
+// repartido: el SOS en un grupo, la revisión de la carpeta en otro, y "¿y ahora
+// qué hago?" en ningún sitio — que es la pregunta más frecuente de todas y no
+// tenía botón.
+function pantallaAyuda({ github }) {
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Ayuda' }])}
+    ${bloqueAviso()}
+
+    <div class="brujula">
+      <h2>Ayuda</h2>
+      <p class="hiciste">Si te has atascado, empieza por aquí.</p>
+    </div>
+
+    <h2>No sé qué hacer ahora</h2>
+    ${boton({
+      etiqueta: 'Dime por dónde seguir',
+      icono: '🧭',
+      principal: true,
+      accion: { tipo: 'pedir', prompt: 'Mira cómo está esto y dime por dónde seguir: qué tengo a medias, qué sería lo siguiente y por qué. Dame dos o tres opciones concretas, no una lista larga.' },
+    })}
+    ${boton({
+      etiqueta: 'Pensemos ideas juntos',
+      icono: '💡',
+      accion: { tipo: 'pedir', prompt: 'Quiero que pensemos ideas juntos sobre qué más podría hacer con esto. Mira lo que ya hay montado, pregúntame lo que necesites y propón cosas que encajen con mi trabajo, no cosas genéricas.' },
+    })}
+
+    <hr class="separador">
+    <h2>Algo no funciona</h2>
+    ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
+    ${boton({ etiqueta: 'Qué falta por montar', icono: '🔎', accion: { tipo: 'verRadiografia' } })}
+
+    <hr class="separador">
+    <h2>Guías</h2>
+    ${boton({
+      etiqueta: github && github.conectado ? 'Cómo funciona lo de GitHub' : 'Cómo entrar en GitHub',
+      icono: '☁️',
+      accion: { tipo: 'verCopiaFuera' },
+    })}
+    ${boton({
+      etiqueta: 'Explícame cómo funciona esto',
+      icono: '📖',
+      accion: { tipo: 'pedir', prompt: 'Explícame de cero cómo funciona esto: qué es esta carpeta, qué haces tú, qué hago yo, y qué gano. Sin palabras técnicas y con ejemplos de mi trabajo.' },
+    })}
+
+    <hr class="separador">
+    ${volver()}
+  `;
+}
+
+// ------------------------------------------------------------- los papeles
+
+// El archivador: los documentos que han entrado. NO es lo que el arnés ha
+// entendido —eso son los conceptos— sino los ficheros, en los tres estados por
+// los que pasan. Hasta ahora de los tres solo se veía un número.
+function pantallaPapeles({ esperando = [], leidos = [], originales = [] }) {
+  const monton = (papeles, vacio) => (papeles.length
+    ? papeles.map((d) => `
+      <div class="archivo">
+        <div class="archivo-que">
+          <p class="nombre">${texto(d.nombre)}</p>
+          ${d.cuando ? `<p class="pista">${texto(cuando(String(d.cuando).slice(0, 10)))}</p>` : ''}
+        </div>
+        <div class="archivo-acciones">
+          ${boton({ etiqueta: `Abrir ${d.nombre}`, icono: '↗', pequeno: true, soloIcono: true, accion: { tipo: 'abrirPapel', ruta: d.ruta } })}
+        </div>
+      </div>`).join('')
+    : nada(vacio));
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Documentos' }])}
+    ${bloqueAviso()}
+
+    <div class="brujula">
+      <h2>Documentos</h2>
+      <p class="hiciste">Los papeles que han entrado aquí. Lo que ha entendido de ellos está en Lo que sabe.</p>
+    </div>
+
+    ${boton({ etiqueta: 'Darle documentos', icono: '📎', principal: true, accion: { tipo: 'anadirDocumentos' } })}
+
+    <h2>Sin leer todavía</h2>
+    ${monton(esperando, 'Ninguno esperando.')}
+
+    <hr class="separador">
+    <h2>Ya leídos</h2>
+    ${monton(leidos, 'Todavía no ha leído ninguno.')}
+
+    <hr class="separador">
+    <h2>Originales guardados</h2>
+    <p class="detalle">Tal y como llegaron. Esto no se borra nunca.</p>
+    ${monton(originales, 'Ninguno guardado todavía.')}
+
+    <hr class="separador">
+    ${volver()}
+  `;
+}
+
 // -------------------------------------------------- preguntas sin contestar
 
 // Lo que el arnés sabe que no sabe: `gaps.md`. Estaba enterrado al final de la
@@ -744,96 +843,95 @@ function pantallaPrincipal() {
     ${primerPaso}
     ${elConsejo}
     ${documentos}
+    ${/* Una sola caja, arriba, y los resultados agrupados por tipo. Dos
+          buscadores —uno de papeles y otro de conceptos— obligarían a elegir
+          cuál antes de saber qué buscas, que es la peor pregunta que se le
+          puede hacer a alguien que no sabe dónde está algo. */''}
+    ${cajaDeBusqueda()}
+
     ${descubiertos ? `<h2>Qué quieres hacer</h2>${descubiertos}` : ''}
-    ${boton({ etiqueta: 'Todo lo que sabe hacer', icono: '✨', pequeno: true, discreto: true, accion: { tipo: 'verSaberes' } })}
     ${vistazos ? `<h2>Consultar</h2>${vistazos}` : ''}
     ${descubiertos || vistazos ? '<hr class="separador">' : ''}
 
-    ${/* Dos cosas que estaban juntas y no lo son: el archivador —los ficheros
-          que entran y salen— y lo que el arnés ha entendido de todo eso, que
-          son los conceptos de la wiki. Juntarlas dejaba "Ver los temas" en
-          medio de unos documentos, sin que se supiera qué iba a salir. */''}
+    ${/* Seis apartados, y el criterio es de qué van, no dónde caían: papeles ·
+          lo que ha entendido · lo que ha pasado · actuar · ayuda · configurar.
+          Lo de antes eran cajones —"Tu trabajo", "Ajustes y ayuda"— y por eso
+          las habilidades acabaron flotando arriba sin casa. */''}
+    ${grupo({
+      id: 'grupo:documentos',
+      etiqueta: 'Documentos',
+      dentro: `
+        ${boton({ etiqueta: 'Ver los documentos', icono: '📁', pequeno: true, accion: { tipo: 'verPapeles' } })}
+        ${boton({ etiqueta: 'Darle documentos', icono: '📎', pequeno: true, accion: { tipo: 'anadirDocumentos' } })}
+        ${boton({ etiqueta: 'Llevarte un archivo', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
+    })}
+
     ${grupo({
       id: 'grupo:saber',
       etiqueta: 'Lo que sabe',
       cuantos: estado.sabe || '',
       dentro: `
         ${boton({ etiqueta: 'Ver los conceptos', icono: '📚', pequeno: true, accion: { tipo: 'verCerebro' } })}
-        ${boton({ etiqueta: 'Preguntas sin contestar', icono: '❓', pequeno: true, accion: { tipo: 'verHuecos' } })}`,
+        ${boton({ etiqueta: 'Preguntas sin contestar', icono: '❓', pequeno: true, accion: { tipo: 'verHuecos' } })}
+        ${boton({ etiqueta: 'Cómo te habla', icono: '🗣️', pequeno: true, accion: { tipo: 'verTrato' } })}`,
     })}
 
-    ${grupo({
-      id: 'grupo:documentos',
-      etiqueta: 'Documentos',
+    ${estado.faltaGit ? bloqueFaltaGit() : grupo({
+      id: 'grupo:historico',
+      etiqueta: 'Histórico',
       dentro: `
-        ${boton({ etiqueta: 'Darle documentos', icono: '📎', pequeno: true, accion: { tipo: 'anadirDocumentos' } })}
-        ${boton({ etiqueta: 'Llevarte un archivo', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
+        ${boton({ etiqueta: 'Guardar en git', icono: '💾', pequeno: true, accion: { tipo: 'guardarCopia' } })}
+        ${boton({ etiqueta: 'Subir a GitHub', icono: '☁️', pequeno: true, accion: { tipo: 'verCopiaFuera' } })}
+        ${/* No hay un único "antes": hay una lista de copias y se elige una. El
+              nombre viejo, "Volver a como estaba antes", no lo decía. */''}
+        ${boton({ etiqueta: 'Volver a un punto anterior', icono: '↩️', pequeno: true, accion: { tipo: 'verCopias' } })}
+        ${boton({ etiqueta: 'El diario', icono: '🗓️', pequeno: true, accion: { tipo: 'verDiario' } })}
+        ${boton({ etiqueta: 'Apuntar lo de hoy', icono: '✍️', pequeno: true, accion: { tipo: 'pedir', prompt: 'Apunta en el diario lo que hemos hecho hoy: qué hicimos, por qué, qué quedó tocado y cómo quedó. Y si hemos decidido algo que importe, déjalo también en el registro de decisiones con su porqué.' } })}`,
     })}
 
     ${grupo({
-      id: 'grupo:conexiones',
-      etiqueta: 'Tus programas',
+      id: 'grupo:acciones',
+      etiqueta: 'Acciones',
       cuantos: estado.conectados || '',
       dentro: `
-        ${boton({ etiqueta: 'Verlos y cambiarlos', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
+        ${boton({ etiqueta: 'Tus programas', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
         ${boton({
           etiqueta: 'Conectar algo nuevo',
           icono: '➕',
           pequeno: true,
           accion: { tipo: 'pedir', prompt: 'Quiero conectar un programa nuevo con el que ya trabajo. Pregúntame cuál es, móntame la conexión con lo que haga falta y comprueba que funciona antes de darla por buena.' },
+        })}
+        ${boton({ etiqueta: 'Todo lo que sabe hacer', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } })}
+        ${boton({
+          etiqueta: 'Que se quede como botón',
+          icono: '🔖',
+          pequeno: true,
+          accion: { tipo: 'pedir', prompt: 'Quiero que algo que hago a menudo se quede como botón aquí arriba. Pregúntame cuál es, qué tiene que hacer exactamente, y déjalo montado.' },
         })}`,
-    })}
-
-    ${estado.faltaGit ? bloqueFaltaGit() : grupo({
-      id: 'grupo:guardar',
-      etiqueta: 'Copias de seguridad',
-      dentro: `
-        ${boton({ etiqueta: 'Guardar en git', icono: '💾', pequeno: true, accion: { tipo: 'guardarCopia' } })}
-        ${boton({ etiqueta: 'Subir a GitHub', icono: '☁️', pequeno: true, accion: { tipo: 'verCopiaFuera' } })}
-        ${boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', pequeno: true, accion: { tipo: 'verCopias' } })}`,
     })}
 
     ${grupo({
-      id: 'grupo:diario',
-      etiqueta: 'El diario',
-      dentro: `
-        ${boton({ etiqueta: 'Abrir el diario', icono: '🗓️', pequeno: true, accion: { tipo: 'verDiario' } })}
-        ${/* El arnés lo apunta solo al cerrar, pero quien se va a comer y vuelve
-              se queda sin anotación. Esto es el mismo barrido, a mano. */''}
-        ${boton({
-          etiqueta: 'Apuntar lo de hoy',
-          icono: '✍️',
-          pequeno: true,
-          accion: { tipo: 'pedir', prompt: 'Apunta en el diario lo que hemos hecho hoy: qué hicimos, por qué, qué quedó tocado y cómo quedó. Y si hemos decidido algo que importe, déjalo también en el registro de decisiones con su porqué.' },
-        })}`,
+      id: 'grupo:ayuda',
+      etiqueta: 'Ayuda',
+      dentro: boton({ etiqueta: 'Estoy atascado', icono: '🆘', pequeno: true, accion: { tipo: 'verAyuda' } })
+        + boton({ etiqueta: 'Qué falta por montar', icono: '🔎', pequeno: true, accion: { tipo: 'verRadiografia' } }),
     })}
 
     ${grupo({
       id: 'grupo:ajustes',
       etiqueta: 'Ajustes',
       dentro: `
-        ${boton({ etiqueta: 'Cómo te habla', icono: '🗣️', pequeno: true, accion: { tipo: 'verTrato' } })}
-        ${boton({ etiqueta: 'Cambiar de proyecto', icono: '📂', pequeno: true, accion: { tipo: 'elegirCarpeta' } })}
-        ${marcaPuesta ? '' : boton({
-          etiqueta: 'Poner el tema de mi empresa',
+        ${boton({
+          etiqueta: marcaPuesta ? 'Cambiar el tema de mi empresa' : 'Poner el tema de mi empresa',
           icono: '🎨',
           pequeno: true,
           accion: { tipo: 'ponerLaCara' },
         })}
+        ${boton({ etiqueta: 'Cambiar de proyecto', icono: '📂', pequeno: true, accion: { tipo: 'elegirCarpeta' } })}
         ${modo === 'avanzado'
           ? boton({ etiqueta: 'Volver al modo sencillo', icono: '◂', pequeno: true, accion: { tipo: 'modoSencillo' } })
           : boton({ etiqueta: 'Ver el editor completo', icono: '▸', pequeno: true, accion: { tipo: 'verEditorCompleto' } })}
         ${versionNueva}`,
-    })}
-
-    ${/* Aparte de los ajustes a propósito: "Algo va mal" enterrado dentro de
-          "ajustes" está justo donde nadie lo busca cuando algo va mal. */''}
-    ${grupo({
-      id: 'grupo:falla',
-      etiqueta: 'Si algo falla',
-      dentro: `
-        ${boton({ etiqueta: 'Algo va mal', icono: '🆘', pequeno: true, accion: { tipo: 'algoVaMal' } })}
-        ${boton({ etiqueta: 'Qué falta por montar', icono: '🔎', pequeno: true, accion: { tipo: 'verRadiografia' } })}`,
     })}
   `;
 }
@@ -1276,6 +1374,8 @@ function atender(data) {
     case 'radiografia': return pintar(pantallaRadiografia(data));
     case 'saberes': return pintar(pantallaSaberes(data));
     case 'salidas': return pintar(pantallaSalidas(data));
+    case 'papeles': return pintar(pantallaPapeles(data));
+    case 'ayuda': return pintar(pantallaAyuda(data));
     case 'huecos': return pintar(pantallaHuecos(data));
     case 'diario': return pintar(pantallaDiario(data));
     case 'trato': return pintar(pantallaTrato(data));

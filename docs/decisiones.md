@@ -1102,3 +1102,89 @@ encima. Hay una prueba que lo vigila.
 sobre el fondo; encima llevaba una opacidad del 0,65 al 0,85 según el sitio. Sobre fondo claro
 molestaba; con tema oscuro acababa en gris sobre gris, que es lo que se veía en la captura. Se han
 quitado todas y ahora se pinta con el color, que es el que está comprobado. Otra prueba lo vigila.
+
+---
+
+## 40. Seis apartados, y el criterio es de qué van
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+La propuso Jose entera, y es mejor que lo que había. Lo anterior eran cajones —*Tu trabajo*,
+*Ajustes y ayuda*— y se notaba en que las habilidades acabaron flotando arriba sin casa y *Tus
+programas* estaba suelto porque no cabía en otro lado. Esto no es una recolocación, es un criterio:
+
+| Apartado | De qué va |
+|---|---|
+| **Documentos** | Los papeles. Ver los que han entrado, darle más, llevarte uno |
+| **Lo que sabe** | Lo que ha entendido de esos papeles: conceptos, preguntas sin contestar, cómo te habla |
+| **Histórico** | Lo que ha pasado y cómo volver: copias, GitHub, el diario, las decisiones |
+| **Acciones** | Todo lo que es actuar: programas, conectar algo, habilidades, crear un botón |
+| **Ayuda** | Cuando te atascas: qué hacer ahora, ideas, algo va mal, qué falta, guías |
+| **Ajustes** | Configurar: el tema, el proyecto, el modo sencillo o completo |
+
+Con esto, cada cosa nueva que aparezca tiene un sitio obvio. Que era el problema de fondo.
+
+### Cuatro cosas que se apartaron de la propuesta, y por qué
+
+**Las habilidades van solo en Acciones.** Jose las había puesto en *Conocimiento* («qué sabe hacer»)
+y en *Acciones* («skills»), y son lo mismo. Una habilidad es la capacidad de **hacer** algo. En los
+dos sitios volvíamos al par que confunde: lo que sabe contra lo que sabe hacer.
+
+**Un buscador, no dos.** Pedía uno de documentos y otro de conceptos. Dos cajas obligan a elegir
+cuál **antes** de saber qué buscas, que es la peor pregunta que se le puede hacer a alguien que no
+sabe dónde está algo. El que hay agrupa por tipo, así que se le añadieron los papeles y el diario y
+cubre los dos casos. Sube a la pantalla principal, que es donde se busca.
+
+**Lo de diario se queda arriba y desplegado.** Los botones que el asistente ha creado y el
+*Consultar* de cada programa son lo que se pulsa todos los días. Meterlos dentro de *Acciones* les
+añadiría un clic y desharía la decisión 31.
+
+**«Cómo te habla» se quedó en Lo que sabe**, no en Ajustes. Yo defendía Ajustes —es una perilla de
+comportamiento— y Jose lo puso en conocimiento, que es donde vive: el mismo fichero que guarda quién
+es esta persona y qué quiere. Manda él.
+
+---
+
+## 41. "Volver a como estaba antes" pasa a "Volver a un punto anterior"
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose preguntó qué hacía exactamente ese botón, *«porque si es un revert o rollback de github
+tendríamos que ver a qué antes»*. La pregunta destapó que el nombre mentía por omisión.
+
+**Lo que hace, y no tiene nada que ver con GitHub:**
+
+1. Enseña las **diez últimas copias** con su etiqueta en cristiano: *Como estaba ayer*, *Como estaba
+   el martes*. Se elige una.
+2. Antes de mover nada, **guarda una copia del estado actual**.
+3. Deja la carpeta como estaba en esa copia — también quita lo que se creó después.
+4. Y **apunta la vuelta atrás como una copia más**, así que también se puede deshacer.
+
+No se borra nada y no se reescribe la historia. Pero «volver a como estaba antes» suena a que hay un
+único *antes*, y lo que hay es una lista donde eliges. El nombre nuevo lo dice.
+
+---
+
+## 42. Los papeles se ven, no se cuentan
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+De los tres montones por los que pasa un documento en RSC solo se veía un número: «Tienes 3
+documentos sin leer», y ni forma de saber cuáles son.
+
+Ahora se ven los tres, que son los tres estados del protocolo: `inbox/` (entregado, sin leer),
+`inbox/_processed/` (ya leído) y `raw/` (el original, que no se borra nunca). Cada uno se abre con
+el programa de siempre — un PDF con el lector de PDF — porque la barra no se pone a enseñar
+documentos que no sabe pintar.
+
+`raw/worklog/` se queda fuera: cuelga de `raw/` pero no es un papel que haya entregado nadie, es el
+diario que el arnés se escribe solo, y se ve en el histórico.
+
+**Lo que NO se ha hecho todavía: eliminar documentos.** Jose lo pidió y está pendiente de una
+decisión suya, porque tiene trampa: borrar el fichero **no borra lo que el arnés aprendió de él**.
+Un botón que solo borra el papel miente. O borra las dos cosas, o dice claramente cuál de las dos
+hace.
+
+Igual que *principios y constitución*: eso no existe en RSC. Lo más parecido son la sección
+*Working rules* del `CLAUDE.md`, el objetivo y los límites del perfil, y el registro de decisiones.
+Se puede montar, pero sería inventarlo juntando tres sitios, no enseñar algo que ya está.

@@ -34,6 +34,7 @@ const saberes = require('./saberes');
 const salidas = require('./salidas');
 const version = require('./version');
 const diario = require('./diario');
+const papeles = require('./papeles');
 const trato = require('./trato');
 const marca = require('./marca');
 
@@ -298,6 +299,9 @@ ${cabecera}
       verSaberes: () => this.verSaberes(),
       verSalidas: () => this.verSalidas(),
       verHuecos: () => this.verHuecos(),
+      verPapeles: () => this.verPapeles(),
+      abrirPapel: () => this.abrirPapel(mensaje.ruta),
+      verAyuda: () => this.verAyuda(),
       verDiario: () => this.verDiario(),
       verSesion: () => this.verSesion(mensaje.fichero),
       verTrato: () => this.verTrato(),
@@ -511,6 +515,26 @@ ${cabecera}
     this.donde = { tipo: 'quieto' };
     const sabe = saberes.queSabe(this.contexto.extensionPath);
     this.enviar({ tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie });
+  }
+
+  // El archivador: los papeles que han entrado, en sus tres montones. Antes de
+  // los tres solo se veía un número — "tienes 3 sin leer" y ni forma de saber
+  // cuáles son.
+  async verPapeles() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'papeles', ...papeles.queHay() });
+  }
+
+  async abrirPapel(ruta) {
+    const { ok, mensaje } = await papeles.abrir(ruta);
+    if (!ok) this.enviar({ tipo: 'aviso', texto: mensaje, malo: true });
+  }
+
+  // Todo lo que sirve cuando alguien se atasca, junto. "¿Y ahora qué hago?" es
+  // la pregunta más frecuente que hay y no tenía botón en ningún sitio.
+  async verAyuda() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'ayuda', github: await github.estado() });
   }
 
   // Lo que sabe que no sabe. Estaba al final de la pantalla de conceptos,
@@ -859,6 +883,8 @@ function activate(contexto) {
     comando('executiveLab.saberes', () => panel.verSaberes()),
     comando('executiveLab.salidas', () => panel.verSalidas()),
     comando('executiveLab.huecos', () => panel.verHuecos()),
+    comando('executiveLab.papeles', () => panel.verPapeles()),
+    comando('executiveLab.ayuda', () => panel.verAyuda()),
     comando('executiveLab.diario', () => panel.verDiario()),
     comando('executiveLab.trato', () => panel.verTrato()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),

@@ -16,6 +16,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const proyecto = require('./proyecto');
 const { acciones } = require('./acciones');
+const papeles = require('./papeles');
+const diario = require('./diario');
 
 // Topes para que una carpeta rara no congele el panel. Una wiki de empresa
 // anda por los cientos de documentos; 2.000 es mucho más de lo que se espera.
@@ -127,14 +129,21 @@ function armarElIndice() {
     }
   }
 
-  // 4. Los documentos que todavía están esperando a que los lea. Solo el
-  // nombre: el contenido no lo ha destilado nadie todavía.
-  const inbox = proyecto.ruta('02-DOCS', 'inbox');
-  if (inbox && fs.existsSync(inbox)) {
-    for (const entrada of fs.readdirSync(inbox, { withFileTypes: true })) {
-      if (!entrada.isFile() || entrada.name.startsWith('.') || entrada.name === 'README.md') continue;
-      cosas.push(cosa('esperando', entrada.name, '', { tipo: 'verCerebro' }));
-    }
+  // 4. Los papeles: los tres montones del archivador. Solo el nombre — el
+  // contenido de un PDF o de una hoja de cálculo no lo lee esto, y el de los
+  // que ya destiló el asistente sale por la wiki, en el punto 1.
+  //
+  // Antes solo entraban los que esperaban sin leer, y al pulsarlos llevaban a
+  // la pantalla de conceptos, que no es donde están.
+  const { esperando, leidos, originales } = papeles.queHay();
+  for (const papel of [...esperando, ...leidos, ...originales]) {
+    cosas.push(cosa('papel', papel.nombre, '', { tipo: 'abrirPapel', ruta: papel.ruta }));
+  }
+
+  // 5. El diario: lo que se hizo cada día. Buscar "Talleres Ruiz" tiene que
+  // encontrar también el día que se les reclamó el pago, no solo la ficha.
+  for (const sesion of diario.sesiones()) {
+    cosas.push(cosa('diario', sesion.titulo, sesion.resumen || '', { tipo: 'verSesion', fichero: sesion.fichero }));
   }
 
   // Se prepara una vez lo que se va a comparar mil veces.
@@ -175,8 +184,9 @@ function fraseCon(texto, termino) {
 const GRUPOS = [
   { tipo: 'sabe', titulo: 'Lo que sabe' },
   { tipo: 'hacer', titulo: 'Cosas que puedes hacer' },
+  { tipo: 'papel', titulo: 'Documentos' },
   { tipo: 'conexion', titulo: 'Tus programas' },
-  { tipo: 'esperando', titulo: 'Documentos esperando a que los lea' },
+  { tipo: 'diario', titulo: 'El diario' },
 ];
 
 // Cuánto vale encontrarlo en cada sitio. El título manda: quien busca

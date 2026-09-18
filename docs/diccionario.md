@@ -12,10 +12,13 @@ jerga por goteo.
 |---|---|
 | carpeta del proyecto / repo / workspace | Mi Empresa |
 | `git commit` | Guardar en git |
-| `git log` / `git restore` / checkout | Volver a como estaba el martes |
+| `git log` / `git restore` / checkout | Volver a un punto anterior |
+| una copia concreta de la lista | Como estaba ayer · Como estaba el martes |
 | `.env` / variables de entorno / secretos | Tus programas |
 | API key / token / credencial | Clave de acceso |
 | `rsc doctor` / `rsc repair` | Revisar y arreglar |
+| el consejero y el «¿y ahora qué?» | Estoy atascado · Dime por dónde seguir |
+| pedirle ideas | Pensemos ideas juntos |
 | la radiografía de la carpeta | Qué falta por montar |
 | `rsc add <skill>` | Que lo aprenda |
 | skill | Habilidad |
@@ -36,7 +39,9 @@ jerga por goteo.
 | un artículo de la wiki | Un concepto |
 | `02-DOCS/wiki/log.md` | Lo último que ha anotado (dentro de El diario) |
 | `02-DOCS/wiki/gaps.md` | Preguntas sin contestar |
-| `02-DOCS/inbox/` | Darle documentos |
+| `02-DOCS/inbox/` | Darle documentos · Sin leer todavía |
+| `02-DOCS/raw/` | Originales guardados |
+| los tres montones juntos | Ver los documentos |
 | `02-DOCS/inbox/_processed/` | Documentos que ya ha leído |
 | `02-DOCS/wiki/dashboard.html` | El panel completo |
 | `rsc onboard` en una carpeta nueva | Preparar esta carpeta |
@@ -65,7 +70,7 @@ jerga por goteo.
 | `accompaniment_level` | Cuánto te explica |
 | `technical_level` | Con qué palabras |
 | elegir uno de esos escalones | Ponme así |
-| los grupos plegados de la pantalla principal | Lo que sabe · Documentos · Tus programas · Copias de seguridad · El diario · Ajustes · Si algo falla |
+| los seis apartados de la pantalla principal | Documentos · Lo que sabe · Histórico · Acciones · Ayuda · Ajustes |
 
 ## Dos excepciones: git y GitHub
 
