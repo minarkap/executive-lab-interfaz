@@ -547,3 +547,12 @@ button.pequeno .icono { font-size: 0.9em; }
 }
 .acordeon > .pista { margin: 0 0 0.6rem 0.2rem; font-size: 0.9em; opacity: 0.7; }
 .acordeon > button { margin-top: 0.5rem; }
+
+/* Un archivo para llevarse. */
+.archivo {
+  padding: 0.6rem 0 0.4rem;
+  border-bottom: 1px solid var(--el-borde, rgba(0, 0, 0, 0.07));
+}
+.archivo .nombre { font-weight: 600; margin: 0 0 0.1rem; word-break: break-word; }
+.archivo .pista { margin: 0 0 0.4rem; font-size: 0.88em; opacity: 0.65; }
+.archivo button { margin-top: 0.3rem; }

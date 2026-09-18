@@ -224,6 +224,43 @@ function cajaDeBusqueda(valor = '') {
     aria-label="Buscar">`;
 }
 
+// ---------------------------------------------------- llevarte un archivo
+
+// Lo que el asistente ha producido, sacado del `out/` que RSC define en cada
+// herramienta. Dos formas de llevárselo y ninguna enseña una ruta: abrirlo con
+// el programa de siempre, o guardarlo donde esa persona diga.
+function pantallaSalidas(datos) {
+  const herramientas = datos.herramientas || [];
+
+  const archivo = (h, a) => `
+    <div class="archivo">
+      <p class="nombre">${texto(a.fichero)}</p>
+      <p class="pista">${texto(a.tamano)} · ${texto(cuando(a.cuando.slice(0, 10)))}</p>
+      ${boton({ etiqueta: 'Abrirlo', icono: '▸', pequeno: true, accion: { tipo: 'abrirSalida', herramienta: h.id, fichero: a.fichero } })}
+      ${boton({ etiqueta: 'Guardarlo donde yo diga', icono: '⬇️', pequeno: true, accion: { tipo: 'guardarSalida', herramienta: h.id, fichero: a.fichero } })}
+    </div>`;
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Llevarte un archivo' }])}
+    ${bloqueAviso()}
+
+    <div class="brujula">
+      <h2>Llevarte un archivo</h2>
+      <p class="hiciste">Lo que ha ido preparando para ti. Ábrelo para verlo, o guárdatelo donde quieras.</p>
+    </div>
+
+    ${herramientas.length ? herramientas.map((h) => `
+      <details class="acordeon" data-abrir="salida:${atributo(h.id)}"${abiertas.has(`salida:${h.id}`) ? ' open' : ''}>
+        <summary>${texto(h.etiqueta)} <span class="cuantos">${h.cuantos}</span></summary>
+        ${h.archivos.map((a) => archivo(h, a)).join('')}
+        ${h.hayMas ? boton({ etiqueta: plural(h.hayMas, 'Ver el que falta', 'Ver los {n} que faltan'), icono: '📂', discreto: true, pequeno: true, accion: { tipo: 'abrirCarpetaDeSalida', herramienta: h.id } }) : ''}
+      </details>`).join('')
+      : nada('Todavía no ha preparado nada para llevarse.')}
+
+    ${volver()}
+  `;
+}
+
 // ------------------------------------------------------ qué sabe hacer
 
 // Lo que ya sabe y lo que podría aprender. La fontanería del arnés —orient,
@@ -554,6 +591,7 @@ function pantallaPrincipal() {
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', accion: { tipo: 'verCopias' } })}
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Subir a GitHub', icono: '☁️', accion: { tipo: 'verCopiaFuera' } })}
     ${estado.faltaGit ? bloqueFaltaGit() : ''}
+    ${boton({ etiqueta: 'Llevarte un archivo', icono: '📤', accion: { tipo: 'verSalidas' } })}
     ${boton({ etiqueta: 'Qué sabe hacer', icono: '✨', accion: { tipo: 'verSaberes' } })}
     ${boton({ etiqueta: 'Qué hay en esta carpeta', icono: '🔎', accion: { tipo: 'verRadiografia' } })}
     ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
@@ -1009,6 +1047,7 @@ window.addEventListener('message', ({ data }) => {
     case 'copiaFuera': return pintar(pantallaCopiaFuera(data));
     case 'radiografia': return pintar(pantallaRadiografia(data));
     case 'saberes': return pintar(pantallaSaberes(data));
+    case 'salidas': return pintar(pantallaSalidas(data));
     case 'incidencia': return pintar(pantallaIncidencia(data));
     case 'aviso':
       aviso = { texto: data.texto, malo: data.malo };

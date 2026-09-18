@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -850,6 +850,41 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
 
     vscode.guion.sesionGitHub = null;
     return `dentro como ${estado.usuario}`;
+  });
+
+  await comprobar('lo que hay para llevarse sale del out/ que define RSC', () => {
+    const salidas = cargar('salidas');
+
+    // Sin nada producido todavía, no se ofrece nada: como todo lo demás, sale
+    // de leer la carpeta.
+    assert.deepEqual(salidas.loQueHaProducido(), [], 'sin out/ no hay nada que llevarse');
+
+    // Y con algo dentro, aparece. `out/` es la carpeta que RSC escribe en el
+    // .gitignore de cada herramienta: es SU convención, no nuestra.
+    const out = path.join(empresa, '01-TOOLS', 'HOLDED', 'out');
+    fs.mkdirSync(out, { recursive: true });
+    fs.writeFileSync(path.join(out, 'Resumen de marzo.pdf'), 'no es un pdf de verdad');
+    fs.writeFileSync(path.join(out, '.escondido'), 'esto no se enseña');
+
+    const hay = salidas.loQueHaProducido();
+    assert.equal(hay.length, 1);
+    assert.equal(hay[0].cuantos, 1, 'los ficheros ocultos no se cuentan');
+    assert.equal(hay[0].archivos[0].fichero, 'Resumen de marzo.pdf');
+    assert.ok(hay[0].archivos[0].tamano, 'se dice cuánto ocupa');
+
+    fs.rmSync(out, { recursive: true, force: true });
+    return `${hay[0].etiqueta}: ${hay[0].cuantos} para llevarse`;
+  });
+
+  await comprobar('no se puede sacar un fichero de fuera de out/', async () => {
+    // Lo que llega del panel no construye rutas a lo loco: si alguien pidiera
+    // el .env de la herramienta, o algo de más arriba, no se abre ni se copia.
+    const salidas = cargar('salidas');
+    for (const intento of ['../.env', '../../../etc/passwd', 'sub/carpeta.txt', '..']) {
+      const abierto = await salidas.abrir('HOLDED', intento);
+      assert.equal(abierto.ok, false, `"${intento}" no debería resolverse a nada`);
+    }
+    return '4 intentos, ninguno pasa';
   });
 
   await comprobar('lo que se mira de un vistazo sale de la tabla del README, y solo lo que mira', () => {

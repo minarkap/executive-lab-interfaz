@@ -31,6 +31,7 @@ const git = require('./git');
 const github = require('./github');
 const terreno = require('./terreno');
 const saberes = require('./saberes');
+const salidas = require('./salidas');
 const marca = require('./marca');
 
 // Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
@@ -264,6 +265,10 @@ ${cabecera}
       verCopiaFuera: () => this.verCopiaFuera(),
       verRadiografia: () => this.verRadiografia(),
       verSaberes: () => this.verSaberes(),
+      verSalidas: () => this.verSalidas(),
+      abrirSalida: () => this.abrirSalida(mensaje.herramienta, mensaje.fichero),
+      guardarSalida: () => this.guardarSalida(mensaje.herramienta, mensaje.fichero),
+      abrirCarpetaDeSalida: () => salidas.abrirLaCarpeta(mensaje.herramienta),
       ponerLaCara: () => this.ponerLaCara(),
       elegirCarpeta: () => this.elegirCarpeta(),
       abrirAsistente: () => puente.abrirConversacion(),
@@ -449,6 +454,24 @@ ${cabecera}
   // "¿Esto qué sabe hacer?" — de las primeras preguntas delante de algo nuevo,
   // y hasta ahora sin respuesta: el consejero ofrecía una capacidad cuando
   // encajaba y no había forma de ver el resto.
+  // Llevarte un archivo: lo que el asistente ha producido, en el `out/` que RSC
+  // define en cada herramienta.
+  async verSalidas() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'salidas', herramientas: salidas.loQueHaProducido() });
+  }
+
+  async abrirSalida(herramienta, fichero) {
+    const { ok, mensaje } = await salidas.abrir(herramienta, fichero);
+    if (!ok) this.enviar({ tipo: 'aviso', texto: mensaje, malo: true });
+  }
+
+  async guardarSalida(herramienta, fichero) {
+    const hecho = await salidas.guardarCopia(herramienta, fichero);
+    if (hecho.cancelado) return;
+    this.enviar({ tipo: 'aviso', texto: hecho.mensaje, malo: !hecho.ok });
+  }
+
   async verSaberes() {
     this.donde = { tipo: 'quieto' };
     this.enviar({ tipo: 'saberes', ...saberes.queSabe(this.contexto.extensionPath) });
@@ -724,6 +747,7 @@ function activate(contexto) {
     comando('executiveLab.cerebro', () => panel.verCerebro()),
     comando('executiveLab.radiografia', () => panel.verRadiografia()),
     comando('executiveLab.saberes', () => panel.verSaberes()),
+    comando('executiveLab.salidas', () => panel.verSalidas()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),
     comando('executiveLab.documentos', () => panel.anadirDocumentos()),
     comando('executiveLab.algoVaMal', () => panel.algoVaMal()),
