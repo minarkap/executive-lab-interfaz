@@ -287,6 +287,38 @@ async function probar(proveedorId) {
   return { ok: false, mensaje: 'No conecta. Revisa que la clave esté bien pegada, entera y sin espacios.' };
 }
 
+// Lo que se puede hacer de un vistazo, sin abrir conversación: los scripts de
+// cada herramienta que **solo miran**. Ya se ejecutaban así desde el principio
+// (decisión 8), pero estaban enterrados en Mis conexiones → la herramienta;
+// esto los saca a la pantalla principal, agrupados por herramienta.
+//
+// Solo salen los que solo miran. Los que piden datos o cambian algo siguen
+// pasando por el asistente, que pregunta lo que falte y pide permiso — esa
+// regla no se toca, que es la que hace que pulsar sea seguro.
+//
+// En un arnés sin herramientas, o con herramientas sin scripts, esto devuelve
+// una lista vacía y la pantalla se queda como estaba. Como todo lo demás: sale
+// de leer la carpeta, no de estar escrito en el código.
+function loQueSePuedeMirar() {
+  return proveedores()
+    .map((p) => ({
+      id: p.id,
+      etiqueta: p.etiqueta,
+      scripts: scripts(p.id)
+        .filter((s) => !s.pideDatos)
+        .map((s) => ({
+          fichero: s.fichero,
+          // Para el botón, el nombre del fichero en cristiano: la columna del
+          // README es una frase entera —"Lo facturado y lo gastado este mes,
+          // lo pendiente de cobro…"— y en una barra estrecha no cabe. Esa
+          // frase se queda debajo, de pista.
+          etiqueta: humanizar(s.fichero.replace(EJECUTABLES, '')),
+          queHace: s.etiqueta,
+        })),
+    }))
+    .filter((p) => p.scripts.length);
+}
+
 // ------------------------------------------------------ las cositas
 
 // Verbos que solo miran. Se ejecutan directos porque no pueden romper nada, y
@@ -364,4 +396,4 @@ async function ejecutar(proveedorId, fichero) {
   };
 }
 
-module.exports = { proveedores, claves, escribir, probar, scripts, ejecutar, etiquetaDeClave, enmascarar, leerEnv };
+module.exports = { proveedores, claves, escribir, probar, scripts, loQueSePuedeMirar, ejecutar, etiquetaDeClave, enmascarar, leerEnv };

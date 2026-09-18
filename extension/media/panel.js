@@ -8,6 +8,12 @@ const app = document.getElementById('app');
 
 let estado = null;
 let accionesDescubiertas = [];
+let deUnVistazo = [];
+// Qué herramientas tiene abiertas en el acordeón. Vive aquí y no en el estado
+// del arnés porque es de esta persona y de este rato: el vigía repinta la
+// pantalla cada vez que el asistente toca un fichero, y sin esto se le cerraría
+// el acordeón en las narices a media lectura.
+const abiertas = new Set();
 let modo = 'sencillo';
 let marcaPuesta = true;
 let comoSeLlama = 'tu trabajo';
@@ -46,6 +52,15 @@ function leer(fichero) {
   });
 }
 
+// Abrir o cerrar una herramienta se recuerda mientras dure esta sesión, para
+// que un repintado del vigía no la cierre a media lectura.
+document.addEventListener('toggle', (e) => {
+  const quien = e.target && e.target.dataset ? e.target.dataset.abrir : null;
+  if (!quien) return;
+  if (e.target.open) abiertas.add(quien);
+  else abiertas.delete(quien);
+}, true);
+
 document.addEventListener('dragover', (e) => {
   e.preventDefault();
   document.body.classList.add('soltando');
@@ -80,8 +95,8 @@ function escapar(valor, patron) {
 const texto = (valor) => escapar(valor, /[&<>]/g);
 const atributo = (valor) => escapar(valor, /[&<>"']/g);
 
-function boton({ etiqueta, icono = '', accion, principal = false, discreto = false }) {
-  const clases = [principal ? 'principal' : '', discreto ? 'discreto' : ''].filter(Boolean).join(' ');
+function boton({ etiqueta, icono = '', accion, principal = false, discreto = false, pequeno = false }) {
+  const clases = [principal ? 'principal' : '', discreto ? 'discreto' : '', pequeno ? 'pequeno' : ''].filter(Boolean).join(' ');
   return `<button class="${clases}" data-accion="${atributo(JSON.stringify(accion))}">
     ${icono ? `<span class="icono" aria-hidden="true">${icono}</span>` : ''}
     <span class="texto">${texto(etiqueta)}</span>
@@ -455,6 +470,17 @@ function pantallaPrincipal() {
   if (estado.conectados) detalle.push(plural(estado.conectados, '1 conexión', '{n} conexiones'));
   if (estado.sabe) detalle.push(plural(estado.sabe, '1 cosa aprendida', '{n} cosas aprendidas'));
 
+  // Lo que se puede mirar sin abrir conversación, agrupado por herramienta y
+  // plegado: son los scripts que la barra ejecuta ella (decisión 8). Antes
+  // estaban enterrados en Mis conexiones → la herramienta.
+  const vistazos = deUnVistazo.map((h) => `
+    <details class="acordeon" data-abrir="${atributo(h.id)}"${abiertas.has(h.id) ? ' open' : ''}>
+      <summary>${texto(h.etiqueta)} <span class="cuantos">${h.scripts.length}</span></summary>
+      ${h.scripts.map((s) => `
+        ${boton({ etiqueta: s.etiqueta, icono: '▸', pequeno: true, accion: { tipo: 'hacerCosita', proveedor: h.id, fichero: s.fichero, etiqueta: s.etiqueta, pideDatos: false } })}
+        ${s.queHace ? `<p class="pista">${texto(s.queHace)}</p>` : ''}`).join('')}
+    </details>`).join('');
+
   // Los botones no están predefinidos: son los comandos que tenga esta
   // empresa, y el asistente va creando más conforme se repiten tareas.
   const descubiertos = accionesDescubiertas
@@ -518,7 +544,9 @@ function pantallaPrincipal() {
     ${primerPaso}
     ${elConsejo}
     ${documentos}
-    ${descubiertos ? `<h2>Qué quieres hacer</h2>${descubiertos}<hr class="separador">` : ''}
+    ${descubiertos ? `<h2>Qué quieres hacer</h2>${descubiertos}` : ''}
+    ${vistazos ? `<h2>Mirar de un vistazo</h2>${vistazos}` : ''}
+    ${descubiertos || vistazos ? '<hr class="separador">' : ''}
 
     ${boton({ etiqueta: `Lo que sabe de ${comoSeLlama}`, icono: '📚', accion: { tipo: 'verCerebro' } })}
     ${boton({ etiqueta: 'Mis conexiones', icono: '🔌', accion: { tipo: 'verConexiones' } })}
@@ -961,6 +989,7 @@ window.addEventListener('message', ({ data }) => {
     case 'estado':
       estado = data.estado;
       accionesDescubiertas = data.acciones || [];
+      deUnVistazo = data.deUnVistazo || [];
       modo = data.modo || 'sencillo';
       marcaPuesta = data.marcaPuesta !== false;
       comoSeLlama = data.comoSeLlama || 'tu trabajo';

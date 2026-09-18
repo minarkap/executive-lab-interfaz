@@ -852,6 +852,25 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `dentro como ${estado.usuario}`;
   });
 
+  await comprobar('lo que se mira de un vistazo sale de la tabla del README, y solo lo que mira', () => {
+    const vistazo = conexiones.loQueSePuedeMirar();
+
+    // Sale de la convención de RSC: cada herramienta de 01-TOOLS lleva un
+    // README con su tabla de scripts. No hay nada de ninguna herramienta
+    // concreta escrito en el código.
+    const holded = vistazo.find((h) => h.id === 'HOLDED');
+    assert.ok(holded, 'la herramienta de la empresa de mentira tiene scripts que solo miran');
+
+    // Y lo que importa: nada que pida datos o cambie algo se cuela aquí. Eso
+    // sigue pasando por el asistente, que pregunta y pide permiso.
+    const todosLosDeHolded = conexiones.scripts('HOLDED');
+    const queMiran = todosLosDeHolded.filter((s) => !s.pideDatos).length;
+    assert.equal(holded.scripts.length, queMiran, 'ni uno más ni uno menos de los que solo miran');
+    assert.ok(holded.scripts.every((s) => s.etiqueta && !s.etiqueta.includes('_')), 'el botón lleva el nombre en cristiano, no el del fichero');
+
+    return `${holded.etiqueta}: ${holded.scripts.length} de un vistazo`;
+  });
+
   await comprobar('la lista de lo que sabe hacer separa lo suyo de la fontanería', () => {
     const saberes = cargar('saberes');
     const queSabe = saberes.queSabe(RAIZ);

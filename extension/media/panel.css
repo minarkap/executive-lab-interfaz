@@ -512,3 +512,38 @@ body.soltando {
   outline: 3px dashed var(--el-acento, #d84315);
   outline-offset: -6px;
 }
+
+/* Botones pequeños: los de mirar de un vistazo son muchos y secundarios. */
+button.pequeno {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.95em;
+}
+button.pequeno .icono { font-size: 0.9em; }
+
+/* El acordeón de cada herramienta. <details> nativo: sin JavaScript que
+   mantener, y sigue funcionando dentro de diez años. */
+.acordeon {
+  border: 1px solid var(--el-borde, rgba(0, 0, 0, 0.1));
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  margin: 0 0 0.5rem;
+}
+.acordeon > summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.acordeon > summary::-webkit-details-marker { display: none; }
+.acordeon > summary::before { content: '▸'; opacity: 0.5; font-size: 0.85em; }
+.acordeon[open] > summary::before { content: '▾'; }
+.acordeon > summary .cuantos {
+  margin-left: auto;
+  opacity: 0.55;
+  font-weight: 400;
+  font-size: 0.9em;
+}
+.acordeon > .pista { margin: 0 0 0.6rem 0.2rem; font-size: 0.9em; opacity: 0.7; }
+.acordeon > button { margin-top: 0.5rem; }

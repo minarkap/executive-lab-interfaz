@@ -143,6 +143,9 @@ ${cabecera}
       tipo: 'estado',
       estado: await brujula.estado({ fresco }),
       acciones: acciones.acciones(),
+      // Los scripts que solo miran, por herramienta: la barra los ejecuta ella
+      // y el resultado sale en un segundo, sin abrir conversación.
+      deUnVistazo: conexiones.loQueSePuedeMirar(),
       modo: disfraz.modoDeEstaVentana(),
       // Si la empresa aún no tiene cara puesta, el panel la ofrece en vez de
       // esperar a que el alumno caiga en contarlo.
