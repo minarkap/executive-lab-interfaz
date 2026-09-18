@@ -69,7 +69,7 @@ body {
   margin: 0;
   padding: 14px 14px 24px;
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 14.5px;
   line-height: 1.55;
   color: var(--texto);
   background: var(--fondo);
@@ -146,9 +146,9 @@ button {
   width: 100%;
   min-height: var(--alto-boton);
   margin-bottom: var(--hueco);
-  padding: 10px 14px;
+  padding: 9px 13px;
   font-family: inherit;
-  font-size: 15px;
+  font-size: 14px;
   text-align: left;
   color: var(--texto);
   background: var(--superficie);
@@ -176,7 +176,7 @@ button.principal {
 
 button.principal:hover { background: var(--rojo); }
 
-button .icono { flex: none; font-size: 17px; line-height: 1; }
+button .icono { flex: none; font-size: 16px; line-height: 1; }
 
 button .texto { flex: 1; }
 
@@ -513,12 +513,26 @@ body.soltando {
   outline-offset: -6px;
 }
 
-/* Botones pequeños: los de mirar de un vistazo son muchos y secundarios. */
+/* Botones pequeños. Son ya la mayoría de la pantalla: todo lo que no se pulsa
+   a diario. Con doce funciones, en botón grande esto era un scroll largo para
+   llegar a lo de siempre. */
 button.pequeno {
-  padding: 0.45rem 0.7rem;
-  font-size: 0.95em;
+  min-height: 36px;
+  padding: 7px 11px;
+  margin-bottom: 6px;
+  font-size: 13px;
 }
-button.pequeno .icono { font-size: 0.9em; }
+button.pequeno .icono { font-size: 14px; }
+
+/* Solo el dibujo: para acciones que se repiten en cada fila de una lista y que
+   escritas enteras le quitarían el sitio a lo que sí cambia, que es el nombre. */
+button.solo-icono {
+  width: auto;
+  min-height: 32px;
+  padding: 5px 9px;
+  margin: 0;
+}
+button.solo-icono .icono { font-size: 15px; }
 
 /* El acordeón de cada herramienta. <details> nativo: sin JavaScript que
    mantener, y sigue funcionando dentro de diez años. */
@@ -556,3 +570,12 @@ button.pequeno .icono { font-size: 0.9em; }
 .archivo .nombre { font-weight: 600; margin: 0 0 0.1rem; word-break: break-word; }
 .archivo .pista { margin: 0 0 0.4rem; font-size: 0.88em; opacity: 0.65; }
 .archivo button { margin-top: 0.3rem; }
+
+/* Una fila de archivo: el nombre manda y las dos acciones van a la derecha. */
+.archivo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.archivo-que { flex: 1; min-width: 0; }
+.archivo-acciones { flex: none; display: flex; gap: 4px; }

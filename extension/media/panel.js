@@ -95,8 +95,17 @@ function escapar(valor, patron) {
 const texto = (valor) => escapar(valor, /[&<>]/g);
 const atributo = (valor) => escapar(valor, /[&<>"']/g);
 
-function boton({ etiqueta, icono = '', accion, principal = false, discreto = false, pequeno = false }) {
-  const clases = [principal ? 'principal' : '', discreto ? 'discreto' : '', pequeno ? 'pequeno' : ''].filter(Boolean).join(' ');
+function boton({ etiqueta, icono = '', accion, principal = false, discreto = false, pequeno = false, soloIcono = false }) {
+  const clases = [principal ? 'principal' : '', discreto ? 'discreto' : '', pequeno ? 'pequeno' : '', soloIcono ? 'solo-icono' : ''].filter(Boolean).join(' ');
+
+  // Un botón que es solo un dibujo sigue teniendo que decir su nombre: al
+  // pasar por encima y para quien lo oye en vez de verlo. Un cuadrito mudo no
+  // es un botón, es un acertijo.
+  if (soloIcono) {
+    return `<button class="${clases}" title="${atributo(etiqueta)}" aria-label="${atributo(etiqueta)}"
+      data-accion="${atributo(JSON.stringify(accion))}"><span class="icono" aria-hidden="true">${icono}</span></button>`;
+  }
+
   return `<button class="${clases}" data-accion="${atributo(JSON.stringify(accion))}">
     ${icono ? `<span class="icono" aria-hidden="true">${icono}</span>` : ''}
     <span class="texto">${texto(etiqueta)}</span>
@@ -232,12 +241,19 @@ function cajaDeBusqueda(valor = '') {
 function pantallaSalidas(datos) {
   const herramientas = datos.herramientas || [];
 
+  // El nombre manda, y las dos acciones son dos dibujos a la derecha: son
+  // siempre las mismas para todos los ficheros, así que escribirlas enteras
+  // una y otra vez solo quita sitio al nombre, que es lo único que cambia.
   const archivo = (h, a) => `
     <div class="archivo">
-      <p class="nombre">${texto(a.fichero)}</p>
-      <p class="pista">${texto(a.tamano)} · ${texto(cuando(a.cuando.slice(0, 10)))}</p>
-      ${boton({ etiqueta: 'Abrirlo', icono: '▸', pequeno: true, accion: { tipo: 'abrirSalida', herramienta: h.id, fichero: a.fichero } })}
-      ${boton({ etiqueta: 'Guardarlo donde yo diga', icono: '⬇️', pequeno: true, accion: { tipo: 'guardarSalida', herramienta: h.id, fichero: a.fichero } })}
+      <div class="archivo-que">
+        <p class="nombre">${texto(a.fichero)}</p>
+        <p class="pista">${texto(a.tamano)} · ${texto(cuando(a.cuando.slice(0, 10)))}</p>
+      </div>
+      <div class="archivo-acciones">
+        ${boton({ etiqueta: `Abrir ${a.fichero}`, icono: '👁', pequeno: true, soloIcono: true, accion: { tipo: 'abrirSalida', herramienta: h.id, fichero: a.fichero } })}
+        ${boton({ etiqueta: `Guardar ${a.fichero} donde yo diga`, icono: '⬇', pequeno: true, soloIcono: true, accion: { tipo: 'guardarSalida', herramienta: h.id, fichero: a.fichero } })}
+      </div>
     </div>`;
 
   return `
@@ -585,16 +601,27 @@ function pantallaPrincipal() {
     ${vistazos ? `<h2>Mirar de un vistazo</h2>${vistazos}` : ''}
     ${descubiertos || vistazos ? '<hr class="separador">' : ''}
 
-    ${boton({ etiqueta: `Lo que sabe de ${comoSeLlama}`, icono: '📚', accion: { tipo: 'verCerebro' } })}
-    ${boton({ etiqueta: 'Mis conexiones', icono: '🔌', accion: { tipo: 'verConexiones' } })}
-    ${estado.faltaGit ? '' : boton({ etiqueta: 'Guardar en git', icono: '💾', accion: { tipo: 'guardarCopia' } })}
-    ${estado.faltaGit ? '' : boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', accion: { tipo: 'verCopias' } })}
-    ${estado.faltaGit ? '' : boton({ etiqueta: 'Subir a GitHub', icono: '☁️', accion: { tipo: 'verCopiaFuera' } })}
-    ${estado.faltaGit ? bloqueFaltaGit() : ''}
-    ${boton({ etiqueta: 'Llevarte un archivo', icono: '📤', accion: { tipo: 'verSalidas' } })}
-    ${boton({ etiqueta: 'Qué sabe hacer', icono: '✨', accion: { tipo: 'verSaberes' } })}
-    ${boton({ etiqueta: 'Qué hay en esta carpeta', icono: '🔎', accion: { tipo: 'verRadiografia' } })}
-    ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
+    ${/* Esta pantalla se diseñó con seis botones y ya van doce: en botón grande
+          eso es un scroll largo para llegar a lo de siempre. Así que solo va
+          grande lo que se pulsa a diario —lo que el asistente ha creado y lo
+          que se mira de un vistazo, arriba— y el resto va pequeño y agrupado
+          por para qué sirve. No se esconde nada: se ordena. */''}
+
+    <h2>Tu trabajo</h2>
+    ${boton({ etiqueta: `Lo que sabe de ${comoSeLlama}`, icono: '📚', pequeno: true, accion: { tipo: 'verCerebro' } })}
+    ${boton({ etiqueta: 'Mis conexiones', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
+    ${boton({ etiqueta: 'Llevarte un archivo', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}
+    ${boton({ etiqueta: 'Qué sabe hacer', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } })}
+
+    ${estado.faltaGit ? bloqueFaltaGit() : `
+      <h2>Guardar</h2>
+      ${boton({ etiqueta: 'Guardar en git', icono: '💾', pequeno: true, accion: { tipo: 'guardarCopia' } })}
+      ${boton({ etiqueta: 'Subir a GitHub', icono: '☁️', pequeno: true, accion: { tipo: 'verCopiaFuera' } })}
+      ${boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', pequeno: true, accion: { tipo: 'verCopias' } })}`}
+
+    <h2>Si algo no cuadra</h2>
+    ${boton({ etiqueta: 'Qué hay en esta carpeta', icono: '🔎', pequeno: true, accion: { tipo: 'verRadiografia' } })}
+    ${boton({ etiqueta: 'Algo va mal', icono: '🆘', pequeno: true, accion: { tipo: 'algoVaMal' } })}
 
     <hr class="separador">
     ${boton({ etiqueta: 'Cambiar de carpeta', icono: '📂', discreto: true, accion: { tipo: 'elegirCarpeta' } })}
