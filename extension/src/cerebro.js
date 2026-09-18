@@ -306,7 +306,7 @@ const abrirPanel = () => vscode.env.openExternal(vscode.Uri.file(proyecto.ruta(.
 
 // -------------------------------------------------- darle documentos
 
-function contar(...partes) {
+function contar(partes, saltar = []) {
   const carpeta = proyecto.ruta(...partes);
   if (!carpeta || !fs.existsSync(carpeta)) return 0;
 
@@ -314,8 +314,10 @@ function contar(...partes) {
   const recorrer = (donde) => {
     for (const entrada of fs.readdirSync(donde, { withFileTypes: true })) {
       if (entrada.name.startsWith('.') || entrada.name === 'README.md') continue;
-      if (entrada.isDirectory()) recorrer(path.join(donde, entrada.name));
-      else cuenta += 1;
+      if (entrada.isDirectory()) {
+        if (saltar.includes(entrada.name)) continue;
+        recorrer(path.join(donde, entrada.name));
+      } else cuenta += 1;
     }
   };
   try { recorrer(carpeta); } catch { /* si no se puede leer, cero */ }
@@ -346,8 +348,11 @@ function esperandoDesdeHace() {
   return masViejo === null ? null : Math.floor((Date.now() - masViejo) / 86400000);
 }
 
-const yaLeidos = () => contar(...INBOX, '_processed');
-const originales = () => contar('02-DOCS', 'raw');
+const yaLeidos = () => contar([...INBOX, '_processed']);
+// `raw/worklog/` también cuelga de `raw/`, pero no es un documento que nadie
+// haya dado: es el diario que el arnés se escribe solo. Contarlo ahí le diría
+// al alumno que ha entregado papeles que no ha entregado.
+const originales = () => contar(['02-DOCS', 'raw'], ['worklog']);
 
 // Copia lo que elija el alumno a `inbox/`. No se procesa aquí: el barrido de
 // la bandeja lo hace el asistente, que sabe extraer, clasificar y enlazar.

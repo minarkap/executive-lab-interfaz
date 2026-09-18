@@ -803,3 +803,133 @@ vacía, copias sin cuenta donde subirlas.
 
 Cada pieza lleva una marca —`✓`, `!`, `·`— que se lee igual en blanco y negro y con daltonismo: el
 color solo acompaña.
+
+---
+
+## 31. La pantalla principal son cinco filas plegadas, no doce botones seguidos
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose, después de la última tanda: *«vemos de mejorar también la barra porque ahora me parece un poco
+desordenada»*.
+
+Tenía razón y el código ya lo confesaba: había un comentario que decía «esta pantalla se diseñó con
+seis botones y ya van doce». La respuesta de entonces fue hacerlos pequeños. Eso arregla el alto,
+no el desorden.
+
+### Qué estaba mal
+
+Cuatro rótulos —*Tu trabajo*, *Guardar*, *Si algo no cuadra*— y debajo de cada uno una tira de
+botones del mismo tamaño, más cuatro botones sueltos al final sin rótulo ninguno. Todo pesaba lo
+mismo, así que para llegar a lo de siempre había que repasarlo todo. Y *Tu trabajo* no quiere decir
+nada: es donde caía lo que no cabía en otro sitio.
+
+### Qué se hace
+
+Arriba se queda **lo que se pulsa a diario y sin desplegar nada**: lo que el asistente ha ido
+creando como botón, y lo que se mira de un vistazo de cada herramienta. Eso no se toca.
+
+Lo demás baja a cinco filas plegadas, con el mismo `<details>` nativo que ya usaban las
+herramientas:
+
+| Fila | Qué guarda |
+|---|---|
+| Lo que sabe de *<nombre>* | Ver los temas · Darle documentos · Llevarte un archivo |
+| Mis conexiones | Verlas y cambiarlas · Conectar algo nuevo |
+| Guardar | Guardar en git · Subir a GitHub · Volver a como estaba antes |
+| Qué se ha hecho | El diario y las decisiones · Apuntar lo de hoy |
+| Ajustes y ayuda | Qué sabe hacer · Cómo te habla · Qué hay en esta carpeta · Algo va mal · Cambiar de carpeta · Ponerle la cara · Ver el editor completo |
+
+No se esconde nada: **cada fila dice qué guarda y cuánto hay dentro** —las conexiones que tienes, las
+cosas que sabe— y lo que se abre se queda abierto mientras dure la sesión, porque el vigía repinta
+la pantalla cada vez que el asistente toca un fichero.
+
+Los dos números que antes salían en la brújula (*2 conexiones · 7 cosas aprendidas*) se han ido a la
+fila de cada uno. Ahí el número es accionable; en la brújula era decoración.
+
+### Lo que esto cuesta, y por qué se acepta
+
+Un clic más para llegar a *Guardar en git*. A cambio, la pantalla entera cabe de un vistazo, que es
+la condición para que alguien encuentre algo sin conocerlo de antes. Y lo que se usa a diario no ha
+perdido ningún clic: sigue arriba y desplegado.
+
+Hay una prueba que se asegura de que ninguna acción se ha quedado fuera al agrupar, porque un botón
+que desaparece al reordenar no da ningún error: simplemente deja de existir.
+
+---
+
+## 32. El diario del arnés se ve: qué se hizo y qué se decidió
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+RSC escribe dos cosas que no miraba nadie, y la segunda es probablemente lo más valioso que hay en
+la carpeta:
+
+- **`02-DOCS/raw/worklog/AAAA-MM-DD-loquesea.md`** — una ficha por cada rato de trabajo de verdad,
+  escrita sola al cerrar la conversación: qué se hizo, por qué, qué se tocó y cómo quedó. El
+  protocolo la llama *evidencia*: se escribe una vez y no se corrige nunca.
+- **`02-DOCS/wiki/harness/decisions.md`** — el registro de decisiones, que solo crece. Cada entrada
+  dice qué se eligió, entre qué opciones y **por qué**. Si algo se cambia de idea, se añade otra que
+  anula la anterior.
+
+«¿Por qué hicimos esto así?» a los tres meses no se contesta mirando los archivos. Se contesta ahí,
+y ahí estaba enterrado.
+
+### Los dos formatos, los dos se leen
+
+Las decisiones se escriben de dos maneras según quién las escriba:
+
+- la larga, del protocolo: `## D-0001 — Título` y debajo `- date:`, `- decision:`, `- why:`;
+- la corta, la que deja el montaje inicial: una línea por decisión y nada más.
+
+Con la larga sola, el primer día la pantalla sale vacía. Con la corta sola, se pierde el porqué. Se
+leen las dos, y las plantillas del arnés —lo que viene entre llaves— se descartan: enseñar un
+ejemplo de la plantilla como si fuera trabajo de esa empresa es mentir.
+
+### Lo que se apunta, no se cuenta como documento
+
+`raw/worklog/` cuelga de `raw/`, que es donde se guardan los documentos originales que alguien ha
+entregado. Contar el diario ahí le diría al alumno que ha entregado papeles que no ha entregado, así
+que `cerebro.originales()` lo salta.
+
+### Y se puede apuntar a mano
+
+El barrido lo dispara el arnés al cerrar la conversación. Quien se va a comer y vuelve se queda sin
+anotación, así que hay un botón que pide el mismo barrido cuando se quiera.
+
+---
+
+## 33. "Cómo te habla" se toca desde la barra, no escribiéndolo en la conversación
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Es el ajuste que más cambia el día a día del alumno y no había forma de tocarlo.
+
+RSC lo guarda en `02-DOCS/wiki/harness/user-profile.md` y **todas** sus habilidades lo leen antes de
+abrir la boca. La habilidad `orient` lo dice con todas las letras: `L0` es casi mudo, `L3` explica
+cada paso y pregunta mucho. Y en paralelo, `technical_level` decide el vocabulario.
+
+Hasta ahora eso solo se cambiaba diciéndoselo al asistente por escrito. Quien no sabe que existe no
+lo dice nunca: alguien que se siente perdido no tiene forma de pedir más mano, y alguien que ya va
+suelto se come párrafos que no quiere.
+
+### Cómo se enseña
+
+Cuatro escalones y tres vocabularios, dichos como se dicen —*Al grano*, *Corto*, *Te explica por
+qué*, *De la mano*; *En cristiano*, *A medias*, *Sin rodeos*— y el que está puesto, marcado. Los
+identificadores `L0`..`L3` son de RSC y no se ven.
+
+### Los dos sitios donde vive, y por qué importa
+
+El mismo dato aparece de dos formas según quién escribiera el fichero: en la cabecera
+(`accompaniment: L1`) o en el cuerpo (`- accompaniment_level: L3`). Las dos son legítimas —la
+primera la deja el montaje, la segunda es la de la plantilla del arnés— así que se leen las dos y se
+escribe **donde ya estaba**. Escribir donde no estaba dejaría el valor viejo debajo y el asistente
+leería el que no toca.
+
+Por lo mismo, mirar y escribir son dos pasos separados: si se mirara comparando el texto de antes y
+el de después, volver a elegir lo que ya estaba puesto parecería que la clave no existe, y se
+escribiría una segunda línea debajo.
+
+En ese fichero viven también el nombre del arnés y el de la empresa, que son el rótulo de la barra.
+Hay una prueba que se asegura de que siguen ahí después de tocar el dial.

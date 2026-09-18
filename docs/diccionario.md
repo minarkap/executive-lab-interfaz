@@ -55,6 +55,15 @@ jerga por goteo.
 | crear un `.claude/commands/` nuevo por repetición | Que se quede como botón |
 | la web de la empresa del alumno | Tu web |
 | escribir el récord de marca | Ponerle la cara de tu empresa |
+| `02-DOCS/raw/worklog/` | Días de trabajo |
+| una ficha de `raw/worklog/` | Una anotación |
+| `02-DOCS/wiki/harness/decisions.md` | Qué decidisteis, y por qué |
+| las dos cosas juntas, en la barra | Qué se ha hecho · El diario y las decisiones |
+| `accompaniment_level` y `technical_level` del perfil | Cómo te habla |
+| `accompaniment_level` | Cuánto te explica |
+| `technical_level` | Con qué palabras |
+| elegir uno de esos escalones | Ponme así |
+| los grupos plegados de la pantalla principal | Lo que sabe de <nombre> · Mis conexiones · Guardar · Qué se ha hecho · Ajustes y ayuda |
 
 ## Dos excepciones: git y GitHub
 

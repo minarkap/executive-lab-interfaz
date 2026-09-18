@@ -112,6 +112,28 @@ function boton({ etiqueta, icono = '', accion, principal = false, discreto = fal
   </button>`;
 }
 
+// Un grupo plegable de la pantalla principal.
+//
+// ── Por qué ──────────────────────────────────────────────────────────────
+//
+// Esta pantalla empezó con seis botones. Con doce y cuatro rótulos sueltos ya
+// no se leía: todo pesaba lo mismo, así que para encontrar lo de siempre había
+// que repasarlo todo. Lo de diario —lo que el asistente ha creado y lo que se
+// mira de un vistazo— se queda arriba y a la vista; lo demás baja a cinco
+// filas plegadas que se abren cuando hacen falta.
+//
+// No se esconde nada: cada fila dice qué guarda y cuánto hay dentro, y lo que
+// se abre se queda abierto mientras dure la sesión (el vigía repinta la
+// pantalla cada vez que el asistente toca un fichero).
+function grupo({ id, etiqueta, cuantos = '', dentro }) {
+  if (!dentro) return '';
+  return `
+    <details class="acordeon grupo" data-abrir="${atributo(id)}"${abiertas.has(id) ? ' open' : ''}>
+      <summary>${texto(etiqueta)}${cuantos ? `<span class="cuantos">${texto(cuantos)}</span>` : ''}</summary>
+      ${dentro}
+    </details>`;
+}
+
 function bloqueAviso(cual = aviso) {
   if (!cual) return '';
   return `<div class="aviso ${cual.malo ? 'malo' : ''}">${texto(cual.texto)}</div>`;
@@ -319,6 +341,103 @@ function pantallaSaberes(datos) {
   `;
 }
 
+// ------------------------------------------------------ qué se ha hecho aquí
+
+// El arnés lleva un diario y no lo veía nadie. Dos cosas, y la segunda es la
+// que vale dinero: lo que se hizo cada día, y lo que se decidió y por qué.
+function pantallaDiario({ sesiones = [], decisiones = [] }) {
+  const trabajo = sesiones.length
+    ? sesiones.map((s) => `
+        <div class="conexion">
+          <p class="nombre">${texto(s.titulo)}<span class="cuando">${texto(cuando(s.fecha))}</span></p>
+          ${s.resumen && s.resumen !== s.titulo ? `<p class="pista">${texto(s.resumen)}</p>` : ''}
+          ${boton({ etiqueta: 'Verlo entero', icono: '▸', pequeno: true, accion: { tipo: 'verSesion', fichero: s.fichero } })}
+        </div>`).join('')
+    : nada('Todavía no hay nada anotado. Se escribe solo cuando termináis de trabajar en algo.');
+
+  // Una decisión sin el porqué es media decisión: a los tres meses, el porqué
+  // es lo único que hace falta.
+  const acordado = decisiones.length
+    ? decisiones.map((d) => `
+        <div class="conexion">
+          <p class="nombre">${texto(d.titulo)}${d.fecha ? `<span class="cuando">${texto(cuando(d.fecha))}</span>` : ''}</p>
+          ${d.eleccion ? `<p class="pista">${texto(d.eleccion)}</p>` : ''}
+          ${d.porque ? `<p class="detalle">Porque ${texto(d.porque.charAt(0).toLowerCase() + d.porque.slice(1))}</p>` : ''}
+        </div>`).join('')
+    : nada('Todavía no hay ninguna apuntada.');
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Qué se ha hecho' }])}
+    ${bloqueAviso()}
+
+    <div class="brujula">
+      <h2>Qué se ha hecho</h2>
+      <p class="hiciste">Lo que fuisteis haciendo, y lo que decidisteis por el camino. Se apunta solo.</p>
+    </div>
+
+    <h2>Días de trabajo</h2>
+    ${trabajo}
+
+    <hr class="separador">
+    <h2>Qué decidisteis, y por qué</h2>
+    ${acordado}
+
+    <hr class="separador">
+    ${volver()}
+  `;
+}
+
+function pantallaSesion({ titulo, fecha, cuerpo }) {
+  return `
+    ${migas([
+      { etiqueta: 'Principal', accion: { tipo: 'volver' } },
+      { etiqueta: 'Qué se ha hecho', accion: { tipo: 'verDiario' } },
+      { etiqueta: titulo },
+    ])}
+    ${bloqueAviso()}
+    <p class="titulo">${texto(titulo)}</p>
+    ${fecha ? `<p class="detalle">${texto(cuando(fecha))}</p>` : ''}
+    <div class="articulo">${comoMarkdown(cuerpo)}</div>
+    <hr class="separador">
+    ${volver({ tipo: 'verDiario' })}
+  `;
+}
+
+// ------------------------------------------------- cuánto te quiere explicar
+
+// El ajuste que más cambia el día a día y que solo se podía tocar escribiéndolo
+// en la conversación, cosa que no hace quien no sabe que existe. Lo guarda el
+// arnés en su perfil y lo lee **todo** lo demás antes de contestar.
+function pantallaTrato({ escalones = [], vocabularios = [], trato, palabras, elegido, aviso: avisoLocal }) {
+  const fila = (opcion, puesta, accion) => `
+    <div class="capacidad${opcion.id === puesta ? ' puesta' : ''}">
+      <p class="nombre">${texto(opcion.nombre)}${opcion.id === puesta ? ' <span class="cuantos">ahora mismo</span>' : ''}</p>
+      <p class="pista">${texto(opcion.frase)}</p>
+      ${opcion.id === puesta ? '' : boton({ etiqueta: 'Ponme así', icono: '▸', pequeno: true, accion: { ...accion, cual: opcion.id } })}
+    </div>`;
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Cómo te habla' }])}
+    ${bloqueAviso(avisoLocal)}
+
+    <div class="brujula">
+      <h2>Cómo te habla</h2>
+      <p class="hiciste">Se lo aplica a todo lo que te conteste, no solo aquí.</p>
+      ${elegido ? '' : '<p class="detalle">Nadie lo ha elegido todavía, así que va por lo más acompañado.</p>'}
+    </div>
+
+    <h2>Cuánto te explica</h2>
+    ${escalones.map((e) => fila(e, trato, { tipo: 'ponerTrato' })).join('')}
+
+    <hr class="separador">
+    <h2>Con qué palabras</h2>
+    ${vocabularios.map((v) => fila(v, palabras, { tipo: 'ponerPalabras' })).join('')}
+
+    <hr class="separador">
+    ${volver()}
+  `;
+}
+
 // -------------------------------------------------- qué hay en esta carpeta
 
 // Pieza por pieza, y sin esconder lo que falta. Quien abre la barra y no ve
@@ -519,9 +638,8 @@ function pantallaPrincipal() {
   if (estado.sinCarpeta) return pantallaSinCarpeta();
   if (estado.sinArnes) return pantallaSinArnes();
 
-  const detalle = [];
-  if (estado.conectados) detalle.push(plural(estado.conectados, '1 conexión', '{n} conexiones'));
-  if (estado.sabe) detalle.push(plural(estado.sabe, '1 cosa aprendida', '{n} cosas aprendidas'));
+  // Cuántas conexiones y cuántas cosas sabe ya no se cuentan aquí: van en la
+  // fila plegada de cada uno, que es donde se puede hacer algo con ese número.
 
   // Lo que se puede mirar sin abrir conversación, agrupado por herramienta y
   // plegado: son los scripts que la barra ejecuta ella (decisión 8). Antes
@@ -597,7 +715,6 @@ function pantallaPrincipal() {
       <p class="donde">${texto(estado.donde)}</p>
       ${estado.hiciste ? `<p class="hiciste">${texto(estado.hiciste)}</p>` : ''}
       ${estado.aviso ? `<p class="hiciste">${texto(estado.aviso)}</p>` : ''}
-      ${detalle.length ? `<p class="detalle">${texto(detalle.join(' · '))}</p>` : ''}
     </div>
 
     ${sinAsistente}
@@ -608,40 +725,74 @@ function pantallaPrincipal() {
     ${vistazos ? `<h2>Mirar de un vistazo</h2>${vistazos}` : ''}
     ${descubiertos || vistazos ? '<hr class="separador">' : ''}
 
-    ${/* Esta pantalla se diseñó con seis botones y ya van doce: en botón grande
-          eso es un scroll largo para llegar a lo de siempre. Así que solo va
-          grande lo que se pulsa a diario —lo que el asistente ha creado y lo
-          que se mira de un vistazo, arriba— y el resto va pequeño y agrupado
-          por para qué sirve. No se esconde nada: se ordena. */''}
-
-    <h2>Tu trabajo</h2>
-    ${boton({ etiqueta: `Lo que sabe de ${comoSeLlama}`, icono: '📚', pequeno: true, accion: { tipo: 'verCerebro' } })}
-    ${boton({ etiqueta: 'Mis conexiones', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
-    ${boton({ etiqueta: 'Llevarte un archivo', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}
-    ${boton({ etiqueta: 'Qué sabe hacer', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } })}
-
-    ${estado.faltaGit ? bloqueFaltaGit() : `
-      <h2>Guardar</h2>
-      ${boton({ etiqueta: 'Guardar en git', icono: '💾', pequeno: true, accion: { tipo: 'guardarCopia' } })}
-      ${boton({ etiqueta: 'Subir a GitHub', icono: '☁️', pequeno: true, accion: { tipo: 'verCopiaFuera' } })}
-      ${boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', pequeno: true, accion: { tipo: 'verCopias' } })}`}
-
-    <h2>Si algo no cuadra</h2>
-    ${boton({ etiqueta: 'Qué hay en esta carpeta', icono: '🔎', pequeno: true, accion: { tipo: 'verRadiografia' } })}
-    ${boton({ etiqueta: 'Algo va mal', icono: '🆘', pequeno: true, accion: { tipo: 'algoVaMal' } })}
-
-    <hr class="separador">
-    ${boton({ etiqueta: 'Cambiar de carpeta', icono: '📂', discreto: true, accion: { tipo: 'elegirCarpeta' } })}
-    ${marcaPuesta ? '' : boton({
-      etiqueta: 'Ponerle la cara de tu empresa',
-      icono: '🎨',
-      discreto: true,
-      accion: { tipo: 'ponerLaCara' },
+    ${grupo({
+      id: 'grupo:saber',
+      etiqueta: `Lo que sabe de ${comoSeLlama}`,
+      cuantos: estado.sabe || '',
+      dentro: `
+        ${boton({ etiqueta: 'Ver los temas', icono: '📚', pequeno: true, accion: { tipo: 'verCerebro' } })}
+        ${boton({ etiqueta: 'Darle documentos', icono: '📎', pequeno: true, accion: { tipo: 'anadirDocumentos' } })}
+        ${boton({ etiqueta: 'Llevarte un archivo', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
     })}
-    ${modo === 'avanzado'
-      ? boton({ etiqueta: 'Volver al modo sencillo', icono: '◂', discreto: true, accion: { tipo: 'modoSencillo' } })
-      : boton({ etiqueta: 'Ver el editor completo', icono: '▸', discreto: true, accion: { tipo: 'verEditorCompleto' } })}
-    ${versionNueva}
+
+    ${grupo({
+      id: 'grupo:conexiones',
+      etiqueta: 'Mis conexiones',
+      cuantos: estado.conectados || '',
+      dentro: `
+        ${boton({ etiqueta: 'Verlas y cambiarlas', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
+        ${boton({
+          etiqueta: 'Conectar algo nuevo',
+          icono: '➕',
+          pequeno: true,
+          accion: { tipo: 'pedir', prompt: 'Quiero conectar un programa nuevo con el que ya trabajo. Pregúntame cuál es, móntame la conexión con lo que haga falta y comprueba que funciona antes de darla por buena.' },
+        })}`,
+    })}
+
+    ${estado.faltaGit ? bloqueFaltaGit() : grupo({
+      id: 'grupo:guardar',
+      etiqueta: 'Guardar',
+      dentro: `
+        ${boton({ etiqueta: 'Guardar en git', icono: '💾', pequeno: true, accion: { tipo: 'guardarCopia' } })}
+        ${boton({ etiqueta: 'Subir a GitHub', icono: '☁️', pequeno: true, accion: { tipo: 'verCopiaFuera' } })}
+        ${boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', pequeno: true, accion: { tipo: 'verCopias' } })}`,
+    })}
+
+    ${grupo({
+      id: 'grupo:diario',
+      etiqueta: 'Qué se ha hecho',
+      dentro: `
+        ${boton({ etiqueta: 'El diario y las decisiones', icono: '🗓️', pequeno: true, accion: { tipo: 'verDiario' } })}
+        ${/* El arnés lo apunta solo al cerrar, pero quien se va a comer y vuelve
+              se queda sin anotación. Esto es el mismo barrido, a mano. */''}
+        ${boton({
+          etiqueta: 'Apuntar lo de hoy',
+          icono: '✍️',
+          pequeno: true,
+          accion: { tipo: 'pedir', prompt: 'Apunta en el diario lo que hemos hecho hoy: qué hicimos, por qué, qué quedó tocado y cómo quedó. Y si hemos decidido algo que importe, déjalo también en el registro de decisiones con su porqué.' },
+        })}`,
+    })}
+
+    ${grupo({
+      id: 'grupo:ajustes',
+      etiqueta: 'Ajustes y ayuda',
+      dentro: `
+        ${boton({ etiqueta: 'Qué sabe hacer', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } })}
+        ${boton({ etiqueta: 'Cómo te habla', icono: '🗣️', pequeno: true, accion: { tipo: 'verTrato' } })}
+        ${boton({ etiqueta: 'Qué hay en esta carpeta', icono: '🔎', pequeno: true, accion: { tipo: 'verRadiografia' } })}
+        ${boton({ etiqueta: 'Algo va mal', icono: '🆘', pequeno: true, accion: { tipo: 'algoVaMal' } })}
+        ${boton({ etiqueta: 'Cambiar de carpeta', icono: '📂', pequeno: true, accion: { tipo: 'elegirCarpeta' } })}
+        ${marcaPuesta ? '' : boton({
+          etiqueta: 'Ponerle la cara de tu empresa',
+          icono: '🎨',
+          pequeno: true,
+          accion: { tipo: 'ponerLaCara' },
+        })}
+        ${modo === 'avanzado'
+          ? boton({ etiqueta: 'Volver al modo sencillo', icono: '◂', pequeno: true, accion: { tipo: 'modoSencillo' } })
+          : boton({ etiqueta: 'Ver el editor completo', icono: '▸', pequeno: true, accion: { tipo: 'verEditorCompleto' } })}
+        ${versionNueva}`,
+    })}
   `;
 }
 
@@ -1104,6 +1255,9 @@ function atender(data) {
     case 'radiografia': return pintar(pantallaRadiografia(data));
     case 'saberes': return pintar(pantallaSaberes(data));
     case 'salidas': return pintar(pantallaSalidas(data));
+    case 'diario': return pintar(pantallaDiario(data));
+    case 'sesion': return pintar(pantallaSesion(data));
+    case 'trato': return pintar(pantallaTrato(data));
     case 'incidencia': return pintar(pantallaIncidencia(data));
     case 'aviso':
       aviso = { texto: data.texto, malo: data.malo };

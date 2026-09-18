@@ -33,6 +33,8 @@ const terreno = require('./terreno');
 const saberes = require('./saberes');
 const salidas = require('./salidas');
 const version = require('./version');
+const diario = require('./diario');
+const trato = require('./trato');
 const marca = require('./marca');
 
 // Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
@@ -288,6 +290,11 @@ ${cabecera}
       verRadiografia: () => this.verRadiografia(),
       verSaberes: () => this.verSaberes(),
       verSalidas: () => this.verSalidas(),
+      verDiario: () => this.verDiario(),
+      verSesion: () => this.verSesion(mensaje.fichero),
+      verTrato: () => this.verTrato(),
+      ponerTrato: () => this.ponerTrato(mensaje.cual),
+      ponerPalabras: () => this.ponerPalabras(mensaje.cual),
       abrirSalida: () => this.abrirSalida(mensaje.herramienta, mensaje.fichero),
       guardarSalida: () => this.guardarSalida(mensaje.herramienta, mensaje.fichero),
       abrirCarpetaDeSalida: () => salidas.abrirLaCarpeta(mensaje.herramienta),
@@ -499,6 +506,50 @@ ${cabecera}
     const sabe = saberes.queSabe(this.contexto.extensionPath);
     this.enviar({ tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie });
   }
+
+  // El diario del arnés: lo que se hizo cada día y lo que se decidió. Las dos
+  // cosas las escribe RSC solo y hasta ahora no las veía nadie.
+  async verDiario() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'diario', sesiones: diario.sesiones(), decisiones: diario.decisiones() });
+  }
+
+  async verSesion(fichero) {
+    const leido = diario.leerSesion(fichero);
+    if (!leido) return this.enviar({ tipo: 'aviso', texto: 'Esa anotación ya no está.', malo: true });
+    this.donde = { tipo: 'quieto' };
+    return this.enviar({ tipo: 'sesion', titulo: leido.titulo, fecha: leido.fecha, cuerpo: leido.cuerpo });
+  }
+
+  // Cuánto te explica y con qué palabras. Lo guarda el arnés en su perfil y lo
+  // lee todo lo demás antes de contestar, así que esto no es un adorno de la
+  // barra: cambia cómo habla el asistente en la conversación.
+  // El aviso viaja dentro del mensaje, no aparte: un `aviso` suelto repinta la
+  // pantalla principal, y elegir una opción aquí te echaría de la pantalla.
+  async verTrato(avisoLocal = null) {
+    this.donde = { tipo: 'quieto' };
+    const como = trato.comoEstamos();
+    this.enviar({
+      tipo: 'trato',
+      escalones: como.escalones,
+      vocabularios: como.vocabularios,
+      trato: como.trato,
+      palabras: como.palabras,
+      elegido: como.elegido,
+      aviso: avisoLocal,
+    });
+  }
+
+  async cambiarElTrato(poner, cual) {
+    const { ok, mensaje } = poner(cual);
+    return this.verTrato(ok
+      ? { texto: 'Hecho. Se nota en la próxima cosa que le pidas.', malo: false }
+      : { texto: mensaje, malo: true });
+  }
+
+  ponerTrato(cual) { return this.cambiarElTrato(trato.ponerTrato, cual); }
+
+  ponerPalabras(cual) { return this.cambiarElTrato(trato.ponerPalabras, cual); }
 
   async verRadiografia() {
     this.donde = { tipo: 'quieto' };
@@ -775,6 +826,8 @@ function activate(contexto) {
     comando('executiveLab.radiografia', () => panel.verRadiografia()),
     comando('executiveLab.saberes', () => panel.verSaberes()),
     comando('executiveLab.salidas', () => panel.verSalidas()),
+    comando('executiveLab.diario', () => panel.verDiario()),
+    comando('executiveLab.trato', () => panel.verTrato()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),
     comando('executiveLab.documentos', () => panel.anadirDocumentos()),
     comando('executiveLab.algoVaMal', () => panel.algoVaMal()),

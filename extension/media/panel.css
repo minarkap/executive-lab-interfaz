@@ -576,6 +576,31 @@ button.solo-icono .icono { font-size: 15px; }
 .acordeon > .pista { margin: 0 0 0.6rem 0.2rem; font-size: 0.9em; opacity: 0.7; }
 .acordeon > button { margin-top: 0.5rem; }
 
+/* Los cinco grupos de la pantalla principal. Son el mismo acordeón, pero sin
+   caja: cinco recuadros seguidos parecen cinco cosas importantes, y lo que se
+   quiere es una lista que se lea de una pasada. */
+.grupo {
+  border: none;
+  border-top: 1px solid var(--borde);
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+}
+.grupo > summary {
+  padding: 9px 2px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-fuerte);
+}
+.grupo[open] > summary { color: var(--apagado); }
+.grupo > button { margin: 0 0 4px; }
+.grupo > button:first-of-type { margin-top: 2px; }
+.grupo > :last-child { margin-bottom: 10px; }
+
+/* La opción que está puesta ahora mismo, en "Cómo te habla". */
+.capacidad.puesta .nombre { color: var(--rojo); }
+
 /* Un archivo para llevarse. */
 .archivo {
   padding: 0.6rem 0 0.4rem;

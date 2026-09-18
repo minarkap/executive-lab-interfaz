@@ -162,6 +162,68 @@ empresa: Ferretería Soler
 Goal: organizar mis facturas
 `);
 
+  // --- el diario: lo que RSC escribe solo al terminar un rato de trabajo,
+  //     y el registro de decisiones con sus dos formatos a la vez ---
+  escribir(raiz, '02-DOCS/raw/worklog/2026-09-15-cobro-talleres-ruiz.md', `---
+type: worklog
+title: Reclamado el pago a Talleres Ruiz
+description: Repasadas las facturas vencidas y enviado el aviso.
+timestamp: 2026-09-15T10:00:00Z
+topic: facturacion
+status: processed
+---
+
+## Qué hicimos
+
+- Repasadas las tres facturas vencidas.
+- Enviado el aviso de cobro.
+
+## Por qué
+
+Llevaban 75 días y el contrato dice 60.
+`);
+  escribir(raiz, '02-DOCS/raw/worklog/2026-09-16-alta-ferreteria.md', `---
+type: worklog
+title: Dada de alta Ferretería Soler
+description: Ficha nueva de cliente con sus condiciones.
+timestamp: 2026-09-16T09:00:00Z
+topic: clientes
+status: unprocessed
+---
+
+## Qué hicimos
+
+- Ficha del cliente con sus condiciones de pago.
+`);
+  escribir(raiz, '02-DOCS/raw/worklog/2026-09-17-plantilla.md', `---
+type: worklog
+title: {What we did, one line}
+description: {One-sentence summary of the session.}
+status: unprocessed
+---
+`);
+  escribir(raiz, '02-DOCS/wiki/harness/decisions.md', `# Decisions Log (append-only)
+
+- Project kind: non-code-harness.
+- SDD: deferred.
+
+---
+## D-0001 — Dónde se guardan las facturas
+- date: 2026-09-14
+- context: Dos personas, mucho papel, nada de presupuesto.
+- options considered:
+  1. Carpetas en el ordenador de siempre.
+  2. Un programa de facturación de pago.
+- decision: Carpetas en el ordenador, con copia en git.
+- why: No hay presupuesto y el volumen es bajo.
+- supersedes: none
+---
+## D-0002 — Plazo de cobro
+- date: 2026-09-16
+- decision: 60 días para los clientes de siempre.
+- why: Es lo que ya se venía haciendo y nadie se quejó.
+`);
+
   // --- documentos: uno esperando, uno ya leído ---
   escribir(raiz, '02-DOCS/inbox/README.md', '# Inbox\n\nSuelta aquí lo que quieras.\n');
   escribir(raiz, '02-DOCS/inbox/contrato-talleres-ruiz.txt', 'Contrato marco de mentira.\n');

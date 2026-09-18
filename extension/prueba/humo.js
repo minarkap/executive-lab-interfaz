@@ -971,6 +971,91 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${queSabe.sabe.length} sabe · ${queSabe.puedeAprender.length} puede aprender`;
   });
 
+  await comprobar('el diario lee los dos formatos y no se traga las plantillas', () => {
+    const diario = cargar('diario');
+
+    const sesiones = diario.sesiones();
+    assert.equal(sesiones.length, 2, 'las dos anotaciones de verdad, y la plantilla fuera');
+    assert.equal(sesiones[0].fecha, '2026-09-16', 'lo más nuevo, primero');
+    assert.ok(sesiones.every((s) => !/[{}]/.test(s.titulo)), 'una plantilla del arnés no es trabajo de nadie');
+
+    // Las decisiones se escriben de dos maneras según quién las escriba, y las
+    // dos hay que leerlas: con la larga sola, el primer día se ve vacío; con la
+    // corta sola, se pierde el porqué, que es lo único que vale a los tres meses.
+    const decisiones = diario.decisiones();
+    const largas = decisiones.filter((d) => d.porque);
+    const cortas = decisiones.filter((d) => !d.porque);
+    assert.ok(largas.length >= 2, 'las del formato largo, con su porqué');
+    assert.ok(cortas.length >= 2, 'y las sueltas que deja el montaje');
+    assert.equal(decisiones[0].titulo, 'Plazo de cobro', 'lo más nuevo, primero');
+    assert.ok(!decisiones.some((d) => /^(date|decision|why)\b/i.test(d.titulo)), 'un campo no es una decisión');
+
+    return `${sesiones.length} anotaciones · ${decisiones.length} decisiones`;
+  });
+
+  await comprobar('no se lee nada de fuera del diario', () => {
+    const diario = cargar('diario');
+    for (const truco of ['../../../etc/passwd', '../../wiki/index.md', 'algo.txt']) {
+      assert.equal(diario.leerSesion(truco), null, `${truco} no puede leerse desde aquí`);
+    }
+    return '3 intentos, ninguno pasa';
+  });
+
+  await comprobar('cambiar cómo te habla reescribe el perfil sin romper lo demás', () => {
+    const trato = cargar('trato');
+    const perfil = path.join(vscode.guion.raiz, '02-DOCS/wiki/harness/user-profile.md');
+    const antes = fs.readFileSync(perfil, 'utf8');
+
+    assert.equal(trato.comoEstamos().trato, 'L3', 'lo que dice el perfil de la empresa de mentira');
+    assert.ok(trato.ponerTrato('L0').ok);
+    assert.ok(trato.ponerPalabras('technical').ok);
+
+    const despues = fs.readFileSync(perfil, 'utf8');
+    assert.equal(trato.comoEstamos().trato, 'L0');
+    assert.equal(trato.comoEstamos().palabras, 'technical');
+
+    // Lo que no se puede perder: el nombre del arnés y el de la empresa viven
+    // en ese mismo fichero, y el rótulo de la barra sale de ahí.
+    assert.match(despues, /^arnes: Facturación$/m);
+    assert.match(despues, /^empresa: Ferretería Soler$/m);
+    assert.match(despues, /^Goal: organizar mis facturas$/m);
+
+    // Y volver a elegir lo que ya estaba no puede dejar dos líneas: el
+    // asistente leería la de arriba, que sería la vieja.
+    trato.ponerTrato('L0');
+    const veces = (fs.readFileSync(perfil, 'utf8').match(/^\s*-?\s*accompaniment/gmi) || []).length;
+    assert.equal(veces, 1, 'una sola línea, siempre');
+
+    assert.ok(!trato.ponerTrato('L9').ok, 'un escalón que no existe no se escribe');
+    fs.writeFileSync(perfil, antes);
+    return 'perfil reescrito y lo demás intacto';
+  });
+
+  await comprobar('la pantalla principal no ha perdido ninguna acción por el camino', () => {
+    // Al agrupar la pantalla en filas plegables es fácil dejarse un botón fuera
+    // sin que nadie se entere: el botón simplemente deja de existir y no hay
+    // error que lo delate.
+    const panel = fs.readFileSync(path.join(RAIZ, 'media', 'panel.js'), 'utf8');
+    const principal = panel.slice(panel.indexOf('function pantallaPrincipal'), panel.indexOf('function pantallaConexiones'));
+
+    const imprescindibles = [
+      'verCerebro', 'anadirDocumentos', 'verSalidas', 'verConexiones',
+      'guardarCopia', 'verCopiaFuera', 'verCopias',
+      'verDiario', 'verSaberes', 'verTrato', 'verRadiografia', 'algoVaMal',
+      'elegirCarpeta', 'ponerLaCara', 'verEditorCompleto', 'bajarLaNueva',
+    ];
+    const faltan = imprescindibles.filter((t) => !principal.includes(`tipo: '${t}'`));
+    assert.deepEqual(faltan, [], `la pantalla principal ya no lleva a: ${faltan.join(', ')}`);
+
+    // Y cada fila plegable tiene que tener nombre propio, o dos se pisarían el
+    // recuerdo de abierta/cerrada.
+    const ids = [...principal.matchAll(/id: '(grupo:[a-z]+)'/g)].map((m) => m[1]);
+    assert.equal(new Set(ids).size, ids.length, 'dos filas con el mismo nombre se pisan');
+    assert.ok(ids.length >= 5, 'las cinco filas');
+
+    return `${imprescindibles.length} acciones · ${ids.length} filas`;
+  });
+
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
     // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
     // había forma de salir de esa pantalla.
@@ -1006,6 +1091,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const p = montarPanel();
     const cerebroM = cargar('cerebro');
     const copiasM = cargar('guardar');
+    const diarioM = cargar('diario');
+    const tratoM = cargar('trato');
 
     // Los datos salen de los módulos de verdad sobre la empresa de mentira, no
     // de un objeto inventado a mano: así la prueba se entera si cambia la forma.
@@ -1035,6 +1122,9 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['copias', { tipo: 'copias', copias: [] }, /./],
       ['copiaFuera', { tipo: 'copiaFuera', github: { conectado: false, usuario: null, remoto: null } }, /Entrar en mi cuenta/],
       ['incidencia', { tipo: 'incidencia', codigo: 'ABC234', sano: true }, /ABC234/],
+      ['diario', { tipo: 'diario', sesiones: diarioM.sesiones(), decisiones: diarioM.decisiones() }, /Talleres Ruiz/],
+      ['sesion', { tipo: 'sesion', ...(diarioM.leerSesion(diarioM.sesiones()[0].fichero) || {}) }, /Ferretería Soler/],
+      ['trato', { tipo: 'trato', ...tratoM.comoEstamos(), aviso: null }, /Cuánto te explica/],
       ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
     ];
 
