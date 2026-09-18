@@ -114,6 +114,30 @@ body {
   color: var(--tinta);
 }
 
+/* Símbolo y nombre, uno al lado del otro, como en la propia web de la empresa.
+   Sale cuando el logotipo es solo el dibujo: una marca sin nombre en lo alto
+   de la barra no dice de quién es esto. */
+.marca-fila {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 12px;
+}
+.marca--simbolo {
+  flex: none;
+  max-width: 34px;
+  max-height: 34px;
+  margin: 0;
+}
+.marca-fila .marca--nombre {
+  margin: 0;
+  min-width: 0;
+  font-size: 17px;
+  /* Un nombre largo se parte en dos líneas antes que salirse o recortarse:
+     "Nexus Consulting Operaciones" no cabe de una. */
+  overflow-wrap: anywhere;
+}
+
 h2 {
   margin: 14px 0 6px;
   font-family: var(--sans);

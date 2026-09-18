@@ -236,7 +236,15 @@ status: unprocessed
 // La marca de la empresa, como la dejaría el asistente tras mirar su web.
 // Aparte de `montar` porque el caso por defecto —sin marca todavía, con la de
 // Executive Lab— también hay que poder probarlo.
-function montarMarca(raiz, { acento = '#0057b8', texto = '#1a1a1a', fondo = '#f7f5f2', logo = true } = {}) {
+function montarMarca(raiz, {
+  acento = '#0057b8', texto = '#1a1a1a', fondo = '#f7f5f2', logo = true,
+  // Un logotipo que es solo el símbolo, sin el nombre dentro: cuadrado, como
+  // la ene de puntos de Nexus Consulting. El de por defecto es una tira de
+  // letras, que sí lo lleva.
+  simbolo = false,
+  // Lo que diga el récord, cuando lo diga: 'si', 'no', o nada.
+  dice = null,
+} = {}) {
   // Sin logotipo utilizable, el récord no lo declara: es lo que debe hacer el
   // asistente cuando el de la empresa no se lee sobre su propio fondo.
   const viejo = path.join(raiz, '02-DOCS/wiki/brand/logo.svg');
@@ -252,13 +260,17 @@ fondo: "${fondo}"
 texto: "${texto}"
 acento: "${acento}"
 ${logo ? 'logo: logo.svg' : ''}
+${dice ? `logo_lleva_el_nombre: ${dice}` : ''}
 ---
 
 # Marca de Ferretería Soler
 
 Tomada de su web el ${HOY}.
 `);
-  if (logo) {
+  if (logo && simbolo) {
+    escribir(raiz, '02-DOCS/wiki/brand/logo.svg',
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">\n  <circle cx="24" cy="24" r="20" fill="${acento}"/>\n</svg>\n`);
+  } else if (logo) {
     escribir(raiz, '02-DOCS/wiki/brand/logo.svg',
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" width="200" height="40">\n  <text x="0" y="28" font-family="serif" font-size="26" fill="${texto}">Ferretería <tspan fill="${acento}">Soler</tspan></text>\n</svg>\n`);
   }

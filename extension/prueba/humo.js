@@ -446,6 +446,100 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return suya.nombre;
   });
 
+  await comprobar('un logotipo que es solo el símbolo pide que se escriba el nombre al lado', () => {
+    // Una marca sin nombre en lo alto de la barra es un dibujo anónimo: la ene
+    // de puntos de Nexus Consulting es preciosa y no dice de quién es esto.
+    montarMarca(empresa, { simbolo: true });
+    assert.equal(marca.leer().logoSinNombre, true, 'cuadrado: el nombre no va dentro');
+
+    montarMarca(empresa);
+    assert.equal(marca.leer().logoSinNombre, false, 'una tira de letras ya lo lleva');
+
+    // Y si el récord lo dice, manda el récord: quien miró la web vio la imagen.
+    montarMarca(empresa, { simbolo: true, dice: 'si' });
+    assert.equal(marca.leer().logoSinNombre, false, 'lo dicho gana a la proporción');
+    montarMarca(empresa, { dice: 'no' });
+    assert.equal(marca.leer().logoSinNombre, true, 'y también al revés');
+
+    montarMarca(empresa);
+    return 'medido y preguntado';
+  });
+
+  await comprobar('el tamaño de una imagen se saca de su cabecera, sea del formato que sea', () => {
+    const medidas = cargar('medidas');
+    const donde = fs.mkdtempSync(path.join(os.tmpdir(), 'logos-'));
+    const poner = (nombre, datos) => {
+      const f = path.join(donde, nombre);
+      fs.writeFileSync(f, datos);
+      return f;
+    };
+
+    // Cabeceras armadas a mano: es justo lo que el módulo tiene que saber leer,
+    // y así la prueba no depende de traer imágenes de verdad al repositorio.
+    const png = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.from([0, 0, 0, 13]), Buffer.from('IHDR'),
+      (() => { const b = Buffer.alloc(8); b.writeUInt32BE(320, 0); b.writeUInt32BE(64, 4); return b; })(),
+      Buffer.alloc(8),
+    ]);
+    const jpeg = Buffer.concat([
+      Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x00, 0x00]),
+      Buffer.from([0xff, 0xc0, 0x00, 0x11, 0x08]),
+      (() => { const b = Buffer.alloc(4); b.writeUInt16BE(50, 0); b.writeUInt16BE(200, 2); return b; })(),
+      Buffer.alloc(16),
+    ]);
+    const webp = Buffer.concat([
+      Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBP'),
+      Buffer.from('VP8X'), Buffer.alloc(4), Buffer.alloc(4),
+      (() => {
+        const b = Buffer.alloc(6);
+        b.writeUIntLE(119, 0, 3); // 120 - 1
+        b.writeUIntLE(39, 3, 3);  // 40 - 1
+        return b;
+      })(),
+      Buffer.alloc(8),
+    ]);
+
+    assert.deepEqual(medidas.medir(poner('a.png', png)), { ancho: 320, alto: 64 });
+    assert.deepEqual(medidas.medir(poner('a.jpg', jpeg)), { ancho: 200, alto: 50 });
+    assert.deepEqual(medidas.medir(poner('a.webp', webp)), { ancho: 120, alto: 40 });
+    assert.deepEqual(
+      medidas.medir(poner('a.svg', '<svg viewBox="0 0 64 64" width="4rem" height="4rem"></svg>')),
+      { ancho: 64, alto: 64 },
+      'manda el viewBox, que es lo que define la proporción',
+    );
+    assert.deepEqual(
+      medidas.medir(poner('b.svg', '<svg width="300" height="50"></svg>')),
+      { ancho: 300, alto: 50 },
+      'y sin viewBox valen las medidas sueltas',
+    );
+    // Lo que no se puede medir no revienta: se devuelve el nombre al lado, que
+    // es la salida segura.
+    assert.equal(medidas.medir(poner('roto.png', Buffer.from('no soy una imagen'))), null);
+    assert.equal(medidas.medir(path.join(donde, 'no-existe.png')), null);
+
+    return '5 formatos medidos · 2 sin medir, sin reventar';
+  });
+
+  await comprobar('una marca oscura se queda oscura aunque el editor lo esté', () => {
+    // La regla que apagaba el fondo de la marca con tema oscuro se puso para no
+    // dejar una isla color crema dentro de un editor negro. Con una marca que
+    // YA es oscura —azul marino y cian, como la de Nexus— esa regla tiraba
+    // justo los colores que encajaban.
+    montarMarca(empresa, { fondo: '#0d1117', texto: '#e6edf3', acento: '#22d3ee' });
+    const oscura = marca.leer();
+    assert.ok(oscura.tokens, 'un fondo oscuro con texto claro se lee perfectamente');
+    assert.match(marca.estilo(oscura), /body\.vscode-dark\s*\{[^}]*--fondo: #0d1117/);
+    // El alto contraste no se toca: quien lo usa lo necesita.
+    assert.ok(!/vscode-high-contrast/.test(marca.estilo(oscura)));
+
+    montarMarca(empresa);
+    const clara = marca.leer();
+    assert.ok(!/body\.vscode-dark/.test(marca.estilo(clara)), 'una marca clara sigue cediendo');
+
+    return 'la oscura manda, la clara cede';
+  });
+
   await comprobar('un logotipo que apunta fuera de su carpeta se ignora', () => {
     montarMarca(empresa);
     const registro = path.join(empresa, '02-DOCS/wiki/brand/marca.md');

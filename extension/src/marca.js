@@ -18,6 +18,7 @@ const path = require('node:path');
 const proyecto = require('./proyecto');
 const frontmatter = require('./frontmatter');
 const color = require('./color');
+const medidas = require('./medidas');
 
 const CARPETA = ['02-DOCS', 'wiki', 'brand'];
 const FICHERO = 'marca.md';
@@ -40,6 +41,41 @@ function logoDe(campos, donde) {
   const completa = path.resolve(donde, campos.logo);
   if (!completa.startsWith(donde + path.sep) || !fs.existsSync(completa)) return null;
   return completa;
+}
+
+// ¿El logotipo lleva el nombre de la empresa dentro, o es solo el símbolo?
+//
+// Importa porque un símbolo suelto en lo alto de la barra no dice de quién es
+// esto. El de Nexus Consulting es una ene de puntos: preciosa, y no se sabe de
+// quién es. Si el logotipo no trae el nombre, el nombre se escribe al lado.
+//
+// Dos maneras de saberlo, en este orden:
+//
+//   1. **Que lo diga el récord.** Quien miró la web vio la imagen y lo sabe.
+//      Se aceptan varias formas de escribirlo porque el récord lo redacta el
+//      asistente, no un formulario.
+//   2. **La proporción.** Un logotipo con el nombre es una tira de letras, y
+//      sale ancho; un símbolo es más o menos cuadrado. Desde tres veces más
+//      ancho que alto se da por hecho que el nombre va dentro.
+//
+// Y si no se puede saber, se escribe el nombre. Repetirlo queda redundante;
+// no ponerlo deja un dibujo anónimo, que es peor.
+const SI = /^(s[ií]|yes|true|1)$/i;
+const NO = /^(no|false|0)$/i;
+const DICEN_QUE_SI = ['logo_lleva_el_nombre', 'logo_con_nombre', 'logotipo_con_nombre', 'logo_incluye_el_nombre'];
+const DE_TIRA_PARA_ARRIBA = 3;
+
+function llevaElNombre(campos, fichero) {
+  for (const clave of DICEN_QUE_SI) {
+    const dicho = campos[clave];
+    if (typeof dicho !== 'string') continue;
+    if (SI.test(dicho.trim())) return true;
+    if (NO.test(dicho.trim())) return false;
+  }
+
+  const medida = medidas.medir(fichero);
+  if (!medida) return false;
+  return medida.ancho / medida.alto >= DE_TIRA_PARA_ARRIBA;
 }
 
 // Devuelve los colores ya comprobados, o null si no hay marca utilizable.
@@ -76,10 +112,14 @@ function leer() {
   const nombre = (typeof campos.empresa === 'string' && campos.empresa.trim())
     || (typeof campos.title === 'string' ? campos.title.replace(/^marca de\s+/i, '').trim() : null);
 
+  const logo = logoDe(campos, donde);
+
   return {
     nombre: nombre || null,
     web: typeof campos.resource === 'string' ? campos.resource : null,
-    logo: logoDe(campos, donde),
+    logo,
+    // Solo tiene sentido preguntárselo si hay logotipo y hay nombre que poner.
+    logoSinNombre: Boolean(logo && nombre && !llevaElNombre(campos, logo)),
     carpeta: donde,
     ajustado: acentoFuerte !== acento,
     tokens: {
@@ -98,10 +138,68 @@ function leer() {
 
 // El bloque que se cuela en la página para que mande sobre los valores por
 // defecto de panel.css.
+//
+// ── Y el caso del tema oscuro ────────────────────────────────────────────
+//
+// `panel.css` tiene una regla que, con un tema oscuro del editor, le quita a la
+// marca el fondo y se queda solo con los acentos. Se puso por una razón buena:
+// una isla color crema dentro de un editor negro queda fatal.
+//
+// Pero esa razón no vale cuando **la marca ya es oscura**. La de Nexus
+// Consulting es azul marino con cian: ahí la regla estaba tirando a la basura
+// justo los colores que encajaban. Así que si el fondo de la empresa es oscuro,
+// manda su fondo también con tema oscuro.
+//
+// El alto contraste se queda fuera a propósito: quien lo usa lo usa porque lo
+// necesita, y ninguna marca vale eso.
 function estilo(marca) {
   if (!marca || !marca.tokens) return '';
   const lineas = Object.entries(marca.tokens).map(([k, v]) => `  ${k}: ${v};`).join('\n');
-  return `<style>\n:root {\n${lineas}\n}\n</style>`;
+
+  const suyoEsOscuro = color.luz(marca.tokens['--crema']) <= 0.5;
+  const conTemaOscuro = suyoEsOscuro ? `
+body.vscode-dark {
+  --fondo: ${marca.tokens['--crema']};
+  --superficie: ${marca.tokens['--papel']};
+  --texto: ${marca.tokens['--tinta-texto']};
+  --texto-fuerte: ${marca.tokens['--tinta']};
+  --apagado: ${marca.tokens['--gris']};
+  --borde: ${marca.tokens['--linea']};
+}` : '';
+
+  return `<style>\n:root {\n${lineas}\n}${conTemaOscuro}\n</style>`;
 }
 
-module.exports = { leer, estilo, CARPETA, FICHERO };
+// Lo que se le pide al asistente cuando el alumno da su web.
+//
+// ── Por qué está escrito con este detalle ────────────────────────────────
+//
+// Antes se le decía «mira la web y ponle a esto la cara de mi empresa: sus
+// colores y su logotipo», sin decirle dónde escribirlo ni con qué nombres. Si
+// acertaba era por suerte, y cuando no acertaba **no fallaba nada**: el récord
+// quedaba escrito, el panel no encontraba los campos que sabe leer y la barra
+// se quedaba con los colores de Executive Lab. Nadie se enteraba de que había
+// pasado algo.
+//
+// Así que el contrato se dice entero. Las tres cosas que importan: dónde va,
+// cómo se llaman los campos, y que los colores sean los de verdad de la web
+// —si es oscura, oscuros— porque la barra sabe pintarse oscura.
+function queLePedimos(web) {
+  return [
+    `Mira ${web} y ponle a esto la cara de mi empresa.`,
+    '',
+    `Déjalo en \`${CARPETA.join('/')}/${FICHERO}\`, con estos campos en la cabecera y escritos así:`,
+    '',
+    '- `empresa:` cómo se llama.',
+    '- `fondo:`, `texto:` y `acento:` los tres colores de su web, en formato `#rrggbb`.',
+    '  Cógelos de verdad de la web: si la web es oscura, el fondo va oscuro. Esto se pinta igual de bien claro que oscuro, así que no los aclares para que "encajen".',
+    '- `superficie:` opcional, el color de sus tarjetas o cajas si lo tiene.',
+    '- `logo:` el nombre del fichero del logotipo, que tiene que quedar guardado en esa misma carpeta.',
+    '- `logo_lleva_el_nombre:` `si` si el logotipo trae dentro el nombre escrito, `no` si es solo el símbolo.',
+    '- `resource:` la web.',
+    '',
+    'Si el texto no se lee sobre el fondo que elijas, se descarta todo y se queda la cara de siempre, así que elige un par que se lea.',
+  ].join('\n');
+}
+
+module.exports = { leer, estilo, queLePedimos, CARPETA, FICHERO };

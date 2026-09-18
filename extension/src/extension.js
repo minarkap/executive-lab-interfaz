@@ -100,7 +100,14 @@ class Panel {
     // pymes es lo único que hay.
     const escapar = (v) => String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     let cabecera;
-    if (suya && suya.logo) {
+    if (suya && suya.logo && suya.logoSinNombre) {
+      // El logotipo es solo el símbolo: una ene de puntos preciosa que no dice
+      // de quién es esto. El nombre va al lado, como en su propia web.
+      cabecera = `<div class="marca-fila">
+  <img class="marca marca--simbolo" src="${webview.asWebviewUri(vscode.Uri.file(suya.logo))}" alt="">
+  <p class="marca--nombre">${escapar(suya.nombre)}</p>
+</div>`;
+    } else if (suya && suya.logo) {
       cabecera = `<img class="marca" src="${webview.asWebviewUri(vscode.Uri.file(suya.logo))}" alt="${escapar(suya.nombre || 'Tu empresa')}">`;
     } else if (suya && suya.nombre) {
       cabecera = `<p class="marca marca--nombre">${escapar(suya.nombre)}</p>`;
@@ -679,11 +686,11 @@ ${cabecera}
     );
     if (sencilla === 'Sí, más sencillo') await this.modoSencillo();
     await this.refrescar(true);
-    const conWeb = hecho.web
-      ? ` La web de mi empresa es ${hecho.web}: míralas y quédate con sus colores y su logotipo antes de nada.`
-      : '';
+    // Lo mismo que pide el botón de la cara, para que el récord salga legible
+    // también cuando la web se da al montar la carpeta.
+    const conWeb = hecho.web ? `\n\n${marca.queLePedimos(hecho.web)}\n\n` : '';
     const deQuien = hecho.nombres.empresa ? ` Es para ${hecho.nombres.empresa}.` : '';
-    await puente.enviar(`Acabo de montar aquí un arnés que he llamado "${hecho.nombres.arnes}".${deQuien} Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb} Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
+    await puente.enviar(`Acabo de montar aquí un arnés que he llamado "${hecho.nombres.arnes}".${deQuien} Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb}Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
     return undefined;
   }
 
@@ -701,7 +708,7 @@ ${cabecera}
     if (!limpio) return;
 
     const web = /^https?:\/\//i.test(limpio) ? limpio : `https://${limpio}`;
-    await this.pedir(`Mira ${web} y ponle a esto la cara de mi empresa: sus colores y su logotipo.`);
+    await this.pedir(marca.queLePedimos(web));
   }
 
   // Elegir sobre qué carpeta se trabaja. Hace falta al arrancar —quien abre

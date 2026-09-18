@@ -933,3 +933,67 @@ escribiría una segunda línea debajo.
 
 En ese fichero viven también el nombre del arnés y el de la empresa, que son el rótulo de la barra.
 Hay una prueba que se asegura de que siguen ahí después de tocar el dial.
+
+---
+
+## 34. Un símbolo suelto no dice de quién es esto, así que se le escribe el nombre al lado
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose, con la barra de Nexus Consulting delante: *«hay alguna forma de ajustar también los colores a
+la web, y que el logo si no es logo que incluya el título se ponga el título?»*.
+
+Y tenía delante la prueba: arriba del todo, una ene de puntos preciosa que no dice de quién es eso.
+En su web esa ene nunca va sola — va con «NEXUS CONSULTING» al lado. Nosotros la habíamos recortado.
+
+### Cómo se sabe si el logotipo lleva el nombre dentro
+
+Dos maneras, en este orden:
+
+1. **Que lo diga el récord.** Quien miró la web vio la imagen y lo sabe. El campo es
+   `logo_lleva_el_nombre`, y se aceptan cuatro formas de escribirlo porque el récord lo redacta el
+   asistente, no un formulario.
+2. **La proporción.** Un logotipo con el nombre es una tira de letras y sale ancho; un símbolo es
+   más o menos cuadrado. Desde tres veces más ancho que alto se da por hecho que el nombre va
+   dentro. `medidas.js` lo saca de la cabecera del fichero —SVG, PNG, JPEG y WebP— sin
+   descodificar la imagen y sin traer nada de fuera.
+
+**Y si no se puede saber, se escribe el nombre.** Repetirlo queda redundante; no ponerlo deja un
+dibujo anónimo, que es peor. El default va al lado seguro.
+
+---
+
+## 35. Una marca oscura se queda oscura, aunque el editor también lo esté
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+`panel.css` tenía una regla que, con un tema oscuro del editor, le quitaba a la marca el fondo y se
+quedaba solo con los acentos. La razón era buena: una isla color crema dentro de un editor negro
+queda fatal.
+
+Pero esa razón **no vale cuando la marca ya es oscura**. La de Nexus Consulting es azul marino con
+cian: ahí la regla estaba tirando a la basura justo los colores que encajaban. Así que si el fondo
+de la empresa es oscuro, manda su fondo también con tema oscuro.
+
+El alto contraste se queda fuera a propósito: quien lo usa lo usa porque lo necesita, y ninguna
+marca vale eso.
+
+---
+
+## 36. Lo que se le pide al asistente para la marca se dice entero
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Antes se le decía: *«mira la web y ponle a esto la cara de mi empresa: sus colores y su logotipo»*.
+Sin decirle dónde escribirlo ni con qué nombres. Si acertaba, era por suerte.
+
+Y cuando no acertaba, **no fallaba nada**: el récord quedaba escrito, el panel no encontraba los
+campos que sabe leer, y la barra se quedaba con los colores de Executive Lab. Nadie se enteraba de
+que había pasado algo. Es el peor tipo de fallo que hay en este proyecto —el que no se ve— y ya ha
+salido tres veces en la auditoría.
+
+Ahora el contrato se dice entero, en `marca.queLePedimos()`, y lo usan los dos sitios que lo piden:
+el botón de la cara y el montaje de una carpeta nueva. Las tres cosas que importan: dónde va, cómo
+se llaman los campos, y **que los colores sean los de verdad de la web** — si es oscura, oscuros,
+porque desde la decisión 35 la barra sabe pintarse oscura y no hay que aclararlos «para que
+encajen».

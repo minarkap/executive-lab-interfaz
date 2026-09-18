@@ -55,6 +55,7 @@ jerga por goteo.
 | crear un `.claude/commands/` nuevo por repetición | Que se quede como botón |
 | la web de la empresa del alumno | Tu web |
 | escribir el récord de marca | Ponerle la cara de tu empresa |
+| un logotipo que es solo el símbolo | (se pinta el símbolo y, al lado, el nombre de la empresa) |
 | `02-DOCS/raw/worklog/` | Días de trabajo |
 | una ficha de `raw/worklog/` | Una anotación |
 | `02-DOCS/wiki/harness/decisions.md` | Qué decidisteis, y por qué |
