@@ -6,7 +6,7 @@ la vista, sin rutas, sin terminal y sin la palabra «commit».
 Está pensada para gente de pyme que no programa —y que a veces tiene poca soltura con el ordenador—
 y se apoya en [RSC](https://github.com/ericrisco/rsc-harness), que es quien monta el arnés de verdad.
 
-![La barra lateral](https://raw.githubusercontent.com/REPO/main/docs/panel.png)
+![La barra lateral](https://raw.githubusercontent.com/minarkap/executive-lab-interfaz/main/docs/panel.png)
 
 ## Qué hace
 
@@ -31,8 +31,9 @@ No hace falta Node: VS Code ya lo lleva dentro, y el arnés viaja en la propia e
 
 **Desde el editor:** busca «Executive Lab» en las extensiones.
 
-**Desde un `.vsix`:** descárgalo de las releases y arrástralo a VS Code, o `Ctrl+Shift+P` →
-*Extensions: Install from VSIX*.
+**Desde un `.vsix`:** descárgalo de
+[las releases](https://github.com/minarkap/executive-lab-interfaz/releases) y arrástralo a VS Code,
+o `Ctrl+Shift+P` → *Extensions: Install from VSIX*.
 
 ## 🤖 Para agentes: «instálame esto»
 
@@ -41,7 +42,8 @@ que hay que hacer. **Pregunta antes de ejecutar nada** y no des por supuesta nin
 
 ```bash
 # 1. La extensión, desde el .vsix de la última release
-code --install-extension executive-lab.vsix --force
+gh release download --repo minarkap/executive-lab-interfaz --pattern '*.vsix' --dir /tmp
+code --install-extension /tmp/executive-lab-*.vsix --force
 ```
 
 Después **no montes el arnés por tu cuenta**: dile a la persona que abra la carpeta con la que quiere

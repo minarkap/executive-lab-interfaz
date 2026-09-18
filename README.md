@@ -1,5 +1,9 @@
 # Interfaz Executive Lab
 
+> **Repo:** <https://github.com/minarkap/executive-lab-interfaz> (privado) ·
+> **Última release:** [v0.2.0](https://github.com/minarkap/executive-lab-interfaz/releases/tag/v0.2.0)
+> con el `.vsix` de 6 MB.
+
 Una capa sin fricción sobre el arnés [RSC](https://github.com/ericrisco/rsc-harness) para que
 trabajadores de pymes **no técnicos** puedan usar Claude Code sin ver una terminal, una ruta de
 fichero ni la palabra "commit".
