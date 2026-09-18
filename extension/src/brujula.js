@@ -43,7 +43,10 @@ function zonasTocadas(rutas) {
       const tema = partes[1] === 'wiki' && partes[2] && !partes[2].includes('.') && partes[2] !== 'harness';
       zonas.add(tema ? `${ZONAS['02-DOCS']} (${humanizar(partes[2])})` : ZONAS['02-DOCS']);
     } else if (partes[0] === '01-TOOLS') {
-      const proveedor = partes[1] && !partes[1].startsWith('_');
+      // Un fichero suelto en 01-TOOLS no es una herramienta. Sin esto, tocar
+      // `01-TOOLS/README.md` salía como "Conexiones (Readme.md)", que no
+      // significa nada para nadie.
+      const proveedor = partes[1] && !partes[1].startsWith('_') && !partes[1].includes('.');
       zonas.add(proveedor ? `${ZONAS['01-TOOLS']} (${humanizar(partes[1])})` : ZONAS['01-TOOLS']);
     } else if (partes.length > 1) {
       zonas.add(humanizar(partes[0]));

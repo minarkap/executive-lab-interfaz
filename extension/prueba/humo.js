@@ -852,6 +852,14 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `dentro como ${estado.usuario}`;
   });
 
+  await comprobar('un fichero suelto en 01-TOOLS no es una herramienta', () => {
+    // Salía "Conexiones (Readme.md)" en la brújula, que no significa nada.
+    const zonas = brujula.zonasTocadas(['01-TOOLS/README.md', '01-TOOLS/ODOO/.env', '01-TOOLS/_TEMPLATE/x.sh']);
+    assert.ok(!zonas.some((z) => /\./.test(z)), `ninguna zona lleva un nombre de fichero: ${zonas.join(' · ')}`);
+    assert.ok(zonas.includes('Conexiones (Odoo)'), 'la herramienta de verdad sí sale');
+    return zonas.join(' · ');
+  });
+
   await comprobar('lo que hay para llevarse sale del out/ que define RSC', () => {
     const salidas = cargar('salidas');
 

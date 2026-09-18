@@ -44,10 +44,10 @@
   --apagado: var(--gris);
   --borde: var(--linea);
 
-  --alto-boton: 46px;
+  --alto-boton: 40px;
   --radio: 10px;
   --radio-lg: 16px;
-  --hueco: 10px;
+  --hueco: 7px;
   --sombra: 0 1px 2px rgba(0, 0, 0, .06);
 }
 
@@ -67,22 +67,29 @@ body.vscode-dark, body.vscode-high-contrast {
 
 body {
   margin: 0;
-  padding: 14px 14px 24px;
+  padding: 10px 12px 18px;
   font-family: var(--sans);
-  font-size: 14.5px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.45;
   color: var(--texto);
   background: var(--fondo);
   -webkit-font-smoothing: antialiased;
 }
 
 /* La cabecera: el logotipo, y nada más. */
+/* El logotipo de la empresa lo trae esa persona, y viene como venga: ancho,
+   cuadrado o muy alto. Por eso se limita el ALTO y no el ancho — con 132px de
+   ancho, un logotipo cuadrado se comía 175px de alto, media pantalla antes de
+   llegar a lo que se venía a hacer. */
 .marca {
   display: block;
-  width: 132px;
+  width: auto;
   max-width: 62%;
   height: auto;
-  margin: 2px 0 18px;
+  max-height: 44px;
+  object-fit: contain;
+  object-position: left center;
+  margin: 0 0 12px;
 }
 
 /* El título de la pantalla en la que estás. La etiqueta de sección (h2) es
@@ -99,15 +106,16 @@ body {
    escrito hace de rótulo. Se lee siempre, que es lo que importa. */
 .marca--nombre {
   width: auto;
-  margin: 0 0 18px;
+  max-height: none;
+  margin: 0 0 12px;
   font-family: var(--serif);
-  font-size: 24px;
-  line-height: 1.1;
+  font-size: 19px;
+  line-height: 1.15;
   color: var(--tinta);
 }
 
 h2 {
-  margin: 0 0 8px;
+  margin: 14px 0 6px;
   font-family: var(--sans);
   font-size: 11px;
   font-weight: 700;
@@ -118,8 +126,8 @@ h2 {
 
 /* La brújula: dónde estás y qué acabas de hacer. */
 .brujula {
-  padding: 15px 16px 16px;
-  margin-bottom: 22px;
+  padding: 11px 13px 12px;
+  margin-bottom: 14px;
   border-radius: var(--radio-lg);
   background: var(--superficie);
   border: 1px solid var(--borde);
@@ -129,14 +137,20 @@ h2 {
 .brujula .donde {
   margin: 2px 0 0;
   font-family: var(--serif);
-  font-size: 23px;
-  line-height: 1.2;
+  font-size: 18px;
+  line-height: 1.25;
   color: var(--texto-fuerte);
+  /* Dos líneas y lo que sobre se recorta: el nombre de la zona puede ser largo
+     y no vale la pena empujar los botones fuera de la pantalla por él. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.brujula .hiciste { margin: 10px 0 0; color: var(--apagado); font-size: 14px; }
+.brujula .hiciste { margin: 7px 0 0; color: var(--apagado); font-size: 13px; }
 
-.brujula .detalle { margin: 10px 0 0; font-size: 12.5px; color: var(--apagado); }
+.brujula .detalle { margin: 7px 0 0; font-size: 12px; color: var(--apagado); }
 
 /* Botones. Todos del mismo tamaño para que ninguno parezca el peligroso. */
 button {
@@ -275,7 +289,7 @@ body.vscode-dark .codigo { background: var(--vscode-textBlockQuote-background, r
 
 .separador {
   height: 1px;
-  margin: 20px 0 16px;
+  margin: 14px 0 10px;
   background: var(--borde);
   border: 0;
 }
