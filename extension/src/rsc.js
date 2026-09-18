@@ -78,4 +78,4 @@ const revisar = () => correr(['doctor'], { tiempoMaximo: 120000 });
 const arreglarEnSeco = () => correr(['repair', '--dry-run'], { tiempoMaximo: 120000 });
 const arreglar = () => correr(['repair'], { tiempoMaximo: 180000 });
 
-module.exports = { correr, retomar, revisar, arreglarEnSeco, arreglar, paquete, saberDondeEstamos };
+module.exports = { correr, retomar, revisar, arreglarEnSeco, arreglar, paquete, saberDondeEstamos, habilidadesPuestas, anadir };

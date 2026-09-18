@@ -149,6 +149,12 @@ async function calcular() {
   // desaparece en cuanto haya pasado algo.
   const quien = asistentes.elDeAhora();
   const sinEmpezar = !continuacion && !sabe && !conectados && !copias.length;
+
+  // Que falte el asistente no es solo un problema del primer día: si alguien lo
+  // desinstala, o abre esta carpeta en otro ordenador, la barra sigue pintando
+  // botones que no van a contestar. Antes esto solo se decía cuando no se había
+  // empezado nada, así que a partir del segundo día se callaba.
+  const faltaElAsistente = !asistentes.estaInstalado(quien);
   const conGit = await guardar.hayGit();
 
   return {
@@ -160,6 +166,7 @@ async function calcular() {
     esperando,
     faltaGit: !conGit,
     comoSeInstalaGit: git.comoSeInstala(),
+    faltaElAsistente: faltaElAsistente ? quien.nombre : null,
     primerPaso: sinEmpezar ? {
       asistente: quien.nombre,
       instalado: asistentes.estaInstalado(quien),

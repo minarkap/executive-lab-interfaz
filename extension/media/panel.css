@@ -495,3 +495,20 @@ mark {
 .pieza.aMedias .pieza-marca { opacity: 1; }
 .pieza-nombre { font-weight: 600; }
 .pieza-detalle { grid-column: 2; opacity: 0.8; }
+
+/* Una capacidad de la lista de "qué sabe hacer". */
+.capacidad {
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--el-borde, rgba(0, 0, 0, 0.08));
+}
+.capacidad .nombre { font-weight: 600; margin: 0 0 0.15rem; }
+.capacidad .pista { margin: 0 0 0.4rem; opacity: 0.8; }
+
+/* El "llevo X segundos" de la pantalla de espera: más discreto que el mensaje. */
+.cargando.cuanto { font-size: 0.9em; opacity: 0.6; margin-top: 0.4rem; }
+
+/* Mientras se arrastra algo por encima de la barra. */
+body.soltando {
+  outline: 3px dashed var(--el-acento, #d84315);
+  outline-offset: -6px;
+}

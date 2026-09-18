@@ -285,6 +285,48 @@ const originales = () => contar('02-DOCS', 'raw');
 
 // Copia lo que elija el alumno a `inbox/`. No se procesa aquí: el barrido de
 // la bandeja lo hace el asistente, que sabe extraer, clasificar y enlazar.
+// Dónde cae un documento nuevo, sin pisar nunca uno que ya esté. Lo usan el
+// botón de elegirlos y el arrastrar-y-soltar, para que los dos numeren igual.
+function sitioLibre(inbox, nombre) {
+  const extension = path.extname(nombre);
+  const base = nombre.slice(0, nombre.length - extension.length);
+  let destino = path.join(inbox, nombre);
+  for (let n = 2; fs.existsSync(destino); n += 1) destino = path.join(inbox, `${base} (${n})${extension}`);
+  return destino;
+}
+
+// Soltados encima de la barra. El panel no ve la ruta de lo que se suelta —el
+// editor no se la da, y hace bien— pero sí puede leer el contenido, así que
+// llega ya leído y aquí solo se escribe.
+//
+// Un documento suelto no se abre ni se interpreta: se deja en la bandeja, igual
+// que los que se eligen con el botón, y el asistente hace el resto.
+function guardarSoltados(ficheros = []) {
+  const inbox = proyecto.ruta(...INBOX);
+  if (!inbox) return { ok: false, mensaje: 'No hay carpeta de trabajo abierta.' };
+  fs.mkdirSync(inbox, { recursive: true });
+
+  let cuantos = 0;
+  for (const fichero of ficheros) {
+    const nombre = path.basename(String(fichero.nombre || '')).trim();
+    if (!nombre || !fichero.datos) continue;
+
+    try {
+      fs.writeFileSync(sitioLibre(inbox, nombre), Buffer.from(fichero.datos, 'base64'));
+      cuantos += 1;
+    } catch {
+      /* uno que falle no tumba los demás */
+    }
+  }
+
+  if (!cuantos) return { ok: false, mensaje: 'No he podido guardar ninguno. Prueba con "Algo va mal".' };
+  return {
+    ok: true,
+    cuantos,
+    mensaje: cuantos === 1 ? 'Documento añadido. Se lo paso.' : `${cuantos} documentos añadidos. Se los paso.`,
+  };
+}
+
 async function anadirDocumentos() {
   const elegidos = await vscode.window.showOpenDialog({
     canSelectMany: true,
@@ -300,11 +342,7 @@ async function anadirDocumentos() {
   let cuantos = 0;
   for (const origen of elegidos) {
     // Si ya hay uno con ese nombre, se numera: nunca se pisa nada.
-    const nombre = path.basename(origen.fsPath);
-    const extension = path.extname(nombre);
-    const base = nombre.slice(0, nombre.length - extension.length);
-    let destino = path.join(inbox, nombre);
-    for (let n = 2; fs.existsSync(destino); n += 1) destino = path.join(inbox, `${base} (${n})${extension}`);
+    const destino = sitioLibre(inbox, path.basename(origen.fsPath));
 
     try {
       fs.copyFileSync(origen.fsPath, destino);
@@ -323,6 +361,7 @@ async function anadirDocumentos() {
 }
 
 module.exports = {
+  guardarSoltados,
   catalogo,
   articulos,
   sinOrdenar,

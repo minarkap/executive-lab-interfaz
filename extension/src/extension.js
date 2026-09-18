@@ -30,6 +30,7 @@ const arrancar = require('./arrancar');
 const git = require('./git');
 const github = require('./github');
 const terreno = require('./terreno');
+const saberes = require('./saberes');
 const marca = require('./marca');
 
 // Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
@@ -244,6 +245,7 @@ ${cabecera}
       abrirFuera: () => this.abrirFuera(mensaje.ruta),
       cambiarArticulo: () => this.pedir(`Quiero cambiar lo que sabes sobre "${mensaje.titulo}". Ábrelo, enséñame qué dice y pregúntame qué hay que corregir.`),
       anadirDocumentos: () => this.anadirDocumentos(),
+      soltarDocumentos: () => this.soltarDocumentos(mensaje.ficheros),
       abrirPanelCompleto: () => cerebro.abrirPanel(),
 
       verCopias: () => this.verCopias(),
@@ -258,6 +260,7 @@ ${cabecera}
       conectarGitHub: () => this.conectarGitHub(),
       verCopiaFuera: () => this.verCopiaFuera(),
       verRadiografia: () => this.verRadiografia(),
+      verSaberes: () => this.verSaberes(),
       ponerLaCara: () => this.ponerLaCara(),
       elegirCarpeta: () => this.elegirCarpeta(),
       abrirAsistente: () => puente.abrirConversacion(),
@@ -403,6 +406,20 @@ ${cabecera}
     if (!ok) this.enviar({ tipo: 'aviso', texto: mensaje, malo: true });
   }
 
+  // Soltados encima de la barra. Llegan ya leídos por el panel, porque el
+  // editor no le da la ruta de lo que se suelta — y hace bien.
+  async soltarDocumentos(ficheros) {
+    if (!ficheros || !ficheros.length) return this.refrescar();
+
+    const { ok, cuantos, mensaje } = cerebro.guardarSoltados(ficheros);
+    if (!ok) return this.enviar({ tipo: 'aviso', texto: mensaje, malo: true });
+
+    await this.refrescar(true);
+    this.enviar({ tipo: 'aviso', texto: mensaje });
+    await puente.enviar(`Te he dejado ${cuantos === 1 ? 'un documento nuevo' : `${cuantos} documentos nuevos`} en la bandeja. Léelos y cuéntame qué has aprendido.`);
+    return undefined;
+  }
+
   async anadirDocumentos() {
     const { ok, cuantos, mensaje } = await cerebro.anadirDocumentos();
     if (!ok) return this.verCerebro({ texto: mensaje, malo: true });
@@ -426,6 +443,14 @@ ${cabecera}
   // "¿Hasta qué punto está montada esta carpeta?", pieza por pieza. Existe
   // porque la pantalla principal solo sabe decir si hay arnés o no, y quien no
   // ve conexiones no sabe si es que no hay o es que no se encuentran.
+  // "¿Esto qué sabe hacer?" — de las primeras preguntas delante de algo nuevo,
+  // y hasta ahora sin respuesta: el consejero ofrecía una capacidad cuando
+  // encajaba y no había forma de ver el resto.
+  async verSaberes() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'saberes', ...saberes.queSabe(this.contexto.extensionPath) });
+  }
+
   async verRadiografia() {
     this.donde = { tipo: 'quieto' };
     this.enviar({ tipo: 'esperando', que: 'Mirando qué hay aquí…' });
@@ -695,6 +720,7 @@ function activate(contexto) {
     comando('executiveLab.conexiones', () => panel.verConexiones()),
     comando('executiveLab.cerebro', () => panel.verCerebro()),
     comando('executiveLab.radiografia', () => panel.verRadiografia()),
+    comando('executiveLab.saberes', () => panel.verSaberes()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),
     comando('executiveLab.documentos', () => panel.anadirDocumentos()),
     comando('executiveLab.algoVaMal', () => panel.algoVaMal()),

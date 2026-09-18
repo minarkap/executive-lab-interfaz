@@ -20,6 +20,55 @@ let ultimoPintado = '';
 
 const pedir = (tipo, extra = {}) => vscode.postMessage({ tipo, ...extra });
 
+// -------------------------------------------------- soltar documentos encima
+//
+// El editor NO le da a la barra la ruta de lo que se suelta, y hace bien: eso
+// sería dejarle leer cualquier cosa del disco. Pero sí deja leer el contenido
+// de lo que esa persona ha soltado a propósito, que es justo lo que hace falta.
+// Así que el fichero viaja leído y la extensión solo escribe.
+//
+// Límite por fichero: un documento de trabajo no ocupa 40 MB, y si los ocupa,
+// mejor el botón de siempre que atascar el canal de mensajes.
+const LIMITE = 40 * 1024 * 1024;
+
+function leer(fichero) {
+  return new Promise((resolver) => {
+    if (fichero.size > LIMITE) return resolver(null);
+    const lector = new FileReader();
+    lector.onerror = () => resolver(null);
+    lector.onload = () => {
+      // El resultado viene como "data:<tipo>;base64,<datos>".
+      const coma = String(lector.result).indexOf(',');
+      resolver(coma === -1 ? null : { nombre: fichero.name, datos: String(lector.result).slice(coma + 1) });
+    };
+    lector.readAsDataURL(fichero);
+    return undefined;
+  });
+}
+
+document.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  document.body.classList.add('soltando');
+});
+document.addEventListener('dragleave', (e) => {
+  if (e.relatedTarget) return;
+  document.body.classList.remove('soltando');
+});
+document.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  document.body.classList.remove('soltando');
+
+  const sueltos = [...(e.dataTransfer && e.dataTransfer.files ? e.dataTransfer.files : [])];
+  if (!sueltos.length) return;
+
+  const leidos = (await Promise.all(sueltos.map(leer))).filter(Boolean);
+  if (!leidos.length) {
+    pedir('soltarDocumentos', { ficheros: [] });
+    return;
+  }
+  pedir('soltarDocumentos', { ficheros: leidos });
+});
+
 // Todo lo que venga de fuera se escapa antes de pintarse. `texto` vale para el
 // contenido; `atributo` escapa además las comillas, porque ahí sí rompen.
 const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -160,6 +209,48 @@ function cajaDeBusqueda(valor = '') {
     aria-label="Buscar">`;
 }
 
+// ------------------------------------------------------ qué sabe hacer
+
+// Lo que ya sabe y lo que podría aprender. La fontanería del arnés —orient,
+// suggest, harness, init— no se lista: es de la máquina, no de quien lo usa, y
+// se resume en una línea.
+function pantallaSaberes(datos) {
+  const sabe = datos.sabe || [];
+  const puede = datos.puedeAprender || [];
+
+  const capacidad = (c, conBoton) => `
+    <div class="capacidad">
+      <p class="nombre">${texto(c.nombre.charAt(0).toUpperCase() + c.nombre.slice(1))}</p>
+      <p class="pista">${texto(c.frase)}</p>
+      ${conBoton ? boton({ etiqueta: 'Que lo aprenda', icono: '✨', accion: { tipo: 'aprenderCapacidad', capacidad: c.id, nombre: c.nombre } }) : ''}
+    </div>`;
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Qué sabe hacer' }])}
+    ${bloqueAviso()}
+
+    <div class="brujula">
+      <h2>Qué sabe hacer</h2>
+      <p class="hiciste">Pídele cualquiera de estas con tus palabras. Y lo que no sepa todavía, puede aprenderlo aquí mismo.</p>
+    </div>
+
+    <h2>Ya sabe</h2>
+    ${sabe.length
+      ? sabe.map((c) => capacidad(c, false)).join('')
+      : nada('Todavía nada de esta lista. Abajo están todas.')}
+    ${datos.deSerie ? `<p class="detalle">${texto(plural(datos.deSerie, 'Y 1 cosa más que trae de serie, para funcionar por dentro.', 'Y {n} cosas más que trae de serie, para funcionar por dentro.'))}</p>` : ''}
+
+    <hr class="separador">
+
+    <h2>Puede aprender</h2>
+    ${puede.length
+      ? puede.map((c) => capacidad(c, true)).join('')
+      : nada('Ya sabe todo lo que tenemos.')}
+
+    ${volver()}
+  `;
+}
+
 // -------------------------------------------------- qué hay en esta carpeta
 
 // Pieza por pieza, y sin esconder lo que falta. Quien abre la barra y no ve
@@ -246,8 +337,44 @@ function pantallaCopiaFuera(datos) {
 
 // ---------------------------------------------------------------- pantallas
 
+// El arnés puede tardar minutos, y una pantalla que solo dice "Un momento…"
+// no se distingue de una que se ha colgado. A partir de ocho segundos empieza a
+// contar en voz alta: no acelera nada, pero se nota vivo, que es lo que hace
+// falta cuando no sabes si aquello sigue trabajando.
+let relojDeEspera = null;
+
+function pararElReloj() {
+  if (relojDeEspera) {
+    clearInterval(relojDeEspera);
+    relojDeEspera = null;
+  }
+}
+
+// Con salida. Esperar sin poder volver es un callejón: si lo de detrás tarda
+// más de la cuenta —o se cuelga, que ya ha pasado— quedarse mirando no es una
+// opción que nadie elija. Volver no cancela lo de detrás; solo te deja salir.
 function pantallaEsperando(que = 'Un momento…') {
-  return nada(que);
+  return `
+    ${nada(que)}
+    <p class="cargando cuanto" data-cuanto></p>
+    ${boton({ etiqueta: 'Volver', icono: '←', discreto: true, accion: { tipo: 'volver' } })}
+  `;
+}
+
+function arrancarElReloj() {
+  pararElReloj();
+  const desde = Date.now();
+  relojDeEspera = setInterval(() => {
+    const hueco = document.querySelector('[data-cuanto]');
+    if (!hueco) return pararElReloj();
+
+    const segundos = Math.round((Date.now() - desde) / 1000);
+    if (segundos < 8) return undefined;
+    hueco.textContent = segundos < 60
+      ? `Llevo ${segundos} segundos. Sigo.`
+      : `Llevo ${Math.floor(segundos / 60)} min ${segundos % 60} s. Sigo.`;
+    return undefined;
+  }, 1000);
 }
 
 // Falta git. No se enseña como un error —no lo es, es una pieza que no está—
@@ -336,6 +463,15 @@ function pantallaPrincipal() {
 
   // Recién montado: lo primero es tener cuenta y sesión. Sin eso, el chat no
   // responde y el alumno se queda mirando una caja muda sin saber por qué.
+  // Sin el asistente instalado, todo lo demás de esta pantalla es decorado: los
+  // botones mandan texto a algo que no está. Se dice arriba del todo y en
+  // cuanto pasa, no solo el primer día.
+  const sinAsistente = estado.faltaElAsistente && !estado.primerPaso ? `
+    <div class="aviso malo">
+      <p>Falta ${texto(estado.faltaElAsistente)} en este ordenador, y sin él no puedo hablar con nadie.</p>
+      <p>Díselo a tu tutor: es lo único que falta.</p>
+    </div>` : '';
+
   const primerPaso = estado.primerPaso ? `
     <h2>Empieza por aquí</h2>
     <div class="conexion">
@@ -378,6 +514,7 @@ function pantallaPrincipal() {
       ${detalle.length ? `<p class="detalle">${texto(detalle.join(' · '))}</p>` : ''}
     </div>
 
+    ${sinAsistente}
     ${primerPaso}
     ${elConsejo}
     ${documentos}
@@ -389,6 +526,7 @@ function pantallaPrincipal() {
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', accion: { tipo: 'verCopias' } })}
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Subir a GitHub', icono: '☁️', accion: { tipo: 'verCopiaFuera' } })}
     ${estado.faltaGit ? bloqueFaltaGit() : ''}
+    ${boton({ etiqueta: 'Qué sabe hacer', icono: '✨', accion: { tipo: 'verSaberes' } })}
     ${boton({ etiqueta: 'Qué hay en esta carpeta', icono: '🔎', accion: { tipo: 'verRadiografia' } })}
     ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
 
@@ -752,6 +890,8 @@ function pantallaIncidencia({ codigo, sano, hayQueTocarAlgo, faltaGit, comoSeIns
 // ------------------------------------------------------------------ pintado
 
 function pintar(html) {
+  // Cualquier pantalla que no sea la de esperar para el reloj.
+  if (!html.includes('data-cuanto')) pararElReloj();
   // Repintar tira el scroll al principio. Si se está en la misma pantalla —el
   // vigía repinta sola cuando el arnés escribe— se repone donde estaba.
   const desplazado = document.scrollingElement ? document.scrollingElement.scrollTop : 0;
@@ -815,7 +955,9 @@ function engancharLaBusqueda() {
 window.addEventListener('message', ({ data }) => {
   switch (data.tipo) {
     case 'cargando': return pintar(pantallaEsperando());
-    case 'esperando': return pintar(pantallaEsperando(data.que));
+    case 'esperando':
+      pintar(pantallaEsperando(data.que));
+      return arrancarElReloj();
     case 'estado':
       estado = data.estado;
       accionesDescubiertas = data.acciones || [];
@@ -837,6 +979,7 @@ window.addEventListener('message', ({ data }) => {
     case 'copias': return pintar(pantallaCopias(data));
     case 'copiaFuera': return pintar(pantallaCopiaFuera(data));
     case 'radiografia': return pintar(pantallaRadiografia(data));
+    case 'saberes': return pintar(pantallaSaberes(data));
     case 'incidencia': return pintar(pantallaIncidencia(data));
     case 'aviso':
       aviso = { texto: data.texto, malo: data.malo };

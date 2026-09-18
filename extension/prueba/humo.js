@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -850,6 +850,36 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
 
     vscode.guion.sesionGitHub = null;
     return `dentro como ${estado.usuario}`;
+  });
+
+  await comprobar('la lista de lo que sabe hacer separa lo suyo de la fontanería', () => {
+    const saberes = cargar('saberes');
+    const queSabe = saberes.queSabe(RAIZ);
+
+    assert.ok(queSabe.puedeAprender.length, 'tiene que haber algo que ofrecer');
+    assert.equal(
+      queSabe.sabe.length + queSabe.puedeAprender.length,
+      require(path.join(RAIZ, 'media', 'capacidades.json')).capacidades.length,
+      'cada capacidad del catálogo cae en un lado o en el otro, nunca en los dos ni en ninguno',
+    );
+
+    // Lo que importa: la fontanería del arnés no se lista como capacidad. Si
+    // "harness" u "orient" salieran por nombre, el diccionario se rompería.
+    const nombres = [...queSabe.sabe, ...queSabe.puedeAprender].map((c) => c.id);
+    for (const interna of ['harness', 'orient', 'suggest', 'init']) {
+      assert.ok(!nombres.includes(interna), `${interna} es fontanería y no se enseña`);
+    }
+    return `${queSabe.sabe.length} sabe · ${queSabe.puedeAprender.length} puede aprender`;
+  });
+
+  await comprobar('esperar no es un callejón: siempre se puede volver', () => {
+    // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
+    // había forma de salir de esa pantalla.
+    const panel = fs.readFileSync(path.join(RAIZ, 'media', 'panel.js'), 'utf8');
+    const cuerpo = panel.slice(panel.indexOf('function pantallaEsperando'));
+    const hasta = cuerpo.slice(0, cuerpo.indexOf('function arrancarElReloj'));
+    assert.match(hasta, /tipo: 'volver'/, 'la pantalla de espera tiene que llevar salida');
+    return 'con botón de volver';
   });
 
   // -------------------------------------------------- carpetas de alguien
