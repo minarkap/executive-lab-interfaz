@@ -224,6 +224,9 @@ ${cabecera}
       // le escribe comandos a ninguno de su familia. Sin esto, la barra
       // enseñaba un hueco y nadie sabía si era que no había o que no iban.
       puedeTenerBotones: donde.puedeTenerBotones(),
+      // Cuántos hay de cada cosa, para que el rótulo de su fila lo diga.
+      comandos: acciones.todos().length,
+      habilidades: rsc.habilidadesPuestas().length,
       // El apartado de SDD sale solo si esa carpeta construye algo.
       hayProyectos: proyectos.hayAlgo(),
       // Los ayudantes tampoco salen hasta que hay uno.
@@ -373,6 +376,7 @@ ${cabecera}
       verLaCara: () => this.verLaCara(),
       verProyectos: () => this.verProyectos(),
       verSugerencias: () => this.verSugerencias(),
+      verComandos: () => this.verComandos(),
       verAgentes: () => this.verAgentes(),
       verAgente: () => this.verAgente(mensaje.fichero),
       verProyecto: () => this.verProyecto(mensaje.fichero),
@@ -604,9 +608,9 @@ ${cabecera}
 
   async verSaberes() {
     this.donde = { tipo: 'quieto' };
-    const sabe = saberes.queSabe(this.contexto.extensionPath);
+    const sabe = saberes.queSabe(this.contexto.extensionPath, this.corpus());
     this.enviar({
-      tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, suyas: sabe.suyas, deSerie: sabe.deSerie,
+      tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, suyas: sabe.suyas, encajan: sabe.encajan, deSerie: sabe.deSerie,
     });
   }
 
@@ -663,6 +667,12 @@ ${cabecera}
       await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside, preview: true });
     }
     return undefined;
+  }
+
+  // Todos los comandos, no solo los que llevan botón.
+  async verComandos() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'comandos', comandos: acciones.todos() });
   }
 
   // Qué le vendría bien a esto: lo que ve la barra leyendo el disco, y un botón
@@ -1200,6 +1210,7 @@ function activate(contexto) {
     comando('executiveLab.laCara', () => panel.verLaCara()),
     comando('executiveLab.proyectos', () => panel.verProyectos()),
     comando('executiveLab.sugerencias', () => panel.verSugerencias()),
+    comando('executiveLab.comandos', () => panel.verComandos()),
     comando('executiveLab.agentes', () => panel.verAgentes()),
     comando('executiveLab.diario', () => panel.verDiario()),
     comando('executiveLab.trato', () => panel.verTrato()),

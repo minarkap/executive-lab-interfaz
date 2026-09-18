@@ -48,6 +48,13 @@ async function deHoy() {
     if (esperando) datos.push(esperando === 1 ? '1 documento sin leer' : `${esperando} documentos sin leer`);
   } catch { /* idem */ }
 
+  try {
+    // Lo que alguien ha dejado en la carpeta y sigue ahí fuera. Antes no se
+    // contaba en ningún sitio y la barra decía que no le habías dado nada.
+    const sueltos = require('./papeles').queHay().sueltos.length;
+    if (sueltos) datos.push(sueltos === 1 ? '1 documento sin colocar' : `${sueltos} documentos sin colocar`);
+  } catch { /* idem */ }
+
   return datos;
 }
 

@@ -71,9 +71,52 @@ function listar(partes, { saltar = [], hondo = true } = {}) {
     .slice(0, TOPE);
 }
 
-// Los tres montones, cada uno con lo suyo.
+// ── Lo que está suelto en la carpeta, sin colocar ───────────────────────
+//
+// Jose dejó un documento en la carpeta y la barra dijo que no le había dado
+// nada. Tenía razón en enfadarse: desde su lado **lo había dado**, y que
+// nosotros solo miráramos `inbox/` es un detalle nuestro que a él no le importa.
+//
+// RSC ya contempla esto: su barrido de la bandeja «se da una vuelta» buscando
+// documentos sin ingerir por toda la carpeta. La barra hacía menos que el
+// protocolo que dice seguir.
+//
+// Se mira solo la superficie de la carpeta —no las subcarpetas— porque ahí es
+// donde cae lo que alguien suelta, y porque meterse dentro de un proyecto con
+// código sacaría cientos de ficheros que no ha dado nadie.
+const ES_UN_DOCUMENTO = /\.(pdf|docx?|xlsx?|pptx?|odt|ods|csv|tsv|txt|rtf|pages|numbers|key|png|jpe?g|gif|webp|svg|heic|zip|eml|msg)$/i;
+
+// Lo del propio arnés y lo del propio proyecto no es «un documento que has
+// dado»: es el andamio.
+const NO_CUENTAN = /^(README|CLAUDE|AGENTS|GEMINI|CONVENTIONS|LICEN[CS]E|CHANGELOG)\./i;
+
+function sueltos() {
+  const raiz = proyecto.raiz();
+  if (!raiz) return [];
+
+  let entradas;
+  try {
+    entradas = fs.readdirSync(raiz, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  return entradas
+    .filter((e) => e.isFile() && !e.name.startsWith('.'))
+    .filter((e) => ES_UN_DOCUMENTO.test(e.name) && !NO_CUENTAN.test(e.name))
+    .map((e) => {
+      let cuando = null;
+      try { cuando = fs.statSync(path.join(raiz, e.name)).mtime.toISOString(); } catch { /* da igual */ }
+      return { nombre: e.name, ruta: e.name, cuando };
+    })
+    .sort((a, b) => String(b.cuando).localeCompare(String(a.cuando)))
+    .slice(0, TOPE);
+}
+
+// Los montones, cada uno con lo suyo.
 function queHay() {
   return {
+    sueltos: sueltos(),
     // `_processed/` cuelga de la bandeja, así que al listar los que esperan hay
     // que quedarse en la superficie o salen los leídos mezclados.
     esperando: listar(INBOX, { hondo: false }),
@@ -93,7 +136,13 @@ function donde(rutaRelativa) {
     .filter(Boolean)
     .map((c) => path.resolve(c) + path.sep);
 
-  if (!permitidas.some((p) => completa.startsWith(p))) return null;
+  // Y lo que esté suelto en la superficie de la carpeta, que también es algo
+  // que alguien ha dejado ahí.
+  const enLaSuperficie = path.dirname(completa) === path.resolve(raiz)
+    && ES_UN_DOCUMENTO.test(path.basename(completa))
+    && !NO_CUENTAN.test(path.basename(completa));
+
+  if (!enLaSuperficie && !permitidas.some((p) => completa.startsWith(p))) return null;
   if (path.relative(proyecto.ruta(...CRUDO), completa).split(path.sep)[0] === 'worklog') return null;
   return fs.existsSync(completa) ? completa : null;
 }

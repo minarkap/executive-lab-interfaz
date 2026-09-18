@@ -49,4 +49,55 @@ function acciones() {
   });
 }
 
-module.exports = { acciones };
+// ── Todos los comandos, no solo los que llevan botón ────────────────────
+//
+// Jose: *«se deben detectar todas las skills del proyecto, y todos los comandos
+// y agentes»*. `acciones()` solo devuelve los que alguien marcó con `boton:`,
+// que son los que salen arriba. Pero hay más, y hasta ahora no se veían:
+//
+//   · Los que el asistente ha escrito y nadie ha marcado todavía.
+//   · Los que trae RSC de serie — `checkpoint`, `learn`, `resume-session`,
+//     `save-session` — que se pueden usar igual.
+//
+// Los de RSC se marcan como suyos para poder ponerlos aparte: no los escribió
+// nadie de esta empresa y no se explican igual.
+const LOS_DE_RSC = ['checkpoint', 'learn', 'resume-session', 'save-session'];
+
+function humanizar(nombre) {
+  const limpio = nombre.replace(/[-_]+/g, ' ').trim();
+  return limpio.charAt(0).toUpperCase() + limpio.slice(1);
+}
+
+function todos() {
+  const carpeta = donde.carpetaDeComandos();
+  if (!carpeta || !fs.existsSync(carpeta)) return [];
+
+  const encontrados = [];
+  for (const fichero of fs.readdirSync(carpeta)) {
+    if (!fichero.endsWith('.md')) continue;
+
+    const nombre = fichero.replace(/\.md$/, '');
+    const campos = frontmatter.leer(path.join(carpeta, fichero));
+    const etiqueta = typeof campos.boton === 'string' ? campos.boton.trim() : '';
+
+    encontrados.push({
+      nombre,
+      // El rótulo del botón si lo tiene; si no, su propio nombre en cristiano.
+      etiqueta: etiqueta || humanizar(nombre),
+      // La descripción está escrita para el asistente, pero dice para qué sirve.
+      queHace: typeof campos.description === 'string' ? campos.description.replace(/^["']|["']$/g, '').trim() : '',
+      icono: typeof campos.icono === 'string' ? campos.icono : '▸',
+      esBoton: Boolean(etiqueta),
+      delArnes: LOS_DE_RSC.includes(nombre),
+      prompt: `/${nombre}`,
+    });
+  }
+
+  // Primero los que ya son botón, después los tuyos sin marcar, y al final los
+  // que trae el arnés.
+  return encontrados.sort((a, b) => Number(b.esBoton) - Number(a.esBoton)
+    || Number(a.delArnes) - Number(b.delArnes)
+    || a.etiqueta.localeCompare(b.etiqueta, 'es'));
+}
+
+module.exports = { acciones, todos };

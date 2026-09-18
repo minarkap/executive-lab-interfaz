@@ -434,6 +434,50 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'c
 // Lo que RSC escribe cuando se construye algo con SDD: qué se quiere, por qué y
 // cómo. Aparece solo si esa carpeta lo tiene — una de contabilidad no lo tendrá
 // nunca, y una donde se monte una web, sí.
+// ------------------------------------------------- procesos con un clic
+
+// Todos los comandos de esta carpeta. Los que alguien marcó como botón salen
+// arriba —son los mismos que se pueden fijar en Acciones rápidas— y detrás los
+// que están escritos y nadie ha marcado, y los que trae el arnés.
+function pantallaComandos({ comandos = [] }) {
+  const fila = (c) => `
+    <div class="entrada">
+      <p class="nombre">${texto(c.etiqueta)}</p>
+      ${c.queHace ? `<p class="pista">${texto(c.queHace)}</p>` : ''}
+      ${boton({ etiqueta: 'Hacerlo', icono: c.icono || '▸', pequeno: true, accion: { tipo: 'pedir', prompt: c.prompt } })}
+    </div>`;
+
+  const mios = comandos.filter((c) => !c.delArnes);
+  const delArnes = comandos.filter((c) => c.delArnes);
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Procesos con un clic' }])}
+    ${bloqueAviso()}
+    ${volver()}
+
+    <div class="brujula">
+      <h2>Procesos con un clic</h2>
+      <p class="hiciste">Cosas que haces a menudo, guardadas para pedirlas de una vez.</p>
+    </div>
+
+    ${mios.length ? mios.map(fila).join('') : nada('Todavía no hay ninguno. Se van creando conforme repites tareas.')}
+    ${boton({
+      etiqueta: 'Que se quede uno nuevo',
+      icono: '➕',
+      accion: { tipo: 'pedir', prompt: 'Quiero que algo que hago a menudo se quede guardado para pedirlo de una vez. Pregúntame cuál es, qué tiene que hacer exactamente, y déjalo montado.' },
+    })}
+
+    ${delArnes.length ? `
+      <hr class="separador">
+      <h2>Los que trae de serie</h2>
+      <p class="detalle">No los ha escrito nadie de aquí: vienen con el arnés.</p>
+      ${delArnes.map(fila).join('')}` : ''}
+
+    <hr class="separador">
+    ${boton({ etiqueta: 'Fijar alguno arriba', icono: '☆', pequeno: true, discreto: true, accion: { tipo: 'verFijadas' } })}
+  `;
+}
+
 // ------------------------------------------------------------- sugerencias
 
 // Dos mitades, y son distintas a propósito.
@@ -806,7 +850,9 @@ function pantallaAyuda({ github }) {
 // El archivador: los documentos que han entrado. NO es lo que el arnés ha
 // entendido —eso son los conceptos— sino los ficheros, en los tres estados por
 // los que pasan. Hasta ahora de los tres solo se veía un número.
-function pantallaPapeles({ esperando = [], leidos = [], originales = [], aviso: avisoLocal }) {
+function pantallaPapeles({
+  sueltos = [], esperando = [], leidos = [], originales = [], aviso: avisoLocal,
+}) {
   // Quitar solo se ofrece en los que todavía no ha leído nadie: de esos no ha
   // salido ningún concepto, así que borrar el papel lo borra de verdad. Con los
   // demás hay un botón distinto, abajo, que se lo pide al asistente.
@@ -837,6 +883,17 @@ function pantallaPapeles({ esperando = [], leidos = [], originales = [], aviso: 
     ${cajaDeBusqueda('papeles')}
 
     ${boton({ etiqueta: 'Darle documentos', icono: '📎', principal: true, accion: { tipo: 'anadirDocumentos' } })}
+
+    ${sueltos.length ? `
+      <h2>Sin colocar todavía</h2>
+      <p class="detalle">Los dejaste en la carpeta y siguen ahí fuera. Todavía no ha sacado nada de ellos.</p>
+      ${monton(sueltos, '', true)}
+      ${boton({
+        etiqueta: 'Que los coloque y los lea',
+        icono: '📥',
+        accion: { tipo: 'pedir', prompt: 'Hay documentos sueltos en la carpeta, fuera de la bandeja. Míralos, ponlos donde toque y cuéntame en dos líneas qué has sacado de ellos.' },
+      })}
+      <hr class="separador">` : ''}
 
     <h2>Sin leer todavía</h2>
     ${monton(esperando, 'Ninguno esperando.', true)}
@@ -1257,10 +1314,13 @@ function pantallaPrincipal() {
     ${/* Lo más alto de la barra, para lo que esa persona use de verdad. Lo
           elige ella entre sus botones, las consultas de sus programas y sus
           habilidades: nosotros no sabemos cuáles son. */''}
-    ${descubiertos ? `<h2>Acciones rápidas</h2>${descubiertos}` : ''}
-    ${!descubiertos && !puedeTenerBotones
-      ? `<h2>Acciones rápidas</h2>${nada('Tu asistente no trabaja con botones. Pídele las cosas escribiéndolas en la conversación.')}`
-      : ''}
+    ${/* Solo lo que esa persona haya fijado. Antes, sin fijar nada, salían aquí
+          los comandos — y entonces este apartado y el de comandos enseñaban lo
+          mismo. Los comandos tienen su sitio; esto es para lo que se elige. */''}
+    <h2>Acciones rápidas</h2>
+    ${descubiertos || nada(puedeTenerBotones
+      ? 'Elige hasta cinco cosas para tenerlas aquí arriba.'
+      : 'Tu asistente no trabaja con botones. Pídele las cosas escribiéndolas en la conversación.')}
     ${boton({ etiqueta: 'Elegir cuáles', icono: '☆', pequeno: true, discreto: true, accion: { tipo: 'verFijadas' } })}
     ${/* Las consultas de cada programa estaban aquí arriba, desplegadas. No son
           botones que haya creado nadie ni habilidades: son los scripts que RSC
@@ -1335,6 +1395,20 @@ function pantallaPrincipal() {
     }) : ''}
 
     ${grupo({
+      id: 'grupo:comandos',
+      etiqueta: 'Procesos con un clic (comandos)',
+      cuantos: estado.comandos ? plural(estado.comandos, '1 proceso', '{n} procesos') : '',
+      dentro: boton({ etiqueta: 'Verlos todos', icono: '🔖', pequeno: true, accion: { tipo: 'verComandos' } }),
+    })}
+
+    ${grupo({
+      id: 'grupo:habilidades',
+      etiqueta: 'Habilidades (skills)',
+      cuantos: estado.habilidades ? plural(estado.habilidades, '1 habilidad', '{n} habilidades') : '',
+      dentro: boton({ etiqueta: 'Verlas todas', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } }),
+    })}
+
+    ${grupo({
       id: 'grupo:acciones',
       etiqueta: 'Acciones',
       cuantos: estado.conectados ? plural(estado.conectados, '1 programa', '{n} programas') : '',
@@ -1346,7 +1420,6 @@ function pantallaPrincipal() {
           pequeno: true,
           accion: { tipo: 'pedir', prompt: 'Quiero conectar un programa nuevo con el que ya trabajo. Pregúntame cuál es, móntame la conexión con lo que haga falta y comprueba que funciona antes de darla por buena.' },
         })}
-        ${boton({ etiqueta: 'Todo lo que sabe hacer (skills)', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } })}
         ${boton({
           etiqueta: 'Que se quede como botón',
           icono: '🔖',
@@ -1835,6 +1908,7 @@ function atender(data) {
     case 'asistente': return pintar(pantallaAsistente(data));
     case 'comoTrabaja': return pintar(pantallaComoTrabaja(data));
     case 'proyectos': return pintar(pantallaProyectos(data));
+    case 'comandos': return pintar(pantallaComandos(data));
     case 'sugerencias': return pintar(pantallaSugerencias(data));
     case 'agentes': return pintar(pantallaAgentes(data));
     case 'laCara':

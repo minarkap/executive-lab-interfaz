@@ -1742,6 +1742,32 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return suyo.suyas.map((c) => c.nombre).join(' · ');
   });
 
+  await comprobar('un documento dejado en la carpeta cuenta como dado', () => {
+    // Jose dejó un fichero ahí y la barra dijo que no le había dado nada.
+    // Desde su lado LO HABÍA DADO; que nosotros solo miráramos `inbox/` es un
+    // detalle nuestro que a él no le importa. Y el protocolo de RSC ya lo
+    // contempla: su barrido se da una vuelta por la carpeta buscando lo que
+    // nadie ha colocado.
+    const papeles = cargar('papeles');
+    const suelto = path.join(empresa, 'contrato-firmado.pdf');
+    fs.writeFileSync(suelto, 'un contrato de mentira');
+
+    const hay = papeles.queHay();
+    assert.ok(hay.sueltos.some((d) => d.nombre === 'contrato-firmado.pdf'), 'sale como sin colocar');
+    assert.ok(papeles.donde('contrato-firmado.pdf'), 'y se puede abrir');
+
+    // Lo del propio proyecto no cuenta como documento que haya dado nadie.
+    fs.writeFileSync(path.join(empresa, 'README.md'), '# esto es el andamio');
+    assert.ok(!papeles.queHay().sueltos.some((d) => d.nombre === 'README.md'), 'el andamio no es un documento');
+
+    // Y no se cuela nada de fuera por esta puerta.
+    assert.equal(papeles.donde('../fuera.pdf'), null);
+
+    fs.unlinkSync(suelto);
+    fs.unlinkSync(path.join(empresa, 'README.md'));
+    return `${hay.sueltos.length} sin colocar`;
+  });
+
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
     // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
     // había forma de salir de esa pantalla.
@@ -1822,6 +1848,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       }, /Talleres Ruiz/],
       ['huecos', { tipo: 'huecos', huecos: cerebroM.loQueAunNoSabe(4) }, /Preguntas sin contestar/],
       ['papeles', { tipo: 'papeles', ...cargar('papeles').queHay() }, /contrato-talleres-ruiz/],
+      ['comandos', { tipo: 'comandos', comandos: cargar('acciones').todos() }, /Procesos con un clic/],
       ['ayuda', { tipo: 'ayuda', github: { conectado: false } }, /Estoy atascado|por dónde seguir/],
       ['reglas', { tipo: 'reglas', ...cargar('reglas').queHay() }, /albarán firmado/],
       ['asistente', { tipo: 'asistente', ...cargar('asistentes').comoEstamos(), aviso: null }, /Claude|Codex/],

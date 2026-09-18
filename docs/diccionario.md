@@ -63,6 +63,9 @@ jerga por goteo.
 | `01-TOOLS/<lo que sea>/out/` | Lo que ha hecho |
 | sacar uno de ahí | Llevarte un archivo |
 | los tres montones juntos | Lo que le has dado |
+| un documento tirado en la carpeta, sin colocar | Sin colocar todavía |
+| `.claude/commands/` entero | Procesos con un clic (comandos) |
+| una habilidad instalada fuera del catálogo curado | (se nombra con lo que diga su propia cabecera) |
 | `02-DOCS/inbox/_processed/` | Documentos que ya ha leído |
 | `02-DOCS/wiki/dashboard.html` | El panel completo |
 | `rsc onboard` en una carpeta nueva | Preparar esta carpeta |

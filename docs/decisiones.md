@@ -1890,3 +1890,52 @@ Tres botones (`revisar-la-barra`, `publicar-una-version`, `que-dice-el-diccionar
 (`texto-de-la-barra`). No son ejemplos de mentira: los tres botones son cosas que se hacen aquí a
 diario, y los dos ayudantes vigilan justo los dos agujeros que más veces se han colado — palabras
 nuevas sin pasar por el diccionario, y cambios que ninguna comprobación cubre.
+
+---
+
+## 69. Un documento dejado en la carpeta cuenta como dado
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose dejó un fichero en la carpeta y la barra dijo que no le había dado nada. Se enfadó, y con
+razón: **desde su lado lo había dado.** Que nosotros miráramos solo `02-DOCS/inbox/` es un detalle
+de nuestra implementación que a quien usa esto no le importa lo más mínimo.
+
+Y encima la barra hacía menos que el protocolo que dice seguir: el barrido de la bandeja de RSC «se
+da una vuelta» buscando documentos sin ingerir por toda la carpeta.
+
+Ahora hay un cuarto montón, **Sin colocar todavía**, con lo que esté tirado en la superficie de la
+carpeta, y un botón que se lo pide al asistente. Solo la superficie, no las subcarpetas: es donde
+cae lo que alguien suelta, y meterse dentro de un proyecto con código sacaría cientos de ficheros
+que no ha dado nadie. El andamio —`README`, `CLAUDE.md`, `LICENSE`— no cuenta como documento.
+
+También sale en la línea de datos de arriba, que es donde se mira sin entrar a nada.
+
+---
+
+## 70. Se detecta TODO lo que hay montado, no solo lo que está en nuestro catálogo
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«se deben detectar todas las skills del proyecto, y todos los comandos y agentes»*. Y antes:
+*«no crees que esto depende del arnés?»*, mirando una lista de veinticinco capacidades idéntica en
+todas las carpetas.
+
+Tres cosas, y las tres contradecían el principio del propio proyecto:
+
+**Las habilidades instaladas fuera del catálogo eran invisibles.** Nosotros curamos veinticinco en
+español; RSC tiene cientos. Cualquier otra se contaba como «cosas que trae de serie». Ahora se
+nombran con lo que diga su propia cabecera. Fontanería de verdad son cuatro —`orient`, `suggest`,
+`harness`, `init`— y esas sí se cuentan sin nombrarlas.
+
+**Los comandos sin `boton:` no existían.** Solo salían los marcados. Ahora hay un apartado,
+**Procesos con un clic (comandos)**, con todos: los que ya son botón, los que están escritos y nadie
+ha marcado, y los que trae el arnés, separados.
+
+**Y lo que puede aprender, ordenado por esta carpeta.** El criterio ya existía y no se usaba aquí:
+`consejos.loQuePodriaAprender` puntúa cada capacidad contra lo que esa carpeta tiene escrito. Ahora
+las que encajan salen primero y con el porqué —las palabras que se han encontrado escritas allí— y
+las demás detrás, sin esconderse, porque una carpeta recién montada no tiene con qué comparar.
+
+**Y Acciones rápidas ya solo enseña lo fijado.** Antes, sin fijar nada, salían los comandos; con los
+comandos en su propio apartado, los dos enseñaban lo mismo.
