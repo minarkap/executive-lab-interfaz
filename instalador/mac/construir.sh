@@ -93,6 +93,16 @@ ELECTOR
   fi
 fi
 
+# --- npm fuera. Son 17 MB que no se usan: desde que el arnés viaja en el
+#     .vsix, `preparar.js` solo necesita el node a secas. Se poda aquí para que
+#     no vuelva al descargar otro Node.
+if [ -d "$CARGA/runtime/lib/node_modules" ]; then
+  rm -rf "$CARGA/runtime/lib/node_modules"
+  rm -f "$CARGA/runtime/bin/npm" "$CARGA/runtime/bin/npx" "$CARGA/runtime/bin/corepack"
+  rm -f "$CARGA/runtime/CHANGELOG.md" "$CARGA/runtime/README.md"
+  echo "  Fuera npm: runtime $(du -sm "$CARGA/runtime" | cut -f1)M"
+fi
+
 # --- El arnés YA NO viaja en la carga: va dentro del .vsix, que es quien lo
 #     usa. Los raíles, igual (extension/media/railes). Y la biblioteca del
 #     historial tampoco hace falta, porque git es obligatorio y lo instala el

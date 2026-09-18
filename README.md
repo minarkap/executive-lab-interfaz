@@ -79,9 +79,10 @@ Para quien llega sin nada. Pone **las piezas**: VS Code, Node, git y las dos ext
 dentro de la carpeta del usuario y sin pedir administrador. El arnés no lo monta él: eso lo hace el
 panel cuando esa persona elige carpeta, igual que por el camino de la extensión (decisión 27).
 
-- **macOS:** `Executive Lab <version>.dmg` (103 MB). Se construye con `instalador/mac/construir.sh`.
-- **Windows:** `ExecutiveLab-Setup.exe` (268 MB). `instalador/windows/preparar-carga.sh` y luego
+- **Windows:** `ExecutiveLab-Setup.exe`, **29 MB**. `instalador/windows/preparar-carga.sh` y luego
   Inno Setup (ver [instalador/README.md](instalador/README.md)).
+- **macOS:** `Executive Lab <version>.dmg`, **93 MB** — y bajaría a la mitad en cuanto se acepte la
+  licencia de Xcode, porque entonces `lipo` junta los dos Node en uno solo.
 
 ⚠️ **Hoy no se reparten.** Ninguno de los dos está firmado, así que macOS los bloquea con Gatekeeper
 y Windows enseña *«Windows protegió tu PC»*. Antes de repartir cualquiera de los dos hay que
@@ -237,7 +238,7 @@ Las tres llevan lo mismo, porque el arnés viaja en un solo sitio: dentro del `.
 | | `.vsix` (extensión) | `.dmg` (macOS) | `.exe` (Windows) |
 |---|---|---|---|
 | Versión del panel | **0.5.0** | **0.5.0** | **0.5.0** |
-| Tamaño | 6 MB | 103 MB | 268 MB |
+| Tamaño | 6 MB | 93 MB | **29 MB** |
 | Arnés RSC 1.4.1 | ✅ dentro del paquete | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Raíles | ✅ `media/railes/` | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Módulos compartidos | ✅ `media/comun/` | ✅ | ✅ |

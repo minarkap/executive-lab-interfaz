@@ -58,18 +58,22 @@ Source: "carga\ajustes.js";  DestDir: "{app}";          Flags: ignoreversion
 Source: "carga\executive-lab.vsix"; DestDir: "{app}";   Flags: ignoreversion
 Source: "carga\executivelab.ico";   DestDir: "{app}";   Flags: ignoreversion
 Source: "carga\disfraz.json";       DestDir: "{app}";   Flags: ignoreversion
-; VS Code, instalación por usuario. El .exe se descarta al terminar.
-Source: "carga\VSCodeUserSetup-x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+; El instalador de VS Code YA NO VIAJA AQUÍ: son 225 MB de los 256 que pesaba
+; esto. Se descarga durante la instalación, como ya hacía el de macOS, y no se
+; descarga nada si esa persona ya lo tiene. Hace falta red, que de todos modos
+; hace falta para el login y para la extensión del asistente.
 
 [Registry]
 ; Para que la extensión encuentre la app aunque cambie la carpeta por defecto.
 Root: HKCU; Subkey: "Environment"; ValueType: string; ValueName: "EXECUTIVE_LAB_HOME"; ValueData: "{app}"; Flags: uninsdeletevalue
 
 [Run]
-; VS Code en silencio. !runcode evita que se abra solo al acabar.
+; VS Code en silencio, y solo si hubo que descargarlo. !runcode evita que se
+; abra solo al acabar.
 Filename: "{tmp}\VSCodeUserSetup-x64.exe"; \
   Parameters: "/VERYSILENT /NORESTART /SUPPRESSMSGBOXES /MERGETASKS=!runcode"; \
-  StatusMsg: "Instalando el editor..."; Flags: waituntilterminated
+  StatusMsg: "Instalando el editor..."; Flags: waituntilterminated; \
+  Check: HayQueInstalarElEditor
 
 ; git (si no está) y las dos extensiones. git se descarga, así que este paso
 ; necesita red y puede tardar un par de minutos.
@@ -89,9 +93,38 @@ Name: "{autodesktop}\{#Nombre}"; \
 [Code]
 var
   PaginaAsistente: TInputOptionWizardPage;
+  PaginaDescarga: TDownloadWizardPage;
+  Descargado: Boolean;
+
+// El sitio oficial de Microsoft, con su enlace permanente a la última estable
+// para instalación por usuario. No se fija ninguna versión: el editor se
+// actualiza solo y repartir uno viejo no gana nada.
+const
+  DESCARGA_DEL_EDITOR = 'https://update.code.visualstudio.com/latest/win32-x64-user/stable';
+
+// ¿Ya lo tiene? Se mira donde lo deja cada tipo de instalación. Si está, no se
+// descargan 225 MB para nada.
+function YaTieneElEditor(): Boolean;
+begin
+  Result := FileExists(ExpandConstant('{localappdata}\Programs\Microsoft VS Code\Code.exe'))
+         or FileExists(ExpandConstant('{commonpf}\Microsoft VS Code\Code.exe'))
+         or FileExists(ExpandConstant('{commonpf32}\Microsoft VS Code\Code.exe'));
+end;
+
+function HayQueInstalarElEditor(): Boolean;
+begin
+  Result := Descargado;
+end;
+
+function AlDescargar(const NombreDelFichero, URL: String; const Progreso, Total: Int64): Boolean;
+begin
+  Result := True;
+end;
 
 procedure InitializeWizard;
 begin
+  Descargado := False;
+
   PaginaAsistente := CreateInputOptionPage(wpWelcome,
     'Tu asistente', '¿Con cuál vas a trabajar?',
     'Los dos hacen lo mismo aquí. Si en clase te han dicho uno, elige ese. Si no lo sabes, deja Claude.',
@@ -99,6 +132,39 @@ begin
   PaginaAsistente.Add('Claude');
   PaginaAsistente.Add('Codex');
   PaginaAsistente.SelectedValueIndex := 0;
+
+  PaginaDescarga := CreateDownloadPage('Descargando el editor',
+    'Son unos 100 MB. Tarda según tu conexión.', @AlDescargar);
+end;
+
+// La descarga va justo después de la única pregunta, antes de tocar el disco:
+// si falla, no se ha instalado nada a medias.
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if CurPageID <> PaginaAsistente.ID then
+    Exit;
+
+  if YaTieneElEditor() then
+  begin
+    Descargado := False;
+    Exit;
+  end;
+
+  PaginaDescarga.Clear;
+  PaginaDescarga.Add(DESCARGA_DEL_EDITOR, 'VSCodeUserSetup-x64.exe', '');
+  PaginaDescarga.Show;
+  try
+    try
+      PaginaDescarga.Download;
+      Descargado := True;
+    except
+      SuppressibleMsgBox('No he podido descargar el editor. Mira que haya conexión y vuelve a intentarlo.' + #13#10 + #13#10 + GetExceptionMessage, mbCriticalError, MB_OK, IDOK);
+      Result := False;
+    end;
+  finally
+    PaginaDescarga.Hide;
+  end;
 end;
 
 function AsistenteElegido(Param: String): String;

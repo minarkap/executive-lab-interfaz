@@ -53,9 +53,25 @@ cp "$RAIZ/extension/executive-lab.vsix" "$CARGA/executive-lab.vsix"
 VERSION="$(node -p "require('$RAIZ/extension/package.json').version")"
 echo "  carga/executive-lab.vsix  ($VERSION)"
 
+# El Node portable trae npm dentro, y npm son 17 MB que aquí no se usan: desde
+# que el arnés viaja en el .vsix, `preparar.js` solo necesita node.exe a secas.
+# Se poda aquí y no a mano, para que no vuelva al descargar otro Node.
+if [ -d "$CARGA/runtime/node_modules" ]; then
+  echo "▸ Podando el Node"
+  ANTES="$(du -sm "$CARGA/runtime" | cut -f1)"
+  rm -rf "$CARGA/runtime/node_modules"
+  rm -f "$CARGA/runtime/npm" "$CARGA/runtime/npm.cmd" "$CARGA/runtime/npm.ps1" \
+        "$CARGA/runtime/npx" "$CARGA/runtime/npx.cmd" "$CARGA/runtime/npx.ps1" \
+        "$CARGA/runtime/CHANGELOG.md" "$CARGA/runtime/README.md"
+  DESPUES="$(du -sm "$CARGA/runtime" | cut -f1)"
+  echo "  runtime: ${ANTES}M → ${DESPUES}M (fuera npm, que ya no se usa)"
+fi
+
 echo "▸ Los binarios de terceros"
 FALTA=0
-for pieza in runtime VSCodeUserSetup-x64.exe executivelab.ico; do
+# VSCodeUserSetup-x64.exe ya no está en la lista: el editor se descarga
+# durante la instalación, como en macOS.
+for pieza in runtime executivelab.ico; do
   if [ -e "$CARGA/$pieza" ]; then
     echo "  carga/$pieza"
   else
