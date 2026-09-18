@@ -1482,6 +1482,48 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${fijadas.TOPE} fijadas`;
   });
 
+  await comprobar('ninguna regla del panel lleva un color escrito a fuego', () => {
+    // Lo que vio Jose: botones marrones y un halo rojo bajo un botón cian. La
+    // causa eran colores fijos en las reglas y —peor— dos variables que NO se
+    // declaraban en ninguna parte, `--el-acento` y `--el-borde`, así que todas
+    // sus reglas caían siempre en el valor de reserva: un marrón que no es de
+    // nadie y unos bordes negros que sobre fondo oscuro no se ven.
+    const css = fs.readFileSync(path.join(RAIZ, 'media', 'panel.css'), 'utf8');
+    const cuerpo = css.slice(css.indexOf('* { box-sizing'));
+
+    const declarados = new Set([...css.matchAll(/^\s*(--[a-z0-9-]+)\s*:/gm)].map((m) => m[1]));
+    const usados = new Set([...cuerpo.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]));
+    const fantasmas = [...usados].filter((v) => !declarados.has(v) && !v.startsWith('--vscode'));
+    assert.deepEqual(fantasmas, [], `variables que nadie declara, así que siempre pintan su reserva: ${fantasmas.join(', ')}`);
+
+    // Y ningún color literal, salvo un negro puro de sombra, que vale en
+    // cualquier marca porque no es un color: es una sombra.
+    const aFuego = cuerpo.split('\n')
+      .filter((l) => /#[0-9a-fA-F]{3,8}\b/.test(l) || /rgba?\((?!0, 0, 0)/.test(l))
+      .filter((l) => !l.includes('var(--vscode'))
+      .map((l) => l.trim());
+    assert.deepEqual(aFuego, [], `colores escritos a fuego: ${aFuego.join(' | ')}`);
+
+    return `${declarados.size} colores declarados · 0 fantasmas · 0 a fuego`;
+  });
+
+  await comprobar('la marca trae todos los colores que las reglas piden', () => {
+    // Si una regla usa un color que la marca no calcula, esa regla se queda con
+    // el de Executive Lab y sale un botón rojo en una empresa cian.
+    const css = fs.readFileSync(path.join(RAIZ, 'media', 'panel.css'), 'utf8');
+    const cuerpo = css.slice(css.indexOf('* { box-sizing'));
+    const usados = [...new Set([...cuerpo.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]))]
+      .filter((v) => !v.startsWith('--vscode') && !['--sans', '--serif', '--radio', '--radio-lg', '--hueco', '--sombra', '--alto-boton'].includes(v));
+
+    montarMarca(empresa, { fondo: '#0d1117', texto: '#e6edf3', acento: '#22d3ee' });
+    const tokens = marca.leer().tokens;
+    const faltan = usados.filter((v) => !(v in tokens));
+    assert.deepEqual(faltan, [], `la marca no calcula: ${faltan.join(', ')}`);
+
+    montarMarca(empresa);
+    return `${usados.length} colores, todos los pone la marca`;
+  });
+
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
     // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
     // había forma de salir de esa pantalla.

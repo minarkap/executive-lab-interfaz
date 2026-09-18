@@ -46,6 +46,10 @@
   --acento: var(--rojo);
   --acento-relleno: var(--rojo-fuerte);
   --sobre-acento: #fff;
+  --acento-sombra: rgba(236, 68, 41, .28);
+  --resaltado: #ffe9c7;
+  --bien: #2e7d32;
+  --mal: #c62828;
 
   --alto-boton: 40px;
   --radio: 10px;
@@ -65,6 +69,12 @@ body.vscode-dark, body.vscode-high-contrast {
   --apagado: var(--vscode-descriptionForeground, #9d9d9d);
   --borde: var(--vscode-panel-border, rgba(255, 255, 255, .15));
   --superficie-2: var(--vscode-editorWidget-background, var(--superficie));
+  /* Sin marca de empresa y con tema oscuro, estos tres seguían en sus valores
+     claros: lo resaltado al buscar salía crema con la letra clara encima, y el
+     verde y el rojo de los avisos se perdían sobre el fondo. */
+  --resaltado: rgba(255, 209, 102, .28);
+  --bien: #7cc47f;
+  --mal: #ef8a85;
 }
 
 * { box-sizing: border-box; }
@@ -223,7 +233,7 @@ button.principal {
   background: var(--acento-relleno);
   border-color: transparent;
   font-weight: 700;
-  box-shadow: 0 2px rgba(0, 0, 0, .1), 0 8px 22px rgba(236, 68, 41, .28);
+  box-shadow: 0 2px rgba(0, 0, 0, .1), 0 8px 22px var(--acento-sombra);
 }
 
 button.principal:hover { background: var(--acento); }
@@ -302,12 +312,12 @@ input:focus-visible { outline: 3px solid var(--acento); outline-offset: 1px; }
   padding: 12px 14px;
   margin-bottom: 16px;
   border-radius: var(--radio);
-  border-left: 4px solid #2e7d32;
+  border-left: 4px solid var(--bien);
   background: var(--superficie);
   box-shadow: var(--sombra);
 }
 
-.aviso.malo { border-left-color: var(--acento); }
+.aviso.malo { border-left-color: var(--mal); }
 
 .codigo {
   display: block;
@@ -461,7 +471,7 @@ input.buscar::placeholder { color: var(--apagado); }
    quien no distingue el fondo. */
 mark {
   padding: 0 1px;
-  background: #ffe9c7;
+  background: var(--resaltado);
   color: inherit;
   font-weight: 700;
   border-radius: 2px;
@@ -523,13 +533,13 @@ mark {
 /* Los pasos de la copia de fuera. Numerados y con el hecho marcado: quien no
    sabe qué es esto necesita ver en qué punto está, no un botón suelto. */
 .paso {
-  border-left: 3px solid var(--el-borde, rgba(0, 0, 0, 0.12));
+  border-left: 3px solid var(--borde);
   padding: 0 0 0 0.9rem;
   margin: 0 0 1rem;
 }
-.paso.hecho { border-left-color: var(--el-acento, #d84315); }
+.paso.hecho { border-left-color: var(--acento); }
 .paso-titulo { font-weight: 600; margin: 0 0 0.2rem; }
-.paso.hecho .paso-titulo { color: var(--el-acento, #d84315); }
+.paso.hecho .paso-titulo { color: var(--acento); }
 .paso-cuerpo { margin: 0; color: var(--texto); }
 
 /* La radiografía: una línea por pieza, con su marca delante. Nada de iconos de
@@ -540,10 +550,10 @@ mark {
   grid-template-columns: 1.2rem 1fr;
   gap: 0 0.5rem;
   padding: 0.55rem 0;
-  border-bottom: 1px solid var(--el-borde, rgba(0, 0, 0, 0.08));
+  border-bottom: 1px solid var(--borde);
 }
 .pieza-marca { font-weight: 700; opacity: 0.45; }
-.pieza.si .pieza-marca { color: var(--el-acento, #d84315); opacity: 1; }
+.pieza.si .pieza-marca { color: var(--acento); opacity: 1; }
 .pieza.aMedias .pieza-marca { opacity: 1; }
 .pieza-nombre { font-weight: 600; }
 .pieza-detalle { grid-column: 2; color: var(--apagado); }
@@ -551,7 +561,7 @@ mark {
 /* Una capacidad de la lista de "qué sabe hacer". */
 .capacidad {
   padding: 0.7rem 0;
-  border-bottom: 1px solid var(--el-borde, rgba(0, 0, 0, 0.08));
+  border-bottom: 1px solid var(--borde);
 }
 .capacidad .nombre { font-weight: 600; margin: 0 0 0.15rem; }
 .capacidad .pista { margin: 0 0 0.4rem; color: var(--apagado); }
@@ -561,7 +571,7 @@ mark {
 
 /* Mientras se arrastra algo por encima de la barra. */
 body.soltando {
-  outline: 3px dashed var(--el-acento, #d84315);
+  outline: 3px dashed var(--acento);
   outline-offset: -6px;
 }
 
@@ -589,7 +599,7 @@ button.solo-icono .icono { font-size: 15px; }
 /* El acordeón de cada herramienta. <details> nativo: sin JavaScript que
    mantener, y sigue funcionando dentro de diez años. */
 .acordeon {
-  border: 1px solid var(--el-borde, rgba(0, 0, 0, 0.1));
+  border: 1px solid var(--borde);
   border-radius: 10px;
   padding: 0.5rem 0.7rem;
   margin: 0 0 0.5rem;
@@ -681,7 +691,7 @@ button.solo-icono .icono { font-size: 15px; }
 /* Un archivo para llevarse. */
 .archivo {
   padding: 0.6rem 0 0.4rem;
-  border-bottom: 1px solid var(--el-borde, rgba(0, 0, 0, 0.07));
+  border-bottom: 1px solid var(--borde);
 }
 .archivo .nombre { font-weight: 600; margin: 0 0 0.1rem; word-break: break-word; }
 .archivo .pista { margin: 0 0 0.4rem; font-size: 0.88em; color: var(--apagado); }

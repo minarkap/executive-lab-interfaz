@@ -221,7 +221,23 @@ function esquemaMaterial({ acento, fondo, oscura }) {
     };
 }
 
+// El mismo color con transparencia, para sombras y resaltados. En CSS se podría
+// hacer con `color-mix`, pero se escribe aquí para que el valor viaje ya
+// resuelto y la hoja de estilo no dependa de lo que soporte cada editor.
+function conAlfa(hex, alfa) {
+  const [r, g, b] = aRgb(hex).map((c) => Math.round(c * 255));
+  return `rgba(${r}, ${g}, ${b}, ${alfa})`;
+}
+
+// El verde de "bien" y el rojo de "mal" no son de la marca: un aviso tiene que
+// parecer un aviso aunque la empresa sea verde lima. Pero sí se llevan al tono
+// que toca, para que se vean sobre su fondo en vez de quedarse en verde oscuro
+// sobre azul marino, que es lo que pasaba.
+const VERDE = '#2e7d32';
+const ROJO = '#c62828';
+const deAviso = (base, oscura) => paletaTonal(base, 0.12)(oscura ? 75 : 40);
+
 module.exports = {
-  esColor, luz, contraste, mezclar, hastaQueSeLea, apagadoSobre, aHex,
+  esColor, luz, contraste, mezclar, hastaQueSeLea, apagadoSobre, aHex, conAlfa, deAviso, VERDE, ROJO,
   aOklab, deOklab, paletaTonal, esquemaMaterial,
 };

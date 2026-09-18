@@ -1554,3 +1554,36 @@ siguen abriéndose con su programa, porque enseñarlos como texto sería enseña
 documentos puede dar confusión porque no son los mismos documentos»*. Estaban nombrados por el verbo;
 ahora por de quién son: **Darle documentos** (entra) · **Lo que le has dado** (su archivo) · **Lo
 que ha hecho** (sale).
+
+---
+
+## 57. Dos variables que no existían, y por eso los botones salían marrones
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose, con la barra de Nexus Consulting a medio pintar: *«sigue sin cargar bien algunas cosas de la
+marca. Botones marrones y rojos»*.
+
+Tres causas, y la tercera es la que da miedo:
+
+1. **Colores escritos a fuego en las reglas.** El halo del botón principal era
+   `rgba(236, 68, 41, .28)` — el rojo de Executive Lab, debajo de un botón cian. Lo resaltado al
+   buscar, `#ffe9c7`, una mancha crema sobre fondo oscuro. El borde del aviso, `#2e7d32`.
+2. **Tokens que la marca no calculaba.** Aunque las reglas usaran nombres con significado, si la
+   marca no ponía ese color, la regla se quedaba con el de Executive Lab.
+3. **Dos variables que NO se declaraban en ninguna parte:** `--el-acento` y `--el-borde`. Trece
+   reglas las usaban con valor de reserva, así que **siempre** pintaban la reserva: `#d84315`, un
+   marrón que no es de ninguna marca, y unos bordes negros translúcidos que sobre fondo oscuro no se
+   ven. Nadie las declaró nunca; llevaban ahí desde que se escribieron esas pantallas.
+
+La tercera es la que enseña el problema de fondo: **nada avisaba**. Una variable inexistente en CSS
+no da error, se traga el valor de reserva y sigue. Por eso ahora hay dos pruebas:
+
+- ninguna regla lleva un color literal (salvo un negro puro de sombra, que no es un color) ni usa
+  una variable que nadie declara;
+- y la marca **calcula todos** los colores que las reglas piden — si mañana alguien añade una regla
+  con un color nuevo, la prueba lo dice antes de que salga un botón rojo en una empresa cian.
+
+El verde de «bien» y el rojo de «mal» se quedan: un aviso tiene que parecer un aviso aunque la
+empresa sea verde lima. Pero se llevan al tono que se ve sobre **su** fondo, en vez de quedarse en
+verde oscuro sobre azul marino.

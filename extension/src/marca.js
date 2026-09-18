@@ -156,6 +156,16 @@ function leer() {
       '--acento': esquema.acento,
       '--acento-relleno': esquema.acentoRelleno,
       '--sobre-acento': esquema.sobreAcento,
+      // La sombra del botón principal llevaba el rojo de Executive Lab escrito
+      // a fuego, así que un botón cian salía con un halo rojo debajo.
+      '--acento-sombra': color.conAlfa(esquema.acentoRelleno, 0.28),
+      // Lo resaltado al buscar era un amarillo fijo: sobre fondo oscuro, una
+      // mancha crema.
+      '--resaltado': color.conAlfa(esquema.acento, esOscura ? 0.3 : 0.35),
+      // Un aviso tiene que parecer un aviso aunque la empresa sea verde lima,
+      // pero llevado al tono que se ve sobre SU fondo.
+      '--bien': color.deAviso(color.VERDE, esOscura),
+      '--mal': color.deAviso(color.ROJO, esOscura),
     },
   };
 }
