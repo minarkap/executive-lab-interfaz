@@ -1654,3 +1654,79 @@ Tres cosas del montaje que costaron más que la prueba, y quedan escritas para e
   si fuera su punto de entrada.
 
 No va dentro de `probar` porque tarda y pide red: la primera vez se descarga un VS Code de 300 MB.
+
+---
+
+## 60. "En qué estamos": las specs de SDD, y solo donde las haya
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«lo de sdd hazlo pero que no salga si no hay nada. Seguramente los alumnos sí la usen porque
+en la clase 2 vamos a montar una web con sdd»*.
+
+RSC escribe bajo `02-DOCS/wiki/sdd/` todo lo que se acuerda antes de construir algo, y la barra no
+enseñaba nada salvo la constitución:
+
+| Fichero | En pantalla |
+|---|---|
+| `proposals/` | Antes de empezar |
+| `specs/` | Qué queremos |
+| `plans/` | Cómo se va a hacer |
+
+Lo que hace esto valioso para quien no es técnico: **una spec no es un documento técnico**. El
+propio protocolo lo dice — *«what & why, no how»*. Es literalmente lo que cualquiera querría leer
+para saber en qué anda su proyecto.
+
+**Aparece solo si esa carpeta lo tiene.** Un arnés de contabilidad no tendrá specs nunca; uno donde
+se monte una web, sí. Es la misma regla que el resto de la barra: nada está predefinido.
+
+Dos detalles de honestidad:
+
+- Las tareas se cuentan de la tabla del plan (`T001`, `T002`…), pero **no se dice cuántas van
+  hechas**: esa tabla no lleva marca de hecho o pendiente, y un progreso inventado es peor que
+  ningún progreso.
+- El estado (`draft`, `accepted`) se traduce, pero si el fichero no lo trae no se rellena.
+
+---
+
+## 61. Tercera excepción del diccionario: tools, skills y comandos
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«"Tus programas" cámbialo por "Conexiones (tools)". Y todo lo que sabe hacer, si son skills
+pon (skills)»*. Y después, *«ídem con comandos»*.
+
+El motivo es el mismo que el de git y GitHub, y esta vez con más razón: **en clase se explican con
+esas palabras**. El alumno va a oír «skill» en la segunda sesión y va a leerla en cualquier tutorial
+y en la documentación de RSC. Que la barra la llame solo «habilidad» le deja sin poder atar una cosa
+con otra justo cuando está aprendiendo las dos a la vez.
+
+El paréntesis es la forma de tener las dos cosas: manda la palabra en cristiano y detrás va la que
+va a oír fuera. No al revés.
+
+---
+
+## 62. Lo que NO se ha hecho, y por qué
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+**La puntuación de los conceptos (`wiki/scores.json`), no.** Yo la propuse como «fichas a medias» y
+me equivoqué dos veces: llamándolas fichas —una tercera palabra para los conceptos, justo lo que
+este diccionario existe para evitar— y sobre todo en lo que mide. La fórmula es:
+
+```
+puntuación = enlaces_entrantes×2 + veces_consultada×0,5 + frescura − 5_si_está_huérfana
+```
+
+No mide si un concepto está completo ni bien escrito: mide **si está enlazado y si es reciente**. En
+una carpeta joven casi todo está huérfano, así que la pantalla diría «todo está mal» y no serviría
+para nada. Si algún día se enseñara, su sitio sería junto a *Preguntas sin contestar*, que es lo que
+apuntó Jose — pero no es lo mismo: los huecos son cosas que el asistente sabe que no sabe, y la
+puntuación es un número sobre lo que ya escribió.
+
+**El repaso del arnés (`rsc audit`), tampoco.** Se ejecutó aquí para decidirlo con datos: tarda
+cinco segundos y contesta *«8 skills installed — nothing to flag»*. Un botón para eso enseñaría
+«todo bien» casi siempre.
+
+Lo que sí queda pendiente de ese aviso es la **versión de RSC** (2.0.4 frente a la 1.4.1 que se fija
+a propósito), que nadie ve y sería una línea en *Qué falta por montar*.

@@ -162,6 +162,41 @@ empresa: Ferretería Soler
 Goal: organizar mis facturas
 `);
 
+  // --- SDD: lo que se escribe cuando se construye algo. Una carpeta de
+  //     contabilidad no tiene nada de esto; una donde se monte una web, sí ---
+  escribir(raiz, '02-DOCS/wiki/sdd/specs/tienda-de-recambios.md', `---
+type: spec
+title: Vender recambios por internet
+status: accepted
+---
+
+# Vender recambios por internet
+
+## Qué queremos
+
+Que un cliente pueda pedir un recambio sin llamar por teléfono.
+
+## Por qué
+
+La mitad de las llamadas son para preguntar si hay stock.
+`);
+  escribir(raiz, '02-DOCS/wiki/sdd/plans/tienda-de-recambios.md', `---
+type: plan
+title: Plan de la tienda de recambios
+status: draft
+---
+
+# Plan de la tienda de recambios
+
+## Tareas
+
+| ID | P | Qué | Hecho cuando | Depende | De |
+|---|---|---|---|---|---|
+| T001 |  | Catálogo con stock | Se ve el stock de verdad | — | spec §3 |
+| T002 | [P] | Carrito | Se puede pedir | T001 | spec §4 |
+| T003 |  | Cobro | Llega el dinero | T002 | spec §5 |
+`);
+
   // --- las reglas: los tres sitios donde RSC las pone. La constitución solo
   //     aparece si el arnés se montó con SDD; los otros dos van siempre ---
   escribir(raiz, '02-DOCS/wiki/sdd/constitution.md', `---

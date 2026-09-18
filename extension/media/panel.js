@@ -352,12 +352,12 @@ function pantallaSaberes(datos) {
     </div>`;
 
   return `
-    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Habilidades' }])}
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Habilidades (skills)' }])}
     ${bloqueAviso()}
     ${volver()}
 
     <div class="brujula">
-      <h2>Habilidades</h2>
+      <h2>Habilidades (skills)</h2>
       <p class="hiciste">Pídele cualquiera de estas con tus palabras. Y lo que no sepa todavía, puede aprenderlo aquí mismo.</p>
     </div>
 
@@ -420,6 +420,45 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'c
       accion: { tipo: 'pedir', prompt: 'Hay cosas que no quiero que hagas nunca en esta carpeta. Pregúntame cuáles son, una a una, y déjalas escritas donde te las leas siempre.' },
     })}
 
+  `;
+}
+
+// ------------------------------------------------------------ en qué estamos
+
+// Lo que RSC escribe cuando se construye algo con SDD: qué se quiere, por qué y
+// cómo. Aparece solo si esa carpeta lo tiene — una de contabilidad no lo tendrá
+// nunca, y una donde se monte una web, sí.
+function pantallaProyectos({ montones = [] }) {
+  const ESTADOS = {
+    draft: 'en borrador',
+    accepted: 'acordado',
+    approved: 'acordado',
+    done: 'terminado',
+    superseded: 'sustituido',
+  };
+
+  return `
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'En qué estamos' }])}
+    ${bloqueAviso()}
+    ${volver()}
+
+    <div class="brujula">
+      <h2>En qué estamos</h2>
+      <p class="hiciste">Lo que se acordó construir, por qué, y cómo se va a hacer.</p>
+    </div>
+
+    ${montones.map((m) => `
+      <h2>${texto(m.etiqueta)}</h2>
+      <p class="detalle">${texto(m.pista)}</p>
+      ${m.cosas.map((c) => `
+        <div class="entrada">
+          <p class="nombre">${texto(c.titulo)}</p>
+          ${c.estado || c.tareas ? `<p class="pista">${texto([
+            ESTADOS[c.estado] || c.estado,
+            c.tareas ? plural(c.tareas, '1 tarea', '{n} tareas') : '',
+          ].filter(Boolean).join(' · '))}</p>` : ''}
+          ${boton({ etiqueta: 'Abrirlo', icono: '▸', pequeno: true, accion: { tipo: 'verProyecto', fichero: c.fichero } })}
+        </div>`).join('')}`).join('<hr class="separador">')}
   `;
 }
 
@@ -1174,19 +1213,27 @@ function pantallaPrincipal() {
         ${boton({ etiqueta: 'Apuntar lo de hoy', icono: '✍️', pequeno: true, accion: { tipo: 'pedir', prompt: 'Apunta en el diario lo que hemos hecho hoy: qué hicimos, por qué, qué quedó tocado y cómo quedó. Y si hemos decidido algo que importe, déjalo también en el registro de decisiones con su porqué.' } })}`,
     })}
 
+    ${/* Aparece solo si esa carpeta construye algo con SDD. Una de contabilidad
+          no tendrá specs nunca; una donde se monte una web, sí. */''}
+    ${estado.hayProyectos ? grupo({
+      id: 'grupo:proyectos',
+      etiqueta: 'En qué estamos',
+      dentro: boton({ etiqueta: 'Qué queremos y cómo', icono: '🧩', pequeno: true, accion: { tipo: 'verProyectos' } }),
+    }) : ''}
+
     ${grupo({
       id: 'grupo:acciones',
       etiqueta: 'Acciones',
       cuantos: estado.conectados ? plural(estado.conectados, '1 programa', '{n} programas') : '',
       dentro: `
-        ${boton({ etiqueta: 'Tus programas', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
+        ${boton({ etiqueta: 'Conexiones (tools)', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
         ${boton({
           etiqueta: 'Conectar algo nuevo',
           icono: '➕',
           pequeno: true,
           accion: { tipo: 'pedir', prompt: 'Quiero conectar un programa nuevo con el que ya trabajo. Pregúntame cuál es, móntame la conexión con lo que haga falta y comprueba que funciona antes de darla por buena.' },
         })}
-        ${boton({ etiqueta: 'Todo lo que sabe hacer', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } })}
+        ${boton({ etiqueta: 'Todo lo que sabe hacer (skills)', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } })}
         ${boton({
           etiqueta: 'Que se quede como botón',
           icono: '🔖',
@@ -1238,7 +1285,7 @@ function pantallaConexiones({ proveedores, sueltas }) {
 
   if (!proveedores.length) {
     return `
-      <p class="titulo">Tus programas</p>
+      <p class="titulo">Conexiones (tools)</p>
       ${desordenadas}
       ${nada('Todavía no hay ninguna puesta en su sitio. Cuando le pidas al asistente que conecte tu correo, tu facturación o lo que uses, aparecerán aquí.')}
       ${boton({ etiqueta: 'Conectar algo', icono: '▸', principal: !sueltas, accion: { tipo: 'pedir', prompt: 'Quiero conectar una herramienta que uso. Pregúntame cuál y guíame paso a paso.' } })}
@@ -1248,7 +1295,7 @@ function pantallaConexiones({ proveedores, sueltas }) {
   return `
     ${bloqueAviso()}
     ${volver()}
-    <p class="titulo">Tus programas</p>
+    <p class="titulo">Conexiones (tools)</p>
     ${desordenadas}
     ${proveedores.map((p) => boton({
       etiqueta: p.faltan
@@ -1674,6 +1721,7 @@ function atender(data) {
     case 'reglas': return pintar(pantallaReglas(data));
     case 'asistente': return pintar(pantallaAsistente(data));
     case 'comoTrabaja': return pintar(pantallaComoTrabaja(data));
+    case 'proyectos': return pintar(pantallaProyectos(data));
     case 'laCara':
       dondeCaeLoQueSueltas = 'marca';
       return pintar(pantallaLaCara(data));

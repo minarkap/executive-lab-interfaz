@@ -41,6 +41,7 @@ const donde = require('./donde');
 const pulso = require('./pulso');
 const fijadas = require('./fijadas');
 const tema = require('./tema');
+const proyectos = require('./proyectos');
 const asistentes = require('./asistentes');
 const trato = require('./trato');
 const marca = require('./marca');
@@ -189,6 +190,8 @@ ${cabecera}
       // le escribe comandos a ninguno de su familia. Sin esto, la barra
       // enseñaba un hueco y nadie sabía si era que no había o que no iban.
       puedeTenerBotones: donde.puedeTenerBotones(),
+      // El apartado de SDD sale solo si esa carpeta construye algo.
+      hayProyectos: proyectos.hayAlgo(),
       modo: disfraz.modoDeEstaVentana(),
       // Si la empresa aún no tiene cara puesta, el panel la ofrece en vez de
       // esperar a que el alumno caiga en contarlo.
@@ -323,6 +326,8 @@ ${cabecera}
       verComoTrabaja: () => this.verComoTrabaja(),
       verFijadas: () => this.verFijadas(),
       verLaCara: () => this.verLaCara(),
+      verProyectos: () => this.verProyectos(),
+      verProyecto: () => this.verProyecto(mensaje.fichero),
       materialDeMarca: () => this.materialDeMarca(),
       quitarLaCara: () => this.quitarLaCara(),
       fijar: () => this.cambiarFijada(fijadas.fijar, mensaje.cual),
@@ -608,6 +613,18 @@ ${cabecera}
       await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside, preview: true });
     }
     return undefined;
+  }
+
+  // Lo que se acordó construir. Solo existe donde se construya algo con SDD.
+  async verProyectos() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'proyectos', montones: proyectos.queHay() });
+  }
+
+  async verProyecto(fichero) {
+    const donde = proyectos.dondeVive(fichero);
+    if (!donde) return this.enviar({ tipo: 'aviso', texto: 'Eso ya no está.', malo: true });
+    return papeles.abrirFichero(donde);
   }
 
   // ------------------------------------------------ la cara de la empresa
@@ -1101,6 +1118,7 @@ function activate(contexto) {
     comando('executiveLab.comoTrabaja', () => panel.verComoTrabaja()),
     comando('executiveLab.fijadas', () => panel.verFijadas()),
     comando('executiveLab.laCara', () => panel.verLaCara()),
+    comando('executiveLab.proyectos', () => panel.verProyectos()),
     comando('executiveLab.diario', () => panel.verDiario()),
     comando('executiveLab.trato', () => panel.verTrato()),
     comando('executiveLab.copiaFuera', () => panel.verCopiaFuera()),

@@ -183,9 +183,9 @@ function fraseCon(texto, termino) {
 
 const GRUPOS = [
   { tipo: 'sabe', titulo: 'Lo que sabe' },
-  { tipo: 'hacer', titulo: 'Cosas que puedes hacer' },
+  { tipo: 'hacer', titulo: 'Tus botones (comandos)' },
   { tipo: 'papel', titulo: 'Documentos' },
-  { tipo: 'conexion', titulo: 'Tus programas' },
+  { tipo: 'conexion', titulo: 'Conexiones (tools)' },
   { tipo: 'diario', titulo: 'El diario' },
 ];
 

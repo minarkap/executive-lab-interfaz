@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -285,11 +285,11 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   });
 
   await comprobar('buscar mira también los botones y las conexiones', () => {
-    const botones = buscador.buscar('resumen del mes').grupos.find((g) => g.titulo === 'Cosas que puedes hacer');
+    const botones = buscador.buscar('resumen del mes').grupos.find((g) => g.titulo === 'Tus botones (comandos)');
     assert.ok(botones, 'los botones del arnés también se buscan');
     assert.equal(botones.aciertos[0].titulo, 'Preparar el resumen del mes');
 
-    const conexiones = buscador.buscar('holded').grupos.find((g) => g.titulo === 'Tus programas');
+    const conexiones = buscador.buscar('holded').grupos.find((g) => g.titulo === 'Conexiones (tools)');
     assert.ok(conexiones, 'las conexiones también');
     assert.equal(conexiones.aciertos[0].accion.tipo, 'verConexion');
     return 'botones y conexiones';
@@ -347,7 +347,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const dos = brujula.interpretar('files: 02-DOCS/wiki/facturacion/ciclo.md, 01-TOOLS/HOLDED/.env, .rsc/x');
     assert.equal(dos, 'Lo que sabe (Facturacion)', 'dos zonas no caben: se queda la primera');
     const donde = brujula.interpretar('files: 01-TOOLS/HOLDED/.env, 01-TOOLS/GMAIL/.env');
-    assert.equal(donde, 'Tus programas (Holded, Gmail)', 'dos del mismo sitio no repiten el rótulo');
+    assert.equal(donde, 'Conexiones (Holded, Gmail)', 'dos del mismo sitio no repiten el rótulo');
     assert.equal(brujula.interpretar('(no local continuation for this branch/worktree)'), null);
     return donde;
   });
@@ -1071,7 +1071,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     // Salía "Conexiones (Readme.md)" en la brújula, que no significa nada.
     const zonas = brujula.zonasTocadas(['01-TOOLS/README.md', '01-TOOLS/ODOO/.env', '01-TOOLS/_TEMPLATE/x.sh']);
     assert.ok(!zonas.some((z) => /\./.test(z)), `ninguna zona lleva un nombre de fichero: ${zonas.join(' · ')}`);
-    assert.ok(zonas.includes('Tus programas (Odoo)'), 'la herramienta de verdad sí sale');
+    assert.ok(zonas.includes('Conexiones (Odoo)'), 'la herramienta de verdad sí sale');
     return zonas.join(' · ');
   });
 
@@ -1245,7 +1245,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     // recuerdo de abierta/cerrada.
     const ids = [...principal.matchAll(/id: '(grupo:[a-z]+)'/g)].map((m) => m[1]);
     assert.equal(new Set(ids).size, ids.length, 'dos filas con el mismo nombre se pisan');
-    assert.equal(ids.length, 6, 'los seis apartados');
+    assert.ok(ids.length >= 6, 'los seis apartados de siempre, y el de SDD si esa carpeta construye algo');
 
     return `${imprescindibles.length} acciones · ${ids.length} apartados`;
   });
@@ -1571,6 +1571,43 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'con web y sin ella';
   });
 
+  await comprobar('lo de SDD aparece solo si esa carpeta construye algo', () => {
+    // Un arnés de contabilidad no tiene specs y no las va a tener nunca. Uno
+    // donde se monte una web, sí. Misma regla que el resto de la barra: no hay
+    // nada predefinido, sale lo que esa carpeta tenga.
+    const proyectos = cargar('proyectos');
+    const hay = proyectos.queHay();
+
+    assert.ok(proyectos.hayAlgo(), 'la empresa de mentira sí construye algo');
+    assert.deepEqual(hay.map((m) => m.id), ['specs', 'plans'], 'solo los montones que existen');
+
+    const spec = hay[0].cosas[0];
+    assert.equal(spec.titulo, 'Vender recambios por internet', 'el título, no el nombre del fichero');
+    assert.equal(spec.estado, 'accepted');
+
+    // Las tareas se cuentan de la tabla; no se dice cuántas van hechas, porque
+    // el fichero no lo dice y no se inventa.
+    const plan = hay[1].cosas[0];
+    assert.equal(plan.tareas, 3);
+
+    // Y en una carpeta sin SDD, el apartado no existe.
+    const sinSdd = fs.mkdtempSync(path.join(os.tmpdir(), 'sin-sdd-'));
+    vscode.guion.raiz = sinSdd;
+    assert.equal(cargar('proyectos').hayAlgo(), false);
+    vscode.guion.raiz = empresa;
+
+    return `${hay.length} montones · ${plan.tareas} tareas`;
+  });
+
+  await comprobar('no se abre nada de fuera de SDD', () => {
+    const proyectos = cargar('proyectos');
+    for (const truco of ['../../../etc/passwd', '../harness/user-profile.md', 'specs/algo.txt']) {
+      assert.equal(proyectos.dondeVive(truco), null, `${truco} no se abre desde aquí`);
+    }
+    assert.ok(proyectos.dondeVive('specs/tienda-de-recambios.md'), 'la de verdad sí');
+    return '3 intentos fuera, ninguno pasa';
+  });
+
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {
     // El fallo que lo hizo evidente: con el panel colgado esperando a GitHub no
     // había forma de salir de esa pantalla.
@@ -1626,7 +1663,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
         pulso: ['1 copia hoy', 'cambios sin guardar'],
       }, /Lo que sabe.*Histórico.*Ajustes/s],
       ['radiografia', { tipo: 'radiografia', ...radio }, /Qué falta por montar/],
-      ['saberes', { tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie }, /Habilidades/],
+      ['saberes', { tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie }, /Habilidades \(skills\)/],
       ['salidas', { tipo: 'salidas', herramientas: cargar('salidas').loQueHaProducido() }, /Lo que ha hecho/],
       // Con la forma exacta que manda la extensión: si a una pantalla le falta
       // un campo, revienta y antes eso no se veía.
@@ -1656,6 +1693,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['asistente', { tipo: 'asistente', ...cargar('asistentes').comoEstamos(), aviso: null }, /Claude|Codex/],
       ['comoTrabaja', { tipo: 'comoTrabaja', ...cargar('ajustes').comoEstamos(), aviso: null }, /Cada cuánto guarda solo/],
       ['laCara', { tipo: 'laCara', ...cargar('tema').comoEstamos(), aviso: null }, /Dale material/],
+      ['proyectos', { tipo: 'proyectos', montones: cargar('proyectos').queHay() }, /Vender recambios/],
       ['trato', { tipo: 'trato', ...tratoM.comoEstamos(), aviso: null }, /Cuánto te explica/],
       ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
     ];

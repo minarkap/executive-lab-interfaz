@@ -67,9 +67,9 @@ function candidatos(carpetaDeLaExtension) {
   })));
 
   return [
-    { titulo: 'Tus botones', cosas: botones },
-    { titulo: 'Consultas de tus programas', cosas: consultas },
-    { titulo: 'Habilidades', cosas: habilidades },
+    { titulo: 'Tus botones (comandos)', cosas: botones },
+    { titulo: 'Consultas de tus conexiones', cosas: consultas },
+    { titulo: 'Habilidades (skills)', cosas: habilidades },
   ].filter((g) => g.cosas.length);
 }
 

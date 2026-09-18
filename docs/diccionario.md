@@ -15,7 +15,7 @@ jerga por goteo.
 | `git commit` | Guardar en git |
 | `git log` / `git restore` / checkout | Ver las copias guardadas |
 | una copia concreta de la lista | Como estaba ayer · Como estaba el martes |
-| `.env` / variables de entorno / secretos | Tus programas |
+| `.env` / variables de entorno / secretos | Conexiones (tools) |
 | API key / token / credencial | Clave de acceso |
 | `rsc doctor` / `rsc repair` | Revisar y arreglar |
 | el consejero y el «¿y ahora qué?» | Estoy atascado · Dime por dónde seguir |
@@ -26,15 +26,15 @@ jerga por goteo.
 | `rsc add <skill>` | Que lo aprenda |
 | skill | Habilidad |
 | `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |
-| `01-TOOLS/` | Tus programas |
+| `01-TOOLS/` | Conexiones (tools) |
 | `rsc memory resume` | Seguir donde lo dejé |
 | sesión / contexto / conversación del agente | Conversación |
 | prompt | Lo que le pides |
 | agente / modelo / LLM | El asistente |
 | error / excepción / stack trace | Algo va mal |
 | log / diagnóstico | Informe para tu tutor |
-| una carpeta de `01-TOOLS/` | Un programa |
-| el catálogo de habilidades de RSC | Habilidades · Todo lo que sabe hacer |
+| una carpeta de `01-TOOLS/` | Una conexión |
+| el catálogo de habilidades de RSC | Habilidades (skills) · Todo lo que sabe hacer (skills) |
 | `02-DOCS/wiki/sdd/constitution.md` | Innegociables |
 | `CLAUDE.md` / `AGENTS.md`, sección Working rules | Cómo se trabaja aquí |
 | los dos juntos | Las reglas |
@@ -47,7 +47,7 @@ jerga por goteo.
 | borrar un documento sin leer | Quitar |
 | borrar uno ya leído, con lo que aprendió de él | Quitar algo que ya ha leído |
 | los scripts de una herramienta | Consultas (dentro de cada programa) |
-| `.claude/commands/` con `boton:` | Tus botones |
+| `.claude/commands/` con `boton:` | Tus botones (comandos) |
 | lo que se fija arriba del todo | Acciones rápidas · Elegir cuáles |
 | `02-DOCS/wiki/` | Lo que sabe de <nombre del arnés> |
 | un tema de la wiki | Un tema |
@@ -90,7 +90,11 @@ jerga por goteo.
 | `accompaniment_level` | Cuánto te explica |
 | `technical_level` | Con qué palabras |
 | elegir uno de esos escalones | Ponme así |
-| los seis apartados de la pantalla principal | Documentos · Lo que sabe · Histórico · Acciones · Ayuda · Ajustes |
+| los apartados de la pantalla principal | Documentos · Lo que sabe · Histórico · En qué estamos · Acciones · Ayuda · Ajustes |
+| `02-DOCS/wiki/sdd/specs/` | Qué queremos |
+| `02-DOCS/wiki/sdd/plans/` | Cómo se va a hacer |
+| `02-DOCS/wiki/sdd/proposals/` | Antes de empezar |
+| los tres juntos | En qué estamos |
 
 ## Dos excepciones: git y GitHub
 
@@ -110,6 +114,19 @@ Va contra el espíritu del resto de esta tabla, y conviene saber por qué se ace
 
 Lo que **no** cambia: sigue prohibido `commit`, `push`, `repositorio` y `branch`. Nombrar la
 herramienta vale; explicar sus tripas, no.
+
+## Tercera excepción: tools, skills y comandos
+
+**Decisión de Jose, 18 de septiembre de 2026.** Tres rótulos llevan el término en inglés entre
+paréntesis: **Conexiones (tools)**, **Habilidades (skills)** y **Tus botones (comandos)**.
+
+El motivo es el mismo que el de git y GitHub, y esta vez con más razón todavía: **en clase se
+explican con esas palabras**. El alumno va a oír «skill» en la segunda sesión, y va a leerla en
+cualquier tutorial y en la propia documentación de RSC. Que la barra la llame solo «habilidad» le
+deja sin poder atar una cosa con otra justo cuando está aprendiendo las dos a la vez.
+
+El paréntesis es la forma de tener las dos: manda la palabra en cristiano, y detrás va la que va a
+oír fuera. No al revés.
 
 ## Palabras prohibidas
 

@@ -222,7 +222,7 @@ async function subirCopia() {
       ok: false,
       mensaje: credenciales.delEditor
         ? 'No he podido preparar el sitio donde guardarla. Prueba a entrar otra vez en tu cuenta.'
-        : 'No he podido preparar el sitio donde guardarla. Revisa la clave en Tus programas.',
+        : 'No he podido preparar el sitio donde guardarla. Revisa la clave en Conexiones.',
     };
   }
 
@@ -233,7 +233,7 @@ async function subirCopia() {
     ok: false,
     mensaje: credenciales.delEditor
       ? 'No he podido guardarla fuera. Prueba a entrar otra vez en tu cuenta.'
-      : 'No he podido guardarla fuera. Revisa la clave en Tus programas.',
+      : 'No he podido guardarla fuera. Revisa la clave en Conexiones.',
   };
 }
 
