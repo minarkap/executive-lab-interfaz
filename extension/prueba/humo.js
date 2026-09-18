@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -790,6 +790,47 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return estado.donde;
   });
 
+  // -------------------------------------------------- carpetas de alguien
+
+  await comprobar('una carpeta con trabajo de alguien no se confunde con una vacía', async () => {
+    const { execFileSync } = require('node:child_process');
+    const suya = fs.mkdtempSync(path.join(os.tmpdir(), 'proyecto-de-alguien-'));
+    fs.writeFileSync(path.join(suya, 'package.json'), '{"name":"lo-suyo"}\n');
+    fs.writeFileSync(path.join(suya, 'index.js'), 'console.log(1)\n');
+    execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: suya });
+    execFileSync('git', ['-c', 'user.name=Alguien', '-c', 'user.email=a@b.c', 'add', '-A'], { cwd: suya });
+    execFileSync('git', ['-c', 'user.name=Alguien', '-c', 'user.email=a@b.c', 'commit', '-qm', 'lo mío'], { cwd: suya });
+    fs.writeFileSync(path.join(suya, 'index.js'), 'console.log(2)\n');
+
+    vscode.guion.raiz = suya;
+    const hay = await cargar('terreno').queHay();
+    const estado = await brujula.estado({ fresco: true });
+    const puede = await cargar('terreno').podemosGuardarElPuntoDePartida();
+    vscode.guion.raiz = empresa;
+
+    assert.equal(hay.tipo, 'empezada', 'una carpeta con cosas dentro no es una carpeta vacía');
+    assert.equal(hay.conHistorial, true, 'el historial es de alguien, no nuestro');
+    assert.equal(hay.sinGuardar, 1, 'y tiene un cambio sin guardar');
+    assert.equal(hay.parece, 'una aplicación');
+    assert.ok(estado.yaEmpezada, 'la brújula tiene que decirlo antes de ofrecer el botón');
+    assert.equal(puede, false, 'NUNCA se escribe un commit nuestro en el historial de alguien');
+
+    fs.rmSync(suya, { recursive: true, force: true });
+    return `${hay.cuantos} cosas · ${hay.parece} · con historial`;
+  });
+
+  await comprobar('una carpeta vacía sí se puede preparar sin preguntar nada', async () => {
+    const limpia = fs.mkdtempSync(path.join(os.tmpdir(), 'del-todo-vacia-'));
+    vscode.guion.raiz = limpia;
+    const hay = await cargar('terreno').queHay();
+    const estado = await brujula.estado({ fresco: true });
+    vscode.guion.raiz = empresa;
+
+    assert.equal(hay.tipo, 'vacia');
+    assert.equal(estado.yaEmpezada, undefined, 'en una vacía no hay nada que avisar');
+    return 'vacía de verdad';
+  });
+
   // ---------------------------------------------------------------- git
   //
   // git es obligatorio (extension/src/git.js dice por qué). Estas tres prueban
@@ -909,14 +950,24 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     await comprobar('el wizard monta una empresa en una carpeta vacía', async () => {
       const vacia = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-nueva-'));
       vscode.guion.raiz = vacia;
-      vscode.guion.eleccion = 'Llevar los contratos y el papeleo de la gente';
 
-      // Como en la máquina de un alumno: el arnés ya instalado junto a la app.
-      const carga = path.join(RAIZ, '..', 'instalador', 'windows', 'carga');
-      if (fs.existsSync(path.join(carga, 'harness'))) process.env.EXECUTIVE_LAB_HOME = carga;
+      // La entrevista entera, en el orden en que la hace arrancar(). El
+      // asistente no se pregunta porque solo hay uno instalado en el guion.
+      // Esta prueba estuvo rota desde que el wizard pasó de una pregunta a
+      // seis: como solo corre con --con-arnes, nadie lo vio.
+      vscode.guion.respuestas = [
+        'Llevar el día a día',            // de qué va
+        'Organizar el papeleo',           // qué quiere resolver
+        'Lo justo',                       // cómo se maneja
+        'Todo, paso a paso',              // cuánto se le explica
+        'Contratos',                      // cómo se llama esto
+        'Nexus Consulting',               // y su empresa
+        '',                               // la web: en blanco, que es opcional
+      ];
 
       const hecho = await cargar('arrancar').arrancar(contexto, vscode.window.createOutputChannel());
-      assert.equal(hecho.ok, true, hecho.mensaje);
+      assert.equal(hecho.ok, true, hecho.mensaje || 'se canceló a mitad: alguna pregunta se quedó sin respuesta');
+      assert.equal(vscode.guion.respuestas.length, 0, 'han sobrado respuestas: el wizard pregunta menos de lo que cree esta prueba');
 
       // El suelo que RSC exige para dar un arnés por bueno.
       for (const pieza of ['.rsc.json', '01-TOOLS/_TEMPLATE', '02-DOCS/wiki/harness']) {
@@ -939,8 +990,12 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       const botones = cargar('acciones').acciones().map((a) => a.etiqueta);
       assert.deepEqual(botones.sort(), ['Empezar algo nuevo', 'No sé qué hacer ahora', 'Seguir donde lo dejé']);
 
+      // Y los nombres que puso, en el perfil: de ahí sale el rótulo.
+      assert.match(perfil, /^arnes: Contratos$/m);
+      assert.match(perfil, /^empresa: Nexus Consulting$/m);
+
       vscode.guion.raiz = empresa;
-      vscode.guion.eleccion = undefined;
+      vscode.guion.respuestas = null;
       return `${botones.length} botones desde cero`;
     });
   } else {

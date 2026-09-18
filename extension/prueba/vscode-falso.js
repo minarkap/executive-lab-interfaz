@@ -18,6 +18,11 @@ const guion = {
   comandosDeClaude: ['claude-vscode.primaryEditor.open', 'claude-vscode.focus', 'claude-vscode.editor.openLast'],
   eleccion: undefined,      // qué devuelve showQuickPick / showWarningMessage
   escrito: undefined,       // qué devuelve showInputBox
+  // Una entrevista entera, en orden. Cada respuesta se consume al preguntar:
+  // en un menú se busca la opción cuyo rótulo coincida, y en una caja de texto
+  // se devuelve tal cual. Sirve para el wizard, que hace seis preguntas
+  // seguidas; `eleccion` y `escrito` solo saben contestar una.
+  respuestas: null,
   ficheros: [],             // qué devuelve showOpenDialog
   rechazaAjuste: () => false,
   extensionesInstaladas: ['anthropic.claude-code'],
@@ -57,8 +62,21 @@ module.exports = {
     showInformationMessage: async (m) => { registrado.mensajes.push(`INFO ${m}`); return guion.eleccion; },
     showWarningMessage: async (m) => { registrado.mensajes.push(`WARN ${m}`); return guion.eleccion; },
     showErrorMessage: async (m) => { registrado.mensajes.push(`ERROR ${m}`); return undefined; },
-    showQuickPick: async (opciones) => { registrado.quickPick = opciones; return guion.eleccion; },
-    showInputBox: async () => guion.escrito,
+    showQuickPick: async (opciones) => {
+      registrado.quickPick = opciones;
+      if (!guion.respuestas || !guion.respuestas.length) return guion.eleccion;
+
+      const toca = guion.respuestas.shift();
+      const lista = await opciones;
+      const elegida = lista.find((o) => o && o.label === toca)
+        || lista.find((o) => o && typeof o.label === 'string' && o.label.includes(toca));
+      if (!elegida) throw new Error(`el guion responde "${toca}" y no hay ninguna opción así: ${lista.map((o) => o.label).join(' · ')}`);
+      return elegida;
+    },
+    showInputBox: async () => {
+      if (!guion.respuestas || !guion.respuestas.length) return guion.escrito;
+      return guion.respuestas.shift();
+    },
     showOpenDialog: async () => (guion.ficheros.length ? guion.ficheros.map(uri) : undefined),
     withProgress: async (_opciones, tarea) => tarea({ report() {} }),
   },

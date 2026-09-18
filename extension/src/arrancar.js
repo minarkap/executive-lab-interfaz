@@ -16,6 +16,7 @@ const proyecto = require('./proyecto');
 const procesos = require('./procesos');
 const entorno = require('./entorno');
 const git = require('./git');
+const terreno = require('./terreno');
 const rsc = require('./rsc');
 const guardar = require('./guardar');
 const identidad = require('./identidad');
@@ -330,8 +331,17 @@ async function arrancar(contexto, salida) {
       ponerLosNombres(nombres);
       apuntarLosEnganches(salida);
 
-      progreso.report({ message: 'guardando el punto de partida…' });
-      await guardar.guardar(`Punto de partida — ${guardar.fechaLarga()}`);
+      // El punto de partida solo se escribe si el historial es nuestro. En un
+      // proyecto que ya existía, `git add -A` metería el trabajo sin guardar de
+      // esa persona en un commit nuestro, dentro de SU historial. No se pierde
+      // nada, pero no se hace: se monta el arnés, se deja todo en el disco y
+      // que lo guarde cuando quiera, con su mensaje.
+      if (await terreno.podemosGuardarElPuntoDePartida()) {
+        progreso.report({ message: 'guardando el punto de partida…' });
+        await guardar.guardar(`Punto de partida — ${guardar.fechaLarga()}`);
+      } else {
+        salida.appendLine('[arrancar] historial de alguien: no se guarda punto de partida');
+      }
 
       return { ok: true, objetivo, web, nombres, mensaje: `${nombres.arnes} ya está listo.` };
     },

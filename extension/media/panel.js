@@ -180,10 +180,36 @@ function bloqueFaltaGit() {
   `;
 }
 
+// Lo que se ha encontrado en una carpeta que ya es de alguien. Se enseña ANTES
+// de ofrecer el botón, porque quien lo pulsa tiene derecho a saber sobre qué lo
+// está pulsando. Y se promete lo que el código cumple: no se toca nada de lo
+// que hay, y el historial de esa persona no se escribe (terreno.js).
+function bloqueYaEmpezada() {
+  const y = estado.yaEmpezada;
+  const visto = [];
+  if (y.parece) visto.push(`Parece ${y.parece}`);
+  visto.push(plural(y.cuantos, '1 cosa dentro', '{n} cosas dentro'));
+  if (y.conHistorial) visto.push('con su propio historial');
+  if (y.sinGuardar) visto.push(plural(y.sinGuardar, '1 cambio sin guardar', '{n} cambios sin guardar'));
+  if (y.claves) visto.push(plural(y.claves, '1 clave suelta', '{n} claves sueltas'));
+
+  return `
+    <div class="aviso">
+      <p>${texto(visto.join(' · '))}</p>
+      <p>No voy a tocar nada de esto. Solo añado lo que el asistente necesita para entenderlo${y.conHistorial ? ', y tu historial lo dejo como está' : ''}.</p>
+    </div>
+    ${boton({ etiqueta: 'Añadir el asistente a esto', icono: '✳', principal: true, accion: { tipo: 'arrancar' } })}
+  `;
+}
+
 // Carpeta sin arnés: no está rota, es que aún no se ha montado. Si falta git no
 // se ofrece prepararla: sin él la preparación aborta a mitad, y enseñar un
 // botón que no puede funcionar es peor que no enseñarlo.
 function pantallaSinArnes() {
+  const ofrecer = estado.yaEmpezada
+    ? bloqueYaEmpezada()
+    : boton({ etiqueta: 'Preparar esta carpeta', icono: '✳', principal: true, accion: { tipo: 'arrancar' } });
+
   return `
     ${bloqueAviso()}
     <div class="brujula">
@@ -191,9 +217,7 @@ function pantallaSinArnes() {
       <p class="donde">${texto(estado.donde)}</p>
       <p class="hiciste">${texto(estado.aviso)}</p>
     </div>
-    ${estado.faltaGit
-      ? bloqueFaltaGit()
-      : boton({ etiqueta: 'Preparar esta carpeta', icono: '✳', principal: true, accion: { tipo: 'arrancar' } })}
+    ${estado.faltaGit ? bloqueFaltaGit() : ofrecer}
     ${boton({ etiqueta: 'Elegir otra carpeta', icono: '📂', discreto: true, accion: { tipo: 'elegirCarpeta' } })}
   `;
 }

@@ -675,3 +675,56 @@ instalador de Windows seguía preguntando seis cosas y montando un arnés en
 El `.exe` y el `.dmg` nuevos, ejecutados en una máquina limpia. Lo que sí pasa: las 19
 comprobaciones de `mac/probar.sh` —reescritas para el contrato nuevo— dan 7 bien y 1 mal, y el mal
 es la firma, que está marcada como mala a propósito hasta que existan los certificados.
+
+---
+
+## 28. En una carpeta que ya es de alguien, se mira antes de tocar
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose, al ver el botón: *«si es sobre brownfield, simplemente revisa lo que ya hay y no hace nada o
+solo mira si hay algo que ajustar de RSC? porque debe hacer eso, si no joderás los proyectos ya
+empezados»*. Y después: *«la extensión debe detectar todo de base»*.
+
+### Qué estaba mal
+
+El único guardarraíl era `.rsc.json`. Si no estaba, "Preparar esta carpeta" montaba el arnés sin
+mirar qué había debajo — daba igual que fuera una carpeta vacía o un proyecto de tres años.
+
+Y el último paso era el peor: `guardar.guardar('Punto de partida')`, que por debajo es `git add -A`
+y un commit. En un proyecto con trabajo sin guardar, eso **mete todo lo de esa persona en un commit
+nuestro, dentro de su historial**. No se pierde nada —es un commit, no un reset— pero no se hace.
+
+### Qué se hace
+
+`extension/src/terreno.js` clasifica la carpeta antes de ofrecer nada, en cinco casos excluyentes:
+
+| | Qué es | Qué ofrece el panel |
+|---|---|---|
+| `sinCarpeta` | No hay ninguna abierta | Elegir una |
+| `conArnes` | Ya tiene arnés, entero | El panel normal |
+| `aMedias` | Hay `.rsc.json` pero falta suelo | "Algo va mal" |
+| `vacia` | No hay nada | **Preparar esta carpeta** |
+| `empezada` | Ya es de alguien | **Añadir el asistente a esto**, y antes, qué se ha visto |
+
+En el caso `empezada` el panel dice lo que ha encontrado antes de que nadie pulse nada: de qué parece
+que va, cuántas cosas hay, si tiene historial propio, cuántos cambios sin guardar y cuántas claves
+sueltas. Y promete lo que el código cumple.
+
+**La regla que lo sostiene:** el punto de partida solo se escribe si el historial es nuestro. Se mira
+por el autor de los commits — si hay alguno que no sea `Executive Lab`, es de alguien y no se toca.
+Se monta el arnés, se deja todo en el disco, y esa persona lo guardará cuando quiera y con su
+mensaje.
+
+### Lo que NO cambia
+
+Que se pueda añadir el arnés a un proyecto que ya existe. RSC está pensado para eso, y `sueltas.js`
+lleva desde el principio detectando credenciales fuera de sitio en carpetas que ya tenían cosas. Lo
+que cambia es que ahora se dice en voz alta antes, en vez de hacerlo callando.
+
+### Cómo se sabe que no se rompe
+
+Dos comprobaciones nuevas. Una monta un proyecto de mentira con su `package.json`, su historial
+firmado por otro y un cambio sin guardar, y exige que salga `empezada`, que la brújula lo avise y que
+`podemosGuardarElPuntoDePartida()` diga que **no**. La otra exige que una carpeta vacía siga
+preparándose sin preguntar nada.

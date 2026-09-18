@@ -18,6 +18,7 @@ const proyecto = require('./proyecto');
 const rsc = require('./rsc');
 const guardar = require('./guardar');
 const git = require('./git');
+const terreno = require('./terreno');
 const conexiones = require('./conexiones');
 const cerebro = require('./cerebro');
 const asistentes = require('./asistentes');
@@ -88,18 +89,38 @@ async function calcular() {
     return { listo: false, sinCarpeta: true, donde: 'Elige con qué quieres trabajar', hiciste: null };
   }
 
-  // Carpeta sin arnés: no está rota, es que aún no se ha montado. Aquí también
-  // se mira si falta git, porque sin él no se puede montar nada y es mejor
-  // verlo antes de pulsar que a mitad de las preguntas.
+  // Sin arnés hay dos carpetas muy distintas, y antes se trataban igual: una
+  // vacía, donde se puede montar sin pensar, y una que ya es de alguien. En la
+  // segunda hay que decir qué se ha visto antes de ofrecer nada (terreno.js).
   if (!proyecto.existe('.rsc.json')) {
-    return {
+    const hay = await terreno.queHay();
+    const comun = {
       listo: false,
       sinArnes: true,
-      donde: 'Aquí todavía no hay nada',
       hiciste: null,
       faltaGit: !(await guardar.hayGit()),
       comoSeInstalaGit: git.comoSeInstala(),
-      aviso: 'Puedo montar tu empresa en esta carpeta. Tarda unos minutos y te pregunto una sola cosa.',
+    };
+
+    if (hay.tipo !== 'empezada') {
+      return {
+        ...comun,
+        donde: 'Aquí todavía no hay nada',
+        aviso: 'Puedo montar tu empresa en esta carpeta. Tarda unos minutos y te pregunto una sola cosa.',
+      };
+    }
+
+    return {
+      ...comun,
+      donde: 'Aquí ya hay trabajo tuyo',
+      yaEmpezada: {
+        cuantos: hay.cuantos,
+        parece: hay.parece,
+        conHistorial: hay.conHistorial,
+        sinGuardar: hay.sinGuardar,
+        claves: hay.claves ? hay.claves.claves : 0,
+      },
+      aviso: 'Puedo añadir el asistente a lo que ya tienes, sin tocar nada de lo que hay.',
     };
   }
 
