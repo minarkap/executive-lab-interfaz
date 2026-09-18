@@ -628,3 +628,50 @@ copias, pero no el arnés — y el arnés es el producto.
   de administrador no debería. Solo se ve en un Mac limpio.
 - Si el instalador de Git para Windows, **lanzado sin elevar**, instala para el usuario sin pedir
   administrador. Es el único paso de todo esto que no se puede probar desde un Mac.
+
+---
+
+## 27. El instalador pone las piezas; el panel hace el onboarding
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido — **cierra la decisión 22**
+
+Jose, describiendo el recorrido entero: *«cuando el usuario instale la app, se instale vscode, git,
+node, etc. Luego, cuando seleccione carpeta y le dé a empezar, se empiece el proceso de pedir
+información, documentación, contexto, empresa, qué se quiere hacer, web. Y luego se instala e
+implementa RSC y se empieza a trabajar»*.
+
+### El reparto
+
+| | Qué hace |
+|---|---|
+| **Instalador** | El editor, Node, git y las dos extensiones. Un acceso directo que abre el editor. **Se acaba ahí.** |
+| **Panel** | Elegir carpeta → las preguntas → montar RSC → raíles, nombres, enganches, primera copia → trabajar |
+
+### Qué estaba mal
+
+La decisión 22 ya decía que las preguntas las hace el panel, pero solo se aplicó en macOS. El
+instalador de Windows seguía preguntando seis cosas y montando un arnés en
+`Documentos/Mi Empresa IA`. Eso dejaba dos problemas:
+
+- **Dos versiones del mismo onboarding.** `preparar.js` y `arrancar.js` hacían el mismo trabajo con
+  el mismo orden de pasos, y la cabecera de `arrancar.js` lo decía: *«si cambias los pasos aquí,
+  míralo también allí»*. Eso no se sostiene: lo de Windows se quedó atrás y nadie lo vio.
+- **Se elegía la carpeta por adelantado**, a ciegas, antes de que esa persona hubiera abierto el
+  programa. Si al final trabajaba en otra, la primera quedaba ahí montada y vacía.
+
+### Qué se lleva por delante
+
+- `preparar.js` pasa de 342 líneas a dos pasos: asegurar git e instalar las extensiones.
+- El `.exe` pierde MinGit y baja de 291 a **268 MB**. El `.dmg`, de 122 a **103 MB**: ya no lleva el
+  arnés ni los raíles, que viajan dentro del `.vsix`, que es quien los usa.
+- El acceso directo abre el editor **sin carpeta**.
+- Del instalador de Windows quedan **seis páginas menos**: solo se pregunta con qué asistente va a
+  trabajar, porque de eso depende qué extensión se instala.
+- `instalador/windows/preparar-carga.sh`: la carga de Windows se montaba a mano y por eso se quedó
+  atrás tres horas con la extensión 0.1.0 dentro. Ahora la monta un script, como en macOS.
+
+### Lo que sigue sin probarse
+
+El `.exe` y el `.dmg` nuevos, ejecutados en una máquina limpia. Lo que sí pasa: las 19
+comprobaciones de `mac/probar.sh` —reescritas para el contrato nuevo— dan 7 bien y 1 mal, y el mal
+es la firma, que está marcada como mala a propósito hasta que existan los certificados.

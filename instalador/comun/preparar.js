@@ -1,54 +1,41 @@
 #!/usr/bin/env node
-// Prepara el espacio de trabajo del alumno. Lo llaman el instalador de Windows
-// y el de macOS; aquí está toda la lógica para que solo haya una versión.
+// Deja las piezas puestas. Nada más.
 //
-//   node preparar.js --destino "<carpeta>" --objetivo "organizar mis facturas" --asistente claude
+//   node preparar.js --asistente claude
+//   node preparar.js --sin-editor        (para probar sin tocar el VS Code de quien prueba)
 //
-// Lo ejecuta el Node portable que deja el instalador en la misma carpeta que
-// este fichero, y a su lado están git (MinGit en Windows) y el arnés ya
-// instalado con la versión fijada. Así no hace falta npx, ni red hacia npm,
-// ni que el alumno tenga nada en el sistema.
+// ── El reparto ───────────────────────────────────────────────────────────
 //
-// No imprime nada para que lo lea el alumno: escribe un registro en un fichero
-// y devuelve 0 o 1. Quien enseña la barra de progreso es el instalador.
+// El instalador pone las **piezas**: el editor, git, Node y las dos
+// extensiones. Se acabó ahí.
+//
+// Todo lo demás —elegir carpeta, preguntar de qué va esto, el objetivo, los
+// nombres, la web, montar el arnés, los raíles, la primera copia— lo hace el
+// **panel**, cuando esa persona abre una carpeta y pulsa "Preparar esta
+// carpeta". Y lo hace ya, entero, en `extension/src/arrancar.js`.
+//
+// Antes esto montaba también un arnés en `Documentos/Mi Empresa IA`, con seis
+// preguntas dentro del instalador. Eso significaba dos cosas malas: que había
+// dos versiones del mismo onboarding —esta y la del panel— que había que
+// mantener a la par, y que el instalador decidía por adelantado en qué carpeta
+// iba a trabajar alguien que todavía no había abierto el programa.
+//
+// El Node portable que ejecuta esto vive en la misma carpeta que este fichero.
+// No imprime nada para que lo lea el alumno: escribe un registro y devuelve 0
+// o 1. Quien enseña la barra de progreso es el instalador.
 
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const historial = require('./historial');
+const git = require('./git');
 const { escribirAjustes } = require('./ajustes');
-const { fijarElNodeDeLosEnganches } = require('./enganches');
 
-const VERSION_DEL_CATALOGO = '1.4.1'; // fijada a propósito: toda la cohorte igual
-// Si el alumno no da nombre. Un arnés puede ser la contabilidad, el personal o
-// un proyecto, así que el nombre por defecto no presupone ninguna de las tres.
-const NOMBRE_POR_DEFECTO = 'Mi trabajo';
 const APP = __dirname;
 const ES_WINDOWS = process.platform === 'win32';
-
-// ------------------------------------------------------------ herramientas
-
-const existe = (...partes) => fs.existsSync(path.join(...partes));
-const primero = (rutas, respaldo) => rutas.find((r) => r && fs.existsSync(r)) || respaldo;
-
 const NODE = process.execPath;
-const GIT = primero([path.join(APP, 'git', 'cmd', 'git.exe'), path.join(APP, 'git', 'bin', 'git')], ES_WINDOWS ? 'git.exe' : 'git');
-const ARNES = primero([path.join(APP, 'harness', 'node_modules', '@ericrisco', 'rsc', 'scripts', 'rsc.js')], null);
-const NPX_CLI = primero([
-  path.join(path.dirname(NODE), 'node_modules', 'npm', 'bin', 'npx-cli.js'),
-  path.join(path.dirname(NODE), '..', 'lib', 'node_modules', 'npm', 'bin', 'npx-cli.js'),
-], null);
 
-// PATH con nuestras carpetas delante: los scripts del arnés llaman a git y a
-// node por nombre.
-function entorno() {
-  const env = { ...process.env };
-  const clave = Object.keys(env).find((k) => k.toLowerCase() === 'path') || 'PATH';
-  const delante = [path.dirname(NODE), path.join(APP, 'git', 'cmd'), path.join(APP, 'git', 'usr', 'bin')].filter((d) => fs.existsSync(d));
-  env[clave] = [...delante, env[clave] || ''].join(path.delimiter);
-  return env;
-}
+const primero = (rutas, respaldo) => rutas.find((r) => r && fs.existsSync(r)) || respaldo;
 
 // ------------------------------------------------------------------ ayudas
 
@@ -59,6 +46,14 @@ function argumento(nombre, porDefecto = null) {
 
 const registro = [];
 const anotar = (linea) => registro.push(`[${new Date().toISOString()}] ${linea}`);
+
+// PATH con nuestro Node delante: los enganches del arnés lo llaman por nombre.
+function entorno() {
+  const env = { ...process.env };
+  const clave = Object.keys(env).find((k) => k.toLowerCase() === 'path') || 'PATH';
+  env[clave] = [path.dirname(NODE), env[clave] || ''].join(path.delimiter);
+  return env;
+}
 
 function correr(programa, args, opciones = {}) {
   anotar(`> ${path.basename(programa)} ${args.join(' ').slice(0, 300)}`);
@@ -77,130 +72,29 @@ function correrCmd(programa, args) {
   return correr('cmd.exe', ['/d', '/s', '/c', `"${linea}"`], { windowsVerbatimArguments: true });
 }
 
-function arnes(args, opciones) {
-  if (ARNES) return correr(NODE, [ARNES, ...args], opciones);
-  if (NPX_CLI) return correr(NODE, [NPX_CLI, '--yes', `@ericrisco/rsc@${VERSION_DEL_CATALOGO}`, ...args], opciones);
-  anotar('ERROR: no hay arnés preinstalado ni npx junto a este node.');
-  return { codigo: -1, salida: '' };
-}
-
-// Documentos en español o en inglés, según cómo esté el sistema.
-function carpetaDeDocumentos() {
-  const casa = os.homedir();
-  return primero([path.join(casa, 'Documentos'), path.join(casa, 'Documents')], casa);
-}
-
 // ------------------------------------------------------------------- pasos
 
-// El instalador de Windows pasa la ruta ya resuelta con --destino, porque él
-// conoce la carpeta real de Documentos y aquí solo podríamos adivinarla por el
-// nombre. Si nadie la pasa (macOS), se calcula.
-function crearCarpeta(nombre) {
-  const destino = argumento('destino') || path.join(carpetaDeDocumentos(), nombre);
-  fs.mkdirSync(destino, { recursive: true });
-  anotar(`Carpeta de trabajo: ${destino}`);
-  return destino;
-}
-
-// Hace falta para que "Guardar copia de seguridad" tenga dónde guardar. Sin
-// historial no hay producto, así que aquí sí se falla en alto.
+// git es obligatorio y no lo llevamos dentro: se lanza el instalador oficial
+// del sistema. El porqué de las dos cosas está en comun/git.js y en la
+// decisión 26.
 //
-// Ya no se llama al git del sistema: en macOS no existe —invocarlo abre el
-// diálogo de las herramientas de Xcode— y en Windows obligaba a cargar MinGit.
-// historial.js lleva su propio motor y elige.
-async function prepararHistorial(destino) {
-  const hecho = await historial.iniciar(destino, { git: GIT });
+// Aquí se falla en alto si no aparece: sin git, el panel no puede preparar
+// ninguna carpeta, y es mejor saberlo ahora —con la barra de progreso del
+// instalador delante— que la primera vez que alguien pulse el botón.
+async function asegurarGit() {
+  if (await git.hay()) {
+    anotar('git: ya estaba.');
+    return true;
+  }
+
+  anotar('git: no está; lanzando el instalador oficial del sistema.');
+  const hecho = await git.instalar({}, (que) => anotar(`git: ${que}`));
   if (!hecho.ok) {
-    anotar(`ERROR: no he podido preparar el historial (${hecho.error}). Las copias de seguridad no funcionarían.`);
+    anotar(`ERROR: no he podido dejar git puesto (${hecho.mensaje}).`);
     return false;
   }
-  anotar(`Historial: motor ${historial.queMotor({ git: GIT })}${hecho.yaEstaba ? ' (ya estaba)' : ''}`);
-  // El registro de esta instalación no es trabajo del alumno.
-  if (!hecho.yaEstaba) fs.appendFileSync(path.join(destino, '.gitignore'), 'instalacion.log\n');
+  anotar('git: instalado.');
   return true;
-}
-
-// El arnés, en los dos pasos que RSC exige: primero enseña el plan y su
-// huella, y solo escribe cuando se le devuelve esa misma huella. La línea de
-// aceptación se reutiliza tal cual la imprime RSC — con el objetivo en base64
-// y los mismos flags — para que la huella no pueda dejar de coincidir.
-function montarElArnes(destino, objetivo, asistente) {
-  // Los tres los responde el alumno en el instalador. Antes se daban por
-  // supuestos, y eso imponia "no tecnico" y "explicamelo todo" a cualquiera.
-  const tipo = argumento('tipo', 'operations');
-  const flags = [
-    '--technical-level', argumento('nivel', 'non-technical'),
-    '--accompaniment', argumento('acompanamiento', 'L3'),
-    '--project-kind', tipo,
-    '--goal', objetivo,
-    '--target', asistente,
-  ];
-  if (tipo === 'software') flags.push('--software-scope', 'small');
-
-  const previo = arnes(['onboard', ...flags], { cwd: destino, timeout: 600000 });
-  const huella = (previo.salida.match(/Plan id:\s*([0-9a-f]{64})/i) || [])[1];
-  if (!huella) {
-    anotar('ERROR: el arnés no ha devuelto una huella de plan.');
-    return false;
-  }
-
-  const lineaDeAceptacion = (previo.salida.match(/^Accept exactly this plan: npx @ericrisco\/rsc@\S+ onboard (.+)$/m) || [])[1];
-  const aceptar = lineaDeAceptacion ? lineaDeAceptacion.trim().split(/\s+/) : [...flags, '--accept-plan', huella];
-
-  const aplicado = arnes(['onboard', ...aceptar], { cwd: destino, timeout: 900000 });
-  if (/RSC_ONBOARDING_INCOMPLETE|RSC_PLAN_CHANGED/.test(aplicado.salida)) {
-    anotar('ERROR: el arnés no se ha aplicado entero.');
-    return false;
-  }
-  return aplicado.codigo === 0 && /RSC_ONBOARDING_READY/.test(aplicado.salida);
-}
-
-// El suelo que RSC exige para dar por bueno un arnés. Si falta algo, el alumno
-// se quedaría con una carpeta a medias sin forma de saberlo.
-function comprobarElSuelo(destino) {
-  const faltan = ['.rsc.json', path.join('01-TOOLS', '_TEMPLATE'), path.join('02-DOCS', 'wiki', 'harness')]
-    .filter((pieza) => !existe(destino, pieza));
-  if (faltan.length) anotar(`ERROR: falta el suelo del arnés: ${faltan.join(', ')}`);
-  return faltan.length === 0;
-}
-
-function ponerLosRailes(destino) {
-  const aplicar = path.join(APP, 'skills', 'aplicar.js');
-  if (!fs.existsSync(aplicar)) {
-    anotar(`AVISO: no encuentro los raíles en ${aplicar}`);
-    return false;
-  }
-  return correr(NODE, [aplicar, destino]).codigo === 0;
-}
-
-// La primera copia de seguridad. Sin ella, "Volver a como estaba antes" no
-// tendría a dónde volver hasta que el alumno guardara la primera.
-async function primeraCopia(destino) {
-  const fecha = new Intl.DateTimeFormat('es-ES', { dateStyle: 'full', timeStyle: 'short' }).format(new Date());
-  const hecha = await historial.guardar(destino, `Punto de partida — ${fecha}`, { git: GIT });
-  if (!hecha.ok) anotar(`AVISO: no he podido guardar la primera copia (${hecha.error}).`);
-  return hecha.ok;
-}
-
-// Los dos nombres, al frontmatter del perfil del arnés: de ahí salen el rótulo
-// de la ventana y los textos del panel. Es el mismo sitio que usa el wizard
-// cuando se monta un arnés desde dentro del editor.
-function ponerLosNombres(destino, arnes, empresa) {
-  const perfil = path.join(destino, '02-DOCS', 'wiki', 'harness', 'user-profile.md');
-  if (!fs.existsSync(perfil)) return;
-
-  const texto = fs.readFileSync(perfil, 'utf8');
-  const bloque = texto.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!bloque) return;
-
-  let cabecera = bloque[1];
-  for (const [clave, valor] of [['arnes', arnes], ['empresa', empresa]]) {
-    if (!valor) continue;
-    const linea = new RegExp(`^${clave}:.*$`, 'm');
-    cabecera = linea.test(cabecera) ? cabecera.replace(linea, `${clave}: ${valor}`) : `${cabecera}\n${clave}: ${valor}`;
-  }
-  fs.writeFileSync(perfil, texto.replace(bloque[0], `---\n${cabecera}\n---`));
-  anotar(`Nombres: ${arnes}${empresa ? ` · ${empresa}` : ''}`);
 }
 
 // La línea de comandos de VS Code, por su ruta completa: recién instalado, el
@@ -234,9 +128,13 @@ function vestirElEditor(asistente) {
   return bien;
 }
 
-// Las que VS Code declara de ambito de programa: no admiten vivir en una
-// carpeta, asi que van a los ajustes del editor. Son pocas y no cambian el
-// aspecto de nada: confianza del workspace, actualizaciones, telemetria, zoom.
+// Las que VS Code declara de ámbito de programa: no admiten vivir en una
+// carpeta, así que van a los ajustes del editor. Son pocas y no cambian el
+// aspecto de nada: confianza del workspace, actualizaciones, telemetría.
+//
+// El resto del disfraz —todo lo que se ve— lo escribe la extensión en el
+// .vscode/settings.json de cada carpeta, cuando esa persona lo enciende. Aquí
+// no se escribe porque aquí todavía no hay ninguna carpeta.
 const SOLO_DEL_EDITOR = [
   'security.workspace.trust.enabled',
   'update.mode',
@@ -245,42 +143,21 @@ const SOLO_DEL_EDITOR = [
   'extensions.ignoreRecommendations',
 ];
 
-// El disfraz, escrito antes del primer arranque para que la primera vez ya se
-// vea bien — si no, VS Code pregunta si confia en los autores de una carpeta
-// que acaba de crear el propio alumno.
-//
-// Casi todo va al .vscode/settings.json DE SU CARPETA, no a los del editor:
-// asi, si esa persona abre cualquier otra cosa con el mismo VS Code, se la
-// encuentra tal y como la tenia. Es el mismo reparto que hace la extension.
-function vestirAntesDeAbrir(destino) {
+function ajustesDelEditor() {
   const plantilla = path.join(APP, 'disfraz.json');
   if (!fs.existsSync(plantilla)) {
-    anotar('AVISO: no encuentro disfraz.json; el disfraz lo pondra la extension.');
+    anotar('AVISO: no encuentro disfraz.json; los ajustes de programa se quedan como estaban.');
     return;
   }
-  const disfraz = JSON.parse(fs.readFileSync(plantilla, 'utf8'));
 
-  // 1. Lo que se ve, en la carpeta. Con el interruptor encendido.
-  const deLaCarpeta = { 'executiveLab.vistaSencilla': true };
-  for (const [clave, valor] of Object.entries(disfraz)) {
-    if (!SOLO_DEL_EDITOR.includes(clave)) deLaCarpeta[clave] = valor;
-  }
-  // El rotulo lleva los nombres que puso el alumno, no el de la plantilla.
-  deLaCarpeta['window.title'] = argumento('arnes')
-    ? [argumento('arnes'), argumento('empresa')].filter(Boolean).join(' \u00b7 ')
-    : disfraz['window.title'];
-
-  escribirAjustes(path.join(destino, '.vscode', 'settings.json'), deLaCarpeta, 'la carpeta de trabajo', anotar);
-
-  // 2. Las cinco de ambito de programa, en el editor.
-  //
-  // --sin-editor tambien se las salta: si no, "probar sin tocar el VS Code de
-  // quien prueba" le apagaba las actualizaciones y la telemetria de verdad.
+  // --sin-editor también se los salta: si no, "probar sin tocar el VS Code de
+  // quien prueba" le apagaba las actualizaciones y la telemetría de verdad.
   if (process.argv.includes('--sin-editor')) {
     anotar('Ajustes del editor: omitidos (--sin-editor).');
     return;
   }
 
+  const disfraz = JSON.parse(fs.readFileSync(plantilla, 'utf8'));
   const usuario = ES_WINDOWS
     ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'Code', 'User')
     : process.platform === 'darwin'
@@ -297,37 +174,27 @@ function vestirAntesDeAbrir(destino) {
 // -------------------------------------------------------------------- main
 
 async function main() {
-  const objetivo = argumento('objetivo', 'llevar mi trabajo con ayuda de la IA');
   const asistente = argumento('asistente', 'claude');
-  const arnes = (argumento('arnes') || NOMBRE_POR_DEFECTO).trim();
-  const empresa = (argumento('empresa') || '').trim();
+  anotar(`Executive Lab · ${process.platform} · node ${process.version} · asistente: ${asistente}`);
 
-  anotar(`Executive Lab · ${process.platform} · node ${process.version} · objetivo: ${objetivo}`);
-  anotar(`git: ${GIT} · arnés: ${ARNES || `npx (${NPX_CLI || 'no encontrado'})`}`);
+  let bien = await asegurarGit();
 
-  const destino = crearCarpeta(arnes);
-  let bien = await prepararHistorial(destino);
-  if (bien) bien = montarElArnes(destino, objetivo, asistente);
-  if (bien) bien = comprobarElSuelo(destino);
-  if (bien) ponerLosRailes(destino);
-  if (bien) ponerLosNombres(destino, arnes, empresa);
-  if (bien) fijarElNodeDeLosEnganches(destino, NODE, anotar);
-  if (bien) await primeraCopia(destino);
-
-  // El disfraz de la carpeta es un fichero suyo: se escribe siempre, no
-  // depende de que haya editor.
-  if (bien) vestirAntesDeAbrir(destino);
-
-  // --sin-editor solo se salta instalar las extensiones, para poder probar
-  // todo lo demás sin tocar el VS Code de quien prueba.
   if (process.argv.includes('--sin-editor')) anotar('Extensiones: omitidas (--sin-editor).');
   else bien = vestirElEditor(asistente) && bien;
 
-  const donde = path.join(destino, 'instalacion.log');
+  ajustesDelEditor();
+
+  anotar(bien
+    ? 'Listo. El resto lo hace el panel cuando se abra una carpeta.'
+    : 'Ha quedado algo sin poner; mira las líneas de ERROR de arriba.');
+
+  // No hay carpeta de trabajo todavía, así que el registro se queda junto a la
+  // app; si ni eso se puede, en la carpeta temporal del sistema.
+  const texto = `${registro.join('\n')}\n`;
   try {
-    fs.writeFileSync(donde, `${registro.join('\n')}\n`);
+    fs.writeFileSync(path.join(APP, 'instalacion.log'), texto);
   } catch {
-    fs.writeFileSync(path.join(os.tmpdir(), 'executive-lab-instalacion.log'), `${registro.join('\n')}\n`);
+    fs.writeFileSync(path.join(os.tmpdir(), 'executive-lab-instalacion.log'), texto);
   }
 
   process.exit(bien ? 0 : 1);

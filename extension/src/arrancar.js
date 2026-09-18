@@ -1,14 +1,12 @@
 // "Empezar una empresa aquí": el wizard, dentro del editor.
 //
-// Es el mismo trabajo que hace `instalador/comun/preparar.js` en la máquina
-// del alumno la primera vez, pero para la segunda carpeta y las siguientes:
-// el instalador solo prepara una. Si cambias los pasos aquí, míralo también
-// allí — y al revés.
+// Este es **el único** onboarding que hay. El instalador ya no monta nada: deja
+// las piezas —editor, Node, git y las dos extensiones— y se acaba ahí. Antes
+// montaba también un arnés en `Documentos/Mi Empresa IA`, con las mismas seis
+// preguntas hechas dos veces, y había que mantener las dos a la par.
 //
-// Las opciones son las mismas que las del instalador de Windows
-// (`instalador/windows/ExecutiveLab.iss`, función `Objetivo`). El diccionario
-// manda que ninguna pregunta se haga sin opciones: un campo de texto vacío
-// delante de quien no sabe qué escribir es una pared.
+// El diccionario manda que ninguna pregunta se haga sin opciones: un campo de
+// texto vacío delante de quien no sabe qué escribir es una pared.
 
 const vscode = require('vscode');
 const path = require('node:path');

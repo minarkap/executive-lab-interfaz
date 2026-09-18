@@ -12,39 +12,36 @@ alumno que se cae en el paso 2 no llega nunca al 9.
 
 | # | Momento | Qué puede salir mal | Estado |
 |---|---|---|---|
-| 1 | Recibe el enlace y descarga | 277 MB en Windows. **En Mac son 122**: el editor se descarga al instalar | Abierto en Windows |
+| 1 | Recibe el enlace y descarga | **6 MB** por el camino de la extensión. El instalador de escritorio son 268 MB en Windows y 103 en Mac | Resuelto por la extensión |
 | 2 | **SmartScreen** (Windows) | *«Windows protegió tu PC»*. El botón visible es *No ejecutar* | **Abierto — el peor** |
 | 2b | **Gatekeeper** (Mac) | Peor que SmartScreen: desde macOS 15 hay que ir a Ajustes del sistema | Hay cuenta de Apple; **faltan los certificados** |
 | 3 | Instalación | ¿Pide administrador? No debería | **Mac: resuelto** (todo en su carpeta) · Windows: por confirmar |
-| 4 | Responde el wizard | Seis páginas: asistente, de qué va, objetivo, cómo te manejas, cuánto te explico, nombres. ¿Se entienden solas? | Por confirmar |
+| 4 | Responde el wizard | Ya no está en el instalador: lo hace el panel al elegir carpeta (decisión 27). ¿Se entienden solas las preguntas? | Por confirmar |
 | 5 | Espera | Unos minutos con una barra de progreso | Aceptable |
 | 6 | Abre el acceso directo | Debería salir su barra, sin barras ni pestañas | Hecho |
 | 7 | **Inicia sesión** | Necesita cuenta de pago. Si no la tiene, aquí se acaba | Avisado en la barra (§19); quién paga sigue abierto |
+| 7b | **Falta git** | Sin él no se puede preparar ninguna carpeta | Resuelto: el panel lo instala con un botón (decisión 26) |
 | 8 | Primera conversación | El asistente le pregunta; los raíles lo llevan | Hecho |
 | 9 | Conecta una herramienta | Guía paso a paso y campos con su pista | Hecho |
 | 10 | Se atasca | *Algo va mal* → código para el tutor | Hecho, sin probar en real |
 
 ---
 
-## 1. Los 277 MB
+## 1. El peso — resuelto por el camino de la extensión
 
-**Por qué pesa:** lleva Node, MinGit, el arnés y el instalador de VS Code dentro, para no depender de
-la red ni de que el alumno tenga nada.
+**Son 6 MB.** El camino principal es el `.vsix`, y ahí no hay nada que descargar: VS Code pone el
+Node y el arnés viaja dentro del paquete.
 
-**Lo que se puede hacer, por orden de coste:**
+El instalador de escritorio sigue pesando, y es el camino secundario:
 
-- **Quitar el instalador de VS Code del paquete** (~110 MB) y descargarlo durante la instalación. Se
-  gana la mitad del peso y se pierde el funcionar sin red. Como ya hace falta red para el marketplace
-  y para el login, no se pierde tanto.
-- **MinGit sin la parte de documentación y locales** (~15 MB de los 40).
-- **Un instalador pequeño que descarga el resto** (~5 MB). Es lo que hacen casi todos. Cuesta un día
-  y necesita un sitio donde alojar los 270 MB.
+| | Antes | Ahora | Por qué |
+|---|---|---|---|
+| Windows | 291 MB | **268 MB** | Fuera MinGit (git lo instala el suyo) y fuera el arnés (va en el `.vsix`) |
+| macOS | 122 MB | **103 MB** | Lo mismo, y el editor se descarga al instalar |
 
-**Recomendación:** lo primero, cuando haya medido cuánto tarda de verdad en una conexión de pyme.
-
-**Hecho en Mac (17-09-2026):** el `.dmg` son **122 MB** porque el editor se descarga durante la
-instalación —y no se descarga si el alumno ya lo tiene—. El mismo camino serviría en Windows y se
-llevaría los 225 MB del instalador de VS Code por delante.
+Lo que queda de peso en Windows son los **236 MB del instalador de VS Code**, que viaja dentro para
+no depender de la red. Descargarlo al instalar —como ya hace el Mac— dejaría el `.exe` en unos 30 MB.
+Es lo siguiente si el peso vuelve a molestar.
 
 ## 2. SmartScreen — el peor de todos
 
@@ -116,8 +113,11 @@ terminar, días sin guardar copia.)
 - **Cuando se rompe**: un código de seis letras para el tutor, no una pantalla roja.
 - **El editor de quien ya lo usaba**: un interruptor por carpeta. Su VS Code no se entera.
 - **Buscar algo**: se escribe y aparece, sin abrir una conversación ni esperar (§4, primer punto).
-- **Las copias de seguridad en un Mac**: ya no dependen de que alguien instale las herramientas de
-  Xcode. El historial va escrito en JavaScript y viaja dentro.
+- **Que falte git**: ya no es un callejón. El panel lo instala con un botón, con el instalador
+  oficial de cada sistema (decisión 26). Antes decía *«díselo a tu tutor»*, que no es una salida para
+  quien está solo delante de la pantalla.
+- **Instalar y no saber dónde vas a trabajar**: el instalador ya no elige carpeta por ti. La eliges
+  cuando abres el programa, y el panel la prepara (decisión 27).
 
 ---
 
@@ -127,5 +127,6 @@ terminar, días sin guardar copia.)
 primeros puntos de esta lista de una vez: el peso, SmartScreen y los permisos. Y con ellos, la
 necesidad de firmar código, que era lo más caro.
 
-Lo que queda después: la cuenta de pago —que es tuya, no técnica— y el hueco de git en Windows, que
-solo cubre el instalador de escritorio.
+Lo que queda después: **la cuenta de pago**, que es tuya y no técnica. El hueco de git que aquí se
+daba por irreducible ya no lo es: el panel lo instala con un botón (decisión 26), así que el camino
+de la extensión ya no depende del instalador de escritorio para nada.

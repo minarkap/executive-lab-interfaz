@@ -101,19 +101,28 @@ comprobar 'ese Node vale para los dos tipos de Mac' bash -c '
     echo "universal: $arcos"
   fi'
 
-comprobar 'la carga lleva el arnés preinstalado' bash -c '
-  r="'"$AQUI"'/carga/harness/node_modules/@ericrisco/rsc/package.json"
-  [ -f "$r" ] || { echo "falta el arnés"; exit 1; }
-  grep -o "\"version\": *\"[^\"]*\"" "$r" | head -1 | cut -d\" -f4'
+# El instalador pone las piezas y nada más (decisión 26 y el reparto nuevo):
+# el arnés y los raíles viajan dentro del .vsix, que es quien los usa.
+comprobar 'la carga NO lleva el arnés ni los raíles' bash -c '
+  [ -d "'"$AQUI"'/carga/harness" ] && { echo "sigue llevando el arnés: eso ahora va en el .vsix"; exit 1; }
+  [ -d "'"$AQUI"'/carga/skills" ] && { echo "sigue llevando los raíles: eso ahora va en el .vsix"; exit 1; }
+  [ -d "'"$AQUI"'/carga/git" ] && { echo "sigue llevando git: ahora lo instala el de Apple"; exit 1; }
+  echo "solo las piezas"'
 
-comprobar 'la carga lleva el historial en JavaScript' bash -c '
-  [ -d "'"$AQUI"'/carga/harness/node_modules/isomorphic-git" ] || { echo "falta; en un Mac sin Xcode no habría copias de seguridad"; exit 1; }
-  echo "sin depender de git del sistema"'
+comprobar 'la extensión viaja, y lleva el arnés dentro' bash -c '
+  v="'"$AQUI"'/carga/executive-lab.vsix"
+  [ -f "$v" ] || { echo "falta la extensión"; exit 1; }
+  unzip -l "$v" | grep -q "media/harness/node_modules/@ericrisco/rsc/scripts/rsc.js" \
+    || { echo "el .vsix no lleva el arnés dentro; vuelve a empaquetar"; exit 1; }
+  unzip -l "$v" | grep -q "media/comun/historial.js" \
+    || { echo "el .vsix no lleva historial.js; las copias quedarían apagadas"; exit 1; }
+  echo "arnés e historial dentro"'
 
-comprobar 'la carga lleva los raíles y la extensión' bash -c '
-  [ -f "'"$AQUI"'/carga/skills/executive-lab/SKILL.md" ] || { echo "faltan los raíles"; exit 1; }
-  [ -f "'"$AQUI"'/carga/executive-lab.vsix" ] || { echo "falta la extensión"; exit 1; }
-  echo "los dos"'
+comprobar 'preparar.js tiene al lado lo que necesita' bash -c '
+  for m in preparar.js git.js ajustes.js; do
+    [ -f "'"$AQUI"'/carga/$m" ] || { echo "falta $m"; exit 1; }
+  done
+  echo "los tres módulos"'
 
 comprobar 'la app va firmada' bash -c '
   app="'"$AQUI"'/escenario/Instalar Executive Lab.app"
@@ -140,14 +149,15 @@ comprobar 'nada se ha colado en /usr/local' bash -c '
   [ -e /usr/local/executive-lab ] && { echo "hay restos de la versión vieja en /usr/local"; exit 1; }
   echo "limpio"'
 
-comprobar 'el acceso directo abre el editor con su carpeta' bash -c '
+# Sin carpeta: la elige esa persona y la prepara el panel. Si el acceso directo
+# vuelve a llevar una, es que alguien ha devuelto el montaje al instalador.
+comprobar 'el acceso directo abre el editor, sin carpeta' bash -c '
   [ -d "'"$ACCESO"'" ] || { echo "SALTADA"; exit 0; }
   abre="'"$ACCESO"'/Contents/MacOS/abrir"
   [ -x "$abre" ] || { echo "no tiene permiso de ejecución"; exit 1; }
   grep -q "open -a" "$abre" || { echo "no abre nada"; exit 1; }
-  carpeta="$(grep -o "\"[^\"]*Mi trabajo[^\"]*\"" "$abre" | tail -1 | tr -d "\"")"
-  [ -d "$carpeta" ] || { echo "apunta a una carpeta que no existe"; exit 1; }
-  basename "$carpeta"'
+  grep -q "Mi trabajo" "$abre" && { echo "sigue apuntando a una carpeta creada a ciegas"; exit 1; }
+  echo "abre el editor y ya"'
 
 comprobar 'el arranque del shell lleva nuestro Node' bash -c '
   [ -d "'"$APP"'" ] || { echo "SALTADA"; exit 0; }
@@ -181,49 +191,11 @@ comprobar 'el informe de la instalación no tiene errores' bash -c '
 
 echo
 echo "La carpeta de trabajo"
-
-TRABAJO=""
-for documentos in "$CASA/Documentos" "$CASA/Documents"; do
-  [ -d "$documentos" ] || continue
-  for carpeta in "$documentos"/*/; do
-    [ -f "${carpeta}.rsc.json" ] && TRABAJO="$carpeta" && break 2
-  done
-done
-
-comprobar 'hay una carpeta con el arnés montado' bash -c '
-  [ -n "'"$TRABAJO"'" ] || { echo "SALTADA"; exit 0; }
-  basename "'"$TRABAJO"'"'
-
-comprobar 'los raíles están puestos y los diales en su sitio' bash -c '
-  [ -n "'"$TRABAJO"'" ] || { echo "SALTADA"; exit 0; }
-  [ -f "'"$TRABAJO"'.claude/skills/executive-lab/SKILL.md" ] || { echo "falta la habilidad"; exit 1; }
-  perfil="'"$TRABAJO"'02-DOCS/wiki/harness/user-profile.md"
-  grep -q "technical_level: non-technical" "$perfil" || { echo "el dial técnico no es el que toca"; exit 1; }
-  grep -q "accompaniment: L3" "$perfil" || { echo "el dial de acompañamiento no es el que toca"; exit 1; }
-  echo "no-técnico · L3"'
-
-comprobar 'los enganches apuntan a un Node que existe' enganchesConRutaCompleta
-
-comprobar 'hay un punto de partida al que volver' bash -c '
-  [ -n "'"$TRABAJO"'" ] || { echo "SALTADA"; exit 0; }
-  n="'"$APP"'/runtime/bin/node"
-  [ -x "$n" ] || n="$(command -v node)"
-  [ -n "$n" ] || { echo "no hay con qué mirarlo"; exit 1; }
-  "$n" -e "
-    const h = require(\"'"$APP"'/historial.js\");
-    h.historial(process.argv[1], 5).then((r) => {
-      if (!r.copias.length) { console.error(\"no hay ninguna copia\"); process.exit(1); }
-      console.log(r.copias.length + \" copia(s), la primera: \" + r.copias[r.copias.length - 1].asunto.slice(0, 40));
-    });
-  " "'"$TRABAJO"'"'
-
-comprobar 'el arnés responde' bash -c '
-  [ -n "'"$TRABAJO"'" ] || { echo "SALTADA"; exit 0; }
-  n="'"$APP"'/runtime/bin/node"
-  rsc="'"$APP"'/harness/node_modules/@ericrisco/rsc/scripts/rsc.js"
-  [ -x "$n" ] && [ -f "$rsc" ] || { echo "SALTADA"; exit 0; }
-  cd "'"$TRABAJO"'" && "$n" "$rsc" doctor >/dev/null 2>&1 || { echo "doctor se queja; mira Algo va mal"; exit 1; }
-  echo "sano"'
+echo
+printf '  \033[90m·\033[0m ya no la hace el instalador: la elige quien va a trabajar en ella\n'
+printf '  \033[90m·\033[0m y la prepara el panel, con el wizard de extension/src/arrancar.js\n'
+printf '  \033[90m·\033[0m eso no se puede comprobar sin abrir el editor (demo.sh lo enseña)\n' 
+echo
 
 # ────────────────────────────────────────────────────────────────── resumen
 

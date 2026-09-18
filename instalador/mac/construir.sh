@@ -19,7 +19,8 @@ RAIZ="$(cd "$AQUI/../.." && pwd)"
 CARGA="$AQUI/carga"
 
 NODE_VERSION="v24.21.0"          # la misma que lleva el instalador de Windows
-VERSION_DEL_ARNES="1.4.1"        # fijada a propósito: toda la cohorte igual
+# El arnés ya no se instala aquí: viaja dentro del .vsix, con su versión fijada
+# en extension/media/harness/package.json.
 
 SIN_DESCARGAS=0
 VERSION=""
@@ -92,28 +93,14 @@ ELECTOR
   fi
 fi
 
-# --- El arnés y la biblioteca del historial, preinstalados: nada de npx en la
-#     máquina del alumno, y la misma versión para toda la cohorte.
-if [ ! -d "$CARGA/harness/node_modules/@ericrisco/rsc" ] || [ "$SIN_DESCARGAS" = "0" ]; then
-  echo "  Instalando el arnés $VERSION_DEL_ARNES y el historial…"
-  mkdir -p "$CARGA/harness"
-  # Sin un package.json aquí, npm se pone a buscar uno hacia arriba y acaba
-  # tocando el node_modules de la carpeta personal de quien construye esto.
-  [ -f "$CARGA/harness/package.json" ] || cat > "$CARGA/harness/package.json" <<'PAQUETE'
-{
-  "name": "executive-lab-carga",
-  "private": true,
-  "description": "Lo que el instalador deja preinstalado. Lo genera construir.sh."
-}
-PAQUETE
-  (cd "$CARGA/harness" && npm install --no-audit --no-fund --silent \
-    "@ericrisco/rsc@$VERSION_DEL_ARNES" isomorphic-git)
-fi
+# --- El arnés YA NO viaja en la carga: va dentro del .vsix, que es quien lo
+#     usa. Los raíles, igual (extension/media/railes). Y la biblioteca del
+#     historial tampoco hace falta, porque git es obligatorio y lo instala el
+#     de Apple (decisión 26). Se limpia lo que dejaran las versiones viejas.
+rm -rf "$CARGA/harness" "$CARGA/skills" "$CARGA/git"
 
-# --- Lo nuestro.
-rm -rf "$CARGA/skills"
-cp -R "$RAIZ/skills" "$CARGA/skills"
-for modulo in preparar.js historial.js ajustes.js enganches.js; do
+# --- Lo nuestro. Solo lo que el instalador usa de verdad.
+for modulo in preparar.js git.js ajustes.js; do
   cp "$RAIZ/instalador/comun/$modulo" "$CARGA/$modulo"
 done
 cp "$RAIZ/extension/media/disfraz.json" "$CARGA/disfraz.json"

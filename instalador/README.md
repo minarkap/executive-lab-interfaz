@@ -4,72 +4,91 @@ Es el producto de verdad. Todo lo demás de este repo sirve de poco si el alumno
 
 **Objetivo medible: de doble clic a primer resultado útil en menos de 10 minutos, sin ayuda.**
 
-## Qué hace, en orden
+## El reparto: esto pone las piezas, el panel hace el resto
 
-1. Pregunta **una sola cosa**, con seis opciones y sin campo de texto: qué quiere resolver primero.
+Desde la decisión 27, el instalador **no monta ningún arnés y no crea ninguna carpeta**.
+
+| | Qué hace |
+|---|---|
+| **El instalador** | El editor, Node, git y las dos extensiones. Un acceso directo que abre el editor. Se acaba ahí |
+| **El panel** | Elegir carpeta → las preguntas → montar RSC → raíles, nombres, enganches, primera copia |
+
+### Qué hace, en orden
+
+1. Pregunta **una sola cosa**, con opciones: con qué asistente va a trabajar. Es lo único que el
+   instalador necesita saber, porque de eso depende qué extensión se instala.
 2. Instala VS Code en silencio, por usuario, **sin pedir administrador**.
-3. Deja Node, git y el arnés dentro de su carpeta, y pone Node y git en el PATH del usuario: los
-   hooks del arnés los llaman por nombre desde el editor, y el alumno no tiene nada en el sistema.
-4. Ejecuta `comun/preparar.js`, que es donde está toda la lógica:
-   - crea `Documentos/Mi Empresa IA`
-   - la prepara para guardar copias de seguridad (y falla en alto si no hay git)
-   - monta el arnés con `rsc onboard` en los dos pasos que exige, reutilizando la línea de
-     aceptación tal cual la imprime RSC para que la huella no pueda dejar de coincidir
-   - comprueba el suelo del arnés y falla si quedó a medias
-   - pone los raíles de `skills/`
-   - instala la extensión de Claude y la nuestra
-5. Deja un acceso directo **Executive Lab** con icono propio que abre la carpeta. El disfraz lo pone
-   la extensión en su primer arranque (ver [perfil/](../perfil/)).
+3. Deja Node dentro de su carpeta y lo pone en el PATH del usuario: los enganches del arnés lo
+   llaman por nombre desde el editor, y esa persona no tiene nada en el sistema.
+4. Ejecuta `comun/preparar.js`, que ahora son dos pasos:
+   - **asegurar git**, con el instalador oficial del sistema si no está (decisión 26)
+   - instalar la extensión del asistente y la nuestra
+   - y los cinco ajustes de ámbito de programa, que son los únicos que VS Code no admite por carpeta
+5. Deja un acceso directo **Executive Lab** con icono propio que **abre el editor, sin carpeta**.
 
-No imprime nada para el alumno: escribe `instalacion.log` dentro de su carpeta. Quien enseña la barra
-de progreso es el instalador.
+No imprime nada para quien lo instala: escribe `instalacion.log` junto a la app. Quien enseña la
+barra de progreso es el instalador.
+
+Antes esto montaba también un arnés en `Documentos/Mi Empresa IA`, con seis preguntas dentro del
+instalador. Eran las mismas seis que hace el panel, mantenidas por duplicado —y las de Windows se
+quedaron atrás sin que nadie lo viera—, y elegían la carpeta de trabajo a ciegas, antes de que esa
+persona hubiera abierto el programa.
 
 ## Construirlo
 
-Los dos necesitan una carpeta `carga/` que **no está versionada** porque son binarios de terceros:
+Los dos necesitan una carpeta `carga/` que **no está versionada**. Cada sistema tiene su script que
+la monta; lo único que hay que dejar a mano son los binarios de terceros:
 
 | Fichero | De dónde sale |
 |---|---|
-| `runtime/` | Node LTS portable: el `.zip` de nodejs.org para Windows, el `.tar.gz` para macOS |
-| `git/` | **Solo Windows**, y ya no hace falta: MinGit (`MinGit-*-64-bit.zip`). El historial lo lleva `isomorphic-git`, que `construir.sh` instala junto al arnés |
-| `harness/` | `npm install --prefix carga/harness @ericrisco/rsc@1.4.1` en la máquina que construye |
-| `executive-lab.vsix` | `cd extension && npm run empaquetar` |
+| `runtime/` | Node LTS portable: el `.zip` de nodejs.org para Windows, el `.tar.gz` para macOS (`mac/construir.sh` lo descarga solo) |
 | `executivelab.ico` | El icono. Solo Windows |
-| `preparar.js`, `skills/`, `disfraz.json` | De este repo: `instalador/comun/`, `skills/` y `extension/media/` (`construir.sh` los copia; en Windows, copiarlos a `carga/`) |
 | `VSCodeUserSetup-x64.exe` | Solo Windows, de code.visualstudio.com |
 
+El resto lo montan los scripts: `preparar.js`, `git.js`, `ajustes.js`, `disfraz.json` y el `.vsix`
+(que empaquetan si hace falta). **Ya no viajan** el arnés, los raíles ni MinGit: los dos primeros van
+dentro del `.vsix`, que es quien los usa, y git lo instala su propio instalador (decisión 26).
+
 ```bash
-# El instalador de Windows, desde el Mac, con Inno Setup bajo Wine (Docker/OrbStack).
-# Probado el 17-09-2026: 5 min 40 s, 291 MB → windows/Output/ExecutiveLab-Setup.exe
+# Windows: montar la carga y compilar el .exe desde el Mac, con Inno bajo Wine
+./windows/preparar-carga.sh
 docker run --rm --platform linux/amd64 -v "$PWD/instalador/windows:/work" amake/innosetup ExecutiveLab.iss
+# Probado el 18-09-2026: 3 min 56 s, 268 MB → windows/Output/ExecutiveLab-Setup.exe
 
 # O en un Windows con Inno Setup 6.3+ (el .iss lleva acentos: guardarlo como UTF-8)
 iscc windows\ExecutiveLab.iss
 
-# El de macOS (ver más abajo)
-./mac/construir.sh
+# macOS: la carga, la app y el .dmg de una vez
+./mac/construir.sh          # 103 MB
 ```
+
+`windows/preparar-carga.sh` existe porque esa carga se montaba a mano, y por eso se quedó atrás: el
+`.exe` del 17-09 llevaba dentro la extensión 0.1.0 y un `preparar.js` tres horas más viejo que el
+repositorio. El de macOS nunca tuvo ese problema porque lo monta `construir.sh`.
 
 ## Lo que todavía no está probado
 
 **El `.exe` está compilado pero nunca se ha ejecutado en un Windows limpio.** `preparar.js` sí se
-ha probado de punta a punta en macOS (`--sin-editor`). Lo que falta es copiar
+ha probado en macOS (`--sin-editor`). Lo que falta es copiar
 `windows/Output/ExecutiveLab-Setup.exe` a una VM de Windows limpia con un usuario sin administrador,
-hacer doble clic y grabar la pantalla: preguntas 3, 4, 5 y 6 de [docs/spike.md](../docs/spike.md).
+hacer doble clic y grabar la pantalla.
 
 Dónde espero que falle primero:
 
-- **`rsc onboard` en Windows.** Usa symlinks y cae a copias reales cuando el sistema no los admite.
-  Es el paso más largo y el que deja la carpeta a medias si se tuerce.
-- **bash en Windows.** Los `test_connection.sh` de RSC piden bash. MinGit debería traerlo en
-  `usr\bin\bash.exe`; hay que confirmarlo con el zip concreto que se empaquete.
+- **El instalador de Git, lanzado sin elevar.** Debería instalar para el usuario y no pedir
+  administrador, pero es justo lo que no se puede comprobar desde un Mac. Si pidiera UAC, se acabó el
+  «sin administrador» (decisión 26).
+- **bash en Windows.** Los `test_connection.sh` de RSC piden bash. Antes lo traía MinGit; ahora lo
+  trae el Git para Windows de verdad, en `usr\bin\bash.exe`. Hay que confirmarlo.
 - **El PATH recién escrito.** Inno lo pone en el registro y avisa al sistema, pero un VS Code que ya
   estuviera abierto no lo ve hasta reiniciarse. En una máquina limpia no hay ninguno abierto.
+- **`rsc onboard` en Windows**, que ahora corre desde el panel y no desde el instalador. Usa symlinks
+  y cae a copias reales cuando el sistema no los admite.
 
-Dos cosas que ya fallaron en el papel y están arregladas: Node rechaza lanzar un `.cmd` sin shell
-(por eso ni `preparar.js` ni la extensión tocan `npx.cmd` ni `code.cmd` directamente), y el orden de
-Inno crea los accesos directos **antes** de ejecutar nada, así que la ruta de trabajo se le pasa ya
-resuelta a `preparar.js` con `--destino`.
+Una cosa que ya falló en el papel y está arreglada: Node rechaza lanzar un `.cmd` sin shell, por eso
+ni `preparar.js` ni la extensión tocan `npx.cmd` ni `code.cmd` directamente. La otra —que el orden de
+Inno creaba el acceso directo antes de ejecutar nada, y había que pasarle la carpeta ya resuelta— ha
+dejado de existir: el acceso directo abre el editor y ya no apunta a ninguna carpeta.
 
 ## macOS
 
@@ -79,26 +98,24 @@ aviso de privacidad del propio Instalador nada más empezar (decisión 21 en
 [docs/decisiones.md](../docs/decisiones.md)).
 
 ```bash
-./mac/construir.sh                  # carga + app + .dmg  (~122 MB)
+./mac/construir.sh                  # carga + app + .dmg  (103 MB)
 ./mac/firmar.sh                     # firma, notariza y grapa
-./mac/probar.sh                     # 19 comprobaciones
+./mac/probar.sh                     # 14 comprobaciones
 ./mac/desinstalar.command           # lo quita todo y deja el Mac como estaba
 ```
 
 | Pieza | Qué es |
 |---|---|
 | `instalar.applescript` | Lo único que ve el alumno: el diálogo, la barra de progreso y el final |
-| `instalar.js` | El trabajo: copia la carga, baja el editor, pone las dos piezas, crea el acceso directo |
+| `instalar.js` | El trabajo: copia la carga, baja el editor, asegura git, pone las dos piezas, crea el acceso directo |
 | `node.entitlements` | Los dos permisos que Node necesita para arrancar bajo el "hardened runtime" |
 
 Diferencias con Windows, y por qué:
 
-- **No pregunta nada.** Las preguntas las hace el panel en el primer arranque, con el wizard que ya
-  existe (decisión 22).
-- **No lleva el editor dentro.** Se descarga al instalar, y si el alumno ya lo tiene no se descarga
-  nada: 122 MB en vez de 380.
-- **No lleva git.** No hace falta en ningún sistema desde que el historial es JavaScript
-  (decisión 23). En Windows sigue viajando MinGit porque el `.exe` ya está compilado con él.
+- **No pregunta nada, ni siquiera el asistente.** En Windows se pregunta porque el `.exe` tiene que
+  elegir qué extensión instalar antes de ejecutar nada; aquí `instalar.js` puede mirarlo.
+- **No lleva el editor dentro.** Se descarga al instalar, y si esa persona ya lo tiene no se descarga
+  nada: 103 MB en vez de 380.
 - **No toca nada fuera de la carpeta del alumno**, así que no pide administrador.
 
 Cómo probarlo, con y sin Mac limpio: [mac/COMO-PROBARLO.md](mac/COMO-PROBARLO.md).

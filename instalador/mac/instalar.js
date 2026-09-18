@@ -10,10 +10,14 @@
 //
 // Qué hace, y qué NO hace
 // -----------------------
-// Deja las herramientas, el editor y el acceso directo. **No monta el arnés**:
-// eso lo hace el panel la primera vez que se abre, con el wizard que ya existe
-// (extension/src/arrancar.js), porque ahí las preguntas salen con nuestra
-// tipografía y nuestros colores en vez de con las de Apple.
+// Deja las PIEZAS: Node, el editor, git y las dos extensiones. Y el acceso
+// directo, que abre el editor sin carpeta.
+//
+// **No monta el arnés ni crea ninguna carpeta.** Eso lo hace el panel cuando
+// esa persona abre la carpeta que quiera y pulsa "Preparar esta carpeta", con
+// el wizard que ya existe (extension/src/arrancar.js): ahí las preguntas salen
+// con nuestra tipografía y nuestros colores en vez de con las de Apple, y la
+// carpeta la elige quien va a trabajar en ella.
 //
 // Y nada de esto pide contraseña de administrador: todo vive dentro de la
 // carpeta del alumno. Es la diferencia entre poder instalarlo en un portátil
@@ -26,12 +30,15 @@ const { spawnSync } = require('node:child_process');
 
 // Dentro del paquete, los módulos comunes viajan en la carga. En el repo
 // todavía no hay carga, así que se cae a comun/ y esto se puede probar en seco.
-const { escribirAjustes } = (() => {
-  for (const donde of ['./carga/ajustes', '../comun/ajustes']) {
+const comun = (nombre) => {
+  for (const donde of [`./carga/${nombre}`, `../comun/${nombre}`]) {
     try { return require(donde); } catch { /* el siguiente */ }
   }
-  throw new Error('no encuentro ajustes.js');
-})();
+  throw new Error(`no encuentro ${nombre}.js`);
+};
+
+const { escribirAjustes } = comun('ajustes');
+const git = comun('git');
 
 const AQUI = __dirname;
 const CARGA = path.join(AQUI, 'carga');
@@ -41,7 +48,6 @@ const APLICACIONES = path.join(CASA, 'Applications');
 const EDITOR = 'Visual Studio Code.app';
 const DENTRO_DEL_EDITOR = path.join('Contents', 'Resources', 'app', 'bin', 'code');
 const NOMBRE_DEL_ACCESO = 'Mi Empresa';
-const NOMBRE_DE_LA_CARPETA = 'Mi trabajo';
 const DESCARGA_DEL_EDITOR = 'https://update.code.visualstudio.com/latest/darwin-universal/stable';
 
 const SECO = process.argv.includes('--seco');
@@ -182,14 +188,37 @@ function lasPiezasDelAsistente(editor) {
   if (!bien) throw new Error('no se han podido poner las piezas del asistente');
 }
 
-// 4. Su carpeta, vacía, y las cinco claves de ámbito de programa. El resto del
-// disfraz va en la carpeta y lo pone el panel.
-function suSitio() {
-  contar('Preparando tu carpeta');
-  const documentos = [path.join(CASA, 'Documentos'), path.join(CASA, 'Documents')].find((d) => fs.existsSync(d)) || CASA;
-  const carpeta = path.join(documentos, NOMBRE_DE_LA_CARPETA);
-  if (!SECO) fs.mkdirSync(carpeta, { recursive: true });
-  anotar(`Carpeta de trabajo: ${carpeta}`);
+// 4. git, que es obligatorio y no viaja con nosotros: lo instala el de Apple.
+//
+// Es lo único de todo el instalador que puede tardar mucho —en un Mac limpio
+// son uno o dos gigas— y lo único que enseña un diálogo que no es nuestro. No
+// se falla si no aparece: el panel lo vuelve a ofrecer con un botón la primera
+// vez que se abra una carpeta, y así esa persona no se queda sin instalar el
+// resto por culpa de una descarga que se torció.
+async function asegurarGit() {
+  contar('Comprobando lo que falta');
+  if (await git.hay()) {
+    anotar('git: ya estaba.');
+    return;
+  }
+  if (SECO) {
+    anotar('git: no está; en seco no se instala.');
+    return;
+  }
+
+  contar('Instalando git — tu Mac te pedirá permiso');
+  const hecho = await git.instalar({}, (que) => anotar(`git: ${que}`));
+  anotar(hecho.ok ? 'git: instalado.' : `AVISO: git no ha quedado puesto (${hecho.mensaje}). Lo ofrecerá el panel.`);
+}
+
+// 5. Las cinco claves de ámbito de programa, que son las únicas que VS Code no
+// admite por carpeta. El resto del disfraz va en la carpeta y lo pone el panel.
+//
+// Ya no se crea ninguna carpeta de trabajo: la elige esa persona la primera vez
+// que abre el programa, y el panel la prepara. Antes se creaba aquí una
+// `Documentos/Mi Empresa IA` a ciegas, sin saber si iba a usarla.
+function losAjustesDelEditor() {
+  contar('Dejando el editor a punto');
 
   const plantilla = path.join(CARGA, 'disfraz.json');
   if (fs.existsSync(plantilla) && !SECO) {
@@ -208,7 +237,6 @@ function suSitio() {
   }
 
   ponerloEnElArranqueDelShell();
-  return carpeta;
 }
 
 // El otro cinturón de lo de siempre: que los enganches del arnés encuentren
@@ -249,10 +277,10 @@ function ponerloEnElArranqueDelShell() {
   }
 }
 
-// 5. El acceso directo. Es una app de las de siempre: un Info.plist y un
+// 6. El acceso directo. Es una app de las de siempre: un Info.plist y un
 // script de dos líneas. Al crearse aquí no lleva cuarentena, así que se abre
 // sin que Gatekeeper diga nada aunque no esté firmada.
-function elAccesoDirecto(editor, carpeta) {
+function elAccesoDirecto(editor) {
   contar('Dejándote el acceso directo');
   const app = path.join(APLICACIONES, `${NOMBRE_DEL_ACCESO}.app`);
   if (SECO) return app;
@@ -286,7 +314,7 @@ function elAccesoDirecto(editor, carpeta) {
   fs.writeFileSync(abrir, `#!/bin/bash
 # Abre el espacio de trabajo. Lo escribió el instalador de Executive Lab.
 export EXECUTIVE_LAB_HOME=${JSON.stringify(APP)}
-exec /usr/bin/open -a ${JSON.stringify(editor)} ${JSON.stringify(carpeta)}
+exec /usr/bin/open -a ${JSON.stringify(editor)}
 `);
   fs.chmodSync(abrir, 0o755);
 
@@ -318,23 +346,22 @@ function alDock(app) {
 
 // --------------------------------------------------------------------- main
 
-function main() {
+async function main() {
   anotar(`Executive Lab · macOS ${os.release()} · ${process.arch} · node ${process.version}`);
 
   copiarLasHerramientas();
   const editor = elEditor();
   lasPiezasDelAsistente(editor);
-  const carpeta = suSitio();
-  const acceso = elAccesoDirecto(editor, carpeta);
+  await asegurarGit();
+  losAjustesDelEditor();
+  const acceso = elAccesoDirecto(editor);
   alDock(acceso);
 
   anotar('Instalación terminada.');
   terminar(true, acceso);
 }
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   anotar(`ERROR ${error && error.stack ? error.stack : error}`);
   terminar(false, error && error.message ? error.message : String(error));
-}
+});

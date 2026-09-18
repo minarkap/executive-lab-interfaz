@@ -11,8 +11,8 @@ espacio de trabajo es el arnés [RSC](https://github.com/ericrisco/rsc-harness).
 > Salta directo a **[Para agentes: instrucciones ejecutables](#-para-agentes-instrucciones-ejecutables)**.
 > Está escrito para que lo sigas sin interpretar nada.
 
-**Última release:** [v0.2.0](https://github.com/minarkap/executive-lab-interfaz/releases/latest) ·
-`executive-lab-0.2.0.vsix`, 6 MB.
+**Última release:** [v0.3.0](https://github.com/minarkap/executive-lab-interfaz/releases/latest) ·
+`executive-lab-0.3.0.vsix`, 6 MB.
 
 ---
 
@@ -75,17 +75,17 @@ está en la decisión 26: el arnés usa git por su cuenta, y sin él funciona a 
 
 ### 2. El instalador de escritorio — para el portátil virgen
 
-Para quien llega sin nada: instala también VS Code, Node y el arnés, todo dentro de la carpeta del
-usuario y sin pedir administrador.
+Para quien llega sin nada. Pone **las piezas**: VS Code, Node, git y las dos extensiones, todo
+dentro de la carpeta del usuario y sin pedir administrador. El arnés no lo monta él: eso lo hace el
+panel cuando esa persona elige carpeta, igual que por el camino de la extensión (decisión 27).
 
-- **macOS:** `Executive Lab <version>.dmg` (~122 MB). Se construye con `instalador/mac/construir.sh`.
-- **Windows:** `ExecutiveLab-Setup.exe` (~291 MB). Se construye con Inno Setup (ver
-  [instalador/README.md](instalador/README.md)).
+- **macOS:** `Executive Lab <version>.dmg` (103 MB). Se construye con `instalador/mac/construir.sh`.
+- **Windows:** `ExecutiveLab-Setup.exe` (268 MB). `instalador/windows/preparar-carga.sh` y luego
+  Inno Setup (ver [instalador/README.md](instalador/README.md)).
 
 ⚠️ **Hoy no se reparten.** Ninguno de los dos está firmado, así que macOS los bloquea con Gatekeeper
-y Windows enseña *«Windows protegió tu PC»*. Y el `.exe` que hay compilado lleva una versión
-atrasada del panel (ver [la tabla de abajo](#qué-lleva-cada-forma-de-distribución)). Antes de
-repartir cualquiera de los dos hay que reconstruirlo y firmarlo.
+y Windows enseña *«Windows protegió tu PC»*. Antes de repartir cualquiera de los dos hay que
+firmarlo.
 
 ### 3. Solo los raíles — sobre un RSC que ya existe
 
@@ -232,24 +232,21 @@ letras para el tutor.
 
 Las tres no son equivalentes. Esto es lo que hay **hoy**:
 
+Las tres llevan lo mismo, porque el arnés viaja en un solo sitio: dentro del `.vsix`.
+
 | | `.vsix` (extensión) | `.dmg` (macOS) | `.exe` (Windows) |
 |---|---|---|---|
-| Versión del panel | **0.2.0** | **0.2.0** | ⚠️ **0.1.0** (atrasada) |
-| Tamaño | 6 MB | ~122 MB | ~291 MB |
-| Arnés RSC 1.4.1 | ✅ dentro del paquete | ✅ dentro (carga + `.vsix`) | ✅ en la carga |
-| Disfraz (`disfraz.json`) | ✅ | ✅ | ✅ (versión vieja) |
-| Raíles / skills | ✅ `media/railes/` | ✅ `carga/skills/` | ✅ `carga/skills/` |
-| git | ✅ obligatorio; lo instala el panel | ✅ obligatorio | ⚠️ todavía lleva MinGit dentro |
-| Módulos compartidos (historial, git, enganches) | ✅ dentro del `.vsix` | ✅ en la carga | ⚠️ carga atrasada |
+| Versión del panel | **0.3.0** | **0.3.0** | **0.3.0** |
+| Tamaño | 6 MB | 103 MB | 268 MB |
+| Arnés RSC 1.4.1 | ✅ dentro del paquete | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
+| Raíles | ✅ `media/railes/` | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
+| Módulos compartidos | ✅ `media/comun/` | ✅ | ✅ |
+| Disfraz (`disfraz.json`) | ✅ | ✅ | ✅ |
+| git | ✅ obligatorio; lo instala el panel | ✅ lo instala el de Apple | ✅ lo instala el oficial de Git |
 | Node | El que trae VS Code | `runtime/` dentro | `runtime/` dentro |
 | Instala VS Code | ❌ | ✅ (lo descarga) | ✅ (lo lleva dentro) |
+| Monta el arnés | El panel | El panel | El panel |
 | Firmado | No hace falta | ❌ pendiente | ❌ pendiente |
-
-Un hueco conocido, anotado y con arreglo:
-
-- **La carga de Windows está atrasada.** `instalador/windows/carga/` se monta a mano —no hay un
-  `construir.sh` como en Mac— y se quedó en el `.vsix` 0.1.0 y en un `preparar.js` anterior al
-  historial en JavaScript. Hay que rehacerla antes de volver a compilar el `.exe`.
 
 ---
 
@@ -298,11 +295,11 @@ npm install --prefix extension/media/harness @ericrisco/rsc@1.4.1
 ### Probarlo
 
 ```bash
-cd extension && npm run probar          # 59 comprobaciones con un vscode de mentira
+cd extension && npm run probar          # 63 comprobaciones con un vscode de mentira
 node extension/prueba/humo.js --con-arnes   # + monta un arnés de verdad (tarda minutos)
 node docs/comprobar-diccionario.js      # ningún texto de pantalla usa palabra prohibida
 node herramientas/revisar-powershell.js # los .ps1, antes de llevarlos a Windows
-cd instalador/mac && ./probar.sh --casa /tmp/casa-falsa   # 19 comprobaciones, sin tocar tu Mac
+cd instalador/mac && ./probar.sh --casa /tmp/casa-falsa   # 14 comprobaciones, sin tocar tu Mac
 ```
 
 ### Verlo funcionando
@@ -340,11 +337,12 @@ terceros, que no se versionan. Está explicado en [instalador/README.md](instala
   de RSC que viaja en la extensión: `RSC_ONBOARDING_READY` con el suelo completo.
 - El instalador de Windows **ejecutado en una máquina real**: instaló, montó el arnés y se trabajó
   con ello. De esa tarde salieron doce fallos que ninguna prueba automática habría visto.
-- 59 comprobaciones con un `vscode` de mentira y una empresa con la forma que deja RSC, más el
+- 63 comprobaciones con un `vscode` de mentira y una empresa con la forma que deja RSC, más el
   asistente completo con `--con-arnes`.
 
 **Lo que sigue sin probarse:** la extensión instalada desde el `.vsix` en una máquina limpia, el
-`.dmg` de macOS —construido pero nunca ejecutado— y una sesión con alguien real de principio a fin.
+`.dmg` y el `.exe` nuevos —construidos pero nunca ejecutados—, si los instaladores de git piden
+administrador (decisión 26) y una sesión con alguien real de principio a fin.
 
 Dónde queda fricción, ordenada por cuánta gente pierde cada punto:
 [docs/friccion.md](docs/friccion.md). Los hallazgos de la auditoría, qué se corrigió y qué queda:
