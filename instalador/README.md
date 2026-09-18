@@ -118,8 +118,8 @@ rechaza igual que si no hubiera nada:
 
 ```
 security find-identity -v -p codesigning
-  1) … "Apple Development: José María Sanchis Llopis (…)"
-  2) … "Apple Development: apple@strattonapps.com (…)"
+  1) … "Apple Development: <titular de la cuenta> (…)"
+  2) … "Apple Development: <correo de la cuenta> (…)"
 ```
 
 Tres cosas, y las tres las tiene que hacer el titular de la cuenta:
