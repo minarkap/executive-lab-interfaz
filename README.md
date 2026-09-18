@@ -11,8 +11,8 @@ espacio de trabajo es el arnés [RSC](https://github.com/ericrisco/rsc-harness).
 > Salta directo a **[Para agentes: instrucciones ejecutables](#-para-agentes-instrucciones-ejecutables)**.
 > Está escrito para que lo sigas sin interpretar nada.
 
-**Última release:** [v0.5.0](https://github.com/minarkap/executive-lab-interfaz/releases/latest) ·
-`executive-lab-0.5.0.vsix`, 6 MB.
+**Última release:** [v0.9.0](https://github.com/minarkap/executive-lab-interfaz/releases/latest) ·
+`executive-lab-0.9.0.vsix`, 6 MB.
 
 ---
 
@@ -155,7 +155,7 @@ code --install-extension /tmp/executive-lab.vsix --force
 ### Paso 2 — comprobar que quedó puesta
 
 ```bash
-code --list-extensions | grep executivelab.panel   # debe imprimir: executivelab.panel
+code --list-extensions | grep executivelab.arnes-ui   # debe imprimir: executivelab.arnes-ui
 ```
 
 Si no imprime nada, la instalación falló: mira la salida del paso 1 y **no sigas**.
@@ -190,7 +190,7 @@ npx @ericrisco/rsc@1.4.1 onboard ...los mismos flags... --accept-plan <huella>
 Por último, los raíles de Executive Lab (idioma y vocabulario), que viajan dentro de la extensión:
 
 ```bash
-node ~/.vscode/extensions/executivelab.panel-*/media/railes/aplicar.js "<su carpeta>"
+node ~/.vscode/extensions/executivelab.arnes-ui-*/media/railes/aplicar.js "<su carpeta>"
 ```
 
 ### Paso 4 — verificar
@@ -237,7 +237,7 @@ Las tres llevan lo mismo, porque el arnés viaja en un solo sitio: dentro del `.
 
 | | `.vsix` (extensión) | `.dmg` (macOS) | `.exe` (Windows) |
 |---|---|---|---|
-| Versión del panel | **0.5.0** | **0.5.0** | **0.5.0** |
+| Versión del panel | **0.9.0** | **0.9.0** | **0.9.0** |
 | Tamaño | 6 MB | 93 MB | **29 MB** |
 | Arnés RSC 1.4.1 | ✅ dentro del paquete | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Raíles | ✅ `media/railes/` | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
@@ -296,7 +296,7 @@ npm install --prefix extension/media/harness @ericrisco/rsc@1.4.1
 ### Probarlo
 
 ```bash
-cd extension && npm run probar          # 69 comprobaciones con un vscode de mentira
+cd extension && npm run probar          # 79 comprobaciones con un vscode de mentira
 node extension/prueba/humo.js --con-arnes   # + monta un arnés de verdad (tarda minutos)
 node docs/comprobar-diccionario.js      # ningún texto de pantalla usa palabra prohibida
 node herramientas/revisar-powershell.js # los .ps1, antes de llevarlos a Windows
@@ -341,7 +341,7 @@ terceros, que no se versionan. Está explicado en [instalador/README.md](instala
   de RSC que viaja en la extensión: `RSC_ONBOARDING_READY` con el suelo completo.
 - El instalador de Windows **ejecutado en una máquina real**: instaló, montó el arnés y se trabajó
   con ello. De esa tarde salieron doce fallos que ninguna prueba automática habría visto.
-- 69 comprobaciones con un `vscode` de mentira y una empresa con la forma que deja RSC, más el
+- 79 comprobaciones con un `vscode` de mentira y una empresa con la forma que deja RSC, más el
   asistente completo con `--con-arnes`.
 
 **Lo que sigue sin probarse:** la extensión instalada desde el `.vsix` en una máquina limpia, el

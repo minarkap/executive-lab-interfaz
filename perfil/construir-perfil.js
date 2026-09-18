@@ -12,7 +12,7 @@ const path = require('node:path');
 const NOMBRE = 'Executive Lab';
 const EXTENSIONES = [
   { id: 'anthropic.claude-code', nombre: 'Claude Code' },
-  { id: 'executivelab.panel', nombre: 'Executive Lab' },
+  { id: 'executivelab.arnes-ui', nombre: 'Executive Lab' },
 ];
 
 const fuente = path.join(__dirname, '..', 'extension', 'media', 'disfraz.json');

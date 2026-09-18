@@ -56,7 +56,10 @@ for candidato in "$EDITOR_PROPIO" "/Applications/Visual Studio Code.app"; do
 done
 
 if [ -n "$CLI" ]; then
-  "$CLI" --uninstall-extension executivelab.panel >/dev/null 2>&1 && bien "quitada la nuestra" || nada "la nuestra no estaba"
+  # Las dos: hasta la 0.8.4 se llamaba executivelab.panel, y quien la tenga
+  # puesta se quedaría con dos barras iguales en la izquierda.
+  "$CLI" --uninstall-extension executivelab.panel >/dev/null 2>&1
+  "$CLI" --uninstall-extension executivelab.arnes-ui >/dev/null 2>&1 && bien "quitada la nuestra" || nada "la nuestra no estaba"
   if [ "$DEJA_CLAUDE" = "0" ]; then
     if preguntar "¿Quito también la del asistente?"; then
       "$CLI" --uninstall-extension anthropic.claude-code >/dev/null 2>&1 && bien "quitada la del asistente" || nada "la del asistente no estaba"

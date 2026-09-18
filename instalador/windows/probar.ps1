@@ -97,7 +97,7 @@ Comprobar 'VS Code y las dos extensiones' {
   $code = Join-Path $env:LOCALAPPDATA 'Programs\Microsoft VS Code\bin\code.cmd'
   if (-not (Test-Path $code)) { throw 'no se ha instalado VS Code' }
   $lista = & cmd /c "`"$code`" --list-extensions" 2>&1
-  foreach ($ext in @('anthropic.claude-code', 'executivelab.panel')) {
+  foreach ($ext in @('anthropic.claude-code', 'executivelab.arnes-ui')) {
     if ("$lista" -notlike "*$ext*") { throw "falta la extension $ext" }
   }
   'las dos'

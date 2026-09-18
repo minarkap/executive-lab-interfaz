@@ -176,7 +176,7 @@ comprobar 'los cinco ajustes de programa están puestos' bash -c '
 comprobar 'las dos piezas del editor están instaladas' bash -c '
   ext="'"$CASA"'/.vscode/extensions"
   [ -d "'"$APP"'" ] && [ -d "$ext" ] || { echo "SALTADA"; exit 0; }
-  ls "$ext" | grep -q "^executivelab.panel" || { echo "falta la nuestra"; exit 1; }
+  ls "$ext" | grep -q "^executivelab.arnes-ui" || { echo "falta la nuestra"; exit 1; }
   ls "$ext" | grep -q "^anthropic.claude-code" || { echo "falta la del asistente"; exit 1; }
   echo "la nuestra y la del asistente"'
 

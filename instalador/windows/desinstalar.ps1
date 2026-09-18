@@ -34,7 +34,9 @@ Write-Host "`nDeshaciendo Executive Lab`n"
 
 if (Test-Path $code) {
   $puestas = & cmd /c "`"$code`" --list-extensions" 2>&1
-  foreach ($ext in @('executivelab.panel', 'anthropic.claude-code')) {
+  # executivelab.panel es como se llamaba hasta la 0.8.4: se quita tambien,
+  # que si no quedan dos barras iguales.
+  foreach ($ext in @('executivelab.arnes-ui', 'executivelab.panel', 'anthropic.claude-code')) {
     if ($ext -eq 'anthropic.claude-code' -and $DejaClaude) { continue }
     if ("$puestas" -like "*$ext*") {
       & cmd /c "`"$code`" --uninstall-extension $ext" | Out-Null
