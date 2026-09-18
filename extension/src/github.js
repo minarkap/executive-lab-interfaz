@@ -22,12 +22,50 @@ const procesos = require('./procesos');
 // lista larga asusta con razón.
 const PERMISOS = ['repo'];
 
+// CUIDADO con `getSession`: si el proveedor de GitHub todavía no se ha
+// activado, **la promesa no resuelve nunca**. Lo dice su propia documentación —
+// "if there is no matching provider, the promise will not resolve until one is
+// registered"— y colgó el panel de verdad: la pantalla se quedaba en "Mirando
+// qué hay aquí…" para siempre. Con el vscode de mentira no se veía, porque allí
+// respondía al momento.
+//
+// Así que todo lo que sale de aquí va con reloj. Sin respuesta a tiempo, la
+// respuesta es "no hay sesión": el panel enseña la guía, que es exactamente lo
+// que hace falta cuando no se sabe.
+const ESPERA = 4000;
+
+function conReloj(promesa, siNoContesta = null, ms = ESPERA) {
+  return new Promise((resolver) => {
+    let contestado = false;
+    const reloj = setTimeout(() => {
+      if (contestado) return;
+      contestado = true;
+      resolver(siNoContesta);
+    }, ms);
+
+    Promise.resolve(promesa).then(
+      (valor) => {
+        if (contestado) return;
+        contestado = true;
+        clearTimeout(reloj);
+        resolver(valor);
+      },
+      () => {
+        if (contestado) return;
+        contestado = true;
+        clearTimeout(reloj);
+        resolver(siNoContesta);
+      },
+    );
+  });
+}
+
 // Mirar sin molestar. `silent` quiere decir que si no hay sesión NO se abre
 // ningún diálogo: devuelve nada y ya. Es lo que se llama al pintar el panel,
-// que no puede ponerse a pedir cosas solo.
+// que no puede ponerse a pedir cosas solo — ni a esperar indefinidamente.
 async function sesion() {
   try {
-    return await vscode.authentication.getSession('github', PERMISOS, { silent: true });
+    return await conReloj(vscode.authentication.getSession('github', PERMISOS, { silent: true }));
   } catch {
     return null;
   }
@@ -46,7 +84,11 @@ async function conectar() {
 
 // A dónde apunta hoy esta carpeta, si es que apunta a algún sitio.
 async function remoto() {
-  const { codigo, salida } = await procesos.git('remote', 'get-url', 'origin');
+  // Con reloj también: es git, y aquí nadie está esperando una respuesta lenta.
+  const { codigo, salida } = await conReloj(
+    procesos.git('remote', 'get-url', 'origin'),
+    { codigo: 1, salida: '' },
+  );
   if (codigo !== 0) return null;
 
   const url = salida.trim();
@@ -67,4 +109,4 @@ async function estado() {
   };
 }
 
-module.exports = { estado, sesion, conectar, remoto, PERMISOS };
+module.exports = { estado, sesion, conectar, remoto, conReloj, PERMISOS };

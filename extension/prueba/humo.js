@@ -819,6 +819,22 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'lleva a la guía';
   });
 
+  await comprobar('si el editor no contesta, el panel no se queda colgado', async () => {
+    // El fallo de verdad: `getSession` NO resuelve nunca si el proveedor de
+    // GitHub no se ha activado, y la barra se quedaba en "Mirando qué hay
+    // aquí…" para siempre. Aquí se simula esa promesa que nunca contesta.
+    const gh = cargar('github');
+    const nuncaContesta = new Promise(() => {});
+
+    const empezo = Date.now();
+    const respuesta = await gh.conReloj(nuncaContesta, 'me rendí', 300);
+    const tardo = Date.now() - empezo;
+
+    assert.equal(respuesta, 'me rendí', 'sin respuesta a tiempo hay que seguir, no esperar');
+    assert.ok(tardo < 2000, `tardó ${tardo}ms: el reloj no está haciendo su trabajo`);
+    return `se rinde en ${tardo}ms`;
+  });
+
   await comprobar('con la sesión del editor no hace falta ninguna clave a mano', async () => {
     vscode.guion.sesionGitHub = {
       accessToken: 'de-mentira',

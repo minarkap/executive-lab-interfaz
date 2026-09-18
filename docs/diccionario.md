@@ -11,7 +11,7 @@ jerga por goteo.
 | Lo técnico | Lo que ve el alumno |
 |---|---|
 | carpeta del proyecto / repo / workspace | Mi Empresa |
-| `git commit` | Guardar copia de seguridad |
+| `git commit` | Guardar en git |
 | `git log` / `git restore` / checkout | Volver a como estaba el martes |
 | `.env` / variables de entorno / secretos | Mis conexiones |
 | API key / token / credencial | Clave de acceso |
@@ -48,13 +48,32 @@ jerga por goteo.
 | un `.md` de la wiki que no está en `index.md` | Sin ordenar todavía |
 | pedirle que actualice `index.md` | Que los ordene |
 | el rastro de navegación (migas) | Lo que sabe de <nombre> › Tema › Título |
-| `git push` a un remoto | Guardar una copia fuera de este ordenador |
+| `git push` a un remoto | Subir a GitHub |
 | una sugerencia de la barra | (no se nombra: se enseña la frase y su botón) |
 | apartar una sugerencia | Ahora no |
 | `rsc add <skill>` desde la barra | Que lo aprenda |
 | crear un `.claude/commands/` nuevo por repetición | Que se quede como botón |
 | la web de la empresa del alumno | Tu web |
 | escribir el récord de marca | Ponerle la cara de tu empresa |
+
+## Dos excepciones: git y GitHub
+
+**Decisión de Jose, 18 de septiembre de 2026.** Los dos botones del historial se llamaban «Guardar
+copia de seguridad» y «Guardar una copia fuera de este ordenador». Ahora se llaman **«Guardar en
+git»** y **«Subir a GitHub»**.
+
+Va contra el espíritu del resto de esta tabla, y conviene saber por qué se acepta:
+
+- **No son jerga, son nombres propios.** «git» y «GitHub» son dos sitios concretos, como «Holded» o
+  «Odoo», que esta misma tabla nunca ha traducido. El alumno va a oír esos nombres igual —en clase,
+  en cualquier tutorial, de cualquiera que le ayude—, y que la barra los llame de otra manera le
+  deja sin poder relacionar una cosa con otra.
+- **La perífrasis escondía la diferencia.** «Guardar copia» y «Guardar una copia fuera de este
+  ordenador» se parecen demasiado escritas seguidas; «en git» y «a GitHub» se distinguen de un
+  vistazo, que es lo que importa cuando hay dos botones juntos.
+
+Lo que **no** cambia: sigue prohibido `commit`, `push`, `repositorio` y `branch`. Nombrar la
+herramienta vale; explicar sus tripas, no.
 
 ## Palabras prohibidas
 

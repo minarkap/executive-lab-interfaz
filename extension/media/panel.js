@@ -216,8 +216,8 @@ function pantallaCopiaFuera(datos) {
     ${bloqueAviso()}
 
     <div class="brujula">
-      <h2>Una copia fuera de este ordenador</h2>
-      <p class="hiciste">Las copias que guardas viven en este ordenador. Si se rompe o se pierde, se pierden con él. Una copia fuera es la misma copia, guardada además en internet, en un sitio privado que solo tú ves.</p>
+      <h2>Subir a GitHub</h2>
+      <p class="hiciste">Lo que guardas en git vive en este ordenador. Si se rompe o se pierde, se pierde con él. Subirlo a GitHub es guardar lo mismo además en internet, en un sitio privado que solo tú ves.</p>
     </div>
 
     ${paso(1, 'Entrar en tu cuenta',
@@ -237,7 +237,7 @@ function pantallaCopiaFuera(datos) {
       false)}
 
     ${dentro
-      ? boton({ etiqueta: 'Guardar una copia fuera ahora', icono: '☁️', principal: true, accion: { tipo: 'subirCopia' } })
+      ? boton({ etiqueta: 'Subir a GitHub ahora', icono: '☁️', principal: true, accion: { tipo: 'subirCopia' } })
       : boton({ etiqueta: 'Entrar en mi cuenta', icono: '🔑', principal: true, accion: { tipo: 'conectarGitHub' } })}
     ${dentro ? '' : `<p class="detalle">¿No tienes cuenta? Se hace en dos minutos en github.com y es gratis.</p>`}
     ${volver()}
@@ -385,9 +385,9 @@ function pantallaPrincipal() {
 
     ${boton({ etiqueta: `Lo que sabe de ${comoSeLlama}`, icono: '📚', accion: { tipo: 'verCerebro' } })}
     ${boton({ etiqueta: 'Mis conexiones', icono: '🔌', accion: { tipo: 'verConexiones' } })}
-    ${estado.faltaGit ? '' : boton({ etiqueta: 'Guardar copia de seguridad', icono: '💾', accion: { tipo: 'guardarCopia' } })}
+    ${estado.faltaGit ? '' : boton({ etiqueta: 'Guardar en git', icono: '💾', accion: { tipo: 'guardarCopia' } })}
     ${estado.faltaGit ? '' : boton({ etiqueta: 'Volver a como estaba antes', icono: '↩️', accion: { tipo: 'verCopias' } })}
-    ${estado.faltaGit ? '' : boton({ etiqueta: 'Guardar una copia fuera de este ordenador', icono: '☁️', accion: { tipo: 'verCopiaFuera' } })}
+    ${estado.faltaGit ? '' : boton({ etiqueta: 'Subir a GitHub', icono: '☁️', accion: { tipo: 'verCopiaFuera' } })}
     ${estado.faltaGit ? bloqueFaltaGit() : ''}
     ${boton({ etiqueta: 'Qué hay en esta carpeta', icono: '🔎', accion: { tipo: 'verRadiografia' } })}
     ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}

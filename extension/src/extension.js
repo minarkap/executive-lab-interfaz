@@ -452,7 +452,7 @@ ${cabecera}
   }
 
   async subirCopia() {
-    this.enviar({ tipo: 'esperando', que: 'Guardando una copia fuera de este ordenador…' });
+    this.enviar({ tipo: 'esperando', que: 'Subiendo a GitHub…' });
     const hecho = await copias.subirCopia();
     // Sin cuenta no se enseña un error: se enseña cómo entrar.
     if (hecho.faltaGitHub) return this.verCopiaFuera();

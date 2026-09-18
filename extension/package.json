@@ -3,7 +3,7 @@
   "displayName": "Executive Lab",
   "description": "Convierte VS Code en una sola pantalla sencilla para trabajar con un arnés de IA, sin ver ficheros, rutas ni terminales.",
   "publisher": "executivelab",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "license": "UNLICENSED",
   "engines": {
     "vscode": "^1.98.0"
@@ -63,7 +63,7 @@
       },
       {
         "command": "executiveLab.guardar",
-        "title": "Executive Lab: Guardar copia de seguridad"
+        "title": "Executive Lab: Guardar en git"
       },
       {
         "command": "executiveLab.algoVaMal",
@@ -103,7 +103,7 @@
       },
       {
         "command": "executiveLab.copiaFuera",
-        "title": "Executive Lab: Guardar una copia fuera de este ordenador"
+        "title": "Executive Lab: Subir a GitHub"
       }
     ],
     "configuration": {
