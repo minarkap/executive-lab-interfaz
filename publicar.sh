@@ -41,14 +41,15 @@ code --install-extension executive-lab-$VERSION.vsix
 
 ## Hace falta
 
-- VS Code, y Claude Code o Codex con cuenta de pago.
-- git, solo para las copias de seguridad. Sin él, lo demás funciona.
+- VS Code 1.98 o más nuevo, y Claude Code o Codex con cuenta de pago.
+- git. Si no está, el panel lo instala con un botón.
 
 No hace falta Node: VS Code ya lo lleva dentro y el arnés viaja en la extensión.
 
 ## Después
 
 Abre la carpeta con la que quieras trabajar y pulsa **Preparar esta carpeta**.
+Te hace cinco preguntas en lenguaje llano y monta el arnés con tus respuestas.
 NOTAS
 
 echo
