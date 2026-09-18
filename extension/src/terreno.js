@@ -132,7 +132,7 @@ async function radiografia() {
   const github = require('./github');
 
   const hay = await queHay();
-  if (hay.tipo === 'sinCarpeta') return { tipo: hay.tipo, piezas: [] };
+  if (hay.tipo === 'sinCarpeta') return { queEs: hay.tipo, piezas: [] };
 
   const conArnes = hay.tipo === 'conArnes' || hay.tipo === 'aMedias';
   const proveedores = conArnes ? conexiones.proveedores() : [];
@@ -190,7 +190,7 @@ async function radiografia() {
     },
   ];
 
-  return { tipo: hay.tipo, piezas };
+  return { queEs: hay.tipo, piezas };
 }
 
 module.exports = { queHay, podemosGuardarElPuntoDePartida, radiografia };

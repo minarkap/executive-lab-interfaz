@@ -39,9 +39,59 @@ const ES_PLANTILLA = (texto) => /[{<]/.test(texto);
 
 // ------------------------------------------------------------ el índice
 
+// El título que lleva un artículo dentro, o su nombre de fichero en cristiano.
+function tituloDe(rutaRelativa) {
+  return (leer(...WIKI, rutaRelativa) || '')
+    .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '')
+    .match(/^#\s+(.+)$/m)?.[1]?.trim()
+    || humanizar(path.basename(rutaRelativa, '.md'));
+}
+
+// Lo que hay en el disco, tema por tema. Es el suelo del catálogo.
+//
+// Antes esto no existía y todo salía de `index.md`, así que **sin índice el
+// panel enseñaba que no sabía nada teniendo cuatro temas escritos**. Y el
+// índice lo mantiene el asistente: que lo tenga al día es una aspiración, no
+// un hecho. Lo que sí es un hecho son las carpetas.
+//
+// `harness` y `brand` quedan fuera, como en todo lo demás: son de la máquina y
+// de la marca, no de lo que sabe esta empresa.
+const NO_SON_TEMAS = new Set(['harness', 'brand']);
+
+function delDisco() {
+  const wiki = proyecto.ruta(...WIKI);
+  if (!wiki || !fs.existsSync(wiki)) return [];
+
+  let carpetas;
+  try {
+    carpetas = fs.readdirSync(wiki, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  return carpetas
+    .filter((e) => e.isDirectory() && !e.name.startsWith('.') && !NO_SON_TEMAS.has(e.name))
+    .map((e) => {
+      let dentro = [];
+      try {
+        dentro = fs.readdirSync(path.join(wiki, e.name));
+      } catch { /* una carpeta que no se puede leer no tumba las demás */ }
+
+      return {
+        id: e.name,
+        etiqueta: humanizar(e.name),
+        descripcion: null,
+        articulos: dentro
+          .filter((f) => f.endsWith('.md') && f !== 'index.md' && !f.startsWith('.'))
+          .map((f) => ({ titulo: tituloDe(`${e.name}/${f}`), ruta: `${e.name}/${f}`, resumen: '', fecha: '' })),
+      };
+    })
+    .filter((t) => t.articulos.length);
+}
+
 // `wiki/index.md` agrupa por tema con `## <tema>` y una tabla por tema:
 // | [Título](tema/fichero.md) | Resumen | AAAA-MM-DD | Puntuación |
-function catalogo() {
+function delIndice() {
   const texto = leer(...WIKI, 'index.md');
   if (!texto) return [];
 
@@ -80,6 +130,22 @@ function catalogo() {
   }
 
   return temas.filter((t) => t.articulos.length);
+}
+
+// Manda el índice, y el disco es la red de seguridad.
+//
+// Cuando hay índice se usa solo él: trae resumen, fecha y un orden pensado, y
+// deja fuera a propósito lo archivado y las filas de plantilla. Lo que esté
+// escrito y no mencione sale por otro sitio —`sinOrdenar()`, "sin ordenar
+// todavía"—, que es una distinción que este proyecto hace aposta.
+//
+// Pero **sin índice no se enseñaba nada**, y eso es lo que estaba mal: un arnés
+// con cuatro temas escritos decía que no sabía nada, solo porque el asistente
+// aún no había escrito `index.md`. Ahí se lee el disco, que es un hecho, en vez
+// de callarse.
+function catalogo() {
+  const porIndice = delIndice();
+  return porIndice.length ? porIndice : delDisco();
 }
 
 function articulos(temaId) {

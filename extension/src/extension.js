@@ -474,13 +474,18 @@ ${cabecera}
 
   async verSaberes() {
     this.donde = { tipo: 'quieto' };
-    this.enviar({ tipo: 'saberes', ...saberes.queSabe(this.contexto.extensionPath) });
+    const sabe = saberes.queSabe(this.contexto.extensionPath);
+    this.enviar({ tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie });
   }
 
   async verRadiografia() {
     this.donde = { tipo: 'quieto' };
     this.enviar({ tipo: 'esperando', que: 'Mirando qué hay aquí…' });
-    this.enviar({ tipo: 'radiografia', ...(await terreno.radiografia()) });
+    // Ojo con esparcir aquí dentro: `tipo` es el nombre del mensaje y quien
+    // lo pise deja al panel sin saber qué pintar. Pasó, y la pantalla se
+    // quedaba en "Mirando qué hay aquí…" para siempre.
+    const radio = await terreno.radiografia();
+    this.enviar({ tipo: 'radiografia', queEs: radio.queEs, piezas: radio.piezas });
   }
 
   async verCopiaFuera() {

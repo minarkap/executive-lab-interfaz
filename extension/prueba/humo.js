@@ -794,7 +794,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const radio = await cargar('terreno').radiografia();
     const por = Object.fromEntries(radio.piezas.map((p) => [p.nombre, p]));
 
-    assert.equal(radio.tipo, 'conArnes');
+    assert.equal(radio.queEs, 'conArnes');
     assert.equal(por['El asistente, montado aquí'].estado, 'si');
     assert.equal(por['Conexiones con tus herramientas'].detalle, '1', 'la empresa de mentira tiene una');
     assert.equal(por['Copias fuera de este ordenador'].estado, 'no', 'sin sesión, se dice que no');
@@ -850,6 +850,43 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
 
     vscode.guion.sesionGitHub = null;
     return `dentro como ${estado.usuario}`;
+  });
+
+  await comprobar('el wiki se ve aunque no haya índice', () => {
+    // El caso real: cuatro temas escritos, sin index.md, y el panel enseñaba
+    // que no sabía nada. El índice lo mantiene el asistente y que esté al día
+    // es una aspiración; las carpetas son un hecho.
+    const sinIndice = fs.mkdtempSync(path.join(os.tmpdir(), 'wiki-sin-indice-'));
+    const wiki = path.join(sinIndice, '02-DOCS', 'wiki');
+    fs.mkdirSync(path.join(wiki, 'operaciones'), { recursive: true });
+    fs.mkdirSync(path.join(wiki, 'harness'), { recursive: true });
+    fs.writeFileSync(path.join(wiki, 'operaciones', 'como-facturamos.md'), '---\ntype: article\n---\n\n# Cómo facturamos\n\nTexto.\n');
+    fs.writeFileSync(path.join(wiki, 'harness', 'user-profile.md'), '# Perfil\n');
+    fs.writeFileSync(path.join(sinIndice, '.rsc.json'), '{}');
+
+    vscode.guion.raiz = sinIndice;
+    const temas = cargar('cerebro').catalogo();
+    vscode.guion.raiz = empresa;
+
+    assert.equal(temas.length, 1, 'un tema: harness es de la máquina y no cuenta');
+    assert.equal(temas[0].etiqueta, 'Operaciones');
+    assert.equal(temas[0].articulos[0].titulo, 'Cómo facturamos', 'el título sale de dentro del artículo');
+
+    fs.rmSync(sinIndice, { recursive: true, force: true });
+    return `${temas[0].etiqueta}: ${temas[0].articulos.length} artículo`;
+  });
+
+  await comprobar('ningún dato de pantalla trae un campo "tipo" que pise el del mensaje', async () => {
+    // El fallo que dejó el panel colgado en "Mirando qué hay aquí…": el mensaje
+    // se manda como { tipo: 'radiografia', ...datos } y los datos traían su
+    // propio `tipo`, así que lo pisaban. El panel no encontraba qué pintar y se
+    // quedaba en la pantalla de esperar para siempre.
+    const radio = await cargar('terreno').radiografia();
+    assert.ok(!('tipo' in radio), 'la radiografía no puede traer un campo llamado tipo');
+
+    const sabe = cargar('saberes').queSabe(RAIZ);
+    assert.ok(!('tipo' in sabe), 'lo que sabe hacer, tampoco');
+    return 'ninguno lo pisa';
   });
 
   await comprobar('un fichero suelto en 01-TOOLS no es una herramienta', () => {
