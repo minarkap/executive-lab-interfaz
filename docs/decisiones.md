@@ -1763,3 +1763,31 @@ para una pregunta que tiene una salida razonable sin ella.
 
 **Y el color de la plaquita es un token más**, no un blanco escrito a fuego — lo cazó la prueba de
 la decisión 57 en cuanto lo escribí así.
+
+---
+
+## 64. El fallo que nadie podía coger: la página del panel no la probaba nadie
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose abrió la barra y vio: *«An error occurred while loading view: executiveLab.panel»*. Sin traza,
+sin nada.
+
+La causa era una palabra: llamé a `nuestroLogo(medios)` sin `this.` en un método de clase. Un
+`ReferenceError` en cuanto se arma la página.
+
+**Lo que importa no es el fallo, es que 113 comprobaciones no lo cogieron.** Había un agujero con la
+forma exacta de este fallo:
+
+- `panel-falso.js` prueba el lado del navegador — las pantallas, los mensajes.
+- `humo.js` prueba los módulos — lo que leen del disco, lo que devuelven.
+- Y **entre los dos** está `html()`, la función que junta la hoja de estilo, los colores de la marca
+  y la cabecera. No la miraba nadie.
+
+Es el peor sitio donde tener un agujero, porque cuando esa función falla **no falla una pantalla:
+no carga la barra entera**, y el editor solo dice que algo ha ido mal.
+
+Ahora se arma la página con las cuatro cabeceras posibles —la nuestra teñida, el logotipo de la
+empresa, el símbolo con el nombre al lado, y solo el nombre— y se comprueba que cada una produce una
+página con su seguridad y su guion. La prueba se validó del único modo que vale: volviendo a meter
+el fallo y viendo que salta.

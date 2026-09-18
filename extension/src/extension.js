@@ -151,7 +151,7 @@ class Panel {
     } else if (suya && suya.nombre) {
       cabecera = `<p class="marca marca--nombre">${escapar(suya.nombre)}</p>`;
     } else {
-      cabecera = nuestroLogo(medios);
+      cabecera = this.nuestroLogo(medios);
     }
 
     return `<!DOCTYPE html>

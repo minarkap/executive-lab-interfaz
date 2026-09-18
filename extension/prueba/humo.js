@@ -924,6 +924,52 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${manifiesto.length} comandos`;
   });
 
+  await comprobar('la página del panel se arma entera, con y sin marca', () => {
+    // El agujero que dejó pasar un `this.` que faltaba: NADIE probaba el HTML
+    // que arma la extensión. Las pruebas del panel miran el lado del navegador
+    // y las demás miran los módulos, pero entre los dos hay una función que
+    // junta la hoja de estilo, los colores y la cabecera — y si revienta, la
+    // barra no carga y lo único que se ve es "An error occurred while loading
+    // view". Sin traza, sin nada.
+    const proveedor = vscode.registrado.proveedor;
+    assert.ok(proveedor, 'la vista tiene que estar registrada');
+
+    const medios = vscode.Uri.joinPath(contexto.extensionUri, 'media');
+    const webview = {
+      cspSource: 'vscode-resource:',
+      asWebviewUri: (u) => ({ toString: () => `vscode-resource:${u.fsPath || u.path}` }),
+    };
+
+    const cabeceras = [
+      ['la nuestra', () => { cargar('tema').quitarla(); return marca.leer(); }, /marca--nuestra/],
+      ['con logotipo', () => { montarMarca(empresa); return marca.leer(); }, /<img class="marca"/],
+      ['solo el símbolo', () => { montarMarca(empresa, { simbolo: true }); return marca.leer(); }, /marca--simbolo/],
+      ['sin logotipo, el nombre', () => { montarMarca(empresa, { logo: false }); return marca.leer(); }, /marca--nombre/],
+    ];
+
+    for (const [que, preparar, espera] of cabeceras) {
+      let pagina;
+      try {
+        pagina = proveedor.html(webview, medios, preparar());
+      } catch (error) {
+        throw new Error(`"${que}" revienta al armar la página: ${error.message}`);
+      }
+      assert.match(pagina, /^<!DOCTYPE html>/, `"${que}" no arma una página`);
+      assert.match(pagina, espera, `"${que}" no pinta su cabecera`);
+      assert.match(pagina, /Content-Security-Policy/, `"${que}" se deja la seguridad`);
+      assert.match(pagina, /panel\.js/, `"${que}" se deja el guion`);
+    }
+
+    // Y el nuestro, teñido: sin colores propios dentro.
+    cargar('tema').quitarla();
+    const nuestra = proveedor.html(webview, medios, marca.leer());
+    assert.ok(!/fill="#0a0a0a"/i.test(nuestra), 'el negro del logotipo tiene que haberse ido');
+    assert.match(nuestra, /fill="currentColor"/, 'y en su sitio, el color del texto');
+
+    montarMarca(empresa);
+    return `${cabeceras.length} cabeceras, todas se arman`;
+  });
+
   await comprobar('el panel se ajusta al arnés conforme se monta', async () => {
     const vigia = vscode.registrado.vigia;
     assert.ok(vigia, 'hay que vigilar lo que el arnés escribe');
