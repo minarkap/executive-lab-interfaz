@@ -215,6 +215,10 @@ function leer() {
       // aplica cuando el logotipo la lleva, y así se mantiene la regla de que
       // la marca calcula TODOS los colores que la hoja de estilo nombra.
       '--placa': (logo && placaPara(logo, esquema.superficie)) || '#ffffff',
+      // Nuestro logotipo, cuando lo que hay es la marca de una empresa y no
+      // hay logotipo suyo: blanco puro sobre su fondo oscuro, negro sobre el
+      // claro. El del texto no vale — es un gris, y el logotipo salía gris.
+      '--logo': esOscura ? '#ffffff' : '#0a0a0a',
     },
   };
 }

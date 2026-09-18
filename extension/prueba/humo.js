@@ -964,7 +964,23 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     cargar('tema').quitarla();
     const nuestra = proveedor.html(webview, medios, marca.leer());
     assert.ok(!/fill="#0a0a0a"/i.test(nuestra), 'el negro del logotipo tiene que haberse ido');
-    assert.match(nuestra, /fill="currentColor"/, 'y en su sitio, el color del texto');
+    assert.match(nuestra, /fill="currentColor"/, 'y en su sitio, el color del logotipo');
+
+    // Y ese color es blanco puro o negro puro, NO el del texto: en tema oscuro
+    // el texto es el gris de VS Code y el logotipo salía gris apagado. Lo vio
+    // Jose y tenía razón.
+    const css = fs.readFileSync(path.join(RAIZ, 'media', 'panel.css'), 'utf8');
+    assert.match(css, /\.marca--nuestra\s*\{[^}]*color:\s*var\(--logo\)/, 'el logotipo usa su propio color');
+    const claro = css.slice(css.indexOf(':root'), css.indexOf('body.vscode-dark'));
+    const oscuro = css.slice(css.indexOf('body.vscode-dark'), css.indexOf('* { box-sizing'));
+    assert.match(claro, /--logo:\s*#0a0a0a/, 'negro sobre claro');
+    assert.match(oscuro, /--logo:\s*#ffffff/, 'blanco sobre oscuro');
+
+    // Y con la marca de una empresa, lo mismo pero según sea la suya.
+    montarMarca(empresa, { fondo: '#0d1117', texto: '#e6edf3', acento: '#22d3ee', logo: false });
+    assert.equal(marca.leer().tokens['--logo'], '#ffffff', 'marca oscura, logotipo blanco');
+    montarMarca(empresa, { logo: false });
+    assert.equal(marca.leer().tokens['--logo'], '#0a0a0a', 'marca clara, logotipo negro');
 
     montarMarca(empresa);
     return `${cabeceras.length} cabeceras, todas se arman`;

@@ -52,6 +52,10 @@
   --mal: #c62828;
   /* El fondo de debajo de un logotipo que no se vería sobre su propio fondo. */
   --placa: #ffffff;
+  /* Nuestro logotipo: blanco puro sobre oscuro, negro puro sobre claro. No
+     el color del texto — en tema oscuro ese color es un gris y el logotipo
+     salía gris apagado. */
+  --logo: #0a0a0a;
 
   --alto-boton: 40px;
   --radio: 10px;
@@ -74,6 +78,7 @@ body.vscode-dark, body.vscode-high-contrast {
   /* Sin marca de empresa y con tema oscuro, estos tres seguían en sus valores
      claros: lo resaltado al buscar salía crema con la letra clara encima, y el
      verde y el rojo de los avisos se perdían sobre el fondo. */
+  --logo: #ffffff;
   --resaltado: rgba(255, 209, 102, .28);
   --bien: #7cc47f;
   --mal: #ef8a85;
@@ -137,7 +142,7 @@ body {
    claro— y el asterisco el del acento. Escrito en negro a pelo, sobre un tema
    oscuro no se veía. */
 .marca--nuestra {
-  color: var(--texto-fuerte);
+  color: var(--logo);
   max-width: 62%;
   max-height: 44px;
 }

@@ -104,9 +104,12 @@ class Panel {
   nuestroLogo(medios) {
     try {
       const dibujo = fs.readFileSync(path.join(medios.fsPath, 'logo.svg'), 'utf8');
+      // El fichero puede venir en su versión negra o en la blanca, y con los
+      // colores escritos en hexadecimal o en `rgb()`. Se aceptan las cuatro
+      // formas: así da igual cuál de los dos ficheros esté puesto.
       return `<div class="marca marca--nuestra" role="img" aria-label="Executive Lab">${dibujo
-        .replace(/fill="#0a0a0a"/gi, 'fill="currentColor"')
-        .replace(/fill="#EC4429"/gi, 'fill="var(--acento)"')}</div>`;
+        .replace(/fill="(#0a0a0a|#fefefe|rgb\(\s*10\s*,\s*10\s*,\s*10\s*\)|rgb\(\s*254\s*,\s*254\s*,\s*254\s*\))"/gi, 'fill="currentColor"')
+        .replace(/fill="(#EC4429|rgb\(\s*231\s*,\s*60\s*,\s*35\s*\))"/gi, 'fill="var(--acento)"')}</div>`;
     } catch {
       // Si no se puede leer, la imagen de siempre: mejor un logotipo que no se
       // ve en oscuro que una cabecera vacía.

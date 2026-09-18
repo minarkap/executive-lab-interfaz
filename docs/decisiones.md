@@ -1791,3 +1791,32 @@ Ahora se arma la página con las cuatro cabeceras posibles —la nuestra teñida
 empresa, el símbolo con el nombre al lado, y solo el nombre— y se comprueba que cada una produce una
 página con su seguridad y su guion. La prueba se validó del único modo que vale: volviendo a meter
 el fallo y viendo que salta.
+
+---
+
+## 65. El logotipo es blanco puro o negro puro, nunca el color del texto
+
+**Fecha:** 18 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«que no, que sale en gris feo»*.
+
+La decisión 63 tiñó nuestro logotipo con `currentColor` y le dio el color del texto. Sobre la paleta
+de Executive Lab eso es negro, bien. Pero **con un tema oscuro del editor, el color del texto es el
+gris de VS Code** (`#cccccc`), así que el logotipo salía gris apagado en vez de blanco.
+
+El logotipo no es texto. Va en blanco puro o en negro puro, y punto:
+
+| Dónde | Color |
+|---|---|
+| Tema claro del editor, sin marca | `#0a0a0a` |
+| Tema oscuro del editor, sin marca | `#ffffff` |
+| Marca clara de la empresa | `#0a0a0a` |
+| Marca oscura de la empresa | `#ffffff` |
+
+Es un token más (`--logo`), así que lo cubre la prueba que exige que la marca calcule todos los
+colores que la hoja de estilo nombra.
+
+**Y el teñido acepta las cuatro formas de escribir esos colores** —hexadecimal y `rgb()`, versión
+negra y versión blanca del fichero— porque Jose mandó la versión blanca del logotipo y las dos
+tienen que funcionar igual. Se quedó la que ya estaba: la suya venía con
+`preserveAspectRatio="none"`, que estira el dibujo al ancho de la barra.
