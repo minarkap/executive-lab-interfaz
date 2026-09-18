@@ -314,3 +314,30 @@ problema entero. Se vio al probar la instalación de punta a punta antes de dar 
 
 F21: **el zoom.** Era la última fuga entre ventanas. Fuera del disfraz, y la salida de emergencia
 tampoco lo borra: si alguien lo tenía puesto, es suyo.
+
+### Addendum — el día que se ejecutaron las cosas (18-09-2026)
+
+Siete fallos. **Ninguno lo habría encontrado leyendo el código**: salieron todos de ejecutar lo que
+hasta entonces solo se había escrito — el instalador de macOS de verdad, las comprobaciones con
+`--con-arnes`, y la extensión instalada desde su `.vsix`.
+
+| | Qué | Cómo se encontró | Cómo se arregló |
+|---|---|---|---|
+| F22 | **`historial.js` no viajaba en el `.vsix`.** Quien instalaba solo la extensión se quedaba sin módulo y las copias de seguridad quedaban apagadas **sin avisar** | Leyendo `moduloComun()` al hilo de otra cosa | Los tres módulos comunes van dentro, y `preparar-paquete.js` grita si falta alguno o si falta el arnés |
+| F23 | **Los enganches del arnés se quedaban llamando a `node` por su nombre** en el camino sin instalador. `enganches.js` decía en su cabecera que de eso ya se encargaba el wizard de la extensión; no era verdad | Ídem | El wizard los apunta, y solo cuando hay un node de verdad: si es el de VS Code, escribir su ruta rompería el enganche en vez de arreglarlo |
+| F24 | **«Paso 7 de 6».** Al meter el paso de git subí los pasos y no el total. Y el aviso de «instalando git» contaba como paso propio, así que el total cambiaba según si git estaba o no | Ejecutando el instalador | El aviso pasa a ser un `detalle` dentro del paso, y `contar()` deja un AVISO si alguien se pasa |
+| F25 | **Una comprobación que no comprobaba nada.** «El informe de la instalación no tiene errores» miraba en `/tmp`, y el instalador escribe en `os.tmpdir()`, que en macOS es el `$TMPDIR` privado de cada usuario. Llevaba **saltándose siempre** | Ídem: salió como SALTADA con el instalador ya ejecutado | Mira en los dos sitios. De 1 saltada a 0 |
+| F26 | **La prueba del wizard llevaba rota desde el 17-09.** El `vscode` de mentira solo sabía contestar **una** pregunta, y ese día el wizard pasó a hacer **seis**. Como solo corre con `--con-arnes`, nadie lo vio | Ejecutando `--con-arnes` por primera vez en semanas | El falso sabe seguir una entrevista entera, y la prueba falla si sobran o faltan respuestas |
+| F27 | **Preparar una carpeta escribía en el historial de otro.** El único guardarraíl era `.rsc.json`; en un proyecto ya empezado, el «Punto de partida» hacía `git add -A` y metía el trabajo sin guardar de esa persona en un commit nuestro | Lo preguntó Jose: *«si es brownfield… porque debe hacer eso, si no joderás los proyectos ya empezados»* | `terreno.js` y la decisión 28: el punto de partida solo se escribe si el historial es nuestro |
+| F28 | **El botón de guardar fuera no existía sin un token escrito a mano.** No es que fallara: es que no aparecía, así que nadie sabía que eso se podía hacer | Lo preguntó Jose al ver el panel instalado | La sesión de GitHub del editor, y una guía en vez de un botón ausente (decisión 29) |
+
+Y un malentendido que era culpa nuestra: *«no me aparecen las conexiones»*. No estaba roto —en esas
+carpetas no hay ninguna— pero **el panel no sabía decir la diferencia entre "no tienes" y "no
+encuentro"**. De ahí salió «Qué hay en esta carpeta» (decisión 30).
+
+**Lo que esto dice del proyecto:** las pruebas que no se ejecutan en el camino normal se pudren. Dos
+de los siete (F25, F26) eran comprobaciones que existían y no comprobaban nada, y las dos llevaban
+así desde el día que se escribieron. Vale la pena que `--con-arnes` entre en el camino de
+`publicar.sh` antes de cada release, aunque tarde minutos.
+
+De 59 comprobaciones a **69**.
