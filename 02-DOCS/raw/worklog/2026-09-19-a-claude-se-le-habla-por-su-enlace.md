@@ -1,7 +1,7 @@
 ---
 type: worklog
 title: A Claude se le habla por su enlace, no por sus comandos
-description: Los botones abrían una conversación vacía. Con permiso de Jose se leyó la extensión de Claude Code 2.1.276 y se probó el enlace documentado en su máquina: el enlace entrega el texto y los comandos no, aunque el manejador del enlace llame a uno de ellos. Arreglado en la 0.15.3, y de paso dos defectos nuestros en la 0.15.2.
+description: Los botones abrían una conversación vacía. Se persiguió dentro de Claude Code durante tres versiones y el fallo estaba en casa - la pantalla principal rehacía la acción de cada botón y mandaba un texto vacío. Arreglado en la 0.15.4. Por el camino se corrigieron tres defectos reales del puente (0.15.2 y 0.15.3) que no eran este.
 timestamp: 2026-09-19T16:00:00Z
 topic: interfaz
 status: unprocessed
@@ -81,7 +81,39 @@ Así que el orden se invierte: **enlace primero, comandos de repuesto, portapape
 146 comprobaciones, las tres empresas enteras, diccionario limpio. Publicadas e instaladas la 0.15.2
 y la 0.15.3.
 
+## Y no era eso (0.15.4)
+
+Con el enlace puesto, Jose volvió a probar y **seguía fallando** — pero esta vez la caja de Claude
+ponía, literalmente, `undefined`.
+
+Ahí se acabó la búsqueda. El texto nunca había existido: `fijadas.js` devuelve cada cosa fijada como
+`{ id, etiqueta, icono, pista, accion }` —la acción **dentro** de `accion`— y la pantalla principal
+la rehacía a mano leyendo `a.prompt`, que no existe:
+
+    accion: { tipo: 'pedir', prompt: a.prompt }   // a.prompt no existe
+
+Todos los botones de Acciones rápidas mandaban `prompt: undefined`, y de paso las consultas de los
+programas —que son `hacerCosita` y no llevan prompt— se convertían en `pedir`. Ahora se pasa
+`a.accion` tal cual: **la acción se coge como viene, no se reconstruye en la pantalla.**
+
+Por qué costó tres versiones: por el camino de los comandos, `undefined` llegaba como "sin texto" y
+salía una conversación en blanco. Eso es lo que se veía, y eso es lo que mandó a buscar el fallo
+dentro de Claude Code. Al pasar al enlace, `encodeURIComponent(undefined)` es la cadena `"undefined"`
+y **se vio escrita**. Un fallo que se ve es un fallo que se arregla.
+
+Lección, y es la que hay que retener: **antes de leer el código de otro, comprobar qué se le está
+mandando.** Tres arreglos reales (decisiones 77 y 78) a un síntoma cuyo origen estaba en una línea
+de nuestra propia pantalla.
+
+Dos comprobaciones nuevas, las dos verificadas volviendo a meter el fallo:
+
+- toda la pantalla principal se recorre y ningún botón puede pedir algo sin texto, con los datos de
+  verdad de `fijadas.puestas()`;
+- `pedir()` no manda nada que no sea una cadena con contenido: lo apunta y dice que ese botón está
+  mal montado, en vez de escribir una palabra suelta en la conversación de alguien.
+
 ## Lo siguiente
 
-Está pendiente de que Jose confirme que el botón ya deja el texto puesto. Y sigue abierto el montaje
-fallido en una carpeta suya: la 0.15.1 ya trae el informe con el motivo dentro, falta que lo mire.
+Sigue abierto el montaje fallido en una carpeta de Jose: desde la 0.15.1 el informe de "Algo va mal"
+trae el motivo dentro, falta que lo mire. Y Jose preguntó para qué sirven "Revisar la barra" y
+"Publicar una versión": son los comandos de ejemplo de este repo, y si estorban se borran.

@@ -63,3 +63,14 @@ Los botones de la barra abrían una conversación vacía. Worklog:
 
 Lo que la barra dice de cada asistente está medido, con versión y fecha, en `asistentes.js`. Cuando
 Claude Code cambie de versión, esa tabla es lo primero que hay que volver a probar.
+
+## Y el fallo estaba en casa — 19 de septiembre de 2026
+
+Cierre del anterior. Lo que Jose veía no lo causaba nada de Claude Code: la pantalla principal
+rehacía la acción de cada botón de Acciones rápidas leyendo `a.prompt`, y `fijadas.js` la manda
+dentro de `a.accion`. Todos mandaban un texto vacío. **La acción se coge tal cual viene.**
+
+Lo de las decisiones 77 y 78 sigue siendo cierto y sigue puesto —el enlace es el único camino que
+entrega el texto, y `claude-vscode.focus` no enfoca— pero no era el fallo de Jose.
+
+Lección: **antes de leer el código de otro, comprobar qué se le está mandando.**
