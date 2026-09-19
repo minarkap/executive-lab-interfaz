@@ -121,6 +121,39 @@ function boton({ etiqueta, icono = '', accion, principal = false, discreto = fal
   </button>`;
 }
 
+// ── Una cosa que se puede hacer: el botón, y detrás la (i) ──────────────
+//
+// Jose, viendo la lista de comandos: *«quiero que sea con botones, no tanta
+// cosa. Si quieres saber qué hace puedes meter una (i) de info y meter ahí las
+// cosas. Pero tiene que ser más minimalista»*.
+//
+// Antes cada cosa ocupaba tres bloques: el nombre en negrita, un párrafo
+// explicándola, y un botón que ponía "Hacerlo". Con seis comandos eso ya era
+// una pantalla entera de scroll, y con veinticinco habilidades era ilegible.
+// Y el botón no decía qué hacía: decía "Hacerlo".
+//
+// Ahora una cosa **es** un botón, con su nombre. Lo que hace vive detrás de la
+// (i), que abre y cierra sin repintar —así no se pierde el scroll— y donde
+// además caben los botones de segunda fila que antes competían con el primero.
+let cuantasFilas = 0;
+function filaDeAccion({ etiqueta, icono, queHace, accion, principal = false, dentro = '' }) {
+  const hayQueContar = Boolean(queHace || dentro);
+  cuantasFilas += 1;
+  const id = `q${cuantasFilas}`;
+
+  return `
+    <div class="fila">
+      ${boton({ etiqueta, icono, accion, principal })}
+      ${hayQueContar ? `<button class="info" data-info="${id}" aria-controls="${id}" aria-expanded="false"
+        title="Qué hace" aria-label="Qué hace">i</button>` : ''}
+    </div>
+    ${hayQueContar ? `<div class="loQueHace" id="${id}" hidden>
+      ${queHace ? `<p>${texto(queHace)}</p>` : ''}
+      ${dentro}
+    </div>` : ''}
+  `;
+}
+
 // Un grupo plegable de la pantalla principal.
 //
 // ── Por qué ──────────────────────────────────────────────────────────────
@@ -354,12 +387,29 @@ function pantallaSaberes(datos) {
   const otras = datos.otras || [];
   const puede = datos.puedeAprender || [];
 
-  const capacidad = (c, conBoton) => `
-    <div class="capacidad">
-      <p class="nombre">${texto(c.nombre.charAt(0).toUpperCase() + c.nombre.slice(1))}</p>
-      <p class="pista">${texto(c.frase)}</p>
-      ${conBoton ? boton({ etiqueta: 'Que lo aprenda', icono: '✨', accion: { tipo: 'aprenderCapacidad', capacidad: c.id, nombre: c.nombre } }) : ''}
-    </div>`;
+  const enMayuscula = (n) => n.charAt(0).toUpperCase() + n.slice(1);
+
+  // Una que ya tiene puesta: se pulsa y se la pide. Antes estas no tenían
+  // botón —eran una lista que no se podía usar— y había que salir de aquí y
+  // escribirlo a mano.
+  const yaLaSabe = (c) => filaDeAccion({
+    etiqueta: enMayuscula(c.nombre),
+    icono: '✨',
+    queHace: c.frase,
+    accion: {
+      tipo: 'pedir',
+      prompt: `Quiero ${c.frase ? c.frase.charAt(0).toLowerCase() + c.frase.slice(1) : c.nombre} Pregúntame lo que necesites.`,
+    },
+  });
+
+  // Una que todavía no: se pulsa y la aprende. El rótulo del montón lo dice,
+  // para que pulsar un nombre no tenga dos significados según dónde estés.
+  const puedeAprenderla = (c) => filaDeAccion({
+    etiqueta: enMayuscula(c.nombre),
+    icono: '＋',
+    queHace: c.frase,
+    accion: { tipo: 'aprenderCapacidad', capacidad: c.id, nombre: c.nombre },
+  });
 
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Habilidades (skills)' }])}
@@ -374,16 +424,16 @@ function pantallaSaberes(datos) {
     ${datos.suyas && datos.suyas.length ? `
       <h2>Las tuyas</h2>
       <p class="detalle">Escritas para esta carpeta, no vienen de ningún catálogo.</p>
-      ${datos.suyas.map((c) => capacidad(c, false)).join('')}
+      ${datos.suyas.map(yaLaSabe).join('')}
       <hr class="separador">` : ''}
 
     ${/* "Ya sabe: todavía nada de esta lista" no le dice nada a nadie, y contar
           la fontanería del arnés menos todavía. Si no hay nada que enseñar en
           un montón, ese montón no sale. */''}
-    ${sabe.length ? `<h2>Ya sabe</h2>${sabe.map((c) => capacidad(c, false)).join('')}` : ''}
+    ${sabe.length ? `<h2>Ya sabe</h2>${sabe.map(yaLaSabe).join('')}` : ''}
     ${otras.length ? `
       <h2>Puestas por el camino</h2>
-      ${otras.map((c) => capacidad(c, false)).join('')}` : ''}
+      ${otras.map(yaLaSabe).join('')}` : ''}
 
     <hr class="separador">
 
@@ -417,8 +467,9 @@ function pantallaSaberes(datos) {
     <hr class="separador">
 
     <h2>Puede aprender</h2>
+    <p class="detalle">Pulsa una y la aprende. La (i) dice para qué sirve.</p>
     ${puede.length
-      ? puede.map((c) => capacidad(c, true)).join('')
+      ? puede.map(puedeAprenderla).join('')
       : nada('Ya sabe todo lo que tenemos.')}
 
   `;
@@ -481,12 +532,12 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'c
 // arriba —son los mismos que se pueden fijar en Acciones rápidas— y detrás los
 // que están escritos y nadie ha marcado, y los que trae el arnés.
 function pantallaComandos({ comandos = [] }) {
-  const fila = (c) => `
-    <div class="entrada">
-      <p class="nombre">${texto(c.etiqueta)}</p>
-      ${c.queHace ? `<p class="pista">${texto(c.queHace)}</p>` : ''}
-      ${boton({ etiqueta: 'Hacerlo', icono: c.icono || '▸', pequeno: true, accion: { tipo: 'pedir', prompt: c.prompt } })}
-    </div>`;
+  const fila = (c) => filaDeAccion({
+    etiqueta: c.etiqueta,
+    icono: c.icono || '▸',
+    queHace: c.queHace,
+    accion: { tipo: 'pedir', prompt: c.prompt },
+  });
 
   const mios = comandos.filter((c) => !c.delArnes);
   const delArnes = comandos.filter((c) => c.delArnes);
@@ -599,13 +650,15 @@ function pantallaAgentes({ agentes = [] }) {
     </div>
 
     ${agentes.length
-      ? agentes.map((a) => `
-        <div class="entrada">
-          <p class="nombre">${texto(a.nombre)}</p>
-          ${a.queHace ? `<p class="pista">${texto(a.queHace)}</p>` : ''}
-          ${boton({ etiqueta: 'Ponlo a trabajar', icono: '▸', pequeno: true, accion: { tipo: 'pedir', prompt: `Quiero que ${a.nombre} haga lo suyo ahora. Pregúntame lo que te falte.` } })}
-          ${boton({ etiqueta: 'Ver su encargo', icono: '📄', pequeno: true, discreto: true, accion: { tipo: 'verAgente', fichero: a.fichero } })}
-        </div>`).join('')
+      ? agentes.map((a) => filaDeAccion({
+        etiqueta: a.nombre.charAt(0).toUpperCase() + a.nombre.slice(1),
+        icono: '🤖',
+        queHace: a.queHace,
+        accion: { tipo: 'pedir', prompt: `Quiero que ${a.nombre} haga lo suyo ahora. Pregúntame lo que te falte.` },
+        // El encargo entero va detrás de la (i): interesa una vez, y antes
+        // competía con el botón que de verdad se pulsa.
+        dentro: boton({ etiqueta: 'Ver su encargo', icono: '📄', pequeno: true, discreto: true, accion: { tipo: 'verAgente', fichero: a.fichero } }),
+      })).join('')
       : nada('Todavía no hay ninguno.')}
 
     <hr class="separador">
@@ -1438,14 +1491,6 @@ function pantallaPrincipal() {
 
     ${/* Aparece solo si esa carpeta construye algo con SDD. Una de contabilidad
           no tendrá specs nunca; una donde se monte una web, sí. */''}
-    ${/* Los ayudantes, como las specs: no salen hasta que hay al menos uno. Un
-          apartado con rótulo y nada dentro es peor que no tener el rótulo. */''}
-    ${estado.hayAgentes ? grupo({
-      id: 'grupo:agentes',
-      etiqueta: 'Ayudantes',
-      dentro: boton({ etiqueta: 'Ver los ayudantes', icono: '🤖', pequeno: true, accion: { tipo: 'verAgentes' } }),
-    }) : ''}
-
     ${estado.hayProyectos ? grupo({
       id: 'grupo:proyectos',
       etiqueta: 'En qué estamos',
@@ -1461,6 +1506,12 @@ function pantallaPrincipal() {
               de una vez, lo que sabe hacer, y con qué está conectado. */''}
         ${boton({ etiqueta: 'Procesos con un clic (comandos)', icono: '🔖', pequeno: true, accion: { tipo: 'verComandos' } })}
         ${boton({ etiqueta: 'Habilidades (skills)', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } })}
+        ${/* Los ayudantes estaban en un apartado suyo, arriba, con un solo
+              botón dentro: un desplegable entero para llegar a una cosa. Y son
+              lo mismo que los otros dos —algo que esta carpeta sabe hacer—, así
+              que van donde están sus hermanos. Siguen sin salir hasta que hay
+              al menos uno: un rótulo con nada detrás es peor que no tenerlo. */''}
+        ${estado.hayAgentes ? boton({ etiqueta: 'Ayudantes (agentes)', icono: '🤖', pequeno: true, accion: { tipo: 'verAgentes' } }) : ''}
         ${boton({ etiqueta: 'Conexiones (tools)', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
         ${boton({
           etiqueta: 'Conectar algo nuevo',
@@ -1861,9 +1912,27 @@ function pintar(html) {
     });
   });
 
+  engancharLasInfos();
   engancharLaBusqueda();
 
   if (mismaPantalla && document.scrollingElement) document.scrollingElement.scrollTop = desplazado;
+}
+
+// La (i) de cada fila. Abre y cierra ahí mismo, sin pedirle nada a la
+// extensión y sin repintar: repintar tiraría el scroll al principio, que en una
+// lista de veinticinco cosas es perder el sitio cada vez que miras una.
+function engancharLasInfos() {
+  app.querySelectorAll('[data-info]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const cual = app.querySelector(`#${b.dataset.info}`);
+      if (!cual) return;
+      const seVe = !cual.hidden;
+      cual.hidden = seVe;
+      b.setAttribute('aria-expanded', String(!seVe));
+      if (seVe) b.classList.remove('abierta');
+      else b.classList.add('abierta');
+    });
+  });
 }
 
 // La caja de buscar: se escribe y los resultados se van afinando solos, sin

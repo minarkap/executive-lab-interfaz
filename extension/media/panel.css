@@ -593,6 +593,51 @@ mark {
 .pieza-nombre { font-weight: 600; }
 .pieza-detalle { grid-column: 2; color: var(--apagado); }
 
+/* ── Una cosa que se puede hacer: el botón y su (i) ─────────────────────
+   Un botón que ocupa toda la fila y, pegada, una (i) cuadrada del mismo alto.
+   Lo que hace esa cosa vive debajo, plegado, y solo sale si se pulsa la (i).
+   Así una lista de veinticinco cabe en una pantalla en vez de en seis. */
+.fila {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.fila > button:first-child { flex: 1; min-width: 0; }
+.fila .texto { overflow-wrap: anywhere; }
+
+button.info {
+  width: var(--alto-boton);
+  min-width: var(--alto-boton);
+  flex: none;
+  justify-content: center;
+  padding: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--apagado);
+}
+button.info:hover { color: var(--texto); }
+button.info.abierta {
+  color: var(--sobre-acento);
+  background: var(--acento-relleno);
+  border-color: var(--acento-relleno);
+}
+
+.loQueHace {
+  margin: -2px 0 var(--hueco);
+  padding: 0.55rem 0.8rem;
+  color: var(--apagado);
+  font-size: 13px;
+  line-height: 1.45;
+  background: var(--superficie-2, var(--superficie));
+  border-left: 3px solid var(--acento);
+  border-radius: 0 var(--radio) var(--radio) 0;
+}
+.loQueHace p { margin: 0; overflow-wrap: anywhere; }
+.loQueHace button { margin: 0.5rem 0 0; }
+.loQueHace[hidden] { display: none; }
+
 /* Una capacidad de la lista de "qué sabe hacer". */
 .capacidad {
   padding: 0.7rem 0;

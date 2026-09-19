@@ -2688,6 +2688,75 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${hay.sueltos.length} sin colocar`;
   });
 
+  await comprobar('una cosa es un botón, y lo que hace está detrás de la (i)', () => {
+    // Jose: «quiero que sea con botones, no tanta cosa. Si quieres saber qué
+    // hace puedes meter una (i) de info». Antes cada cosa eran tres bloques
+    // —nombre, párrafo y un botón que ponía "Hacerlo"— y con veinticinco
+    // habilidades la pantalla era ilegible.
+    const p = require('./panel-falso').montarPanel();
+    const sabe = cargar('saberes').queSabe(RAIZ);
+
+    const pantallas = [
+      ['comandos', { tipo: 'comandos', comandos: cargar('acciones').todos() }],
+      ['agentes', { tipo: 'agentes', agentes: cargar('agentes').queHay() }],
+      ['saberes', { tipo: 'saberes', sabe: sabe.sabe, suyas: sabe.suyas, otras: sabe.otras, puedeAprender: sabe.puedeAprender }],
+    ];
+
+    let filas = 0;
+    for (const [nombre, mensaje] of pantallas) {
+      const pintada = p.mandar(mensaje);
+
+      // Ni una sola cosa de estas listas se pinta ya como un bloque con
+      // párrafo: eso era lo que ocupaba la pantalla entera.
+      assert.ok(!/<div class="entrada">/.test(pintada), `${nombre} sigue pintando bloques`);
+      assert.ok(!/<div class="capacidad">/.test(pintada), `${nombre} sigue pintando bloques`);
+
+      // Cada (i) tiene su explicación, y viene plegada.
+      for (const trozo of pintada.matchAll(/data-info="(q\d+)"/g)) {
+        filas += 1;
+        const id = trozo[1];
+        const bloque = new RegExp(`<div class="loQueHace" id="${id}" hidden>`);
+        assert.match(pintada, bloque, `en ${nombre}, la (i) de ${id} no abre nada`);
+      }
+
+      // Y lo que se ve sin desplegar nada son botones, no prosa: fuera de los
+      // bloques plegados no puede quedar ninguna explicación suelta.
+      const sinPlegados = pintada.replace(/<div class="loQueHace"[\s\S]*?<\/div>/g, '');
+      assert.ok(!/class="pista"/.test(sinPlegados), `${nombre} deja una explicación a la vista`);
+    }
+
+    assert.ok(filas >= 8, `se esperaban al menos 8 filas con (i) y han salido ${filas}`);
+    return `${filas} filas, todas plegadas`;
+  });
+
+  await comprobar('los ayudantes viven con sus hermanos, dentro de Acciones', () => {
+    // Tenían un apartado entero para ellos solos, arriba, con un botón dentro.
+    // Son lo mismo que los comandos y las habilidades —algo que esta carpeta
+    // sabe hacer—, así que van donde están esos dos.
+    const p = require('./panel-falso').montarPanel();
+    // `hayAgentes` viaja DENTRO de `estado`, que es de donde lo lee la
+    // pantalla: si se pone al lado, la prueba pasaría sin probar nada.
+    const comun = (hayAgentes) => ({
+      tipo: 'estado',
+      estado: { listo: true, sabe: 1, conectados: 1, hayAgentes },
+      acciones: [],
+      modo: 'sencillo',
+      marcaPuesta: true,
+      comoSeLlama: 'tu trabajo',
+      pulso: [],
+    });
+
+    const con = p.mandar(comun(true));
+    assert.ok(!/grupo:agentes/.test(con), 'ya no hay un apartado suyo');
+    const dentroDeAcciones = con.split('grupo:acciones')[1] || '';
+    assert.match(dentroDeAcciones, /Ayudantes \(agentes\)/, 'y están dentro de Acciones');
+
+    // Y sin ninguno montado, no se nombran.
+    const sin = p.mandar(comun(false));
+    assert.ok(!/Ayudantes/.test(sin), 'un rótulo con nada detrás es peor que no tenerlo');
+    return 'dentro de Acciones, y solo si hay';
+  });
+
   await comprobar('ningún botón manda un texto vacío', () => {
     // El fallo que tuvo a Jose tres versiones viendo conversaciones vacías, y
     // que las tres veces se buscó en el sitio equivocado. Lo que pasaba era

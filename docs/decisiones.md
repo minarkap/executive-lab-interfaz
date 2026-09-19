@@ -2231,3 +2231,33 @@ Dos comprobaciones nuevas, y las dos fallan si se vuelve a meter:
 - `pedir()` no manda nada que no sea una cadena con contenido: lo apunta con
   nombre y apellidos y dice que ese botón está mal montado, en vez de escribir
   una palabra suelta en la conversación de alguien.
+
+## 80. Una cosa es un botón, y lo que hace está detrás de una (i)
+
+Jose, viendo la lista de comandos: *«quiero que sea con botones, no tanta cosa.
+Si quieres saber qué hace puedes meter una (i) de info y meter ahí las cosas.
+Pero tiene que ser más minimalista»*.
+
+Cada cosa de las tres listas —comandos, habilidades y ayudantes— ocupaba tres
+bloques: el nombre en negrita, un párrafo explicándola, y un botón que ponía
+**"Hacerlo"**. Con seis comandos ya era una pantalla de scroll; con veinticinco
+habilidades, ilegible. Y el botón no decía qué hacía: decía "Hacerlo".
+
+Ahora una cosa **es** un botón, con su nombre. Pegada, una (i) cuadrada que
+abre la explicación debajo, y ahí dentro caben los botones de segunda fila —"Ver
+su encargo"— que antes competían con el primero. La (i) abre y cierra **sin
+repintar**: repintar tira el scroll al principio, que en una lista larga es
+perder el sitio cada vez que miras una.
+
+De paso, dos cosas que estaban mal y se ven al juntarlas:
+
+- **Las habilidades no tenían botón.** Eran una lista que no se podía usar:
+  había que salir y escribirlo a mano. Ahora se pulsa y se pide.
+- **Los ayudantes tenían un apartado entero para ellos solos**, arriba, con un
+  único botón dentro. Son lo mismo que los otros dos —algo que esta carpeta sabe
+  hacer— así que van dentro de **Acciones**, junto a comandos y habilidades.
+  Siguen sin salir hasta que hay al menos uno.
+
+Dos comprobaciones: ninguna de las tres listas puede volver a pintar bloques con
+párrafo a la vista, y los ayudantes tienen que estar dentro de Acciones y solo
+si hay alguno.
