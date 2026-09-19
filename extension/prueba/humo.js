@@ -710,35 +710,41 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   });
 
   // ----------------------------------------------------- el puente a Claude
-  await comprobar('el texto va donde esa persona tenga Claude, y sin abrir nada encima', async () => {
+  await comprobar('el texto va por el enlace, que es el único que lo entrega', async () => {
     vscode.registrado.ejecutados.length = 0;
+    vscode.registrado.abiertos.length = 0;
     const como = await puente.enviar('hola');
     assert.equal(como, 'directo');
 
-    // `editor.open` mira si esa persona tiene Claude en la barra lateral o en
-    // un panel y deja el texto ahí. `primaryEditor.open` abre siempre una
-    // pestaña grande nueva: vale de repuesto, no de primero.
+    // Medido en la máquina de Jose con Claude Code 2.1.276: el enlace deja el
+    // texto en la caja; los dos comandos abren una conversación vacía. Y eso
+    // que el manejador del enlace llama a uno de esos comandos — la diferencia
+    // está dentro de su ventana, no en cómo se le llama.
+    assert.match(vscode.registrado.abiertos.at(-1), /^vscode:\/\/anthropic\.claude-code\/open\?prompt=hola$/);
+    assert.deepEqual(vscode.registrado.ejecutados.map((e) => e.id), [],
+      'con el enlace basta: ni comandos ni enfocar');
+    return 'vscode://anthropic.claude-code/open';
+  });
+
+  await comprobar('si el enlace no se recoge, quedan los comandos', async () => {
+    // Que el enlace falle no puede dejar la barra muda: los comandos siguen
+    // detrás, y la firma es (sesión, texto), leída de su código.
+    vscode.registrado.ejecutados.length = 0;
+    vscode.guion.enlaceFalla = true;
+
+    const como = await puente.enviar('por comando');
+    assert.equal(como, 'directo');
     const envio = vscode.registrado.ejecutados.find((e) => e.id === 'claude-vscode.editor.open');
-    assert.deepEqual(envio.args, [undefined, 'hola'], '(sesión, texto), leído del código de la extensión');
-    assert.ok(!vscode.registrado.ejecutados.some((e) => e.id === 'claude-vscode.primaryEditor.open'),
-      'el de la pestaña grande solo si el otro no está');
+    assert.deepEqual(envio.args, [undefined, 'por comando']);
 
     // Y NO se enfoca después. `claude-vscode.focus` no pone el cursor en la
     // caja: convierte lo seleccionado en una mención y, si nadie puede
-    // cogerla, abre otra conversación. Eso es lo que le dejaba a Jose una
-    // sesión vacía encima de la que acababa de recibir el texto.
+    // cogerla, abre otra conversación. Eso dejaba una sesión vacía encima.
     assert.ok(!vscode.registrado.ejecutados.some((e) => e.id === 'claude-vscode.focus'),
       'enfocar después abría una conversación vacía encima');
-    return 'claude-vscode.editor.open';
-  });
 
-  await comprobar('sin el comando, el puente prueba el enlace profundo', async () => {
-    vscode.guion.comandosDeClaude = ['claude-vscode.focus'];
-    vscode.registrado.abiertos.length = 0;
-    const como = await puente.enviar('por enlace');
-    assert.equal(como, 'directo');
-    assert.match(vscode.registrado.abiertos.at(-1), /^vscode:\/\/anthropic\.claude-code\/open\?prompt=por%20enlace$/);
-    return 'vscode://anthropic.claude-code/open';
+    vscode.guion.enlaceFalla = false;
+    return 'claude-vscode.editor.open, de repuesto';
   });
 
   await comprobar('sin la extensión de Claude, al portapapeles', async () => {

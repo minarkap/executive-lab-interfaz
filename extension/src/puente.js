@@ -3,9 +3,11 @@
 // Qué asistente es y qué permite cada uno está en `asistentes.js`. Aquí solo
 // está el orden en que se intenta hablarle:
 //
-//   1. Un comando suyo que acepte texto.
-//   2. Su enlace profundo, si la extensión que lo recoge está instalada.
+//   1. Su enlace profundo, si la extensión que lo recoge está instalada.
+//   2. Un comando suyo que acepte texto.
 //   3. El portapapeles, avisando de que ha hecho falta.
+//
+// El orden de los dos primeros está medido, no supuesto: ver `enviar`.
 //
 // El paso 3 no es un fallo silencioso: si se llega ahí, el alumno lo sabe y
 // queda anotado en el canal de salida, porque significa que algo ha cambiado
@@ -48,25 +50,33 @@ const abrirConversacion = () => ejecutarSiExiste(asistentes.elDeAhora().abrir);
 // dejarlo en el portapapeles.
 //
 // «Directo» quiere decir que el texto está escrito en su caja, no que se haya
-// enviado: los dos comandos de Claude lo dejan puesto y ya. Lo manda la
-// persona. Quien lea esto y se sienta tentado de prometer más, que mire cómo
-// lo cuenta la barra.
+// enviado: Claude lo deja puesto y ya (`setInputText`). Lo manda la persona.
+// Quien lea esto y se sienta tentado de prometer más, que mire cómo lo cuenta
+// la barra.
+//
+// ── Por qué el enlace va PRIMERO y los comandos de repuesto ──────────────
+//
+// Al revés no funciona, y costó tres intentos averiguarlo. Medido en la
+// máquina de Jose el 19 de septiembre de 2026, con Claude Code 2.1.276:
+//
+//   · `vscode://anthropic.claude-code/open?prompt=…`  →  el texto aparece.
+//   · `claude-vscode.editor.open(undefined, texto)`   →  conversación vacía.
+//   · `claude-vscode.primaryEditor.open(íd.)`         →  conversación vacía.
+//
+// Y eso que el propio manejador del enlace hace `primaryEditor.open(sesión,
+// texto)`, o sea lo mismo que hacíamos nosotros. La diferencia está dentro de
+// su ventana: al arrancar decide qué hacer y hay caminos —una conversación ya
+// abierta, o el control remoto— que se quedan con la sesión y **tiran el texto
+// por el camino**. El enlace entra por donde ellos lo prueban, así que es el
+// que se usa.
+//
+// Los comandos se quedan detrás por si un día el enlace deja de recogerse, y
+// porque en una máquina sin su extensión no hay ni una cosa ni la otra.
 //
 // Y nada de enfocar después. Ver `darFoco`: eso abría una conversación nueva
 // vacía encima de la que acababa de recibir el texto.
 async function enviar(texto, salida) {
   const quien = asistentes.elDeAhora();
-  const hay = await comandosDisponibles();
-
-  for (const comando of quien.envio) {
-    if (!hay.includes(comando)) continue;
-    try {
-      await vscode.commands.executeCommand(comando, undefined, texto);
-      return 'directo';
-    } catch (error) {
-      if (salida) salida.appendLine(`[puente] ${comando} ha fallado: ${error.message}`); // diccionario: interno
-    }
-  }
 
   // openExternal dice que sí en cuanto entrega la URI, sin mirar si alguien la
   // recoge: por eso se comprueba antes que su extensión está instalada.
@@ -76,6 +86,17 @@ async function enviar(texto, salida) {
       if (await vscode.env.openExternal(vscode.Uri.parse(uri))) return 'directo';
     } catch (error) {
       if (salida) salida.appendLine(`[puente] el enlace ha fallado: ${error.message}`); // diccionario: interno
+    }
+  }
+
+  const hay = await comandosDisponibles();
+  for (const comando of quien.envio) {
+    if (!hay.includes(comando)) continue;
+    try {
+      await vscode.commands.executeCommand(comando, undefined, texto);
+      return 'directo';
+    } catch (error) {
+      if (salida) salida.appendLine(`[puente] ${comando} ha fallado: ${error.message}`); // diccionario: interno
     }
   }
 

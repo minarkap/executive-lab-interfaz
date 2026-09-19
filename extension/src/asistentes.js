@@ -6,15 +6,17 @@
 // Lo que cada uno permite hoy (comprobado leyendo sus extensiones el 17 de
 // septiembre de 2026, no adivinado):
 //
-//   CLAUDE (anthropic.claude-code 2.1.276, leído el 19 de septiembre de 2026)
-//     `claude-vscode.editor.open(sesion, prompt, ...)` es el bueno: mira dónde
-//     tiene esa persona puesto Claude Code —barra lateral o panel— y deja el
-//     texto ahí, sin moverle nada de sitio.
+//   CLAUDE (anthropic.claude-code 2.1.276, leído y PROBADO el 19-09-2026)
+//     Se le habla por su enlace: `vscode://anthropic.claude-code/open?prompt=`.
+//     Es lo único que entrega el texto de verdad — probado en la máquina de
+//     Jose. Los dos comandos que lo aceptan abren una conversación vacía, y
+//     eso que el manejador del enlace llama a uno de ellos: lo que se pierde
+//     se pierde dentro de su ventana. El porqué completo, en `puente.js`.
 //
-//     `claude-vscode.primaryEditor.open(sesion, prompt)` también acepta el
-//     texto, y es el que llama su manejador de enlaces, pero abre SIEMPRE una
-//     pestaña grande nueva. Se queda de repuesto, no de primero: Jose pulsó un
-//     botón y se le abrió un panel enorme encima de lo que estaba haciendo.
+//     De repuesto quedan `claude-vscode.editor.open(sesion, prompt, …)` —que
+//     respeta si esa persona tiene Claude en la barra lateral o en un panel— y
+//     `claude-vscode.primaryEditor.open(sesion, prompt)`, que abre siempre una
+//     pestaña grande nueva.
 //
 //     En los dos casos el texto se deja escrito en la caja —`setInputText`—,
 //     NO se envía. Lo tiene que mandar la persona. La barra lo dice así.

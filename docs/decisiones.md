@@ -2175,3 +2175,28 @@ encima de lo que estaba haciendo. Con su permiso se leyó la extensión instalad
 
 La firma `(sesión, texto)` sí era correcta, y así queda apuntado en
 `asistentes.js` con la versión y la fecha en que se leyó.
+
+## 78. A Claude se le habla por su enlace, no por sus comandos
+
+La 77 arregló dos cosas reales pero no la que Jose veía: seguía saliendo una
+conversación vacía. La prueba que lo zanjó fue lanzar a mano el enlace
+documentado, `vscode://anthropic.claude-code/open?prompt=…`, en su máquina:
+**el texto apareció**.
+
+O sea, con Claude Code 2.1.276:
+
+- el enlace → el texto aparece en la caja;
+- `claude-vscode.editor.open(undefined, texto)` → conversación vacía;
+- `claude-vscode.primaryEditor.open(undefined, texto)` → conversación vacía.
+
+Y eso que el manejador del enlace hace exactamente `primaryEditor.open(sesión,
+texto)`. La diferencia está dentro de su ventana: al arrancar, la conversación
+decide qué hacer, y hay caminos —una sesión ya abierta (`keep_opened`), o el
+control remoto (`teleport`), que Jose tiene encendido— que se quedan con la
+sesión y descartan el texto antes de llegar a `fresh_with_prompt`. Por el
+enlace no pasa, que es por donde ellos lo prueban.
+
+Así que el orden se invierte: **enlace primero, comandos de repuesto,
+portapapeles al final**. Queda medido en `puente.js`, con fecha y versión, y con
+una prueba que comprueba que el enlace basta —ni comandos ni enfocar— y otra que
+comprueba que si el enlace no se recoge los comandos siguen detrás.

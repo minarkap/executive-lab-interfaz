@@ -147,6 +147,11 @@ module.exports = {
 
   env: {
     clipboard: { writeText: async (t) => { registrado.portapapeles = t; } },
-    openExternal: async (u) => { registrado.abiertos.push(u.fsPath || u.toString()); return true; },
+    // `enlaceFalla` deja probar lo que pasa cuando nadie recoge el enlace: es
+    // el caso en el que los comandos tienen que entrar de repuesto.
+    openExternal: async (u) => {
+      registrado.abiertos.push(u.fsPath || u.toString());
+      return !guion.enlaceFalla;
+    },
   },
 };
