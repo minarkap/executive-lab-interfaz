@@ -245,6 +245,34 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return '4 intentos, ninguno pasa';
   });
 
+  await comprobar('una carpeta a medio montar se manda a terminarla, no a "Algo va mal"', async () => {
+    // Esto decía «Pulsa "Algo va mal" y lo dejo listo». Probado con una carpeta
+    // a medias de verdad, ese botón **no lo arregla**: hace `repair`, que repara
+    // lo que el arnés gobierna y no el suelo que crea el montaje. Contestaba
+    // «this harness is healthy» con `01-TOOLS` y `02-DOCS` sin estar.
+    //
+    // O sea: el alumno pulsaba lo que se le decía, le respondían que todo iba
+    // bien, y su espacio seguía a medias. Lo que sí lo restaura es volver a
+    // pasar el montaje.
+    const fs2 = require('node:fs');
+    const aMedias = fs2.mkdtempSync(path.join(os.tmpdir(), 'a-medias-'));
+    fs2.writeFileSync(path.join(aMedias, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'] }));
+    // Falta el suelo: `01-TOOLS/_TEMPLATE` y `02-DOCS/wiki/harness`.
+
+    vscode.guion.raiz = aMedias;
+    const estado = await cargar('brujula').estado({ fresco: true });
+    vscode.guion.raiz = empresa;
+
+    assert.equal(estado.listo, false);
+    assert.equal(estado.aMedioPreparar, true, 'se distingue de una carpeta vacía');
+    assert.ok(!/Algo va mal/i.test(estado.aviso), 'no se manda a un botón que no lo arregla');
+
+    const pintada = require('./panel-falso').montarPanel().mandar({ tipo: 'estado', estado });
+    assert.match(pintada, /Terminar de prepararla/, 'se ofrece lo que sí lo termina');
+    assert.match(pintada, /arrancar/, 'que es volver a pasar el montaje');
+    return 'se ofrece terminarla';
+  });
+
   await comprobar('lo que el arnés se apunta a sí mismo no sale como decisión tuya', () => {
     // RSC deja tres líneas en `decisions.md` al montarse: el identificador del
     // plan —un churro de 64 caracteres—, el tipo de proyecto y si SDD quedó
@@ -682,13 +710,26 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   });
 
   // ----------------------------------------------------- el puente a Claude
-  await comprobar('el puente manda el texto por el comando interno', async () => {
+  await comprobar('el texto va donde esa persona tenga Claude, y sin abrir nada encima', async () => {
     vscode.registrado.ejecutados.length = 0;
     const como = await puente.enviar('hola');
     assert.equal(como, 'directo');
-    const envio = vscode.registrado.ejecutados.find((e) => e.id === 'claude-vscode.primaryEditor.open');
-    assert.deepEqual(envio.args, [undefined, 'hola'], 'el mismo camino que usa el enlace de Anthropic');
-    return 'claude-vscode.primaryEditor.open';
+
+    // `editor.open` mira si esa persona tiene Claude en la barra lateral o en
+    // un panel y deja el texto ahí. `primaryEditor.open` abre siempre una
+    // pestaña grande nueva: vale de repuesto, no de primero.
+    const envio = vscode.registrado.ejecutados.find((e) => e.id === 'claude-vscode.editor.open');
+    assert.deepEqual(envio.args, [undefined, 'hola'], '(sesión, texto), leído del código de la extensión');
+    assert.ok(!vscode.registrado.ejecutados.some((e) => e.id === 'claude-vscode.primaryEditor.open'),
+      'el de la pestaña grande solo si el otro no está');
+
+    // Y NO se enfoca después. `claude-vscode.focus` no pone el cursor en la
+    // caja: convierte lo seleccionado en una mención y, si nadie puede
+    // cogerla, abre otra conversación. Eso es lo que le dejaba a Jose una
+    // sesión vacía encima de la que acababa de recibir el texto.
+    assert.ok(!vscode.registrado.ejecutados.some((e) => e.id === 'claude-vscode.focus'),
+      'enfocar después abría una conversación vacía encima');
+    return 'claude-vscode.editor.open';
   });
 
   await comprobar('sin el comando, el puente prueba el enlace profundo', async () => {
@@ -701,14 +742,21 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   });
 
   await comprobar('sin la extensión de Claude, al portapapeles', async () => {
+    // Sin la extensión puesta no hay ni comandos suyos ni nadie que recoja el
+    // enlace: es el único caso en el que el texto acaba en el portapapeles.
+    vscode.guion.comandosDeClaude = [];
     vscode.guion.extensionesInstaladas = [];
+    vscode.registrado.ejecutados.length = 0;
+
     const como = await puente.enviar('adiós');
     assert.equal(como, 'copiado', 'no se manda a un enlace que nadie recoge');
     assert.equal(vscode.registrado.portapapeles, 'adiós');
-    assert.ok(vscode.registrado.ejecutados.some((e) => e.id === 'claude-vscode.focus'), 'y enfoca la caja');
+    assert.deepEqual(vscode.registrado.ejecutados.map((e) => e.id), [],
+      'y no se llama a nada suyo: ni enfocar, que abre una conversación vacía');
+
     vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
-    vscode.guion.comandosDeClaude = ['claude-vscode.primaryEditor.open', 'claude-vscode.focus', 'claude-vscode.editor.openLast'];
-    return 'portapapeles + foco';
+    vscode.guion.comandosDeClaude = ['claude-vscode.editor.open', 'claude-vscode.primaryEditor.open', 'claude-vscode.focus', 'claude-vscode.editor.openLast'];
+    return 'solo al portapapeles';
   });
 
   // ------------------------------------------------- cuando algo falla de verdad
@@ -1214,6 +1262,48 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       }
     }
     return `${suyos.length} ficheros · ${copias.length} copias al día`;
+  });
+
+  await comprobar('volver atrás dice qué pasa con lo que tenías sin guardar', async () => {
+    // Volver atrás hace lo que promete y guarda una copia de lo actual antes,
+    // así que no se pierde nada. Pero el mensaje era «Listo. Tu empresa ha
+    // vuelto a como estaba entonces» y ya: probado con un documento sin
+    // guardar, desaparece de la vista sin una palabra. Quien lo estuviera
+    // escribiendo hace diez minutos no tiene forma de saber que sigue ahí, y
+    // ese susto es de los que hacen llamar al tutor creyendo que se ha perdido.
+    const guardar = cargar('guardar');
+    if (!(await guardar.hayGit())) return 'SALTADA: sin git';
+
+    const donde = fs.mkdtempSync(path.join(os.tmpdir(), 'volver-'));
+    const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
+    assert.ok((await historial.iniciar(donde)).ok, 'la carpeta necesita su historial, como al prepararla');
+    vscode.guion.raiz = donde;
+    try {
+      fs.writeFileSync(path.join(donde, 'factura.txt'), 'uno');
+      await guardar.guardar('Punto de partida');
+      fs.writeFileSync(path.join(donde, 'factura.txt'), 'dos');
+      await guardar.guardar('Otra copia');
+
+      const hay = await guardar.copias(5);
+      assert.equal(hay.length, 2);
+
+      // Con trabajo sin guardar encima.
+      fs.writeFileSync(path.join(donde, 'contrato.txt'), 'lo que no quiero perder');
+      const conTrabajo = await guardar.volverA(hay[1].id);
+      assert.equal(conTrabajo.ok, true);
+      assert.match(conTrabajo.mensaje, /no se ha perdido/, 'se dice que lo de después sigue estando');
+      assert.ok(!fs.existsSync(path.join(donde, 'contrato.txt')), 'y de la carpeta sí se ha ido');
+      assert.ok((await guardar.copias(9)).some((c) => /antes de volver atrás/i.test(c.asunto)),
+        'porque hay una copia de justo antes');
+
+      // Y sin nada pendiente, no se le cuenta un susto que no ha pasado.
+      const limpio = await guardar.volverA((await guardar.copias(9))[2].id);
+      assert.ok(!/no se ha perdido/.test(limpio.mensaje), 'sin trabajo suelto, no sobra el aviso');
+      return 'se dice, y solo cuando toca';
+    } finally {
+      vscode.guion.raiz = empresa;
+      fs.rmSync(donde, { recursive: true, force: true });
+    }
   });
 
   await comprobar('el motor de JavaScript sigue sirviendo de resto', async () => {

@@ -421,7 +421,11 @@ ${cabecera}
   async pedir(prompt) {
     await this.anotarLaPeticion(prompt);
     const como = await puente.enviar(prompt, this.salida);
-    if (como === 'directo') this.enviar({ tipo: 'aviso', texto: 'Se lo he pedido. Mira la conversación.' });
+    // No se dice "se lo he pedido": los dos comandos de Claude dejan el texto
+    // escrito en su caja y no lo envían (asistentes.js lo documenta). Decir que
+    // ya se lo hemos pedido dejaba a la persona esperando una respuesta que no
+    // iba a llegar hasta que ella misma le diera a enviar.
+    if (como === 'directo') this.enviar({ tipo: 'aviso', texto: 'Te lo he dejado escrito en la conversación. Dale a enviar.' });
   }
 
   // Se guardan las últimas peticiones para poder ver cuál se repite y ofrecer

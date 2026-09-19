@@ -2145,3 +2145,33 @@ fabricaba una de las piezas del suelo que estaba diagnosticando: el informe
 siguiente ya decía que `02-DOCS` existía. Ahora, si no hay suelo, el informe se
 escribe fuera del proyecto, en la carpeta de la extensión, y la pantalla ofrece
 "Enseñar el informe" para abrirlo al lado sin buscarlo.
+
+## 77. Los botones hablan por `editor.open`, y después no se enfoca nada
+
+Jose pulsó "Revisar la barra" y se le abrió **una sesión de Claude Code vacía**
+encima de lo que estaba haciendo. Con su permiso se leyó la extensión instalada
+(`anthropic.claude-code 2.1.276`). Tres cosas, y dos eran culpa nuestra:
+
+- **`claude-vscode.focus` no pone el cursor en la caja.** Coge lo que haya
+  seleccionado en el editor, lo convierte en una mención y se la entrega a una
+  conversación; si ninguna puede cogerla, **abre otra**
+  (`editor.openLast`). Lo llamábamos justo después de mandar el texto, o sea
+  medio segundo después de crear la conversación que lo acababa de recibir: o
+  le caía encima una mención vacía, o se abría una segunda conversación en
+  blanco. Se deja de llamar.
+
+- **`primaryEditor.open` abre siempre una pestaña grande nueva.** Es el que usa
+  su manejador de enlaces, y por eso lo teníamos de primero. Pero hay otro,
+  `claude-vscode.editor.open(sesión, texto, …)`, que mira dónde tiene esa
+  persona puesto Claude Code —barra lateral o panel— y deja el texto ahí, sin
+  moverle nada de sitio. Pasa a ser el primero; el otro queda de repuesto.
+
+- **El texto se deja escrito, no se envía.** Los dos comandos lo meten en la
+  caja (`data-initial-prompt` → `setInputText`) y ahí se queda. La barra decía
+  «Se lo he pedido. Mira la conversación.», que es mentira: la persona se
+  quedaba esperando una respuesta que no iba a llegar hasta que ella misma
+  diera a enviar. Ahora dice **«Te lo he dejado escrito en la conversación.
+  Dale a enviar.»**
+
+La firma `(sesión, texto)` sí era correcta, y así queda apuntado en
+`asistentes.js` con la versión y la fecha en que se leyó.

@@ -166,12 +166,31 @@ async function calcular() {
     };
   }
 
+  // ── A medio preparar: se manda a terminarlo, no a "Algo va mal" ────────
+  //
+  // Esto decía «Pulsa "Algo va mal" y lo dejo listo». Se probó con una carpeta
+  // a medias de verdad —como queda si se cierra el editor a mitad del montaje—
+  // y ese botón **no lo arregla**: hace `repair`, que repara lo que el arnés
+  // gobierna (habilidades, enganches) y no el suelo que crea el montaje. La
+  // respuesta era «this harness is healthy» con `01-TOOLS` y `02-DOCS` sin
+  // estar.
+  //
+  // O sea que el alumno pulsaba lo que se le decía, le contestaban que todo
+  // estaba bien, y su espacio seguía a medias. Un callejón, y encima con un
+  // mensaje tranquilizador.
+  //
+  // Lo que sí lo restaura es volver a pasar el montaje, que es lo que hace
+  // «Preparar esta carpeta» — comprobado: vuelve a dejar el suelo entero.
   if (!proyecto.arnesCompleto()) {
     return {
       listo: false,
+      sinArnes: true,
+      aMedioPreparar: true,
       donde: 'Tu espacio está a medio preparar',
       hiciste: null,
-      aviso: 'Falta parte de la preparación inicial. Pulsa "Algo va mal" y lo dejo listo.',
+      aviso: 'Se quedó algo sin montar, seguramente porque se cerró antes de tiempo. Se termina en un momento y no se pierde nada de lo que ya haya.',
+      faltaGit: !(await guardar.hayGit()),
+      comoSeInstalaGit: git.comoSeInstala(),
     };
   }
 

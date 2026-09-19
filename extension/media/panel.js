@@ -1248,9 +1248,16 @@ function bloqueYaEmpezada() {
 // se ofrece prepararla: sin él la preparación aborta a mitad, y enseñar un
 // botón que no puede funcionar es peor que no enseñarlo.
 function pantallaSinArnes() {
+  // Una carpeta a medio montar no se «prepara», se termina: decirle otra cosa
+  // le haría pensar que va a empezar de cero y a perder lo que ya hay.
   const ofrecer = estado.yaEmpezada
     ? bloqueYaEmpezada()
-    : boton({ etiqueta: 'Preparar esta carpeta', icono: '✳', principal: true, accion: { tipo: 'arrancar' } });
+    : boton({
+      etiqueta: estado.aMedioPreparar ? 'Terminar de prepararla' : 'Preparar esta carpeta',
+      icono: '✳',
+      principal: true,
+      accion: { tipo: 'arrancar' },
+    });
 
   return `
     ${bloqueAviso()}

@@ -35,6 +35,10 @@ async function ejecutarSiExiste(candidatos) {
   }
 }
 
+// OJO con esto: en Claude, `claude-vscode.focus` no pone el cursor en la caja.
+// Coge lo seleccionado en el editor, lo convierte en una mención y se la
+// entrega a una conversación — y si ninguna puede cogerla, ABRE OTRA. Así que
+// no se llama después de mandar un texto: ver `enviar`.
 const darFoco = () => ejecutarSiExiste(asistentes.elDeAhora().foco);
 
 // Abre su chat sin texto: al arrancar, para que el alumno lo tenga delante.
@@ -42,6 +46,14 @@ const abrirConversacion = () => ejecutarSiExiste(asistentes.elDeAhora().abrir);
 
 // Manda un texto. Devuelve 'directo' si ha llegado, 'copiado' si hubo que
 // dejarlo en el portapapeles.
+//
+// «Directo» quiere decir que el texto está escrito en su caja, no que se haya
+// enviado: los dos comandos de Claude lo dejan puesto y ya. Lo manda la
+// persona. Quien lea esto y se sienta tentado de prometer más, que mire cómo
+// lo cuenta la barra.
+//
+// Y nada de enfocar después. Ver `darFoco`: eso abría una conversación nueva
+// vacía encima de la que acababa de recibir el texto.
 async function enviar(texto, salida) {
   const quien = asistentes.elDeAhora();
   const hay = await comandosDisponibles();
@@ -50,7 +62,6 @@ async function enviar(texto, salida) {
     if (!hay.includes(comando)) continue;
     try {
       await vscode.commands.executeCommand(comando, undefined, texto);
-      await darFoco();
       return 'directo';
     } catch (error) {
       if (salida) salida.appendLine(`[puente] ${comando} ha fallado: ${error.message}`); // diccionario: interno
@@ -70,7 +81,6 @@ async function enviar(texto, salida) {
 
   await vscode.env.clipboard.writeText(texto);
   await abrirConversacion();
-  await darFoco();
 
   if (salida) salida.appendLine(`[puente] sin canal directo con ${quien.nombre}: al portapapeles`); // diccionario: interno
   vscode.window.showWarningMessage(

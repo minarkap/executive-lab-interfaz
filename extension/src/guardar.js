@@ -131,7 +131,26 @@ async function volverA(id) {
   const etiqueta = movido.cuando ? haceCuanto(movido.cuando) : 'entonces';
   await h.guardar(donde, `Vuelta a como estaba ${etiqueta}`, comoLlamar());
 
-  return { ok: true, mensaje: 'Listo. Tu empresa ha vuelto a como estaba entonces.' };
+  // ── Decir lo que le acaba de pasar a lo que tenía sin guardar ──────────
+  //
+  // Volver atrás hace justo lo que promete: la carpeta vuelve a como estaba.
+  // Lo que no decía es que el trabajo de después **desaparece de la carpeta**.
+  // Está a salvo —la copia de arriba se hace antes precisamente para eso— pero
+  // el mensaje era «Listo. Tu empresa ha vuelto a como estaba entonces» y nada
+  // más.
+  //
+  // Probado con un documento sin guardar: desaparece de la vista sin una
+  // palabra. Quien lo estuviera escribiendo hace diez minutos no tiene forma de
+  // saber que sigue existiendo, y el susto es de los que hacen llamar al tutor
+  // creyendo que se ha perdido algo. Se dice, y solo cuando de verdad había
+  // algo que salvar.
+  const habiaTrabajoSinGuardar = previa.ok && !previa.sinCambios;
+  return {
+    ok: true,
+    mensaje: habiaTrabajoSinGuardar
+      ? `Listo. Tu empresa ha vuelto a como estaba ${etiqueta}. Lo que tenías hecho después ya no está en las carpetas, pero no se ha perdido: lo guardé justo antes, y aquí abajo lo tienes para volver.`
+      : `Listo. Tu empresa ha vuelto a como estaba ${etiqueta}.`,
+  };
 }
 
 // --------------------------------------- la copia que no está en este Mac

@@ -6,10 +6,24 @@
 // Lo que cada uno permite hoy (comprobado leyendo sus extensiones el 17 de
 // septiembre de 2026, no adivinado):
 //
-//   CLAUDE (anthropic.claude-code 2.1.273)
-//     `claude-vscode.primaryEditor.open(sesion, prompt)` abre una conversación
-//     con el texto ya puesto. Es el comando al que llama su propio manejador
-//     de enlaces, así que es el camino de la casa.
+//   CLAUDE (anthropic.claude-code 2.1.276, leído el 19 de septiembre de 2026)
+//     `claude-vscode.editor.open(sesion, prompt, ...)` es el bueno: mira dónde
+//     tiene esa persona puesto Claude Code —barra lateral o panel— y deja el
+//     texto ahí, sin moverle nada de sitio.
+//
+//     `claude-vscode.primaryEditor.open(sesion, prompt)` también acepta el
+//     texto, y es el que llama su manejador de enlaces, pero abre SIEMPRE una
+//     pestaña grande nueva. Se queda de repuesto, no de primero: Jose pulsó un
+//     botón y se le abrió un panel enorme encima de lo que estaba haciendo.
+//
+//     En los dos casos el texto se deja escrito en la caja —`setInputText`—,
+//     NO se envía. Lo tiene que mandar la persona. La barra lo dice así.
+//
+//     Y `claude-vscode.focus` NO es «pon el cursor en la caja», aunque se
+//     llame así: coge lo que haya seleccionado en el editor, lo convierte en
+//     una mención y se la entrega a una conversación; si ninguna puede
+//     cogerla, abre otra. Llamarlo justo después de mandar el texto era lo que
+//     le dejaba a Jose una conversación vacía encima de la buena.
 //
 //   CODEX (openai.chatgpt 26.5908.31748)
 //     No expone NINGÚN comando que acepte texto. `chatgpt.addToThread` manda la
@@ -26,8 +40,9 @@ const ASISTENTES = [
     id: 'claude',
     nombre: 'Claude',
     extension: 'anthropic.claude-code',
-    // Comandos que aceptan (sesión, texto). Se prueban por orden.
-    envio: ['claude-vscode.primaryEditor.open', 'claude-vscode.editor.open'],
+    // Comandos que aceptan (sesión, texto). Se prueban por orden, y el orden
+    // importa: ver arriba.
+    envio: ['claude-vscode.editor.open', 'claude-vscode.primaryEditor.open'],
     enlace: 'vscode://anthropic.claude-code/open',
     // Cómo se le pasa el texto por el enlace.
     parametro: 'prompt',

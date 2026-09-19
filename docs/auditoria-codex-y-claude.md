@@ -8,11 +8,11 @@ Método: se leyó la tabla de rutas del propio RSC 1.4.1 —el que viaja dentro 
 `extension/media/harness/`— y se contrastó contra lo que hace la barra, montando carpetas de las dos
 clases y ejecutando el código de verdad sobre ellas. Nada de esto sale de leer el código y suponer.
 
-**Resultado en una línea:** el mapeo estaba bien pensado y a medio aplicar. Veintinueve hallazgos, uno
+**Resultado en una línea:** el mapeo estaba bien pensado y a medio aplicar. Treinta y un hallazgos, uno
 de ellos de fondo: con Codex, los raíles de Executive Lab —la habilidad que fija el español y el
 vocabulario— se escribían en una carpeta que Codex no lee jamás.
 
-**Veintisiete corregidos y con prueba que los sujeta.** De los otros dos: **A17** está corregido a medias
+**Veintinueve corregidos y con prueba que los sujeta.** De los otros dos: **A17** está corregido a medias
 —se callan tres de los avisos que mandan al alumno a una terminal, y queda dicho el que necesita
 probarse en Windows— y **A16** se deja señalado entero, porque es una decisión tuya y no un arreglo.
 
@@ -39,7 +39,7 @@ No todo estaba roto, y conviene decir qué se sostiene, porque es lo que no hay 
 Severidad: **crítico** = una pieza del producto no hace nada y no lo dice · **alto** = falla en un
 caso habitual · **medio** = calidad o una afirmación que dejó de ser verdad.
 
-Los veintinueve, de un vistazo:
+Los treinta y uno, de un vistazo:
 
 | | Qué pasaba | Dónde |
 |---|---|---|
@@ -72,6 +72,8 @@ Los veintinueve, de un vistazo:
 | A27 | Si el `.env` no se podía escribir, el botón «Guardar» se quedaba mudo | `conexiones.js` |
 | A28 | El reloj de los procesos no cortaba: la barra esperaba a los nietos | `procesos.js` |
 | A29 | «Las decisiones» enseñaba la fontanería del arnés, en inglés y con un hash | `diario.js` |
+| A30 | Una carpeta a medio montar se mandaba a un botón que no la arregla | `brujula.js` |
+| A31 | Volver atrás hacía desaparecer el trabajo sin guardar sin decir que estaba a salvo | `guardar.js` |
 
 Los cuatro de abajo —A1, A9, A11, A14— comparten forma: **no fallan, enseñan cero**. Es la manera de
 romperse que tiene este producto, y la que no salta en ninguna pantalla de error.
@@ -263,6 +265,37 @@ tocarlos a mano.
 **Esto se deja señalado y sin tocar, a propósito.** Reconsiderar esas cuatro cambia cómo el arnés
 gobierna el proyecto —mete agentes, enganches de código, un flujo de especificación— y eso lo decide
 Jose, no una auditoría. El CLI las vuelve a plantear de forma interactiva.
+
+**A31 · Volver atrás hacía desaparecer el trabajo sin guardar, sin decir que estaba a salvo.**
+«Volver a como estaba» está bien hecho por dentro: antes de mover nada guarda una copia del estado
+actual, así que no se pierde nada. Pero lo que le decía al alumno era *«Listo. Tu empresa ha vuelto a
+como estaba entonces»* y ya.
+
+Probado con un documento sin guardar encima: desaparece de la carpeta sin una palabra. Quien lo
+estuviera escribiendo hace diez minutos no tiene forma de saber que sigue existiendo, y ese susto es
+de los que hacen llamar al tutor creyendo que se ha perdido trabajo. La barra hacía lo correcto y no
+lo contaba — el mismo patrón que A21 y A26.
+
+Corregido: ahora dice que lo de después ya no está en las carpetas, que no se ha perdido, y que la
+copia de justo antes está ahí mismo para volver. Y **solo cuando de verdad había algo sin guardar**:
+si no lo había, no se cuenta un susto que no ha pasado.
+
+**A30 · Una carpeta a medio montar se mandaba a un botón que no la arregla.**
+Si el montaje se corta a mitad —se cierra el editor, se va la luz— queda el `.rsc.json` pero falta el
+suelo: `01-TOOLS/` y `02-DOCS/`. La barra lo detecta bien y decía: *«Falta parte de la preparación
+inicial. Pulsa "Algo va mal" y lo dejo listo.»*
+
+Se probó con una carpeta así de verdad. «Algo va mal» hace `rsc repair`, y `repair` repara lo que el
+arnés gobierna —habilidades, enganches, enlaces— **no el suelo, que lo crea el montaje**. Su
+respuesta, medida: *«Nothing to repair — this harness is healthy»*, con las dos carpetas sin estar.
+
+O sea: el alumno pulsa exactamente lo que se le dice, le contestan que todo está sano, y su espacio
+sigue a medias. Un callejón sin salida, y encima con un mensaje tranquilizador — de los peores que
+puede dar esta barra, porque le quita la razón para pedir ayuda.
+
+Comprobado qué sí lo arregla: volver a pasar el montaje restaura el suelo entero. Así que ahora se
+ofrece **«Terminar de prepararla»**, y el aviso explica qué pasó y que no se pierde nada — que es lo
+que alguien necesita oír antes de pulsar algo sobre una carpeta a medias.
 
 **A29 · «Las decisiones» enseñaba la fontanería del arnés, y el primer día solo eso.**
 RSC deja tres líneas en `02-DOCS/wiki/harness/decisions.md` en cuanto monta: el identificador del
@@ -599,6 +632,17 @@ Vale la pena dejarlo escrito para que nadie lo vuelva a mirar sin motivo:
   y abre una página. El repositorio al que apunta coincide con el remoto de verdad, así que el aviso
   llega — comprobado, porque una URL escrita a mano que ya no existe es de las que fallan callando.
 - **`demo.sh`.** No monta rutas de asistente a mano y fija la versión del arnés exacta.
+- **Una carpeta con acentos, espacios y ampersand.** Se montó un arnés en `Gestoría Pérez &
+  Asociados` —el nombre que pondría un alumno español de verdad— y aguanta entero: el montaje, las
+  nueve habilidades, los botones, guardar una clave, **conectar** (o sea que `bash` traga la ruta con
+  espacios) y escribir el informe de incidencia. Se probó a propósito después de A22, por si el
+  problema de los acentos estaba también en la raíz del proyecto. No lo está.
+- **Los doce «Pulsa "Algo va mal"».** Se repasaron uno a uno tras A30, preguntando si ese botón
+  arregla lo que dice. Aquí sí es el destino correcto: son fallos de permisos, de git o del editor, y
+  «Algo va mal» recoge el informe y da un código para el tutor, que es lo que hace falta cuando no se
+  puede arreglar solo. Lo que chirría es la redacción —«Prueba con» suena a arreglo automático—, y eso
+  queda **propuesto y sin tocar**: reescribir doce mensajes de pantalla es decisión de Jose.
+  `arrancar.js` ya tiene el modelo bueno: «Pulsa "Algo va mal" y pásale el código a tu tutor».
 - **Los dos desinstaladores.** Se miraron buscando lo mismo que falló en A19 —una herramienta que
   sabe lo de hoy y olvida lo de ayer— y los dos conocen el identificador viejo `executivelab.panel`,
   el de hasta la 0.8.4. Ni el de Windows ni el de macOS se han quedado atrás. A19 era la excepción.

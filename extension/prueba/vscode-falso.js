@@ -15,7 +15,7 @@ const registrado = {
 
 // Lo que las pruebas pueden cambiar antes de llamar.
 const guion = {
-  comandosDeClaude: ['claude-vscode.primaryEditor.open', 'claude-vscode.focus', 'claude-vscode.editor.openLast'],
+  comandosDeClaude: ['claude-vscode.editor.open', 'claude-vscode.primaryEditor.open', 'claude-vscode.focus', 'claude-vscode.editor.openLast'],
   eleccion: undefined,      // qué devuelve showQuickPick / showWarningMessage
   escrito: undefined,       // qué devuelve showInputBox
   // Una entrevista entera, en orden. Cada respuesta se consume al preguntar:
