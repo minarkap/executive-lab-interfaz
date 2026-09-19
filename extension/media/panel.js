@@ -1294,8 +1294,15 @@ function pantallaPrincipal() {
 
   // Los botones no están predefinidos: son los comandos que tenga esta
   // empresa, y el asistente va creando más conforme se repiten tareas.
+  //
+  // La acción se coge TAL CUAL viene, sin rehacerla aquí. Rehacerla era el
+  // fallo que tuvo a Jose tres versiones viendo conversaciones vacías: esto
+  // ponía `prompt: a.prompt` y lo que manda `fijadas.js` es `a.accion.prompt`,
+  // así que cada botón mandaba `undefined` y acabó escrito, literalmente, en
+  // su caja de Claude. Y de paso convertía en 'pedir' las consultas de los
+  // programas, que son 'hacerCosita' y no llevan prompt ninguno.
   const descubiertos = accionesDescubiertas
-    .map((a, i) => boton({ etiqueta: a.etiqueta, icono: a.icono, principal: i === 0, accion: { tipo: 'pedir', prompt: a.prompt } }))
+    .map((a, i) => boton({ etiqueta: a.etiqueta, icono: a.icono, principal: i === 0, accion: a.accion }))
     .join('');
 
   // Recién montado: lo primero es tener cuenta y sesión. Sin eso, el chat no

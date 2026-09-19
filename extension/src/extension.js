@@ -419,6 +419,17 @@ ${cabecera}
   }
 
   async pedir(prompt) {
+    // Un botón sin texto no se manda. Parece de cajón y no lo era: un botón mal
+    // montado le escribió a Jose la palabra "undefined" en su conversación,
+    // porque `encodeURIComponent(undefined)` es la cadena "undefined" y el
+    // enlace la entregó tan contento. Lo que llegue vacío se queda aquí, se
+    // apunta con nombre y apellidos, y se dice que algo va mal.
+    if (typeof prompt !== 'string' || !prompt.trim()) {
+      this.salida.appendLine(`[pedir] un botón ha mandado un texto que no vale: ${JSON.stringify(prompt)}`); // diccionario: interno
+      this.enviar({ tipo: 'aviso', texto: 'Ese botón está mal montado. Prueba con "Algo va mal".', malo: true });
+      return;
+    }
+
     await this.anotarLaPeticion(prompt);
     const como = await puente.enviar(prompt, this.salida);
     // No se dice "se lo he pedido": los dos comandos de Claude dejan el texto

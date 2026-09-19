@@ -2688,6 +2688,52 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${hay.sueltos.length} sin colocar`;
   });
 
+  await comprobar('ningún botón manda un texto vacío', () => {
+    // El fallo que tuvo a Jose tres versiones viendo conversaciones vacías, y
+    // que las tres veces se buscó en el sitio equivocado. Lo que pasaba era
+    // esto: `fijadas.js` manda la acción dentro de `a.accion`, y la pantalla
+    // principal la rehacía leyendo `a.prompt`, que no existe. Cada botón de
+    // Acciones rápidas mandaba `undefined` — y por el enlace, que sí entrega,
+    // acabó escrita la palabra "undefined" en su caja de Claude.
+    //
+    // Se comprueba sobre TODA la pantalla y no solo sobre esos botones: la
+    // regla es que ningún botón de la barra puede pedir algo sin texto.
+    const p = require('./panel-falso').montarPanel();
+    const fijadasM = cargar('fijadas');
+    const almacen = { get: () => undefined, update: async () => {} };
+
+    const puestas = fijadasM.puestas(almacen, RAIZ);
+    assert.ok(puestas.length, 'la empresa de mentira tiene algo que fijar, o esto no prueba nada');
+
+    const pintada = p.mandar({
+      tipo: 'estado',
+      estado: { listo: true, sabe: 1, conectados: 1 },
+      acciones: puestas,
+      modo: 'sencillo',
+      marcaPuesta: true,
+      comoSeLlama: 'tu trabajo',
+      pulso: [],
+    });
+
+    const desescapar = (v) => v.replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+    let mirados = 0;
+    for (const trozo of pintada.matchAll(/data-accion="([^"]*)"/g)) {
+      const accion = JSON.parse(desescapar(trozo[1]));
+      if (accion.tipo !== 'pedir') continue;
+      mirados += 1;
+      assert.equal(typeof accion.prompt, 'string', `"${accion.tipo}" sin texto: ${JSON.stringify(accion)}`);
+      assert.ok(accion.prompt.trim(), `un botón pide algo vacío: ${JSON.stringify(accion)}`);
+    }
+    assert.ok(mirados >= puestas.length, `se esperaban al menos ${puestas.length} botones y se han mirado ${mirados}`);
+
+    // Y el texto es el del comando, no uno inventado por la pantalla.
+    const primero = JSON.parse(desescapar(pintada.match(/data-accion="([^"]*)"/)[1]));
+    assert.equal(primero.prompt, puestas[0].accion.prompt, 'la acción se coge tal cual viene');
+    return `${mirados} botones, todos con texto`;
+  });
+
   await comprobar('el aviso que manda a un botón trae el botón consigo', () => {
     // Montar el arnés falla y el aviso dice «Pulsa "Algo va mal"». Ese botón
     // vive dentro de Ayuda, y Ayuda solo sale cuando YA hay arnés: o sea, en la

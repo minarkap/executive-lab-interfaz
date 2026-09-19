@@ -2200,3 +2200,34 @@ Así que el orden se invierte: **enlace primero, comandos de repuesto,
 portapapeles al final**. Queda medido en `puente.js`, con fecha y versión, y con
 una prueba que comprueba que el enlace basta —ni comandos ni enfocar— y otra que
 comprueba que si el enlace no se recoge los comandos siguen detrás.
+
+## 79. La acción de un botón se coge tal cual viene
+
+Tres versiones buscando en el sitio equivocado. El fallo era que la caja de
+Claude ponía, literalmente, **`undefined`**.
+
+`fijadas.js` devuelve cada cosa fijada como
+`{ id, etiqueta, icono, pista, accion }` — la acción **dentro** de `accion`. La
+pantalla principal la rehacía a mano:
+
+    accion: { tipo: 'pedir', prompt: a.prompt }   // a.prompt no existe
+
+Así que todos los botones de Acciones rápidas mandaban `prompt: undefined`, y de
+paso las consultas de los programas —que son `hacerCosita` y no llevan prompt—
+se convertían en `pedir`. Ahora se pasa `a.accion` y punto: **la acción se coge
+tal cual viene, no se reconstruye en la pantalla.**
+
+Por qué costó tanto: por el camino de los comandos, `undefined` llegaba como
+"sin texto" y salía una conversación en blanco — que es lo que se veía, y lo que
+mandó a buscar el fallo dentro de Claude Code. Al pasar al enlace,
+`encodeURIComponent(undefined)` es la cadena `"undefined"` y **se vio escrita**.
+Un fallo que se ve es un fallo que se arregla; los dos días anteriores se
+arreglaron cosas reales (decisiones 77 y 78) que no eran ésta.
+
+Dos comprobaciones nuevas, y las dos fallan si se vuelve a meter:
+
+- toda la pantalla principal se recorre y **ningún botón puede pedir algo sin
+  texto**, con los datos de verdad de `fijadas.puestas()`;
+- `pedir()` no manda nada que no sea una cadena con contenido: lo apunta con
+  nombre y apellidos y dice que ese botón está mal montado, en vez de escribir
+  una palabra suelta en la conversación de alguien.
