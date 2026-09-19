@@ -46,3 +46,20 @@ camino que existe precisamente para cuando algo va mal. Worklog:
 Queda abierto: `claude-vscode.primaryEditor.open` no da error pero no mete el texto, así que los
 botones abren una sesión vacía. Confirmar la firma real necesita leer la extensión instalada, que está
 fuera del directorio de trabajo.
+
+## A Claude se le habla por su enlace — 19 de septiembre de 2026
+
+Los botones de la barra abrían una conversación vacía. Worklog:
+`02-DOCS/raw/worklog/2026-09-19-a-claude-se-le-habla-por-su-enlace.md`.
+
+- **El enlace es el único camino que entrega el texto.** Probado con Claude Code 2.1.276: el enlace
+  `vscode://anthropic.claude-code/open?prompt=…` lo deja en la caja; `editor.open` y
+  `primaryEditor.open` abren una conversación vacía, aunque el manejador del enlace llame a uno de
+  ellos. Lo que se pierde se pierde dentro de su ventana: `keep_opened` y `teleport` —el control
+  remoto— se quedan con la sesión y descartan el texto. Orden nuevo: enlace, comandos, portapapeles.
+- **`claude-vscode.focus` no enfoca.** Entrega una mención y, si nadie puede cogerla, abre otra
+  conversación. No se llama después de mandar un texto.
+- **El texto se deja escrito, no se envía.** La barra dejó de prometer lo contrario.
+
+Lo que la barra dice de cada asistente está medido, con versión y fecha, en `asistentes.js`. Cuando
+Claude Code cambie de versión, esa tabla es lo primero que hay que volver a probar.
