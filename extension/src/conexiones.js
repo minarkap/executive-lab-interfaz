@@ -71,11 +71,36 @@ function enmascarar(valor) {
   return valor.length <= 4 ? '••••' : `••••${valor.slice(-4)}`;
 }
 
+// ── Qué nombre de carpeta vale ───────────────────────────────────────────
+//
+// Esto exigía `/^[\w.-]+$/`, y `\w` es `[A-Za-z0-9_]`: ni acentos, ni eñes, ni
+// espacios. En un producto para alumnos **españoles**, con un asistente al que
+// le imponemos escribir en español, eso significaba que `01-TOOLS/Señal/` o
+// `01-TOOLS/Correo-Electrónico/` salían en la lista —`proveedores()` lista
+// cualquier carpeta— y al abrirlas no había nada. Al intentar guardar una
+// clave la barra contestaba «Esa conexión ya no está», que además de falso
+// hace pensar que se ha borrado sola.
+//
+// La comprobación estaba para una cosa buena: que un id venido de la interfaz
+// no se salga de `01-TOOLS`. Pero una lista blanca de letras no es la forma de
+// pedir eso — se mira dónde cae la ruta de verdad, que es más seguro y no deja
+// fuera media lengua.
 function carpetaDe(proveedorId) {
-  // Sin barras ni puntos: el id viene de la interfaz y nombra una carpeta.
-  if (!/^[\w.-]+$/.test(proveedorId) || proveedorId.startsWith('_') || proveedorId.startsWith('.')) return null;
-  const carpeta = proyecto.ruta(CARPETA, proveedorId);
-  return carpeta && fs.existsSync(carpeta) ? carpeta : null;
+  if (typeof proveedorId !== 'string' || !proveedorId.trim()) return null;
+  // Un nombre de carpeta, no una ruta: nada de barras ni de subir por el árbol.
+  if (/[\\/]/.test(proveedorId) || proveedorId === '..') return null;
+  // `_TEMPLATE` es la plantilla y lo que empieza por punto no se enseña, igual
+  // que en `proveedores()`.
+  if (proveedorId.startsWith('_') || proveedorId.startsWith('.')) return null;
+
+  const base = proyecto.ruta(CARPETA);
+  if (!base) return null;
+
+  // Y el cinturón: caiga donde caiga, tiene que quedar dentro de 01-TOOLS.
+  const completa = path.resolve(base, proveedorId);
+  if (!completa.startsWith(path.resolve(base) + path.sep)) return null;
+
+  return fs.existsSync(completa) ? completa : null;
 }
 
 // El README de cada proveedor empieza con "# Nombre". Si sigue siendo el
@@ -89,14 +114,42 @@ function etiquetaDeProveedor(id, carpeta) {
   return PROVEEDORES[id.toLowerCase()] || humanizar(id);
 }
 
+// ── Cómo se escriben los `.env` de verdad ────────────────────────────────
+//
+// Probando con arneses nuevos salieron dos formas que esto leía mal, y las dos
+// hacían que la barra se creyera cosas que no son:
+//
+//   `export CLAVE=valor`  — la gente lo escribe, y `sueltas.js` ya lo daba por
+//     supuesto. Aquí la clave salía llamándose «export CLAVE», así que la
+//     pantalla enseñaba la misma dos veces: una diciendo que faltaba y otra
+//     con su valor puesto.
+//
+//   `CLAVE=   # una nota`  — el comentario se tomaba como el valor, así que una
+//     clave vacía contaba como puesta, la cuenta de las que faltan mentía, y
+//     «Probar la conexión» se lanzaba creyendo que estaba todo.
+//
+// El comentario solo se quita cuando lleva un espacio delante, que es la regla
+// de siempre: una contraseña puede ser `abc#123` y ahí el `#` es suyo. Y si el
+// valor va entre comillas, dentro no se toca nada.
 function leerEnv(fichero) {
   if (!fs.existsSync(fichero)) return new Map();
   const valores = new Map();
   for (const linea of fs.readFileSync(fichero, 'utf8').split('\n')) {
     const limpia = linea.trim();
     if (!limpia || limpia.startsWith('#') || !limpia.includes('=')) continue;
+
     const corte = limpia.indexOf('=');
-    valores.set(limpia.slice(0, corte).trim(), limpia.slice(corte + 1).trim().replace(/^["']|["']$/g, ''));
+    const clave = limpia.slice(0, corte).trim().replace(/^export\s+/, '');
+    // Sin recortar todavía: el espacio de antes del `#` es lo que distingue un
+    // comentario de una contraseña que empiece por almohadilla.
+    const crudo = limpia.slice(corte + 1);
+    let valor;
+
+    const entreComillas = crudo.trim().match(/^(["'])([\s\S]*?)\1/);
+    if (entreComillas) valor = entreComillas[2];
+    else valor = crudo.replace(/\s#.*$/, '').trim();
+
+    valores.set(clave, valor);
   }
   return valores;
 }
@@ -179,6 +232,24 @@ function dondeSeConsigue(carpeta) {
   return null;
 }
 
+// ── Una conexión a medio hacer no es una conexión ────────────────────────
+//
+// El asistente crea una herramienta copiando `01-TOOLS/_TEMPLATE/`, y esa
+// plantilla trae sus claves con marcadores dentro: `<TOOL>_API_KEY`,
+// `<TOOL>_API_SECRET`. Rellenarlas es el paso siguiente, y entre un paso y el
+// otro la barra se repinta —el vigía mira `01-TOOLS/**`— así que el alumno ve
+// esa carpeta a medias.
+//
+// Y lo que veía era una conexión normal: «Sinhacer», con su casilla «Clave de
+// acceso» esperando a que escribiera algo. Si escribía, la barra le contestaba
+// **«Esa clave no tiene un nombre válido»**, porque `escribir` rechaza los
+// marcadores con razón. Un callejón sin salida, en la pantalla donde muere la
+// mayor parte del soporte del curso.
+//
+// Así que se reconoce y se dice. Es la regla de siempre de esta barra: decir
+// lo que pasa en vez de enseñar un hueco con rótulo.
+const ES_MARCADOR = (clave) => /[<{]/.test(clave);
+
 function proveedores() {
   const base = proyecto.ruta(CARPETA);
   if (!base || !fs.existsSync(base)) return [];
@@ -189,11 +260,15 @@ function proveedores() {
       const carpeta = path.join(base, e.name);
       const esperadas = leerEnv(path.join(carpeta, '.env.example'));
       const puestas = leerEnv(path.join(carpeta, '.env'));
-      const faltan = [...esperadas.keys()].filter((k) => !puestas.get(k)).length;
+      // Los marcadores no son claves que falten: son la plantilla sin rellenar.
+      // Contarlos daría «faltan 3» en algo que todavía no pide nada.
+      const deVerdad = [...esperadas.keys()].filter((k) => !ES_MARCADOR(k));
       return {
         id: e.name,
         etiqueta: etiquetaDeProveedor(e.name, carpeta),
-        faltan,
+        faltan: deVerdad.filter((k) => !puestas.get(k)).length,
+        // Sigue siendo la plantilla: el asistente la creó y no la ha terminado.
+        aMedioHacer: [...esperadas.keys()].some(ES_MARCADOR),
         tienePrueba: fs.readdirSync(carpeta).some((f) => f.startsWith('test_connection')),
         cositas: scripts(e.name).length,
       };
@@ -209,8 +284,12 @@ function claves(proveedorId) {
 
   const esperadas = leerEnv(path.join(carpeta, '.env.example'));
   const puestas = leerEnv(path.join(carpeta, '.env'));
-  const nombres = [...new Set([...esperadas.keys(), ...puestas.keys()])];
   const sacadaDe = dondeSeSacaCadaClave(carpeta);
+
+  // Las claves con marcador no se enseñan: son la plantilla sin rellenar, y
+  // `escribir` las rechaza, así que una casilla para ellas es una casilla que
+  // no lleva a ninguna parte. Se dice que está a medio hacer y se acabó.
+  const nombres = [...new Set([...esperadas.keys(), ...puestas.keys()])].filter((k) => !ES_MARCADOR(k));
 
   return {
     proveedor: {
@@ -218,6 +297,7 @@ function claves(proveedorId) {
       etiqueta: etiquetaDeProveedor(proveedorId, carpeta),
       ayuda: dondeSeConsigue(carpeta),
       pasos: comoSeConecta(carpeta),
+      aMedioHacer: [...esperadas.keys()].some(ES_MARCADOR),
     },
     claves: nombres.map((clave) => ({
       clave,
@@ -234,28 +314,71 @@ function claves(proveedorId) {
 
 // Escribe en 01-TOOLS/<proveedor>/.env, creándolo desde el .env.example si
 // hace falta y respetando comentarios y orden. Limpia por su cuenta lo que el
-// alumno pegue de más: espacios, comillas y saltos de línea.
+// alumno pegue de más: espacios, comillas y el salto del final.
+//
+// ── Lo que NO cabe aquí, y por qué se dice en vez de aplastarlo ──────────
+//
+// Un `.env` es una línea por clave. Pero hay credenciales muy corrientes que
+// ocupan varias: una clave privada PEM, el JSON de una cuenta de servicio de
+// Google. Esto las aceptaba, les quitaba los saltos, decía **«Guardado»** y
+// dejaba una clave **rota** — un PEM sin sus saltos no lo acepta ninguna
+// herramienta.
+//
+// Y el alumno no tenía forma de saberlo: la barra le había dicho que sí. Luego
+// «Probar la conexión» fallaba y se ponía a revisar una clave que había pegado
+// bien. Es exactamente el agujero de soporte que este fichero existe para
+// tapar, y estaba aquí dentro.
+//
+// No se inventa una forma de meterlas: se dice que ahí no caben y se manda al
+// asistente, que sabe dónde van. RSC ya lo tiene previsto — el `.gitignore` de
+// cada herramienta ignora `keys/`, `*.p8`, `*.p12` y `*.json` justo para esto.
 function escribir(proveedorId, clave, valorBruto) {
   const carpeta = carpetaDe(proveedorId);
   if (!carpeta) return { ok: false, mensaje: 'Esa conexión ya no está.' };
   if (!/^[A-Z][A-Z0-9_]*$/i.test(clave)) return { ok: false, mensaje: 'Esa clave no tiene un nombre válido.' };
 
-  const valor = String(valorBruto).trim().replace(/^["']|["']$/g, '').replace(/[\r\n]/g, '');
+  // El salto del final es de pegar y se quita. Uno en medio significa que esto
+  // no es una clave de una línea, y aplastarlo la estropearía en silencio.
+  const sinBordes = String(valorBruto).trim();
+  if (/[\r\n]/.test(sinBordes)) {
+    return {
+      ok: false,
+      mensaje: 'Esto ocupa varias líneas y aquí solo cabe una. Si lo aplastara te lo estropearía sin que te enteraras. Pídeselo al asistente: sabe dónde guardarlo.',
+    };
+  }
+
+  const valor = sinBordes.replace(/^["']|["']$/g, '');
   const destino = path.join(carpeta, '.env');
   const base = fs.existsSync(destino) ? destino : path.join(carpeta, '.env.example');
-  const lineas = fs.existsSync(base) ? fs.readFileSync(base, 'utf8').split('\n') : [];
 
-  let encontrada = false;
-  const nuevas = lineas.map((linea) => {
-    if (linea.trim().startsWith(`${clave}=`)) {
-      encontrada = true;
-      return `${clave}=${valor}`;
-    }
-    return linea;
-  });
-  if (!encontrada) nuevas.push(`${clave}=${valor}`);
+  // Leer y escribir pueden fallar —un `.env` que quedó de solo lectura, un
+  // disco lleno, un antivirus que lo tiene cogido— y esto no lo miraba.
+  // `guardarClave` llama sin red: la excepción subía y el alumno pulsaba
+  // «Guardar» y **no pasaba nada**, ni confirmación ni error. El silencio más
+  // caro posible, y justo en la pantalla de las credenciales.
+  try {
+    const lineas = fs.existsSync(base) ? fs.readFileSync(base, 'utf8').split('\n') : [];
 
-  fs.writeFileSync(destino, nuevas.join('\n').replace(/\n{3,}/g, '\n\n'));
+    let encontrada = false;
+    const nuevas = lineas.map((linea) => {
+      if (linea.trim().startsWith(`${clave}=`)) {
+        encontrada = true;
+        return `${clave}=${valor}`;
+      }
+      return linea;
+    });
+    if (!encontrada) nuevas.push(`${clave}=${valor}`);
+
+    fs.writeFileSync(destino, nuevas.join('\n').replace(/\n{3,}/g, '\n\n'));
+  } catch (fallo) {
+    return {
+      ok: false,
+      mensaje: fallo && fallo.code === 'EACCES'
+        ? 'No tengo permiso para guardar aquí. Pídeselo al asistente, que puede mirar por qué.'
+        : 'No he podido guardarlo. Prueba otra vez, y si sigue igual pídeselo al asistente.',
+    };
+  }
+
   try { fs.chmodSync(destino, 0o600); } catch { /* Windows no lo admite; el 01-TOOLS/.gitignore ya lo protege de git */ }
   return { ok: true, mensaje: 'Guardado.' };
 }
@@ -272,6 +395,29 @@ async function lanzar(carpeta, fichero) {
   return procesos.node([ruta], opciones);
 }
 
+// ── Por qué no conecta, y no siempre es la clave ─────────────────────────
+//
+// Esto contestaba lo mismo a todo lo que no fuera un `.env` a medias: «revisa
+// que la clave esté bien pegada». Probando fallos de verdad se vio que dos de
+// los tres casos corrientes son otra cosa —no hay internet, o el script de la
+// herramienta está roto— y en los dos el alumno se pone a revisar una clave
+// que está perfecta. Puede tirarse la tarde con eso y acabar llamando al tutor.
+//
+// La regla de la casa es que un error diga qué hacer. Decirlo mal es peor que
+// no decirlo: manda a mirar donde no es.
+//
+// Se mira en el orden en que importa, y lo que no se reconoce no culpa a nadie.
+const PORQUE_FALLA = [
+  [/getaddrinfo|could not resolve|name or service not known|enotfound|network is unreachable|no route to host|econnrefused|connection refused/i,
+    'No he podido salir a internet. Mira que tengas conexión y vuelve a probar.'],
+  [/\b(401|403)\b|unauthorized|forbidden|invalid.{0,15}(key|token|credential)|authentication failed|bad credentials/i,
+    'La clave no vale. Sácala otra vez donde te la dieron y pégala entera.'],
+  [/\b(429)\b|rate limit|too many requests/i,
+    'La herramienta dice que le has pedido demasiadas cosas seguidas. Espera un rato y prueba otra vez.'],
+  [/traceback|syntaxerror|modulenotfounderror|command not found|no such file or directory|cannot find module|referenceerror/i,
+    'La prueba de esta conexión está rota, y eso no es cosa tuya. Pídeselo al asistente.'],
+];
+
 async function probar(proveedorId) {
   const carpeta = carpetaDe(proveedorId);
   if (!carpeta) return { ok: false, mensaje: 'Esa conexión ya no está.' };
@@ -280,11 +426,19 @@ async function probar(proveedorId) {
   if (!prueba) return { ok: false, mensaje: 'Esta conexión no trae forma de comprobarse. Pregúntaselo al asistente.' };
 
   const resultado = await lanzar(carpeta, prueba);
+  const error = `${resultado.error || ''}\n${resultado.salida || ''}`;
 
   if (resultado.codigo === 0) return { ok: true, mensaje: 'Conectado. Funciona.' };
-  if (/missing .*\.env/i.test(resultado.error)) return { ok: false, mensaje: 'Todavía no has puesto ninguna clave para esta conexión.' };
-  if (/not set/i.test(resultado.error)) return { ok: false, mensaje: 'Falta alguna clave por rellenar.' };
-  return { ok: false, mensaje: 'No conecta. Revisa que la clave esté bien pegada, entera y sin espacios.' };
+  if (/missing .*\.env/i.test(error)) return { ok: false, mensaje: 'Todavía no has puesto ninguna clave para esta conexión.' };
+  if (/not set/i.test(error)) return { ok: false, mensaje: 'Falta alguna clave por rellenar.' };
+  // Lo paró el reloj: `procesos.js` lo dice con estas palabras.
+  if (/tardado demasiado/i.test(error)) return { ok: false, mensaje: 'La herramienta no contesta. Prueba dentro de un rato.' };
+
+  const porque = PORQUE_FALLA.find(([senal]) => senal.test(error));
+  if (porque) return { ok: false, mensaje: porque[1] };
+
+  // Y si no se reconoce, no se señala a la clave: se dice lo que se sabe.
+  return { ok: false, mensaje: 'No conecta, y no sé decirte por qué. Pídeselo al asistente, que puede mirar el detalle.' };
 }
 
 // Lo que se puede hacer de un vistazo, sin abrir conversación: los scripts de

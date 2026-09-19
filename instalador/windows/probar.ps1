@@ -42,7 +42,12 @@ $reloj.Stop()
 Comprobar 'el instalador termina sin error' { if ($proceso.ExitCode -ne 0) { throw "ha salido con codigo $($proceso.ExitCode)" }; "en $([int]$reloj.Elapsed.TotalSeconds) s" }
 
 $app = Join-Path $env:LOCALAPPDATA 'ExecutiveLab'
-$trabajo = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Mi Empresa IA'
+# Ya no hay carpeta de trabajo que comprobar: el instalador pone las piezas y
+# se acaba ahi. Quien monta el arnes, pregunta y pone los railes es el panel,
+# cuando esa persona abre una carpeta y pulsa "Preparar esta carpeta". Esta
+# prueba comprobaba lo de antes -Documentos\Mi Empresa IA, los railes, los
+# diales- que nadie crea ya, asi que fallaba entera a partir de aqui.
+$viejaCarpeta = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Mi Empresa IA'
 
 Comprobar 'se instala en la carpeta del usuario, sin admin' { if (-not (Test-Path $app)) { throw "no existe $app" }; $app }
 Comprobar 'lleva Node dentro'  { if (-not (Test-Path "$app\runtime\node.exe")) { throw 'falta runtime\node.exe' }; (& "$app\runtime\node.exe" -v) }
@@ -65,33 +70,31 @@ Comprobar 'EXECUTIVE_LAB_HOME apunta a la app' {
   $casa
 }
 
-Comprobar 'la carpeta de trabajo existe' { if (-not (Test-Path $trabajo)) { throw "no existe $trabajo" }; $trabajo }
-foreach ($pieza in @('.rsc.json', '01-TOOLS\_TEMPLATE', '02-DOCS\wiki\harness', '.claude\settings.json', '.git')) {
-  Comprobar "el arnes trae $pieza" { if (-not (Test-Path (Join-Path $trabajo $pieza))) { throw 'no esta' }; '' }
-}
-Comprobar 'los railes estan puestos' { if (-not (Test-Path (Join-Path $trabajo '.claude\skills\executive-lab\SKILL.md'))) { throw 'falta la habilidad' }; '' }
-Comprobar 'los diales quedan en no-tecnico y L3' {
-  $perfil = Get-Content (Join-Path $trabajo '02-DOCS\wiki\harness\user-profile.md') -Raw
-  if ($perfil -notmatch '(?m)^technical_level: non-technical') { throw 'technical_level mal' }
-  if ($perfil -notmatch '(?m)^accompaniment: L3') { throw 'accompaniment mal' }
-  'non-technical + L3'
-}
-Comprobar 'hay un punto de partida al que volver' {
-  $log = & "$app\git\cmd\git.exe" -C $trabajo log --oneline 2>$null
-  if ("$log" -notmatch 'Punto de partida') { throw 'no hay copia inicial' }
-  'si'
+Comprobar 'el instalador NO se inventa una carpeta de trabajo' {
+  # Es una decision, no un descuido: el instalador no puede decidir por
+  # adelantado en que carpeta va a trabajar alguien que todavia no ha abierto
+  # el programa. Si esto vuelve a aparecer, es que ha vuelto el onboarding
+  # duplicado que se quito.
+  if (Test-Path $viejaCarpeta) { throw "ha creado $viejaCarpeta; eso lo decide el alumno" }
+  'ninguna, como debe'
 }
 Comprobar 'el registro de la instalacion no tiene errores' {
-  $registro = Join-Path $trabajo 'instalacion.log'
-  if (-not (Test-Path $registro)) { throw 'no hay instalacion.log' }
+  # Junto a la app, que es donde lo deja preparar.js: cuando lo escribe todavia
+  # no hay ninguna carpeta de trabajo.
+  $registro = Join-Path $app 'instalacion.log'
+  if (-not (Test-Path $registro)) { throw "no hay instalacion.log en $app" }
   $malos = Select-String -Path $registro -Pattern 'ERROR' -SimpleMatch
   if ($malos) { throw "$($malos.Count) errores: $($malos[0].Line)" }
   'limpio'
 }
-Comprobar 'el arnes responde (rsc doctor)' {
-  $salida = & "$app\runtime\node.exe" "$app\harness\node_modules\@ericrisco\rsc\scripts\rsc.js" doctor 2>&1
-  if ("$salida" -notmatch '"hookWired": true') { throw 'doctor no dice que los hooks esten cableados' }
-  'hooks cableados'
+Comprobar 'el arnes preinstalado arranca' {
+  # Antes se le pedia `doctor` y se exigia "hookWired": true. Eso solo tiene
+  # sentido dentro de una carpeta con arnes, y aqui ya no hay ninguna: lo que
+  # se puede comprobar es que el arnes que viaja dentro se ejecuta con nuestro
+  # Node. Que este bien cableado se comprueba en la carpeta, desde el panel.
+  $salida = & "$app\runtime\node.exe" "$app\harness\node_modules\@ericrisco\rsc\scripts\rsc.js" --version 2>&1
+  if ($LASTEXITCODE -ne 0) { throw "el arnes no arranca: $salida" }
+  "$salida".Trim()
 }
 Comprobar 'VS Code y las dos extensiones' {
   $code = Join-Path $env:LOCALAPPDATA 'Programs\Microsoft VS Code\bin\code.cmd'

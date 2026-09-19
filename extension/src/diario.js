@@ -48,6 +48,23 @@ const ES_UN_CAMPO = /^(date|decision|why|options?( considered)?|supersed(es|ed b
 
 const ES_PLANTILLA = (t) => /[{<]|^(Decision|Decisions? Log|D-000[1-9] —? ?…?$)/i.test(t || '');
 
+// ── Lo que el arnés se apunta a sí mismo al montarse ─────────────────────
+//
+// RSC deja tres líneas en `decisions.md` en cuanto monta: el identificador del
+// plan aceptado —un churro de sesenta y cuatro caracteres—, el tipo de proyecto
+// y si SDD quedó aplazado. Son suyas, están en inglés y no las decidió nadie de
+// esta empresa.
+//
+// Probando con un arnés recién montado se vio lo que eso significa: el primer
+// día, «El diario → las decisiones» enseñaba **solo** esas tres. Una pantalla
+// que alguien abre para ver por qué se hacen las cosas aquí, y lo que encuentra
+// es fontanería en inglés con un hash. El comprobador del diccionario no lo
+// pilla porque no es texto del código: es contenido de un fichero.
+//
+// Se nombran una a una, como los campos de arriba: descartar por la forma se
+// llevaría por delante decisiones de verdad escritas igual.
+const LA_ESCRIBIO_EL_ARNES = /^(accepted plan\b|project kind\s*:|sdd\s*:\s*(deferred|selected|excluded)\b)/i;
+
 function leerTexto(...partes) {
   const ruta = proyecto.ruta(...partes);
   if (!ruta) return null;
@@ -149,7 +166,7 @@ function laCorta(texto) {
     .map((l) => l.match(/^[-*]\s+(.{4,})$/))
     .filter(Boolean)
     .map((m) => m[1].trim())
-    .filter((t) => !ES_PLANTILLA(t) && !ES_UN_CAMPO.test(t))
+    .filter((t) => !ES_PLANTILLA(t) && !ES_UN_CAMPO.test(t) && !LA_ESCRIBIO_EL_ARNES.test(t))
     .map((titulo) => ({ titulo, fecha: '', eleccion: '', porque: '' }));
 }
 

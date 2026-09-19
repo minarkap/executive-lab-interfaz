@@ -45,9 +45,14 @@ function comoSeLlama(id, raizDeHabilidades) {
   // por «úsala cuando…» y es larga. Al alumno eso le suena a instrucciones de
   // otro. Se le quita esa entradilla y se corta por la primera frase, que es la
   // que dice de verdad para qué sirve.
+  //
+  // Y hay que quitar las dos mitades. «Úsala siempre que quieras revisar el
+  // texto» sin la segunda salía como «Quieras revisar el texto»: castellano
+  // roto, en mayúscula y en pantalla. La entradilla es la subordinada entera
+  // —«siempre que <verbo>»— y lo que sirve empieza en el infinitivo.
   const sinEntradilla = frase
     .replace(/^(úsala|usala|use|used?|utilízala|utilizala)\s+(siempre\s+que|cuando|whenever|when|for)\s+/i, '')
-    .replace(/^(vayas a|you want to|the user)\s+/i, '');
+    .replace(/^(vayas?\s+a|quieras|necesites|tengas\s+que|haya\s+que|te\s+toque|you want to|the user)\s+/i, '');
   const primera = sinEntradilla.split(/(?<=\.)\s/)[0] || sinEntradilla;
 
   // Y si lo que hay escrito no está en español, mejor solo el nombre: media

@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'rastro', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -114,6 +114,25 @@ async function main() {
     assert.equal(hay.claves, 4, 'PUERTO también cuenta: es una clave, aunque no sea secreta');
     assert.match(hay.prompt, /protocolo de harness/);
     assert.ok(!hay.prompt.includes('sk_test_123'), 'el valor de una clave no sale de su fichero');
+    assert.equal(hay.subidas, 0, 'aquí están sueltas, pero no guardadas en el historial');
+
+    // ── Y si además están dentro de las copias de seguridad ──────────────
+    //
+    // Es el caso que apareció montando un arnés encima de un proyecto de
+    // verdad: esa persona guardó su `.env` el día que empezó. Decir solo «hay
+    // claves fuera de sitio» ahí es avisar a medias — ordenarlas las saca de
+    // la vista y las deja en el historial para siempre.
+    const cp = require('node:child_process');
+    const git = (...args) => cp.spawnSync('git', args, { cwd: empresa, encoding: 'utf8' });
+    if (git('rev-parse', '--is-inside-work-tree').status === 0) {
+      git('add', '-f', '.env', 'config/.env.local');
+      const guardadas = sueltas.resumen();
+      assert.equal(guardadas.subidas, 2, 'se ve que ya están dentro de las copias');
+      assert.match(guardadas.prompt, /AVISO IMPORTANTE/, 'y al asistente se le dice con todas las letras');
+      assert.match(guardadas.prompt, /cambiar esas claves en el proveedor/, 'con lo único que de verdad las inutiliza');
+      assert.ok(!guardadas.prompt.includes('sk_test_123'), 'y sigue sin salir ningún valor');
+      git('rm', '-q', '--cached', '.env', 'config/.env.local');
+    }
 
     fs.rmSync(path.join(empresa, '.env'));
     fs.rmSync(path.join(empresa, 'config'), { recursive: true });
@@ -199,6 +218,287 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(hecho.ok, false);
     assert.match(hecho.mensaje, /asistente/);
     return hecho.mensaje;
+  });
+
+  await comprobar('solo se ejecuta lo que la propia herramienta declara', async () => {
+    // Esto corre scripts de verdad, sin pasar por el asistente y sin preguntar,
+    // y vive en la carpeta de las credenciales. La lista blanca no sale del
+    // nombre del fichero: sale de la tabla del README **cruzada con** el verbo,
+    // y `ejecutar` comprueba contra esa lista, no contra lo que le pasen. Por
+    // eso una ruta inventada no llega a ninguna parte — pero conviene que esté
+    // escrito, porque es la clase de guardián que alguien relaja sin querer.
+    const fs2 = require('node:fs');
+    fs2.writeFileSync(path.join(empresa, '01-TOOLS/HOLDED/oculto.sh'), '#!/bin/sh\necho no deberia correr\n', { mode: 0o755 });
+
+    for (const [queEs, cual] of [
+      ['uno que no está en el README', 'oculto.sh'],
+      ['una travesía hacia arriba', '../../secreto.sh'],
+      ['una ruta absoluta', '/bin/echo'],
+      ['la propia carpeta', '.'],
+    ]) {
+      const hecho = await conexiones.ejecutar('HOLDED', cual);
+      assert.equal(hecho.ok, false, `${queEs} NO puede ejecutarse`);
+      assert.match(hecho.mensaje, /asistente/, `${queEs} se manda al asistente`);
+    }
+
+    fs2.rmSync(path.join(empresa, '01-TOOLS/HOLDED/oculto.sh'));
+    return '4 intentos, ninguno pasa';
+  });
+
+  await comprobar('lo que el arnés se apunta a sí mismo no sale como decisión tuya', () => {
+    // RSC deja tres líneas en `decisions.md` al montarse: el identificador del
+    // plan —un churro de 64 caracteres—, el tipo de proyecto y si SDD quedó
+    // aplazado. Probando con un arnés recién montado se vio que el primer día
+    // «El diario → las decisiones» enseñaba **solo** esas tres: fontanería en
+    // inglés con un hash, en la pantalla donde alguien busca por qué se hacen
+    // las cosas aquí. El comprobador del diccionario no lo pilla porque no es
+    // texto del código, es contenido de un fichero.
+    const fs2 = require('node:fs');
+    const fichero = path.join(empresa, '02-DOCS', 'wiki', 'harness', 'decisions.md');
+    const antes = fs2.readFileSync(fichero, 'utf8');
+    // Arriba del todo, que es donde las deja el montaje: lo de después del
+    // primer encabezado ya lo lee el otro camino.
+    fs2.writeFileSync(fichero, antes.replace('- SDD: deferred.',
+      '- SDD: deferred.\n'
+      + '- Accepted plan `e612b926bad10e7ec07371951498eb7956b62e7a1496a0e0df352e3d244e44af`.\n'
+      + '- Las facturas se revisan el día 5, no el 1: los bancos tardan.'));
+
+    const suyas = cargar('diario').decisiones().map((d) => d.titulo);
+    assert.ok(!suyas.some((t) => /Accepted plan/i.test(t)), 'el identificador del plan no es una decisión tuya');
+    assert.ok(!suyas.some((t) => /Project kind/i.test(t)), 'ni el tipo de proyecto');
+    assert.ok(!suyas.some((t) => /^SDD: deferred/i.test(t)), 'ni que SDD quedara aplazado');
+    assert.ok(suyas.some((t) => /los bancos tardan/.test(t)), 'pero las del negocio sí salen');
+    // Y una decisión de verdad escrita con esa misma forma no se pierde: el
+    // filtro nombra los estados del arnés, no descarta por el aspecto.
+    assert.ok(suyas.some((t) => /SDD: no, aquí no construimos/.test(t)), 'ni las que se le parecen');
+
+    fs2.writeFileSync(fichero, antes);
+    return `${suyas.length} decisiones, ninguna de fontanería`;
+  });
+
+  await comprobar('el reloj corta de verdad, sin esperar a los nietos del proceso', async () => {
+    // Esto hacía `kill()` y se quedaba esperando al evento `close`. Y `close`
+    // no llega cuando muere el hijo, sino cuando se cierran sus tuberías — o
+    // sea, cuando han muerto también sus nietos. Un script que llama a `curl` o
+    // a `sleep` deja al bash muerto y al nieto vivo, con la tubería abierta.
+    //
+    // Medido con un script de 120 s y un reloj de 45: la barra tardaba 120. El
+    // alumno ve la pantalla parada el doble de lo prometido y la da por colgada.
+    const procesos = cargar('procesos');
+    const arranque = Date.now();
+    const r = await procesos.ejecutar(process.execPath, ['-e', 'setTimeout(()=>{}, 60000)'], { tiempoMaximo: 900 });
+    const tardo = Date.now() - arranque;
+
+    assert.equal(r.codigo, -1, 'se da por perdido');
+    assert.match(r.error, /tardado demasiado/, 'y se dice que lo hemos parado');
+    assert.ok(tardo < 5000, `contesta al saltar el reloj, no cuando acabe el proceso (tardó ${tardo} ms)`);
+    return `cortado en ${tardo} ms`;
+  });
+
+  await comprobar('si no se puede guardar la clave, se dice en vez de romperse', () => {
+    // `guardarClave` llama a esto sin red, así que una excepción subía y el
+    // alumno pulsaba «Guardar» y no pasaba nada: ni confirmación ni error. El
+    // silencio más caro posible, y en la pantalla de las credenciales.
+    const fs2 = require('node:fs');
+    const carpeta = path.join(empresa, '01-TOOLS', 'BLOQUEADA');
+    fs2.mkdirSync(carpeta, { recursive: true });
+    const env = path.join(carpeta, '.env');
+    fs2.writeFileSync(env, 'B_API_KEY=antigua\n');
+    fs2.chmodSync(env, 0o444);
+
+    let respuesta;
+    assert.doesNotThrow(() => { respuesta = conexiones.escribir('BLOQUEADA', 'B_API_KEY', 'nueva'); },
+      'no puede lanzar: se lo come el panel y el botón se queda mudo');
+    assert.equal(respuesta.ok, false);
+    assert.match(respuesta.mensaje, /permiso/, 'se dice qué ha pasado');
+    assert.match(respuesta.mensaje, /asistente/, 'y a quién pedírselo');
+
+    fs2.chmodSync(env, 0o600);
+    assert.equal(conexiones.escribir('BLOQUEADA', 'B_API_KEY', 'nueva').ok, true, 'y desbloqueada vuelve a guardar');
+    fs2.rmSync(carpeta, { recursive: true, force: true });
+    return 'sin excepción y con qué hacer';
+  });
+
+  await comprobar('una credencial de varias líneas no se aplasta en silencio', () => {
+    // Hay credenciales muy corrientes que no caben en una línea: una clave
+    // privada PEM, el JSON de una cuenta de servicio de Google. Esto las
+    // aceptaba, les quitaba los saltos, decía «Guardado» y dejaba una clave
+    // **rota** — un PEM sin saltos no lo acepta ninguna herramienta.
+    //
+    // Y el alumno no podía saberlo: la barra le había dicho que sí. Luego
+    // «Probar la conexión» fallaba y se ponía a revisar una clave bien pegada.
+    const pem = '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkq\n-----END PRIVATE KEY-----';
+    const roto = conexiones.escribir('HOLDED', 'HOLDED_API_KEY', pem);
+    assert.equal(roto.ok, false, 'no se guarda algo que quedaría estropeado');
+    assert.match(roto.mensaje, /varias líneas/, 'y se dice por qué');
+    assert.match(roto.mensaje, /asistente/, 'y a quién pedírselo');
+
+    // Lo que sí cabe sigue cabiendo, incluido el salto que deja el pegar.
+    assert.equal(conexiones.escribir('HOLDED', 'HOLDED_API_KEY', '  "abc-456"  \n').ok, true,
+      'una clave de una línea se guarda, con su salto del final y sus comillas');
+    return 'lo que rompería, se dice';
+  });
+
+  await comprobar('cuando una conexión falla se dice por qué, y no siempre es la clave', async () => {
+    // Esto contestaba lo mismo a todo: «revisa que la clave esté bien pegada».
+    // Probando fallos de verdad se vio que dos de los tres casos corrientes son
+    // otra cosa —no hay internet, o el script está roto— y en los dos el alumno
+    // se pone a revisar una clave que está perfecta. La regla de la casa es que
+    // un error diga qué hacer; decirlo mal manda a mirar donde no es.
+    const fs2 = require('node:fs');
+    const carpeta = path.join(empresa, '01-TOOLS', 'FALLOS');
+    fs2.mkdirSync(carpeta, { recursive: true });
+    fs2.writeFileSync(path.join(carpeta, '.env'), 'F_API_KEY=algo\n');
+
+    const conQueFalla = async (salida, codigo) => {
+      fs2.writeFileSync(path.join(carpeta, 'test_connection.sh'),
+        `#!/usr/bin/env bash\necho ${JSON.stringify(salida)} >&2\nexit ${codigo}\n`, { mode: 0o755 });
+      return (await conexiones.probar('FALLOS')).mensaje;
+    };
+
+    assert.match(await conQueFalla('curl: (6) Could not resolve host: api.x.com', 6), /internet/,
+      'sin red se dice que es la red');
+    assert.match(await conQueFalla('HTTP 401 Unauthorized: invalid api key', 1), /clave no vale/,
+      'y una clave rechazada sí es la clave');
+    assert.match(await conQueFalla('Traceback (most recent call last): KeyError', 2), /no es cosa tuya/,
+      'un script roto no es culpa del alumno');
+    assert.match(await conQueFalla('HTTP 429 Too Many Requests', 1), /demasiadas cosas seguidas/,
+      'y estar saturado se espera, no se arregla');
+
+    // Lo que importa de verdad: lo que no se reconoce NO señala a la clave.
+    const raro = await conQueFalla('algo pasó y nadie sabe qué', 7);
+    assert.ok(!/clave/i.test(raro), 'un fallo desconocido no manda a mirar la clave');
+    assert.match(raro, /asistente/, 'se manda a quien puede mirar el detalle');
+
+    fs2.rmSync(carpeta, { recursive: true, force: true });
+    return '5 fallos, 5 respuestas distintas';
+  });
+
+  await comprobar('ningún botón sale dos veces con el mismo rótulo', () => {
+    // Se vio el primer día de un arnés nuevo de verdad: «Seguir donde lo dejé»
+    // salía dos veces. Arriba el nuestro —el raíl `seguir.md`— y abajo el
+    // `resume-session` del arnés, al que aquí se le pone ese mismo nombre en
+    // cristiano. Hacen lo mismo, así que el alumno veía dos botones idénticos.
+    const fs2 = require('node:fs');
+    const comandos = path.join(empresa, '.claude', 'commands');
+    fs2.mkdirSync(comandos, { recursive: true });
+    // La empresa de mentira ya trae su `seguir.md`: se le añade el del arnés
+    // que acaba llamándose igual, y no se toca nada de lo que ya había — que
+    // las pruebas de después cuentan con ello.
+    const puesto = path.join(comandos, 'resume-session.md');
+    fs2.writeFileSync(puesto, '---\ndescription: "Read the bounded local continuation record."\n---\n\nResume.\n');
+
+    const todos = cargar('acciones').todos();
+    const cuantos = todos.filter((x) => x.etiqueta === 'Seguir donde lo dejé').length;
+    assert.equal(cuantos, 1, 'una sola vez, no dos');
+    assert.equal(todos.find((x) => x.etiqueta === 'Seguir donde lo dejé').delArnes, false,
+      'y manda el nuestro, que está escrito para el alumno');
+
+    const rotulos = todos.map((x) => x.etiqueta.toLowerCase());
+    assert.equal(new Set(rotulos).size, rotulos.length, 'ninguno repetido en toda la lista');
+
+    fs2.rmSync(puesto);
+    return `${todos.length} botones, ninguno repetido`;
+  });
+
+  await comprobar('un .env se lee como lo escribe la gente, no como debería escribirlo', () => {
+    // Salió probando con arneses nuevos. Dos formas se leían mal, y las dos
+    // hacían que la barra se creyera cosas que no son:
+    //
+    //   `export CLAVE=valor` salía como una clave llamada «export CLAVE», así
+    //   que la pantalla enseñaba la misma dos veces: una «falta» y otra puesta.
+    //
+    //   `CLAVE=   # una nota` tomaba el comentario como valor, así que una
+    //   clave vacía contaba como puesta y la cuenta de las que faltan mentía.
+    const fs2 = require('node:fs');
+    const carpeta = path.join(empresa, '01-TOOLS', 'FORMAS');
+    fs2.mkdirSync(carpeta, { recursive: true });
+    fs2.writeFileSync(path.join(carpeta, '.env'), [
+      'SIMPLE=abc123',
+      'CON_COMILLAS="entre-comillas"',
+      'CON_ESPACIOS = con-espacios',
+      'CON_IGUAL=clave=con=iguales',
+      'export EXPORTADA=viene-con-export',
+      'VACIA_CON_COMENTARIO=   # una nota',
+      // Y lo que NO hay que tocar: una almohadilla que es parte del valor.
+      'CON_ALMOHADILLA=abc#123',
+      'ENTRE_COMILLAS="abc # dentro"',
+      'EMPIEZA_POR_ALMOHADILLA=#esto-es-la-clave',
+      '',
+    ].join('\n'));
+
+    const leido = conexiones.leerEnv(path.join(carpeta, '.env'));
+    assert.equal(leido.get('EXPORTADA'), 'viene-con-export', 'el export no forma parte del nombre');
+    assert.equal(leido.has('export EXPORTADA'), false, 'y no aparece una clave fantasma');
+    assert.equal(leido.get('VACIA_CON_COMENTARIO'), '', 'un comentario al final no es el valor');
+    assert.equal(leido.get('CON_ALMOHADILLA'), 'abc#123', 'pero una almohadilla pegada sí lo es');
+    assert.equal(leido.get('ENTRE_COMILLAS'), 'abc # dentro', 'y entre comillas no se toca nada');
+    assert.equal(leido.get('EMPIEZA_POR_ALMOHADILLA'), '#esto-es-la-clave', 'ni cuando el valor empieza por ella');
+    assert.equal(leido.get('CON_IGUAL'), 'clave=con=iguales', 'el valor puede llevar igualdades');
+    assert.equal(leido.get('CON_ESPACIOS'), 'con-espacios', 'y espacios alrededor del igual');
+
+    fs2.rmSync(carpeta, { recursive: true, force: true });
+    return `${leido.size} formas, todas bien`;
+  });
+
+  await comprobar('una conexión con acentos o espacios en el nombre se puede abrir', () => {
+    // Esto exigía `/^[\w.-]+$/` para el nombre de la carpeta, y `\w` no lleva
+    // acentos, ni eñes, ni espacios. En un producto para alumnos españoles, con
+    // un asistente al que le imponemos escribir en español, `01-TOOLS/Señal/`
+    // salía en la lista y al abrirla no había nada; al guardar una clave decía
+    // «Esa conexión ya no está», que encima hace pensar que se ha borrado sola.
+    const fs2 = require('node:fs');
+    const nombres = ['Señal', 'Correo-Electrónico', 'Mi Facturación'];
+    for (const nombre of nombres) {
+      const carpeta = path.join(empresa, '01-TOOLS', nombre);
+      fs2.mkdirSync(carpeta, { recursive: true });
+      fs2.writeFileSync(path.join(carpeta, '.env.example'), 'CORREO_API_KEY=\n');
+    }
+
+    for (const nombre of nombres) {
+      assert.ok(conexiones.claves(nombre), `${nombre} tiene que abrirse`);
+      assert.equal(conexiones.escribir(nombre, 'CORREO_API_KEY', 'x').ok, true, `y poder guardar en ${nombre}`);
+    }
+
+    // Y lo que la comprobación vieja protegía de verdad sigue protegido: que un
+    // id venido de la interfaz no se salga de 01-TOOLS.
+    for (const malo of ['..', '../..', 'HOLDED/../../..', '/etc', '_TEMPLATE', '.oculta', '']) {
+      assert.equal(conexiones.claves(malo), null, `${JSON.stringify(malo)} no puede abrirse`);
+    }
+    assert.equal(conexiones.escribir('../../fuera', 'X', 'y').ok, false, 'ni escribirse fuera');
+
+    for (const nombre of nombres) fs2.rmSync(path.join(empresa, '01-TOOLS', nombre), { recursive: true, force: true });
+    return `${nombres.length} en español, y la travesía bloqueada`;
+  });
+
+  await comprobar('una conexión que el asistente dejó a medias se dice, no se disfraza', () => {
+    // El asistente crea una herramienta copiando `01-TOOLS/_TEMPLATE/`, y esa
+    // plantilla trae sus claves con marcadores: `<TOOL>_API_KEY`. Rellenarlas
+    // es el paso siguiente, y entre un paso y otro la barra se repinta.
+    //
+    // Lo que se veía era una conexión normal, con su casilla «Clave de acceso»
+    // esperando. Si el alumno escribía, la barra contestaba «Esa clave no tiene
+    // un nombre válido» — un callejón sin salida en la pantalla donde muere la
+    // mayor parte del soporte del curso. Salió montando un arnés de verdad.
+    const fs2 = require('node:fs');
+    const carpeta = path.join(empresa, '01-TOOLS', 'A_MEDIAS');
+    fs2.mkdirSync(carpeta, { recursive: true });
+    // Tal cual la deja RSC, marcadores incluidos.
+    fs2.writeFileSync(path.join(carpeta, '.env.example'),
+      '# <TOOL_NAME> — operational credentials\n\n<TOOL>_ENV=test\n<TOOL>_API_KEY=\n<TOOL>_API_SECRET=\n');
+
+    const suya = conexiones.proveedores().find((p) => p.id === 'A_MEDIAS');
+    assert.equal(suya.aMedioHacer, true, 'se reconoce que sigue siendo la plantilla');
+    assert.equal(suya.faltan, 0, 'y sus marcadores no se cuentan como claves que falten');
+
+    const dentro = conexiones.claves('A_MEDIAS');
+    assert.deepEqual(dentro.claves, [], 'no se enseña ninguna casilla que no se pueda rellenar');
+    assert.equal(dentro.proveedor.aMedioHacer, true, 'la pantalla recibe con qué explicarlo');
+    // Y que no se haya roto lo de siempre: una terminada sigue saliendo entera.
+    assert.equal(conexiones.proveedores().find((p) => p.id === 'HOLDED').aMedioHacer, false);
+
+    fs2.rmSync(carpeta, { recursive: true, force: true });
+    return 'sin casillas imposibles';
   });
 
   await comprobar('una clave se guarda limpia de comillas y espacios', () => {
@@ -349,6 +649,25 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const donde = brujula.interpretar('files: 01-TOOLS/HOLDED/.env, 01-TOOLS/GMAIL/.env');
     assert.equal(donde, 'Conexiones (Holded, Gmail)', 'dos del mismo sitio no repiten el rótulo');
     assert.equal(brujula.interpretar('(no local continuation for this branch/worktree)'), null);
+
+    // RSC manda las rutas tal y como se las da git, y git las marca. Una ruta
+    // marcada no empieza por `02-DOCS`, empieza por `M 02-DOCS`, así que dejaba
+    // de reconocerse: en cuanto la wiki está guardada —o sea, en todo alumno a
+    // partir del primer guardado— la brújula no decía dónde se había trabajado.
+    assert.equal(
+      brujula.interpretar('files: M 02-DOCS/wiki/facturacion/ciclo.md, M 01-TOOLS/HOLDED/.env'),
+      'Conocimiento (Facturacion)',
+      'una ruta marcada por git sigue siendo su zona',
+    );
+    assert.equal(
+      brujula.interpretar('files: A 01-TOOLS/STRIPE/.env, ?? 02-DOCS/inbox/x.pdf, D 02-DOCS/wiki/viejo.md'),
+      'Conexiones (Stripe) · Conocimiento',
+      'y las recién puestas y las borradas, también',
+    );
+    // Pero la basura de antes no vuelve: Jose llegó a ver «M 01 tools» en su
+    // barra. Una carpeta cualquiera no es una zona, lleve marca o no.
+    assert.equal(brujula.interpretar('files: M extension/src/brujula.js, M publicar.sh'), null,
+      'lo que no es zona no sale, ni siquiera humanizado');
     return donde;
   });
 
@@ -390,6 +709,58 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
     vscode.guion.comandosDeClaude = ['claude-vscode.primaryEditor.open', 'claude-vscode.focus', 'claude-vscode.editor.openLast'];
     return 'portapapeles + foco';
+  });
+
+  // ------------------------------------------------- cuando algo falla de verdad
+  //
+  // Las tres piezas de la misma avería: el arranque fallaba, el aviso mandaba a
+  // un botón que en esa pantalla no existía, y el informe que el tutor recibía
+  // no llevaba dentro el motivo. Cada una con su comprobación.
+
+  await comprobar('lo que la barra se apunta acaba en el informe del tutor', () => {
+    const rastro = cargar('rastro');
+    const escrito = [];
+    const canal = rastro.envolver({ appendLine: (t) => escrito.push(t), dispose() {} }, null);
+
+    canal.appendLine('[arrancar] el arnés terminó con el código 2');
+    canal.sinGuardar('esto es el informe, no se guarda');
+
+    assert.equal(escrito.length, 2, 'las dos cosas se ven en el panel de salida');
+    const guardado = canal.ultimas();
+    assert.equal(guardado.length, 1, 'pero solo una se guarda');
+    assert.match(guardado[0], /el arnés terminó con el código 2/);
+    assert.ok(!guardado.join('\n').includes('esto es el informe'), 'un informe no se mete dentro del siguiente');
+    return 'se guarda lo de dentro, no el informe';
+  });
+
+  await comprobar('el informe de incidencia dice por qué falló, no solo que falló', async () => {
+    const soporte = cargar('soporte');
+    const aparte = fs.mkdtempSync(path.join(os.tmpdir(), 'incidencias-'));
+    const { informe, fichero, codigo } = await soporte.revisar({
+      lineas: ['10:11:12 [arrancar] al pedir el plan: el arnés terminó con el código 2'],
+      carpetaAparte: aparte,
+    });
+    assert.match(informe, /--- lo que fue pasando ---/);
+    assert.match(informe, /al pedir el plan: el arnés terminó con el código 2/,
+      'sin esto, el código que el alumno dicta no lleva dentro el motivo');
+    assert.match(codigo, /^[A-Z2-9]{6}$/);
+    assert.ok(fs.existsSync(fichero), 'y queda escrito para poder leerlo entero');
+    return 'el motivo viaja con el código';
+  });
+
+  await comprobar('diagnosticar una carpeta sin arnés no le fabrica medio arnés', async () => {
+    const soporte = cargar('soporte');
+    const pelada = fs.mkdtempSync(path.join(os.tmpdir(), 'sin-arnes-'));
+    const aparte = fs.mkdtempSync(path.join(os.tmpdir(), 'incidencias-'));
+    vscode.guion.raiz = pelada;
+
+    const { fichero } = await soporte.revisar({ carpetaAparte: aparte });
+    assert.ok(!fs.existsSync(path.join(pelada, '02-DOCS')),
+      'el informe creaba 02-DOCS y con eso el informe siguiente ya decía que el suelo estaba');
+    assert.ok(fichero.startsWith(aparte), 'se guarda fuera del proyecto');
+
+    vscode.guion.raiz = empresa;
+    return 'el informe se queda fuera';
   });
 
   await comprobar('esto se llama como lo llamó el alumno, no "empresa"', () => {
@@ -653,6 +1024,55 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     fs2.writeFileSync(declaracion, antes);
     vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
     return 'barra + portapapeles';
+  });
+
+  await comprobar('el aviso de cambiar de asistente sale antes de pulsar, y solo donde toca', () => {
+    // El aviso de después (el mensaje) no basta: cuando llega, el alumno ya ha
+    // pulsado y ya ha visto desaparecer sus cosas. Así que la ficha del
+    // asistente con el que NO se montó la carpeta lo dice antes.
+    //
+    // Y solo esa: en la del asistente de ahora sobra, y en una que sí es del
+    // arnés sería mentira. Se comprueba sobre el panel de verdad, porque esto
+    // es una línea de pantalla y lo que importa es dónde sale.
+    const { montarPanel } = require('./panel-falso');
+    const panel = montarPanel();
+    vscode.guion.extensionesInstaladas = ['anthropic.claude-code', 'openai.chatgpt'];
+
+    const pintada = panel.mandar({ tipo: 'asistente', ...cargar('asistentes').comoEstamos(), aviso: null });
+    const texto = pintada.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    const AVISO = /Esta carpeta no se montó para él/;
+
+    // La empresa de mentira es de Claude, así que el aviso va en la ficha de Codex.
+    const [deClaude, deCodex] = pintada.split('Codex');
+    assert.ok(!AVISO.test(deClaude), 'en el asistente del arnés no sale');
+    assert.ok(AVISO.test(deCodex), 'y en el otro sí, antes de pulsar');
+    assert.match(texto, /no admite que se lo pasen/, 'y se dice que a Codex hay que pegarle el texto');
+
+    vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    return 'el aviso, solo en el que no es del arnés';
+  });
+
+  await comprobar('cambiar de asistente dice qué deja de verse', () => {
+    // Cambiar de asistente no remonta el arnés: las habilidades y los ayudantes
+    // se quedan en la carpeta del anterior, y cada uno mira solo la suya. El
+    // mensaje era «Hecho, a partir de ahora los botones hablan con X» y punto,
+    // así que el alumno pulsaba, veía desaparecer sus habilidades y creía que
+    // había roto algo. No se ha borrado nada: hay que decir eso.
+    const asistentes = cargar('asistentes');
+    const fs2 = require('node:fs');
+    const declaracion = path.join(empresa, '.rsc.json');
+    const antes = fs2.readFileSync(declaracion, 'utf8');
+    vscode.guion.extensionesInstaladas = ['anthropic.claude-code', 'openai.chatgpt'];
+
+    const { ok, mensaje } = asistentes.elegir('codex');
+    assert.equal(ok, true);
+    assert.match(mensaje, /habla[n]? con Codex/, 'dice a quién le habla ahora');
+    assert.match(mensaje, /deja de verse/, 'y qué deja de verse al cambiar');
+    assert.match(mensaje, /no se ha borrado/i, 'sin dar a entender que se pierde');
+
+    fs2.writeFileSync(declaracion, antes);
+    vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    return mensaje.slice(0, 60);
   });
 
   await comprobar('el asistente sale de lo que declara el arnés', () => {
@@ -993,9 +1413,13 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       const partes = vigia.patron.replace(/^\{|\}$/g, '').split(',');
       return partes.some((p) => new RegExp(`^${p.replace(/\*\*/g, '\u0000').replace(/\*/g, '[^/]*').replace(/\u0000/g, '.*')}$`).test(ruta));
     };
+    // Las carpetas del asistente entran las tres. Aquí solo estaban los
+    // comandos, así que una habilidad recién puesta o un ayudante nuevo no
+    // aparecían hasta cerrar y abrir — y en un arnés de Codex no se vigilaba
+    // nada suyo, porque sus cosas no viven en `.claude/`.
     for (const trozo of ['.rsc.json', '.claude/commands/lo-que-sea.md', '01-TOOLS/holded/.env',
       '02-DOCS/wiki/index.md', '02-DOCS/wiki/facturacion/iva.md', '02-DOCS/inbox/factura.pdf',
-      '02-DOCS/wiki/brand/marca.md']) {
+      '02-DOCS/wiki/brand/marca.md', '.claude/skills/la-que-sea/SKILL.md', '.claude/agents/quien-sea.md']) {
       assert.ok(cubre(trozo), `no se vigila ${trozo}`);
     }
 
@@ -1036,6 +1460,27 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(por['Conexiones con tus herramientas'].detalle, '1', 'la empresa de mentira tiene una');
     assert.equal(por['Copias fuera de este ordenador'].estado, 'no', 'sin sesión, se dice que no');
     assert.ok(por.Conocimiento, 'la wiki también se cuenta');
+
+    // Con quién habla la carpeta era la primera pregunta y no salía. Una
+    // montada para un asistente que no está puesto se comporta como si
+    // estuviera rota —los botones no hacen nada— y no lo decía nadie.
+    assert.ok(por['Con quién hablas'], 'se dice con quién se habla');
+    assert.ok(por['Botones que ha aprendido'], 'con Claude sí puede haberlos');
+
+    // Y con Codex no puede haberlos nunca: RSC no le escribe comandos. Una cruz
+    // permanente ahí no informa, reprocha algo que no se puede arreglar.
+    const fs2 = require('node:fs');
+    const conCodex = fs2.mkdtempSync(path.join(os.tmpdir(), 'radio-codex-'));
+    fs2.writeFileSync(path.join(conCodex, '.rsc.json'), JSON.stringify({ version: 1, targets: ['codex'] }));
+    fs2.mkdirSync(path.join(conCodex, '01-TOOLS', '_TEMPLATE'), { recursive: true });
+    fs2.mkdirSync(path.join(conCodex, '02-DOCS', 'wiki', 'harness'), { recursive: true });
+    vscode.guion.raiz = conCodex;
+    const suya = await cargar('terreno').radiografia();
+    vscode.guion.raiz = empresa;
+
+    const nombres = suya.piezas.map((p) => p.nombre);
+    assert.ok(!nombres.includes('Botones que ha aprendido'), 'con Codex esa línea no sale');
+    assert.ok(nombres.includes('Con quién hablas'), 'pero sí con quién habla');
     return `${radio.piezas.length} piezas`;
   });
 
@@ -1188,6 +1633,45 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${holded.etiqueta}: ${holded.scripts.length} de un vistazo`;
   });
 
+  await comprobar('se buscan también las habilidades y los ayudantes', () => {
+    // Esta caja dice buscar "lo que puede hacer" y solo traía los botones. Una
+    // habilidad instalada no aparecía escribiendo su nombre, ni un ayudante:
+    // estaban, pero solo entrando en su pantalla. Quien busca no sabe en qué
+    // apartado vive cada cosa — para eso busca.
+    const buscar = cargar('buscar');
+    buscar.saberDondeEstamos(RAIZ);
+    buscar.olvidar();
+
+    const habilidad = buscar.buscar('executive').grupos
+      .flatMap((g) => g.aciertos).find((r) => r.tipo === 'habilidad');
+    assert.ok(habilidad, 'una habilidad se encuentra por su nombre');
+    assert.deepEqual(habilidad.accion, { tipo: 'verSaberes' }, 'y lleva a su pantalla');
+
+    const ayudante = buscar.buscar('cobros').grupos
+      .flatMap((g) => g.aciertos).find((r) => r.tipo === 'ayudante');
+    assert.ok(ayudante, 'un ayudante también');
+    assert.equal(ayudante.accion.tipo, 'verAgente', 'y lleva al suyo');
+
+    buscar.olvidar();
+    return `${habilidad.titulo} · ${ayudante.titulo}`;
+  });
+
+  await comprobar('el catálogo no se queda vacío para siempre por una llamada temprana', () => {
+    // `capacidades()` recordaba también el fallo, así que la primera llamada que
+    // llegara sin saber dónde está la extensión dejaba el catálogo vacío para el
+    // resto de la sesión: ni capacidades que ofrecer, ni las puestas por su
+    // nombre en español. Y nada fallaba. Un intento que no sale no es respuesta.
+    // Con el módulo recién cargado, que es donde vive el recuerdo.
+    const suyo = path.join(RAIZ, 'src', 'consejos.js');
+    delete require.cache[require.resolve(suyo)];
+    const consejos = require(suyo);
+
+    assert.deepEqual(consejos.capacidades(null), [], 'sin ruta no hay catálogo');
+    assert.deepEqual(consejos.capacidades('/no/existe/esta/carpeta'), [], 'ni con una que no está');
+    assert.ok(consejos.capacidades(RAIZ).length, 'y después sí, cuando ya se sabe dónde mirar');
+    return `${consejos.capacidades(RAIZ).length} capacidades`;
+  });
+
   await comprobar('la lista de lo que sabe hacer separa lo suyo de la fontanería', () => {
     const saberes = cargar('saberes');
     const queSabe = saberes.queSabe(RAIZ);
@@ -1223,7 +1707,15 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const largas = decisiones.filter((d) => d.porque);
     const cortas = decisiones.filter((d) => !d.porque);
     assert.ok(largas.length >= 2, 'las del formato largo, con su porqué');
-    assert.ok(cortas.length >= 2, 'y las sueltas que deja el montaje');
+    assert.ok(cortas.length >= 2, 'y las sueltas que escribió alguien');
+    // Esta comprobación daba por bueno que salieran «las sueltas que deja el
+    // montaje» — o sea, la fontanería que RSC se apunta a sí mismo. Se vio en
+    // un arnés recién montado: eran las únicas que había, así que el primer día
+    // «las decisiones» enseñaba tres líneas en inglés con un hash dentro.
+    const rotulos = decisiones.map((d) => d.titulo);
+    assert.ok(!rotulos.some((t) => /^(Project kind|Accepted plan|SDD: deferred)/i.test(t)),
+      'lo que el arnés se apunta a sí mismo no es una decisión de esta empresa');
+    assert.ok(rotulos.some((t) => /viernes/.test(t)), 'pero una suelta de verdad sí sale');
     assert.equal(decisiones[0].titulo, 'Plazo de cobro', 'lo más nuevo, primero');
     assert.ok(!decisiones.some((d) => /^(date|decision|why)\b/i.test(d.titulo)), 'un campo no es una decisión');
 
@@ -1725,6 +2217,341 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${agentes.queHay().length} ayudante`;
   });
 
+  await comprobar('un ayudante de Codex se lee entero, aunque venga en otro formato', () => {
+    // RSC escribe los ayudantes en tres sintaxis según el asistente: markdown
+    // con cabecera para Claude, TOML para Codex, JSON para Kiro. Aquí se leían
+    // los tres con el lector de cabeceras YAML, que solo entiende la primera.
+    //
+    // Con Codex eso salía así: el ayudante aparecía en la lista —el fichero
+    // está— pero con el nombre del fichero en vez del suyo y sin una palabra de
+    // lo que hace. Un ayudante sin explicación es un botón a ciegas.
+    const fs2 = require('node:fs');
+    const conCodex = fs2.mkdtempSync(path.join(os.tmpdir(), 'codex-ayudantes-'));
+    fs2.writeFileSync(path.join(conCodex, '.rsc.json'), JSON.stringify({ version: 1, targets: ['codex'] }));
+    fs2.mkdirSync(path.join(conCodex, '.codex', 'agents'), { recursive: true });
+    fs2.writeFileSync(
+      path.join(conCodex, '.codex', 'agents', 'plazos.toml'),
+      'name = "vigilante de plazos"\ndescription = "Avisa del contrato que se acerca a su fecha."\nmodel = "gpt-5"\ndeveloper_instructions = \'\'\'\nname = "esto es el cuerpo, no un campo"\n\'\'\'\n',
+    );
+
+    vscode.guion.raiz = conCodex;
+    const [suyo] = cargar('agentes').queHay();
+    vscode.guion.raiz = empresa;
+
+    assert.equal(suyo.nombre, 'vigilante de plazos', 'su nombre, no el del fichero');
+    assert.match(suyo.queHace, /contrato que se acerca/, 'y para qué sirve');
+    return suyo.nombre;
+  });
+
+  await comprobar('lo que ha aprendido de ti se encuentra en los tres sitios de RSC', () => {
+    // RSC guarda su memoria en uno de tres sitios según qué esté fuera de git
+    // (`chooseMemoryRoot`), y la barra miraba dos. El tercero pasa cuando
+    // `.rsc/` acaba versionado: ahí la barra decía «no ha aprendido nada de ti»
+    // con las lecciones guardadas y aprobadas una a una.
+    //
+    // Y una lección solo se escribe con aprobación explícita, de una en una, así
+    // que perderlas de vista es perder justo lo que alguien se molestó en dar.
+    const fs2 = require('node:fs');
+    const SITIOS = [
+      ['.rsc', 'memory', 'lessons'],
+      ['02-DOCS', 'raw', 'worklog', '.rsc-memory', 'lessons'],
+      ['.git', 'rsc-memory', 'lessons'],
+    ];
+
+    for (const sitio of SITIOS) {
+      const casa = fs2.mkdtempSync(path.join(os.tmpdir(), 'lecciones-'));
+      fs2.mkdirSync(path.join(casa, ...sitio), { recursive: true });
+      fs2.writeFileSync(path.join(casa, ...sitio, 'l1.json'), JSON.stringify({
+        id: 'l1',
+        text: `guardada en ${sitio.join('/')}`,
+        evidence: 'lo pidió tres veces',
+        approvedAt: '2026-09-18T10:00:00Z',
+        scope: 'project',
+        confidence: 0.8,
+      }));
+      // Una rota no puede tumbar a las demás.
+      fs2.writeFileSync(path.join(casa, ...sitio, 'rota.json'), '{esto no es json');
+
+      vscode.guion.raiz = casa;
+      const suyas = cargar('lecciones').queHaAprendido();
+      vscode.guion.raiz = empresa;
+
+      assert.equal(suyas.length, 1, `se encuentra la de ${sitio.join('/')}, y la rota no cuenta`);
+      assert.match(suyas[0].texto, /guardada en/, 'con su texto');
+      assert.equal(suyas[0].porque, 'lo pidió tres veces', 'y en qué se basa');
+      assert.equal(suyas[0].donde, 'aqui', 'y si vale solo aquí o para todo');
+      // El número de confianza no sale: un 0,7 no le dice nada a nadie.
+      assert.ok(!('confianza' in suyas[0]), 'sin el número de confianza');
+    }
+    return `${SITIOS.length} sitios, los tres`;
+  });
+
+  await comprobar('una empresa de Codex se ve entera y bien, no solo sin reventar', async () => {
+    // `empresas-distintas.js` comprueba que ninguna pantalla revienta con Codex.
+    // Eso es la red de seguridad, no un aprobado: nada decía que lo que se
+    // enseña sea **lo correcto**. Aquí se monta una carpeta de Codex como la
+    // monta RSC más nuestros raíles, y se mira lo que saldría en cada sitio.
+    const fs2 = require('node:fs');
+    const cp = require('node:child_process');
+    const casa = fs2.mkdtempSync(path.join(os.tmpdir(), 'codex-entera-'));
+    const poner = (rel, texto) => {
+      const f = path.join(casa, rel);
+      fs2.mkdirSync(path.dirname(f), { recursive: true });
+      fs2.writeFileSync(f, texto);
+    };
+
+    poner('.rsc.json', JSON.stringify({ version: 1, targets: ['codex'], skills: ['bro'], ownSkills: [], catalogVersion: '1.4.1' }));
+    poner('01-TOOLS/_TEMPLATE/.env.example', 'X=\n');
+    poner('02-DOCS/wiki/harness/user-profile.md', '---\narnes: Contratos\n---\n\n# User profile\n');
+    poner('.codex/rsc/bro/SKILL.md', '---\nname: bro\ndescription: Rewrites text.\n---\n');
+    poner('.codex/agents/plazos.toml', 'name = "vigilante de plazos"\ndescription = "Avisa del contrato que se acerca a su fecha."\n');
+    poner('AGENTS.md', '# AGENTS.md\n\n## Working rules\n\n- Nada sale sin que lo lea un abogado.\n');
+    poner('CLAUDE.md', '# CLAUDE.md\n\n## Working rules\n\n- Esta no la lee Codex y no debe salir.\n');
+    // Los raíles, con el mismo script que lanza la extensión.
+    cp.spawnSync(process.execPath, [path.join(RAIZ, 'media', 'railes', 'aplicar.js'), casa], { encoding: 'utf8' });
+
+    vscode.guion.raiz = casa;
+    vscode.guion.extensionesInstaladas = ['openai.chatgpt'];
+    try {
+      const quien = cargar('asistentes').comoEstamos();
+      assert.equal(quien.ahora, 'codex', 'habla con Codex, que es para quien se montó');
+      assert.equal(quien.cuales.find((c) => c.id === 'codex').mandaTexto, false, 'y se dice que no admite que le escribamos');
+
+      const suyo = cargar('saberes').queSabe(RAIZ, 'contratos');
+      assert.ok(suyo.otras.some((c) => c.id === 'bro'), 'sus habilidades salen de .codex/rsc/');
+      assert.ok(suyo.suyas.some((c) => c.id === 'executive-lab'), 'y el raíl queda declarado como suyo');
+
+      const [ayudante] = cargar('agentes').queHay();
+      assert.match(ayudante.queHace, /contrato que se acerca/, 'el ayudante en TOML se lee entero');
+
+      const donde = cargar('donde');
+      assert.equal(donde.puedeTenerBotones(), false, 'Codex no tiene botones, y la barra lo sabe');
+      assert.equal(donde.puedeTenerAjustes(), false, 'ni fichero de permisos');
+      assert.equal(cargar('acciones').todos().length, 0, 'así que no se enseña ninguno');
+
+      const reglas = cargar('reglas').queHay();
+      assert.equal(reglas.cual, 'otros', 'manda AGENTS.md');
+      assert.ok(reglas.deLaCasa.some((x) => /abogado/.test(x)), 'y se enseñan las suyas');
+      assert.ok(!reglas.deLaCasa.some((x) => /no debe salir/.test(x)), 'nunca las de CLAUDE.md, que ahí no las lee nadie');
+
+      const radio = await cargar('terreno').radiografia();
+      const nombres = radio.piezas.map((p) => p.nombre);
+      assert.ok(nombres.includes('Con quién hablas'), 'se dice con quién habla');
+      assert.ok(!nombres.includes('Botones que ha aprendido'), 'y no se reprocha lo que no puede tener');
+      return `${suyo.otras.length + suyo.suyas.length} habilidades · 1 ayudante · 0 botones, y se sabe por qué`;
+    } finally {
+      vscode.guion.raiz = empresa;
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    }
+  });
+
+  await comprobar('la versión del arnés está fijada, y dice lo mismo en los cinco sitios', () => {
+    // La política está escrita en `rsc.js`: toda la cohorte corre el mismo
+    // catálogo, y subir de versión es una decisión, no un efecto secundario.
+    // Pero `media/harness/package.json` declaraba `^1.4.1` — un rango. Bastaba
+    // con que saliera una 1.5 para que un `npm install` empaquetara el .vsix
+    // con otro catálogo sin que nadie lo pidiera. Una versión fijada con
+    // acento circunflejo no está fijada.
+    //
+    // Y está escrita en cinco sitios. Mientras nada los compare, el día que
+    // alguien suba uno se quedan tres mintiendo. Esto dice cuáles tocar.
+    const fs2 = require('node:fs');
+    const leer = (...p) => JSON.parse(fs2.readFileSync(path.join(...p), 'utf8'));
+
+    const pedida = leer(RAIZ, 'media', 'harness', 'package.json').dependencies['@ericrisco/rsc'];
+    assert.match(pedida, /^\d+\.\d+\.\d+$/, 'exacta, sin ^ ni ~: si no, no está fijada');
+
+    const puesta = leer(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'package.json').version;
+    assert.equal(puesta, pedida, 'el arnés que viaja dentro es el que se pide');
+
+    const declarada = leer(RAIZ, '..', '.rsc.json').catalogVersion;
+    assert.equal(declarada, pedida, '.rsc.json dice la misma');
+
+    const fuente = fs2.readFileSync(path.join(RAIZ, 'src', 'rsc.js'), 'utf8');
+    const respaldo = (fuente.match(/VERSION_DE_RESPALDO = '([^']+)'/) || [])[1];
+    assert.equal(respaldo, pedida, 'el respaldo de rsc.js, también');
+
+    const empaquetar = fs2.readFileSync(path.join(RAIZ, 'preparar-paquete.js'), 'utf8');
+    assert.ok(empaquetar.includes(`@ericrisco/rsc@${pedida}`), 'y lo que se le dice a quien empaqueta');
+
+    // Y la demo, que monta su propio arnés y por eso también la fija. Se escapó
+    // de la primera versión de esta comprobación: cinco sitios, no cuatro.
+    const demo = path.join(RAIZ, '..', 'demo.sh');
+    if (fs2.existsSync(demo)) {
+      const texto = fs2.readFileSync(demo, 'utf8');
+      const suya = (texto.match(/@ericrisco\/rsc@([\d.]+)/) || [])[1];
+      if (suya) assert.equal(suya, pedida, 'la demo monta el mismo catálogo que todo lo demás');
+    }
+    return pedida;
+  });
+
+  await comprobar('quitar el disfraz también limpia lo que el disfraz ya no pone', () => {
+    // La herramienta leía `disfraz.json`, o sea **lo que el disfraz pone hoy**.
+    // Una clave que se quita del disfraz sigue puesta en el ordenador de quien
+    // instaló antes, así que la herramienta que existe para limpiar dejaba sin
+    // limpiar justo lo que se había decidido que sobraba.
+    //
+    // El caso que lo destapó es el peor: `window.zoomLevel` es la que dejó el
+    // editor gigante, hubo que quitarla a mano, y se sacó del disfraz por eso.
+    // Desde entonces, quien la tuviera podía pasar esta herramienta y seguir
+    // igual. Volverá a pasar cada vez que se saque una clave, de ahí la prueba.
+    const fs2 = require('node:fs');
+    const cp = require('node:child_process');
+    const util = path.join(RAIZ, '..', 'herramientas', 'quitar-disfraz.js');
+    const mirar = (ajustes) => {
+      const f = path.join(os.tmpdir(), `disfraz-${Math.random().toString(36).slice(2)}.json`);
+      fs2.writeFileSync(f, JSON.stringify(ajustes));
+      const { stdout } = cp.spawnSync(process.execPath, [util, '--ajustes', f], { encoding: 'utf8' });
+      fs2.rmSync(f, { force: true });
+      return stdout;
+    };
+
+    assert.match(mirar({ 'window.zoomLevel': 1 }), /1 puestas por el disfraz/,
+      'el zoom que poníamos nosotros se limpia aunque ya no esté en el disfraz');
+    assert.match(mirar({ 'window.zoomLevel': 3 }), /NO se tocan: window\.zoomLevel/,
+      'pero si esa persona puso el suyo, es suyo');
+    assert.match(mirar({ 'editor.fontSize': 18 }), /No hay nada del disfraz/,
+      'y lo que nunca fue nuestro, ni se menciona');
+    return 'lo de antes se limpia, lo tuyo no se toca';
+  });
+
+  await comprobar('el perfil de pruebas no resucita ajustes que se quitaron', () => {
+    // `perfil/executive-lab.code-profile` está generado y versionado, y nada
+    // comprobaba que siguiera cuadrando con `disfraz.json`. Se separó: seguía
+    // llevando `window.zoomLevel`, **el ajuste que le puso a Jose el editor
+    // gigante** y que por eso se quitó del disfraz. Quien lo importara para
+    // probar el disfraz a mano se lo volvía a poner.
+    const fs2 = require('node:fs');
+    const disfraz = JSON.parse(fs2.readFileSync(path.join(RAIZ, 'media', 'disfraz.json'), 'utf8'));
+    const fichero = path.join(RAIZ, '..', 'perfil', 'executive-lab.code-profile');
+    if (!fs2.existsSync(fichero)) return 'no está el perfil de pruebas';
+
+    const dentro = JSON.parse(JSON.parse(JSON.parse(fs2.readFileSync(fichero, 'utf8')).settings).settings);
+    assert.deepEqual(Object.keys(dentro).sort(), Object.keys(disfraz).sort(),
+      'el perfil lleva exactamente los ajustes del disfraz; vuelve a generarlo con perfil/construir-perfil.js');
+    assert.ok(!('window.zoomLevel' in dentro), 'y nunca el zoom, que no es nuestro');
+    return `${Object.keys(dentro).length} ajustes, los mismos`;
+  });
+
+  await comprobar('la tabla de cada asistente cuadra con el arnés que viaja dentro', () => {
+    // Esta tabla es copia de la de RSC, y de ella cuelga ya casi toda la barra:
+    // dónde están las habilidades, los botones, los ayudantes y los permisos, y
+    // dónde se ponen los raíles. Copiada a mano y sin comprobar, el día que
+    // alguien suba el arnés de versión la tabla se vuelve una suposición —y
+    // falla como falla siempre esto: sin error, enseñando cero.
+    //
+    // Así que se lee la suya, de verdad, del paquete que viaja dentro del
+    // .vsix, y se compara. No se comprueba la versión: se comprueban las rutas,
+    // que es lo que de verdad importa y lo que puede cambiar sin avisar.
+    const fs2 = require('node:fs');
+    const suyo = path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'targets');
+    if (!fs2.existsSync(suyo)) return 'el arnés no está aquí: no se puede comparar';
+
+    // Sus tablas son objetos literales en el código. Se leen sus filas.
+    const filas = (fichero, desde, clave) => {
+      const texto = fs2.readFileSync(path.join(suyo, fichero), 'utf8');
+      const bloque = texto.slice(texto.indexOf(desde));
+      const salida = {};
+      for (const linea of bloque.slice(0, bloque.indexOf('\n};')).split('\n')) {
+        const fila = linea.match(new RegExp(`^\\s*(\\w+):\\s*\\{.*\\b${clave}:\\s*'([^']+)'`));
+        if (fila) salida[fila[1]] = fila[2];
+      }
+      return salida;
+    };
+
+    const habilidades = filas('index.js', 'const SPEC = {', 'root');
+    const enganches = filas('index.js', 'const SPEC = {', 'hook');
+    const comandos = filas('commands.js', 'const COMMAND_TARGETS = Object.freeze({', 'dir');
+    const ayudantes = filas('agents.js', 'const AGENT_TARGETS = {', 'dir');
+    assert.ok(Object.keys(habilidades).length > 10, 'se han leído sus filas de verdad');
+
+    const nuestra = cargar('donde').SITIOS;
+    const comoEscribimos = (partes) => (partes ? partes.join('/') : null);
+
+    for (const [quien, fila] of Object.entries(nuestra)) {
+      assert.ok(habilidades[quien], `declaramos ${quien} y RSC no lo conoce`);
+      // Un hueco puede ser nuestro y a sabiendas —Gemini escribe sus botones en
+      // TOML y no sabemos leerlos— y eso lo dice la propia fila. Lo que no puede
+      // es aparecer sin que nadie lo haya decidido.
+      const aSabiendas = (cual) => (fila.noLeemos || []).includes(cual);
+      assert.equal(comoEscribimos(fila.habilidades), habilidades[quien], `habilidades de ${quien}`);
+      if (!aSabiendas('comandos')) assert.equal(comoEscribimos(fila.comandos), comandos[quien] || null, `botones de ${quien}`);
+      if (!aSabiendas('agentes')) assert.equal(comoEscribimos(fila.agentes), ayudantes[quien] || null, `ayudantes de ${quien}`);
+      // Claude es el único cuyo fichero de siempre no sirve para apuntarle a una
+      // habilidad: es JSON de enganches, y además las encuentra solo.
+      if (fila.siempre) assert.equal(comoEscribimos(fila.siempre.fichero), enganches[quien], `lo que lee siempre ${quien}`);
+    }
+
+    // Y lo de Codex, que es de lo que vive media auditoría, dicho aparte.
+    assert.equal(comandos.codex, undefined, 'RSC no le escribe botones a Codex');
+    assert.equal(habilidades.codex, '.codex/rsc');
+    assert.equal(ayudantes.codex, '.codex/agents');
+    return `${Object.keys(nuestra).length} asistentes, todos cuadran con los suyos`;
+  });
+
+  await comprobar('los raíles se ponen donde mira el asistente de esa carpeta', () => {
+    // Esto escribía en `.claude/` pasara lo que pasara, y el wizard deja elegir
+    // Codex: le pasa `--target codex` a RSC, que monta el arnés entero en
+    // `.codex/`. En esas carpetas la habilidad que fija el español y el
+    // vocabulario, y los cuatro comandos, caían donde Codex no mira jamás.
+    // Sin error y sin aviso: raíles puestos que no encarrilan nada.
+    const fs2 = require('node:fs');
+    const cp = require('node:child_process');
+    const aplicar = path.join(RAIZ, 'media', 'railes', 'aplicar.js');
+
+    const poner = (targets, antes = {}) => {
+      const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'railes-'));
+      fs2.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets }));
+      for (const [fichero, texto] of Object.entries(antes)) fs2.writeFileSync(path.join(carpeta, fichero), texto);
+      const { status } = cp.spawnSync(process.execPath, [aplicar, carpeta], { encoding: 'utf8' });
+      return { carpeta, status, hay: (...p) => fs2.existsSync(path.join(carpeta, ...p)) };
+    };
+
+    const claude = poner(['claude']);
+    assert.ok(claude.hay('.claude', 'skills', 'executive-lab', 'SKILL.md'), 'con Claude, donde siempre');
+    assert.ok(claude.hay('.claude', 'commands', 'seguir.md'), 'y sus cuatro comandos');
+
+    const codex = poner(['codex'], { 'AGENTS.md': '# AGENTS.md\n\nLo que ya había aquí.\n' });
+    assert.ok(codex.hay('.codex', 'rsc', 'executive-lab', 'SKILL.md'), 'con Codex, en la suya');
+    assert.ok(!codex.hay('.claude'), 'y ni se toca la de Claude');
+    // Codex no tiene carpeta de comandos: RSC no le escribe ninguno, nunca. No
+    // se los inventamos en una carpeta muerta.
+    assert.ok(!codex.hay('.codex', 'commands'), 'sin comandos, porque no hay dónde');
+
+    // Y Codex no descubre las habilidades solo: lee su AGENTS.md. Una habilidad
+    // que nadie nombra es una habilidad que no se carga.
+    const agents = fs2.readFileSync(path.join(codex.carpeta, 'AGENTS.md'), 'utf8');
+    assert.match(agents, /Lo que ya había aquí/, 'lo que hubiera escrito se respeta');
+    assert.match(agents, /\.codex\/rsc\/executive-lab\/SKILL\.md/, 'y se le apunta a la habilidad');
+
+    // Dos veces no son dos trozos: RSC pone el suyo entre marcas por lo mismo.
+    cp.spawnSync(process.execPath, [aplicar, codex.carpeta], { encoding: 'utf8' });
+    const otraVez = fs2.readFileSync(path.join(codex.carpeta, 'AGENTS.md'), 'utf8');
+    assert.equal(otraVez.match(/executive-lab:start/g).length, 1, 'y no se duplica al repetir');
+
+    // Y se callan los avisos del arnés que mandarían al alumno a una terminal.
+    //
+    // El enganche de arranque de RSC corre en cada sesión y puede imprimir cinco
+    // avisos con `npx @ericrisco/rsc …`, diciéndole al asistente que se lo
+    // ofrezca al alumno. Uno de ellos ofrece `@latest`, que se saltaría la
+    // versión fijada de la que depende que toda la clase corra lo mismo.
+    for (const interruptor of ['.no-audit', '.no-worktree-cleanup', '.no-scope-check']) {
+      assert.ok(claude.hay('.rsc', interruptor), `se calla ${interruptor}`);
+    }
+    // Y los que sí valen la pena no se tocan: que avise si falta git, y la
+    // higiene del CLAUDE.md, que no lleva ningún comando.
+    assert.ok(!claude.hay('.rsc', '.no-git'), 'que avise si falta git está bien');
+    assert.ok(!claude.hay('.rsc', '.no-claudemd-check'), 'y la higiene del CLAUDE.md también');
+
+    // Un asistente que no sabemos dónde mira se para. Unos raíles en la carpeta
+    // equivocada se ven, desde fuera, igual que unos puestos.
+    const raro = poner(['un-asistente-que-no-conocemos']);
+    assert.equal(raro.status, 1, 'con un asistente desconocido no se escribe nada');
+    assert.ok(!raro.hay('.claude'), 'y desde luego no se cae en la de Claude');
+
+    return 'Claude en la suya · Codex en la suya · desconocido, ninguna';
+  });
+
   await comprobar('una habilidad escrita aquí no se cuenta como fontanería', () => {
     // Era justo al revés: la más pertinente de todas —la que alguien se molestó
     // en escribir para esta carpeta— acababa contada como "cosas que trae de
@@ -1763,6 +2590,26 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     fs.unlinkSync(suelto);
     fs.unlinkSync(path.join(empresa, 'README.md'));
     return `${hay.sueltos.length} sin colocar`;
+  });
+
+  await comprobar('el aviso que manda a un botón trae el botón consigo', () => {
+    // Montar el arnés falla y el aviso dice «Pulsa "Algo va mal"». Ese botón
+    // vive dentro de Ayuda, y Ayuda solo sale cuando YA hay arnés: o sea, en la
+    // única pantalla donde el aviso puede aparecer, el botón no estaba. Jose lo
+    // vio en su primera instalación: «y no hay ni botón para decir que va mal».
+    const p = require('./panel-falso').montarPanel();
+    p.mandar({ tipo: 'estado', estado: { listo: false }, sinArnes: true, donde: 'Aquí ya hay trabajo tuyo', aviso: '', yaEmpezada: { cuantos: 29, conHistorial: true } });
+    const pintada = p.mandar({
+      tipo: 'aviso',
+      texto: 'No he podido montar el arnés. Pulsa "Algo va mal" y pásale el código a tu tutor.',
+      malo: true,
+    });
+    assert.match(pintada, /algoVaMal/, 'el aviso nombra un botón que hay que poder pulsar');
+
+    // Y un aviso normal no lo arrastra: solo el que lo nombra.
+    const buena = p.mandar({ tipo: 'aviso', texto: 'Guardado.', malo: false });
+    assert.ok(!/algoVaMal/.test(buena), 'un aviso bueno no ofrece socorro');
+    return 'quien lo nombra, lo ofrece';
   });
 
   await comprobar('esperar no es un callejón: siempre se puede volver', () => {

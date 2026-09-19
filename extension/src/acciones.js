@@ -108,9 +108,28 @@ function todos() {
 
   // Primero los que ya son botón, después los tuyos sin marcar, y al final los
   // que trae el arnés.
-  return encontrados.sort((a, b) => Number(b.esBoton) - Number(a.esBoton)
+  const ordenados = encontrados.sort((a, b) => Number(b.esBoton) - Number(a.esBoton)
     || Number(a.delArnes) - Number(b.delArnes)
     || a.etiqueta.localeCompare(b.etiqueta, 'es'));
+
+  // ── Y ninguno repetido ─────────────────────────────────────────────────
+  //
+  // Se vio el primer día de un arnés nuevo: «Seguir donde lo dejé» salía dos
+  // veces. Arriba el nuestro —el raíl `seguir.md`, con su `boton:`— y abajo el
+  // `resume-session` del arnés, al que aquí se le pone ese mismo nombre en
+  // cristiano. Hacen lo mismo, así que el alumno veía dos botones idénticos sin
+  // forma de saber cuál pulsar.
+  //
+  // Manda el de arriba: el nuestro está escrito para él, en su idioma, y el
+  // orden ya lo pone delante. Se compara por el rótulo porque es lo que ve, no
+  // por el nombre del fichero, que no ve nunca.
+  const vistos = new Set();
+  return ordenados.filter((uno) => {
+    const rotulo = uno.etiqueta.toLowerCase();
+    if (vistos.has(rotulo)) return false;
+    vistos.add(rotulo);
+    return true;
+  });
 }
 
 module.exports = { acciones, todos };

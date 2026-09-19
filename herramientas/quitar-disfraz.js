@@ -43,9 +43,27 @@ try {
   process.exit(1);
 }
 
+// ── Lo que el disfraz escribió alguna vez y ya no escribe ────────────────
+//
+// Esto leía `disfraz.json` y nada más, o sea **lo que el disfraz pone hoy**. Y
+// una clave que se quitó del disfraz sigue puesta en el ordenador de quien
+// instaló antes de quitarla: la herramienta que existe para limpiar dejaba sin
+// limpiar justo lo que se había decidido que sobraba.
+//
+// El caso que lo destapó es el peor posible: `window.zoomLevel: 1` es la clave
+// que le puso a Jose el editor gigante el 18 de septiembre, hubo que quitársela
+// a mano, y se sacó del disfraz por eso. Desde entonces, quien la tuviera
+// puesta podía pasar esta herramienta y **seguir con el editor gigante**.
+//
+// Se limpian con la misma regla que las de ahora: solo si el valor es
+// exactamente el que escribíamos nosotros. Si esa persona ha puesto su propio
+// zoom, es suyo y no se toca.
+const LAS_DE_ANTES = { 'window.zoomLevel': 1 };
+
 const mismo = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const delDisfraz = Object.keys(disfraz).filter((k) => k in actuales && mismo(actuales[k], disfraz[k]));
-const tuyas = Object.keys(disfraz).filter((k) => k in actuales && !mismo(actuales[k], disfraz[k]));
+const todas = { ...LAS_DE_ANTES, ...disfraz };
+const delDisfraz = Object.keys(todas).filter((k) => k in actuales && mismo(actuales[k], todas[k]));
+const tuyas = Object.keys(todas).filter((k) => k in actuales && !mismo(actuales[k], todas[k]));
 
 console.log(`Ajustes: ${fichero}`);
 console.log(`  ${Object.keys(actuales).length} claves en total`);

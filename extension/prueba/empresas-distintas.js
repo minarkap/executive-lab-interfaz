@@ -57,12 +57,17 @@ function gestoria() {
 
 function despacho() {
   const r = fs.mkdtempSync(path.join(os.tmpdir(), 'despacho-'));
-  escribir(r, '.rsc.json', JSON.stringify({ version: 1, targets: ['codex'], skills: [], ownSkills: [], catalogVersion: '1.4.1' }, null, 2));
+  escribir(r, '.rsc.json', JSON.stringify({ version: 1, targets: ['codex'], skills: ['bro'], ownSkills: ['executive-lab'], catalogVersion: '1.4.1' }, null, 2));
   escribir(r, '01-TOOLS/_TEMPLATE/.env.example', 'X=\n');
   escribir(r, '02-DOCS/wiki/harness/user-profile.md', '---\narnes: Contratos\nempresa: Despacho Ruiz\n---\n\n# User profile\n\nGoal: revisar contratos\n');
   escribir(r, 'contrato-sin-firmar.pdf', 'un contrato');
   escribir(r, 'AGENTS.md', '# AGENTS.md\n\n## Working rules\n\n- Nada sale del despacho sin que lo lea un abogado.\n');
-  escribir(r, '.codex/agents/plazos.toml', 'name = "vigilante de plazos"\n');
+  // Con Codex todo lo suyo vive en `.codex/`: las habilidades en `rsc/` y los
+  // ayudantes en TOML. Mientras esta carpeta estuvo vacía, ese camino no lo
+  // probaba nadie y la barra podía enseñar cero sin que saltara nada.
+  escribir(r, '.codex/rsc/bro/SKILL.md', '---\nname: bro\ndescription: Rewrites text so it sounds human.\n---\n');
+  escribir(r, '.codex/rsc/executive-lab/SKILL.md', '---\nname: executive-lab\ndescription: "Siempre activa: fija el español y el vocabulario de negocio."\n---\n');
+  escribir(r, '.codex/agents/plazos.toml', 'name = "vigilante de plazos"\ndescription = "Avisa del contrato que se acerca a su fecha."\n');
   return r;
 }
 

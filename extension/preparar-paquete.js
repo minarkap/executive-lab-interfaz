@@ -43,6 +43,18 @@ for (const modulo of MODULOS) {
   console.log(`  media/comun/${modulo}`);
 }
 
+// La tabla de dónde mira cada asistente vive con los raíles, y la lee también
+// `src/donde.js` — o sea, casi toda la barra. Sin ella el .vsix se instala y no
+// arranca nada. Es un fichero versionado, así que faltar no debería faltar;
+// pero lo que no se comprueba se rompe callado, y esto se rompería entero.
+const tabla = path.join(AQUI, 'media', 'railes', 'sitios.js');
+if (!fs.existsSync(tabla)) {
+  console.error('\nFalta media/railes/sitios.js, que es de donde la barra saca las rutas de cada');
+  console.error('asistente. Cópialo de skills/sitios.js antes de empaquetar.');
+  process.exit(1);
+}
+console.log('  media/railes/sitios.js (la tabla de cada asistente)');
+
 // El arnés también viaja dentro, y no está versionado: si falta, el .vsix sale
 // aparentemente bien y el arnés se descarga por su cuenta al usarlo, que es
 // justo lo que el camino sin instalador venía a evitar. Mejor verlo aquí.

@@ -47,6 +47,7 @@ const agentes = require('./agentes');
 const asistentes = require('./asistentes');
 const trato = require('./trato');
 const marca = require('./marca');
+const rastro = require('./rastro');
 
 // Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
 // peticiones (para detectar la que se repite) y los consejos que el alumno
@@ -355,6 +356,7 @@ ${cabecera}
       volverA: () => this.volverA(mensaje.id),
 
       algoVaMal: () => this.algoVaMal(),
+      verElInforme: () => this.verElInforme(mensaje.fichero),
       arreglar: () => this.arreglar(),
       arrancar: () => this.arrancar(),
       instalarGit: () => this.instalarGit(),
@@ -915,11 +917,16 @@ ${cabecera}
 
   async algoVaMal() {
     this.enviar({ tipo: 'esperando', que: 'Estoy mirando qué pasa. Tarda un poco.' });
-    const informe = await soporte.revisar();
-    this.salida.appendLine(informe.informe);
+    const informe = await soporte.revisar({
+      lineas: this.salida.ultimas ? this.salida.ultimas() : [],
+      carpetaAparte: this.contexto.globalStorageUri && this.contexto.globalStorageUri.fsPath,
+    });
+    (this.salida.sinGuardar || this.salida.appendLine).call(this.salida, informe.informe);
+    this.ultimoInforme = informe.fichero;
     this.enviar({
       tipo: 'incidencia',
       codigo: informe.codigo,
+      fichero: informe.fichero,
       sano: informe.sano,
       hayQueTocarAlgo: informe.hayQueTocarAlgo,
       // Si lo que falta es git, `rsc repair` no lo va a arreglar: hay que
@@ -927,6 +934,18 @@ ${cabecera}
       faltaGit: informe.faltaGit,
       comoSeInstalaGit: git.comoSeInstala(),
     });
+  }
+
+  // El informe entero, abierto en el editor. El alumno dicta el código y ya
+  // está; esto es para cuando el tutor está delante —o al otro lado de una
+  // pantalla compartida— y quiere leerlo sin buscar el fichero.
+  async verElInforme(fichero) {
+    const donde = fichero || this.ultimoInforme;
+    if (!donde || !fs.existsSync(donde)) {
+      this.enviar({ tipo: 'aviso', texto: 'No he podido dejarlo escrito en ningún sitio.', malo: true });
+      return;
+    }
+    await vscode.window.showTextDocument(vscode.Uri.file(donde), { viewColumn: vscode.ViewColumn.Beside });
   }
 
   async arreglar() {
@@ -1078,23 +1097,57 @@ async function vestir(contexto, salida) {
 // esto, el alumno tendría que cerrar y abrir para ver lo que acaba de pedir.
 //
 // Lo que se vigila es exactamente lo que el panel lee (ver `decisiones.md` §7).
-const LO_QUE_MIRA = '{.rsc.json,.claude/commands/*.md,01-TOOLS/**,02-DOCS/wiki/**,02-DOCS/inbox/*}';
+//
+// Y eso había dejado de ser verdad. Aquí estaba escrito `.claude/commands/*.md`
+// y nada más de lo que escribe el asistente, cuando el panel lee además sus
+// habilidades y sus ayudantes. Dos consecuencias, las dos silenciosas: una
+// habilidad recién puesta no aparecía hasta cerrar y abrir, y en un arnés de
+// Codex **no se vigilaba nada suyo**, porque sus cosas no viven en `.claude/`.
+//
+// Así que las carpetas del asistente se preguntan, no se escriben. Lo fijo es
+// lo que no depende de él: la declaración, las herramientas y la wiki.
+const LO_FIJO = ['.rsc.json', '01-TOOLS/**', '02-DOCS/wiki/**', '02-DOCS/inbox/*'];
+
+// Relativa a la raíz, que es lo que quiere `RelativePattern`.
+function suCarpeta(completa) {
+  const raiz = proyecto.raiz();
+  if (!completa || !raiz) return null;
+  return path.relative(raiz, completa).split(path.sep).join('/');
+}
+
+function loQueMira() {
+  const suyas = [
+    donde.carpetaDeComandos(),
+    donde.carpetaDeHabilidades(),
+    donde.carpetaDeAgentes(),
+  ].map(suCarpeta).filter(Boolean).map((c) => `${c}/**`);
+
+  return `{${[...LO_FIJO, ...new Set(suyas)].join(',')}}`;
+}
 
 function vigilarElArnes(contexto, panel) {
   const carpetas = vscode.workspace.workspaceFolders;
   if (!carpetas || !carpetas.length) return;
 
-  const vigia = vscode.workspace.createFileSystemWatcher(
-    new vscode.RelativePattern(carpetas[0], LO_QUE_MIRA),
-  );
+  let vigia = null;
+  let mirando = null;
+  let reloj = null;
 
   // Una tanda de cambios (RSC escribe muchos ficheros de golpe) es un solo
   // repintado, no veinte.
-  let reloj = null;
   const alCambiar = (uri) => {
     const esMarca = uri.fsPath.includes(`${marca.CARPETA.join('/')}/`) || uri.fsPath.includes(marca.FICHERO);
     // El índice del buscador se hizo con lo que había antes de este cambio.
     buscador.olvidar();
+    // Cambiar de asistente cambia dónde vive todo lo suyo, y eso se escribe en
+    // `.rsc.json`. Sin rearmar, se seguirían vigilando las carpetas del
+    // anterior: la barra dejaría de enterarse de lo que pasa en las de ahora.
+    //
+    // Se rearma **después** de este aviso, no durante: rearmar es tirar el
+    // vigía que nos está llamando ahora mismo, y deshacerse de algo desde
+    // dentro de su propio manejador es de esas cosas que van bien hasta que un
+    // día no. Sale gratis esperar al siguiente tick.
+    if (uri.fsPath.endsWith('.rsc.json') && loQueMira() !== mirando) setTimeout(armar, 0);
     clearTimeout(reloj);
     reloj = setTimeout(() => {
       // La marca cambia los colores y el logotipo, así que hay que rehacer la
@@ -1104,10 +1157,17 @@ function vigilarElArnes(contexto, panel) {
     }, 600);
   };
 
-  vigia.onDidCreate(alCambiar);
-  vigia.onDidChange(alCambiar);
-  vigia.onDidDelete(alCambiar);
-  contexto.subscriptions.push(vigia, { dispose: () => clearTimeout(reloj) });
+  function armar() {
+    if (vigia) vigia.dispose();
+    mirando = loQueMira();
+    vigia = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(carpetas[0], mirando));
+    vigia.onDidCreate(alCambiar);
+    vigia.onDidChange(alCambiar);
+    vigia.onDidDelete(alCambiar);
+  }
+
+  armar();
+  contexto.subscriptions.push({ dispose: () => { clearTimeout(reloj); if (vigia) vigia.dispose(); } });
 }
 
 // En modo avanzado nuestra barra puede no estar a la vista, así que la vuelta
@@ -1183,8 +1243,14 @@ function guardarSolo(panel, salida) {
 }
 
 function activate(contexto) {
-  const salida = vscode.window.createOutputChannel('Executive Lab');
+  // El canal se envuelve para que todo lo que apuntemos por dentro acabe
+  // también en el informe de "Algo va mal": ver rastro.js.
+  const salida = rastro.envolver(
+    vscode.window.createOutputChannel('Executive Lab'),
+    contexto.globalStorageUri && contexto.globalStorageUri.fsPath,
+  );
   rsc.saberDondeEstamos(contexto.extensionPath);
+  buscador.saberDondeEstamos(contexto.extensionPath);
   const panel = new Panel(contexto, salida);
   const comando = (id, fn) => vscode.commands.registerCommand(id, fn);
   const repintarModo = vigilarElModo(contexto);

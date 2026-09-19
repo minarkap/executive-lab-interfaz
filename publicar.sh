@@ -18,6 +18,25 @@ DESTINO="$R/publicacion"
 cd "$R/extension"
 VERSION=$(node -p "require('./package.json').version")
 
+# Un número de versión ya publicado no se vuelve a usar.
+#
+# Esto copiaba encima sin decir nada. Y el momento en que muerde es justo el más
+# fácil de que pase: acabas de arreglar cosas, se te olvida subir el número, y
+# publicas. A partir de ahí hay dos compilaciones distintas llamándose igual —
+# quien instaló ayer y quien instale mañana creen tener lo mismo y no lo tienen,
+# y ya no hay forma de saber cuál corre cada alumno.
+#
+# Se comprueba antes de las pruebas: si hay que subir el número, mejor saberlo
+# ahora que después de varios minutos montando un arnés de verdad.
+if [ -f "$DESTINO/executive-lab-$VERSION.vsix" ]; then
+  echo "Ya hay publicada una $VERSION, y no se pisa:"
+  echo "  $DESTINO/executive-lab-$VERSION.vsix"
+  echo ""
+  echo "Sube el número en extension/package.json y vuelve a lanzarlo."
+  echo "Si de verdad quieres rehacer esa misma versión, borra ese fichero a mano."
+  exit 1
+fi
+
 echo "Comprobando antes de empaquetar…"
 
 # Con el arnés de verdad, no solo con el de mentira. Tarda minutos y por eso no

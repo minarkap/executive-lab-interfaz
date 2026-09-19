@@ -293,6 +293,8 @@ status: unprocessed
 
 - Project kind: non-code-harness.
 - SDD: deferred.
+- Los avisos de cobro no se mandan en viernes.
+- SDD: no, aquí no construimos nada.
 
 ---
 ## D-0001 — Dónde se guardan las facturas

@@ -260,10 +260,16 @@ empresa, el panel lleva Executive Lab.
 **Fecha:** 17 de septiembre de 2026 · **Estado:** decidido
 
 Petición de Jose: *tiene que ajustarse al arnés que se vaya montando*. Un `FileSystemWatcher` sobre
-exactamente lo que el panel lee —`.rsc.json`, `.claude/commands/`, `01-TOOLS/`, el índice, el
-historial y los huecos de la wiki, la bandeja de documentos y la carpeta de marca— repinta la barra
-sola, con medio segundo de espera para que una tanda de escrituras de RSC sea un repintado y no
-veinte.
+exactamente lo que el panel lee —`.rsc.json`, `01-TOOLS/`, el índice, el historial y los huecos de la
+wiki, la bandeja de documentos y la carpeta de marca, **más las tres carpetas del asistente**:
+habilidades, botones y ayudantes— repinta la barra sola, con medio segundo de espera para que una
+tanda de escrituras de RSC sea un repintado y no veinte.
+
+Las del asistente se preguntan, no se escriben. Aquí estuvo escrito `.claude/commands/` a pelo, y eso
+dejaba dos huecos silenciosos: una habilidad recién puesta no aparecía hasta cerrar y abrir, y en un
+arnés de Codex no se vigilaba nada suyo, porque sus cosas no viven en `.claude/`. Cambiar de
+asistente reescribe `.rsc.json`, así que el vigilante se rearma al verlo cambiar: si no, seguiría
+mirando las carpetas del anterior.
 
 Sin esto, el alumno le pedía al asistente que conectara su facturación, el asistente lo hacía, y la
 barra seguía igual hasta cerrar y abrir. Que la cosa que acabas de pedir aparezca sola es la mitad de
@@ -2100,3 +2106,42 @@ no acabe enseñando la pantalla de una gestoría.
 Lo que se comprueba no es el contenido —eso es de `humo.js`— sino que **ninguna pantalla revienta y
 ninguna cae en la pantalla de fallo**, que es la red de seguridad y no un aprobado. Va dentro de
 `npm run probar` y del guion de publicar.
+
+## 74. El aviso que nombra un botón lo trae consigo
+
+Montar el arnés falló en una carpeta de Jose y el aviso decía «Pulsa "Algo va
+mal" y pásale el código a tu tutor». Ese botón vive dentro de **Ayuda**, y
+**Ayuda solo sale cuando ya hay arnés**. O sea: en la única pantalla donde ese
+aviso puede aparecer, el botón al que mandaba no existía. Jose: «y no hay ni
+botón para decir que va mal».
+
+Se arregla en el propio bloque del aviso, no en esa pantalla: si el texto
+nombra "Algo va mal" y el aviso es malo, el botón va pegado debajo, en la
+pantalla que sea. Quien lo nombra, lo ofrece.
+
+## 75. El informe de incidencia lleva dentro el motivo
+
+El motivo real de un arranque fallido se escribía con `salida.appendLine` en el
+panel de salida de VS Code y **ahí se quedaba**. El informe que genera "Algo va
+mal" no lo incluía. Estábamos pidiéndole al alumno que dictara a su tutor un
+código de seis letras que no llevaba dentro la única línea que importaba.
+
+Ahora el canal de salida se envuelve (`extension/src/rastro.js`): todo lo que se
+apunta sigue yendo al panel igual que antes y además se guarda —las últimas 300
+líneas, y las de la sesión anterior, por si VS Code se recarga entre el fallo y
+el "Algo va mal"—. El informe las pega al final, bajo «lo que fue pasando». El
+propio informe se escribe con `sinGuardar` para que no se meta dentro del
+siguiente.
+
+De paso, el parte de un intento fallido de montaje va entero: código de salida,
+lo que escribió y lo que escribió como error. Antes se guardaba `error || salida`
+y se quedaba con el vacío cuando el arnés escribía el motivo en la salida normal.
+
+## 76. Diagnosticar una carpeta sin arnés no le fabrica medio arnés
+
+`soporte.js` escribía el informe en `02-DOCS/raw/incidencias/` y lo creaba con
+`mkdir -p`. En el caso que más importa —montar ha fallado, no hay arnés— eso
+fabricaba una de las piezas del suelo que estaba diagnosticando: el informe
+siguiente ya decía que `02-DOCS` existía. Ahora, si no hay suelo, el informe se
+escribe fuera del proyecto, en la carpeta de la extensión, y la pantalla ofrece
+"Enseñar el informe" para abrirlo al lado sin buscarlo.

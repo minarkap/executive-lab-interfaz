@@ -22,15 +22,23 @@ const path = require('node:path');
 // El catálogo curado en español. Lo que no esté ahí no se ofrece nunca.
 let catalogoEnMemoria = null;
 
+// Solo se recuerda lo que se ha leído de verdad. Recordar el fallo era una
+// trampa esperando: la primera llamada que llegara sin saber dónde está la
+// extensión dejaba el catálogo vacío **para el resto de la sesión**, y a partir
+// de ahí la barra no ofrecía ninguna capacidad, no enseñaba ninguna de las
+// puestas por su nombre en español, y nada fallaba. Un intento que no sale no
+// es una respuesta: es un intento.
 function capacidades(carpetaDeLaExtension) {
   if (catalogoEnMemoria) return catalogoEnMemoria;
+  if (!carpetaDeLaExtension) return [];
   try {
     const fichero = path.join(carpetaDeLaExtension, 'media', 'capacidades.json');
-    catalogoEnMemoria = JSON.parse(fs.readFileSync(fichero, 'utf8')).capacidades || [];
+    const leido = JSON.parse(fs.readFileSync(fichero, 'utf8')).capacidades || [];
+    if (leido.length) catalogoEnMemoria = leido;
+    return leido;
   } catch {
-    catalogoEnMemoria = [];
+    return [];
   }
-  return catalogoEnMemoria;
 }
 
 const pelar = (texto) => String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

@@ -90,7 +90,13 @@ function comoEstamos() {
 // lo guarda, respetando todo lo demás del fichero.
 //
 // Ojo con lo que esto NO hace: no reinstala el arnés para el otro asistente.
-// Las habilidades quedan donde estaban. Por eso la pantalla lo dice.
+// Las habilidades, los ayudantes y los raíles se quedan en la carpeta del
+// anterior, y cada asistente solo mira la suya. O sea que al cambiar, la barra
+// se queda a cero de todo eso hasta que alguien lo vuelva a montar.
+//
+// Aquí decía «por eso la pantalla lo dice» y la pantalla no lo decía: el
+// mensaje era «Hecho. A partir de ahora los botones hablan con X» y punto. Un
+// alumno que pulsa y ve desaparecer sus habilidades cree que ha roto algo.
 function elegir(id) {
   const cual = porId(id);
   if (!cual) return { ok: false, mensaje: 'Ese no es uno de los dos.' };
@@ -103,12 +109,36 @@ function elegir(id) {
   const antes = Array.isArray(declaracion.targets) ? declaracion.targets : [];
   const targets = [id, ...antes.filter((t) => t !== id)];
 
+  // Lo que se queda atrás, contado antes de cambiar nada: si esta carpeta tenía
+  // habilidades o ayudantes montados para el otro, dejan de verse. No se
+  // pierden —siguen en su carpeta— pero desaparecen de la barra, y eso hay que
+  // decirlo con el nombre de lo que desaparece.
+  const donde = require('./donde');
+  const fs = require('node:fs');
+  const cuantasHay = (carpeta) => {
+    try {
+      return carpeta && fs.existsSync(carpeta)
+        ? fs.readdirSync(carpeta).filter((n) => !n.startsWith('.')).length
+        : 0;
+    } catch {
+      return 0;
+    }
+  };
+  const seQuedan = [
+    [cuantasHay(donde.carpetaDeHabilidades()), 'habilidades'],
+    [cuantasHay(donde.carpetaDeAgentes()), 'ayudantes'],
+  ].filter(([cuantas]) => cuantas > 0);
+
   try {
-    require('node:fs').writeFileSync(ruta, `${JSON.stringify({ ...declaracion, targets }, null, 2)}\n`);
+    fs.writeFileSync(ruta, `${JSON.stringify({ ...declaracion, targets }, null, 2)}\n`);
   } catch {
     return { ok: false, mensaje: 'No he podido guardarlo. Prueba con "Algo va mal".' };
   }
-  return { ok: true, mensaje: `Hecho. A partir de ahora los botones hablan con ${cual.nombre}.` };
+
+  const aviso = seQuedan.length
+    ? ` Lo que tenías montado para el otro (${seQuedan.map(([c, q]) => `${c} ${q}`).join(' y ')}) deja de verse: no se ha borrado, pero ${cual.nombre} no mira en esa carpeta. Pídeselo y te lo vuelve a montar.`
+    : '';
+  return { ok: true, mensaje: `Hecho. A partir de ahora los botones hablan con ${cual.nombre}.${aviso}` };
 }
 
 module.exports = { ASISTENTES, elDeAhora, losDelArnes, estaInstalado, porId, comoEstamos, elegir };

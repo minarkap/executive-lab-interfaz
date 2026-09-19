@@ -130,6 +130,8 @@ async function radiografia() {
   const cerebro = require('./cerebro');
   const acciones = require('./acciones');
   const github = require('./github');
+  const asistentes = require('./asistentes');
+  const donde = require('./donde');
 
   const hay = await queHay();
   if (hay.tipo === 'sinCarpeta') return { queEs: hay.tipo, piezas: [] };
@@ -142,6 +144,15 @@ async function radiografia() {
   const botones = conArnes ? acciones.acciones().length : 0;
   const cuenta = await github.estado();
 
+  // Con quién habla esta carpeta, y si esa persona lo tiene puesto.
+  //
+  // Faltaba, y era la primera pregunta: una carpeta montada para un asistente
+  // que no está instalado se comporta como si estuviera rota —los botones no
+  // hacen nada— y aquí no salía por ningún lado. Lo sabíamos de sobra
+  // (`asistentes.comoEstamos`) y no lo decíamos.
+  const conQuien = asistentes.elDeAhora();
+  const loTiene = conQuien ? asistentes.estaInstalado(conQuien) : false;
+
   // Cada pieza: si está, cuánto hay, y qué se puede hacer si falta. `estado` es
   // 'si' | 'no' | 'aMedias', y de ahí sale cómo se pinta.
   const piezas = [
@@ -149,6 +160,13 @@ async function radiografia() {
       nombre: 'El asistente, montado aquí',
       estado: hay.tipo === 'conArnes' ? 'si' : hay.tipo === 'aMedias' ? 'aMedias' : 'no',
       detalle: hay.tipo === 'conArnes' ? 'Listo' : hay.tipo === 'aMedias' ? 'Se quedó a medias' : 'Todavía no',
+    },
+    {
+      nombre: 'Con quién hablas',
+      estado: loTiene ? 'si' : 'no',
+      detalle: loTiene
+        ? conQuien.nombre
+        : `${conQuien ? conQuien.nombre : 'Ninguno'}, y no lo tienes puesto en este ordenador`,
     },
     {
       nombre: 'Conexiones con tus herramientas',
@@ -169,11 +187,15 @@ async function radiografia() {
       estado: temas ? 'si' : 'no',
       detalle: temas ? `${temas} tema(s)` : 'Todavía no ha aprendido nada',
     },
-    {
+    // Los botones solo son una pieza que falta si ese asistente llega a
+    // tenerlos. Con Codex no los hay nunca —RSC no le escribe comandos— así que
+    // una cruz permanente ahí no es información: es un reproche por algo que no
+    // se puede arreglar. Cuando no puede haberlos, esta línea no sale.
+    ...(donde.puedeTenerBotones() ? [{
       nombre: 'Botones que ha aprendido',
       estado: botones ? 'si' : 'no',
       detalle: botones ? `${botones}` : 'Ninguno todavía',
-    },
+    }] : []),
     {
       nombre: 'Copias de seguridad aquí',
       estado: hay.tipo === 'empezada' && hay.conHistorial ? 'si' : (conArnes ? 'si' : 'no'),

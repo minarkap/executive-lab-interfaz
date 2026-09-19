@@ -31,11 +31,31 @@ function humanizar(texto) {
   return limpio.charAt(0).toUpperCase() + limpio.slice(1);
 }
 
+// RSC manda las rutas tal y como se las da git, y git las marca: `M `, `A `,
+// `D `, `?? `… Una ruta marcada no empieza por `02-DOCS`, empieza por
+// `M 02-DOCS`, así que dejaba de reconocerse como zona.
+//
+// Eso vaciaba la brújula justo en el caso normal: en cuanto la wiki está
+// guardada en git —o sea, en todo alumno a partir del primer guardado— todas
+// llegan con `M ` delante y no salía ninguna zona. La pantalla principal dejaba
+// de decir dónde se había trabajado, sin que nada fallara.
+//
+// Quitar la marca es seguro: abajo solo se reconocen `02-DOCS` y `01-TOOLS`, así
+// que esto no puede devolver la basura de antes («M 01 tools»), solo recuperar
+// las dos que sí valen. Un renombrado viene como `old -> new`: vale la nueva.
+function sinLaMarcaDeGit(ruta) {
+  return String(ruta)
+    .replace(/^\s*[MADRCU?!]{1,2}\s+/, '')
+    .replace(/^.*\s->\s/, '')
+    .trim();
+}
+
 // Las rutas que tocó la última sesión, traducidas a zonas del diccionario. Una
 // ruta en crudo no aparece nunca en pantalla.
 function zonasTocadas(rutas) {
   const zonas = new Set();
-  for (const ruta of rutas) {
+  for (const cruda of rutas) {
+    const ruta = sinLaMarcaDeGit(cruda);
     const partes = ruta.split('/').filter(Boolean);
     if (!partes.length || partes[0].startsWith('.')) continue;
 

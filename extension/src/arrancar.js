@@ -156,6 +156,21 @@ async function preguntarWeb() {
 // huella, y solo escribe cuando se le devuelve esa misma huella. La línea de
 // aceptación se reutiliza tal cual la imprime RSC —con el objetivo en base64 y
 // los mismos flags— para que la huella no pueda dejar de coincidir.
+// El parte de un intento fallido, entero y en un solo sitio.
+//
+// Antes se guardaba `error || salida`: cuando el arnés escribía el motivo en
+// la salida normal y dejaba el canal de errores vacío —que es lo que hace, por
+// ejemplo, cuando el suelo se queda a medias— el parte se quedaba con lo que
+// no servía. Y nunca llevaba el código de salida, que es lo primero que mira
+// quien lo lee. Van las dos cosas y las dos salidas, siempre.
+function loQuePaso(cuando, intento) {
+  return [
+    `${cuando}: el arnés terminó con el código ${intento.codigo}`,
+    `  lo que escribió:  ${(intento.salida || '(nada)').trim() || '(nada)'}`,
+    `  y como error:     ${(intento.error || '(nada)').trim() || '(nada)'}`,
+  ].join('\n');
+}
+
 async function montarElArnes(respuestas) {
   const flags = [
     '--technical-level', respuestas.nivel,
@@ -169,7 +184,7 @@ async function montarElArnes(respuestas) {
 
   const previo = await rsc.correr(['onboard', ...flags], { tiempoMaximo: 600000 });
   const huella = (previo.salida.match(/Plan id:\s*([0-9a-f]{64})/i) || [])[1];
-  if (!huella) return { ok: false, detalle: previo.error || previo.salida };
+  if (!huella) return { ok: false, detalle: loQuePaso('al pedir el plan', previo) };
 
   // Se reutiliza la línea de aceptación tal cual la imprime RSC —con el
   // objetivo en base64 y los mismos flags— para que la huella no pueda dejar
@@ -178,11 +193,11 @@ async function montarElArnes(respuestas) {
   const aceptar = linea ? linea.trim().split(/\s+/) : [...flags, '--accept-plan', huella];
 
   const aplicado = await rsc.correr(['onboard', ...aceptar], { tiempoMaximo: 900000 });
-  if (/RSC_PLAN_CHANGED/.test(aplicado.salida)) {
-    return { ok: false, detalle: 'El plan cambió entre que se vio y se aceptó.' };
+  if (/RSC_PLAN_CHANGED/.test(aplicado.salida) || /RSC_PLAN_CHANGED/.test(aplicado.error || '')) {
+    return { ok: false, detalle: loQuePaso('el plan cambió entre que se vio y se aceptó', aplicado) };
   }
   if (!/RSC_ONBOARDING_READY/.test(aplicado.salida)) {
-    return { ok: false, detalle: aplicado.error || aplicado.salida };
+    return { ok: false, detalle: loQuePaso('al aplicar el plan', aplicado) };
   }
   return { ok: true };
 }
@@ -321,7 +336,9 @@ async function arrancar(contexto, salida) {
       }
 
       if (!proyecto.arnesCompleto()) {
-        salida.appendLine('[arrancar] falta el suelo del arnés tras un onboarding que dijo estar listo');
+        const suelo = proyecto.sueloDelArnes();
+        const faltan = Object.entries(suelo).filter(([, hay]) => !hay).map(([que]) => que);
+        salida.appendLine(`[arrancar] el arnés dijo estar listo y falta el suelo: ${faltan.join(', ') || '(nada, pero arnesCompleto() dice que no)'}`);
         return { ok: false, mensaje: 'El arnés se ha montado a medias. Pulsa "Algo va mal".' };
       }
 

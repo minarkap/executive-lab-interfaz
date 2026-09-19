@@ -1,4 +1,5 @@
-// Dónde deja RSC cada cosa según el asistente para el que se montó el arnés.
+// Dónde deja RSC cada cosa según el asistente para el que se montó el arnés,
+// dicho para la barra: rutas de verdad de la carpeta que hay abierta.
 //
 // ── Por qué existe ───────────────────────────────────────────────────────
 //
@@ -8,12 +9,14 @@
 // **cero botones y cero habilidades sin dar ningún error** — la peor forma de
 // fallar que tiene este proyecto, y la que ya nos ha mordido tres veces.
 //
-// Esta tabla es copia de la de RSC (`targets/index.js` y `targets/commands.js`,
-// versión 1.4.1, leída con permiso de Jose el 18 de septiembre de 2026). Se
-// copia y no se importa a propósito: la barra no puede depender de los
-// interiores de un paquete que se instala aparte y que puede no estar.
+// ── Dónde está la tabla ──────────────────────────────────────────────────
 //
-// ── Lo que se descubrió al leerla ────────────────────────────────────────
+// En `media/railes/sitios.js`, que no depende de VS Code. La necesitan dos
+// sitios: esto y el instalador de los raíles, que es un script suelto que se
+// ejecuta desde su propia carpeta. Mientras cada uno tuvo la suya, los raíles
+// se escribían en `.claude/` aunque el arnés fuera de Codex.
+//
+// ── Lo que se descubrió al leer la de RSC ────────────────────────────────
 //
 // **Codex no tiene carpeta de comandos.** No es que esté en otro sitio: RSC
 // solo escribe comandos para claude, cursor, gemini, opencode, copilot,
@@ -21,63 +24,34 @@
 // fallo nuestro, pero sí hay que decirlo en vez de enseñar un hueco.
 
 const proyecto = require('./proyecto');
+const sitios = require('../media/railes/sitios');
 
-// `habilidades` es la carpeta donde quedan; `comandos` la de los botones, o
-// null si ese asistente no tiene. `ajustes` es el fichero de permisos, que solo
-// tiene Claude.
-const SITIOS = {
-  claude: { habilidades: ['.claude', 'skills'], comandos: ['.claude', 'commands'], ajustes: ['.claude', 'settings.json'], agentes: ['.claude', 'agents'] },
-  codex: { habilidades: ['.codex', 'rsc'], comandos: null, ajustes: null, agentes: ['.codex', 'agents'] },
-  cursor: { habilidades: ['.cursor', 'rules'], comandos: ['.cursor', 'commands'], ajustes: null, agentes: ['.cursor', 'agents'] },
-  opencode: { habilidades: ['.opencode', 'rsc'], comandos: ['.opencode', 'commands'], ajustes: null, agentes: ['.opencode', 'agents'] },
-  copilot: { habilidades: ['.github', 'rsc'], comandos: ['.github', 'prompts'], ajustes: null, agentes: ['.github', 'agents'] },
-  windsurf: { habilidades: ['.windsurf', 'rsc'], comandos: ['.windsurf', 'workflows'], ajustes: null },
-  cline: { habilidades: ['.clinerules', 'rsc'], comandos: ['.clinerules', 'workflows'], ajustes: null },
-  roo: { habilidades: ['.roo', 'rsc'], comandos: ['.roo', 'commands'], ajustes: null },
-  // Gemini los escribe en TOML, que no es lo que sabemos leer. Se declara para
-  // no tratarlo como desconocido, pero sin carpeta de botones.
-  gemini: { habilidades: ['.gemini', 'rsc'], comandos: null, ajustes: null, agentes: ['.gemini', 'agents'] },
-  amp: { habilidades: ['.amp', 'rsc'], comandos: null, ajustes: null },
-  jules: { habilidades: ['.jules', 'rsc'], comandos: null, ajustes: null },
-  zed: { habilidades: ['.zed', 'rsc'], comandos: null, ajustes: null },
-};
+const SITIOS = sitios.SITIOS;
 
 // Para cuál se montó esta carpeta. Lo dice `.rsc.json`; sin él, Claude, que es
 // lo que monta nuestro instalador.
-function paraQuien() {
-  const targets = (proyecto.declaracion() || {}).targets;
-  const primero = Array.isArray(targets) && targets.length ? targets[0] : 'claude';
-  return SITIOS[primero] ? primero : 'claude';
-}
+const paraQuien = () => sitios.paraQuien(proyecto.declaracion());
 
-const sitios = (quien = paraQuien()) => SITIOS[quien] || SITIOS.claude;
+// Un asistente que RSC sabe montar y que no está en la tabla no se trata como
+// Claude: se queda sin carpetas. Nunca se devuelve una ruta de Claude para un
+// arnés que no es de Claude — preferimos no encontrar nada a encontrar lo ajeno.
+const susSitios = () => sitios.sitiosDe(paraQuien()) || {};
 
-// La carpeta de verdad, o null. Nunca se devuelve una ruta de Claude para un
-// arnés que no es de Claude: preferimos no encontrar nada a encontrar lo ajeno.
-const carpetaDeHabilidades = () => {
-  const partes = sitios().habilidades;
+// La carpeta de verdad, o null.
+const carpetaDe = (cual) => {
+  const partes = susSitios()[cual];
   return partes ? proyecto.ruta(...partes) : null;
 };
 
-const carpetaDeComandos = () => {
-  const partes = sitios().comandos;
-  return partes ? proyecto.ruta(...partes) : null;
-};
-
-const carpetaDeAgentes = () => {
-  const partes = sitios().agentes;
-  return partes ? proyecto.ruta(...partes) : null;
-};
-
-const ficheroDeAjustes = () => {
-  const partes = sitios().ajustes;
-  return partes ? proyecto.ruta(...partes) : null;
-};
+const carpetaDeHabilidades = () => carpetaDe('habilidades');
+const carpetaDeComandos = () => carpetaDe('comandos');
+const carpetaDeAgentes = () => carpetaDe('agentes');
+const ficheroDeAjustes = () => carpetaDe('ajustes');
 
 // ¿Este asistente llega a tener botones? Sirve para poder decir "aquí no hay
 // botones porque este asistente no los tiene" en vez de dejar el hueco.
-const puedeTenerBotones = () => Boolean(sitios().comandos);
-const puedeTenerAjustes = () => Boolean(sitios().ajustes);
+const puedeTenerBotones = () => Boolean(susSitios().comandos);
+const puedeTenerAjustes = () => Boolean(susSitios().ajustes);
 
 module.exports = {
   SITIOS, paraQuien, carpetaDeHabilidades, carpetaDeComandos, carpetaDeAgentes, ficheroDeAjustes, puedeTenerBotones, puedeTenerAjustes,

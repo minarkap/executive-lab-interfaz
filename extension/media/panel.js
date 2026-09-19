@@ -144,9 +144,18 @@ function grupo({ id, etiqueta, cuantos = '', dentro, abiertoDeEntrada = false })
     </details>`;
 }
 
+// Un aviso, y —si el aviso manda a "Algo va mal"— el botón que lo abre.
+//
+// Estaba roto de la forma más tonta: el aviso de un arranque fallido decía
+// «Pulsa "Algo va mal"» en una pantalla que no tiene ese botón, porque vive
+// dentro de Ayuda y Ayuda solo sale cuando ya hay arnés. O sea, justo cuando
+// más falta hace, no estaba. Ahora lo trae el propio aviso: quien lo nombra,
+// lo ofrece, esté en la pantalla que esté.
 function bloqueAviso(cual = aviso) {
   if (!cual) return '';
-  return `<div class="aviso ${cual.malo ? 'malo' : ''}">${texto(cual.texto)}</div>`;
+  const manda = cual.malo && /Algo va mal/.test(cual.texto || '');
+  return `<div class="aviso ${cual.malo ? 'malo' : ''}">${texto(cual.texto)}</div>`
+    + (manda ? boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } }) : '');
 }
 
 // Arriba, y pequeño. Arriba porque en una barra estrecha el final de la
@@ -765,6 +774,9 @@ function pantallaAsistente({ ahora, cuales = [], aviso: avisoLocal }) {
             ? 'Puesto en este ordenador. Los botones le mandan el texto directamente.'
             : 'Puesto en este ordenador. Los botones abren su barra y te dejan el texto copiado, porque no admite que se lo pasen.')
           : 'No está en este ordenador. Díselo a tu tutor.')}</p>
+        ${a.instalado && a.id !== ahora && !a.delArnes
+          ? '<p class="pista">Esta carpeta no se montó para él: al cambiar, tus habilidades y tus ayudantes dejan de verse hasta que se los vuelvas a pedir.</p>'
+          : ''}
         ${a.instalado && a.id !== ahora
           ? boton({ etiqueta: `Hablar con ${a.nombre}`, icono: '▸', pequeno: true, accion: { tipo: 'elegirAsistente', cual: a.id } })
           : ''}
@@ -1483,6 +1495,7 @@ function pantallaConexiones({ proveedores, sueltas }) {
     <div class="conexion">
       <p class="nombre">${texto(plural(sueltas.claves, 'Hay 1 clave guardada fuera de sitio', 'Hay {n} claves guardadas fuera de sitio'))}</p>
       <p class="pista">De cuando este trabajo se llevaba sin esto. Aquí no se ven, y por eso no salen abajo.</p>
+      ${sueltas.subidas ? `<p class="pista malo">Y están dentro de tus copias de seguridad, así que ponerlas en su sitio no las saca de ahí. Si alguna es importante, lo seguro es cambiarla donde la sacaste. Pídeselo y te lo explica.</p>` : ''}
       ${boton({ etiqueta: 'Que las ordene', icono: '🧹', principal: true, accion: { tipo: 'pedir', prompt: sueltas.prompt } })}
     </div>` : '';
 
@@ -1501,10 +1514,14 @@ function pantallaConexiones({ proveedores, sueltas }) {
     <p class="titulo">Conexiones (tools)</p>
     ${desordenadas}
     ${proveedores.map((p) => boton({
-      etiqueta: p.faltan
-        ? `${p.etiqueta} — ${plural(p.faltan, 'falta una clave', 'faltan {n} claves')}`
-        : p.etiqueta,
-      icono: p.faltan ? '○' : '●',
+      // Una que el asistente ha empezado y no ha terminado se dice, no se
+      // disfraza de conexión con claves que no se pueden rellenar.
+      etiqueta: p.aMedioHacer
+        ? `${p.etiqueta} — sin preparar`
+        : (p.faltan
+          ? `${p.etiqueta} — ${plural(p.faltan, 'falta una clave', 'faltan {n} claves')}`
+          : p.etiqueta),
+      icono: p.aMedioHacer ? '◌' : (p.faltan ? '○' : '●'),
       accion: { tipo: 'verConexion', proveedor: p.id },
     })).join('')}
   `;
@@ -1531,7 +1548,14 @@ function pantallaConexion({ proveedor, claves, cositas, aviso: avisoLocal }) {
             ${boton({ etiqueta: 'Guardar', principal: true, accion: { tipo: 'guardarClave', proveedor: proveedor.id, clave: c.clave } })}
           </div>
         </div>`).join('')
-    : nada('Esta conexión no pide ninguna clave.');
+    // Sin claves puede significar dos cosas muy distintas, y decir la que no es
+    // manda al alumno a esperar algo que no va a pasar. Si el asistente copió
+    // la plantilla y no la ha terminado, no hay nada que rellenar todavía: se
+    // dice, y se le ofrece pedírselo, que es lo único que lo desbloquea.
+    : (proveedor.aMedioHacer
+      ? `${nada('El asistente ha empezado esta conexión y no la ha terminado: todavía no se sabe qué claves pide. Pídeselo y te las deja listas para rellenar.')}
+         ${boton({ etiqueta: 'Que la termine', icono: '▸', principal: true, accion: { tipo: 'pedir', prompt: `Empezaste a conectar ${proveedor.etiqueta} y se quedó a medias: en 01-TOOLS/${proveedor.id}/ siguen los marcadores de la plantilla. Averigua qué claves pide de verdad esa herramienta, déjalas escritas y explícame de dónde saco cada una.` } })}`
+      : nada('Esta conexión no pide ninguna clave.'));
 
   const lasCositas = cositas.length
     ? `<hr class="separador"><h2>Consultas</h2>` +
@@ -1549,7 +1573,7 @@ function pantallaConexion({ proveedor, claves, cositas, aviso: avisoLocal }) {
     ${guia ? `<h2>Cómo conectarla</h2>${guia}` : ''}
     ${proveedor.ayuda && faltaAlguna ? boton({ etiqueta: 'Abrir su página para sacar la clave', icono: '↗', principal: true, accion: { tipo: 'abrir', url: proveedor.ayuda } }) : ''}
     ${faltaAlguna ? '<hr class="separador">' : ''}
-    <p class="detalle">Pega la clave entera. Los espacios y las comillas los quito yo.</p>
+    ${claves.length ? '<p class="detalle">Pega la clave entera. Los espacios y las comillas los quito yo.</p>' : ''}
     ${formularios}
     ${proveedor.ayuda && !faltaAlguna ? boton({ etiqueta: '¿Dónde consigo la clave?', icono: '❓', accion: { tipo: 'abrir', url: proveedor.ayuda } }) : ''}
     ${!proveedor.pasos.length ? boton({ etiqueta: 'Explícame cómo conectarla', icono: '💬', accion: { tipo: 'pedir', prompt: `Explícame paso a paso cómo conectar ${proveedor.etiqueta}: dónde entro, dónde saco cada clave y qué pego dónde. Y deja los pasos escritos para la próxima vez.` } }) : ''}
@@ -1774,7 +1798,7 @@ function pantallaCopias({ copias }) {
   `;
 }
 
-function pantallaIncidencia({ codigo, sano, hayQueTocarAlgo, faltaGit, comoSeInstalaGit }) {
+function pantallaIncidencia({ codigo, fichero, sano, hayQueTocarAlgo, faltaGit, comoSeInstalaGit }) {
   // Si lo que falta es git, arreglar el arnés no sirve de nada: la pieza no
   // está. Se dice eso y se ofrece ponerla, en vez de un botón que no puede.
   const queDigo = faltaGit
@@ -1791,6 +1815,7 @@ function pantallaIncidencia({ codigo, sano, hayQueTocarAlgo, faltaGit, comoSeIns
     ${faltaGit
       ? boton({ etiqueta: 'Ponerla ahora', icono: '⬇️', principal: true, accion: { tipo: 'instalarGit' } })
       : (!sano || hayQueTocarAlgo ? boton({ etiqueta: 'Arreglarlo ahora', icono: '🛠️', principal: true, accion: { tipo: 'arreglar' } }) : '')}
+    ${fichero ? boton({ etiqueta: 'Enseñar el informe', icono: '📄', accion: { tipo: 'verElInforme', fichero } }) : ''}
   `;
 }
 

@@ -34,10 +34,37 @@ function ejecutar(programa, args, opciones = {}) {
     let salida = '';
     let error = '';
     let cortado = false;
+    let contestado = false;
 
+    // Una sola respuesta, venga de donde venga. Hace falta porque el reloj ya
+    // no espera al proceso: ver abajo.
+    const contestar = (respuesta) => {
+      if (contestado) return;
+      contestado = true;
+      resolve(respuesta);
+    };
+
+    // ── Por qué el reloj contesta sin esperar a que el proceso muera ───────
+    //
+    // Esto hacía `kill()` y se quedaba esperando al evento `close`. Y `close`
+    // no llega cuando muere el hijo, sino cuando se cierran sus tuberías — o
+    // sea, cuando han muerto también sus nietos. Un `test_connection.sh` que
+    // llama a `curl` o a `sleep` deja al bash muerto y al nieto vivo, con la
+    // tubería abierta.
+    //
+    // Medido con un script de 120 s y un reloj de 45: la barra tardaba los 120.
+    // El alumno ve la pantalla parada el doble de lo que le hemos prometido y
+    // piensa que se ha colgado.
+    //
+    // Así que al saltar el reloj se contesta ya, con lo que haya llegado. Al
+    // proceso se le pide que se vaya por las buenas y, si no se va, se le
+    // insiste: lo que no se hace es tener a alguien mirando una pantalla
+    // quieta por un proceso que ya hemos dado por perdido.
     const reloj = setTimeout(() => {
       cortado = true;
-      proceso.kill();
+      try { proceso.kill(); } catch { /* ya no está */ }
+      setTimeout(() => { try { proceso.kill('SIGKILL'); } catch { /* ya no está */ } }, 2000).unref?.();
+      contestar({ codigo: -1, salida, error: 'Ha tardado demasiado y lo he parado.' });
     }, tiempoMaximo);
 
     proceso.stdout.on('data', (d) => { salida += d.toString(); });
@@ -45,12 +72,12 @@ function ejecutar(programa, args, opciones = {}) {
 
     proceso.on('error', (e) => {
       clearTimeout(reloj);
-      resolve({ codigo: -1, salida, error: e.message });
+      contestar({ codigo: -1, salida, error: e.message });
     });
 
     proceso.on('close', (codigo) => {
       clearTimeout(reloj);
-      resolve({ codigo, salida, error: cortado ? 'Ha tardado demasiado y lo he parado.' : error });
+      contestar({ codigo, salida, error: cortado ? 'Ha tardado demasiado y lo he parado.' : error });
     });
   });
 }

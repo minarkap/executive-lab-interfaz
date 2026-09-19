@@ -18,6 +18,15 @@ const proyecto = require('./proyecto');
 const { acciones } = require('./acciones');
 const papeles = require('./papeles');
 const diario = require('./diario');
+const saberes = require('./saberes');
+const agentes = require('./agentes');
+
+// El catálogo de capacidades en español viaja dentro de la extensión, así que
+// para nombrar las habilidades como las nombra el resto de la barra hay que
+// saber dónde está. Lo pone `extension.js` al arrancar, igual que con el arnés.
+// Sin ello se buscan igual, solo que con el nombre de su propia cabecera.
+let carpetaDeLaExtension = null;
+const saberDondeEstamos = (ruta) => { carpetaDeLaExtension = ruta; };
 
 // Topes para que una carpeta rara no congele el panel. Una wiki de empresa
 // anda por los cientos de documentos; 2.000 es mucho más de lo que se espera.
@@ -146,6 +155,25 @@ function armarElIndice() {
     cosas.push(cosa('diario', sesion.titulo, sesion.resumen || '', { tipo: 'verSesion', fichero: sesion.fichero }));
   }
 
+  // 6. Lo que sabe hacer y quién le ayuda.
+  //
+  // Esta caja dice buscar "lo que puede hacer" y solo traía los botones. Una
+  // habilidad instalada —«revisar contratos»— no aparecía escribiendo su
+  // nombre, y un ayudante tampoco: estaban, pero solo entrando en su pantalla.
+  // Quien busca no sabe en qué apartado vive cada cosa; para eso busca.
+  //
+  // Salen con lo que ya sabe decir de ellas el resto de la barra, así que se
+  // nombran igual aquí y allí. Al pulsar se va a su pantalla, que es donde se
+  // explican enteras y desde donde se usan.
+  const suyo = saberes.queSabe(carpetaDeLaExtension);
+  for (const habilidad of [...suyo.sabe, ...suyo.suyas, ...suyo.otras]) {
+    cosas.push(cosa('habilidad', habilidad.nombre, habilidad.frase || '', { tipo: 'verSaberes' }));
+  }
+
+  for (const ayudante of agentes.queHay()) {
+    cosas.push(cosa('ayudante', ayudante.nombre, ayudante.queHace || '', { tipo: 'verAgente', fichero: ayudante.fichero }));
+  }
+
   // Se prepara una vez lo que se va a comparar mil veces.
   for (const c of cosas) {
     c.tituloPelado = pelar(c.titulo);
@@ -186,6 +214,8 @@ const GRUPOS = [
   { tipo: 'hacer', titulo: 'Tus botones (comandos)' },
   { tipo: 'papel', titulo: 'Documentos' },
   { tipo: 'conexion', titulo: 'Conexiones (tools)' },
+  { tipo: 'habilidad', titulo: 'Habilidades (skills)' },
+  { tipo: 'ayudante', titulo: 'Ayudantes' },
   { tipo: 'diario', titulo: 'El diario' },
 ];
 
@@ -272,4 +302,4 @@ function buscar(texto, cuantos = 15, donde = null) {
   };
 }
 
-module.exports = { buscar, olvidar, pelar };
+module.exports = { buscar, olvidar, pelar, saberDondeEstamos };

@@ -24,11 +24,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 const proyecto = require('./proyecto');
 
-// RSC guarda su memoria en uno de dos sitios según si el diario va en git o no
-// (`chooseMemoryRoot`). Se miran los dos, que es más barato que adivinar.
+// RSC guarda su memoria en uno de tres sitios, según qué esté fuera de git
+// (`chooseMemoryRoot`). Se miran los tres, que es más barato que adivinar.
+//
+// El tercero es el que se olvidaba: cuando `.rsc/` acaba versionado —nuestro
+// `.gitignore` lo evita, pero el de un alumno que empezó su carpeta a su manera
+// puede no hacerlo— RSC se lleva la memoria dentro de `.git/`. Mirando solo los
+// dos primeros, la barra decía "no ha aprendido nada de ti" con las lecciones
+// guardadas y aprobadas una a una.
 const SITIOS = [
   ['.rsc', 'memory', 'lessons'],
   ['02-DOCS', 'raw', 'worklog', '.rsc-memory', 'lessons'],
+  ['.git', 'rsc-memory', 'lessons'],
 ];
 
 const TOPE = 30;
