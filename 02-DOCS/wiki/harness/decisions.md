@@ -74,3 +74,16 @@ Lo de las decisiones 77 y 78 sigue siendo cierto y sigue puesto —el enlace es 
 entrega el texto, y `claude-vscode.focus` no enfoca— pero no era el fallo de Jose.
 
 Lección: **antes de leer el código de otro, comprobar qué se le está mandando.**
+
+## Una cosa es un botón — 19 de septiembre de 2026
+
+Las tres listas de la barra —comandos, habilidades y ayudantes— pintaban cada cosa en tres bloques
+con un botón que ponía "Hacerlo". Worklog: `02-DOCS/raw/worklog/2026-09-19-una-cosa-es-un-boton.md`.
+
+- **Una cosa es el botón, con su nombre.** Lo que hace se despliega desde una (i) pegada, sin
+  repintar — repintar tira el scroll, y en una lista de veinticinco eso es perder el sitio.
+- **Los ayudantes dejan su apartado propio** y se meten en Acciones, con comandos y habilidades. Un
+  desplegable entero para un solo botón no es un apartado.
+- **Las habilidades pasan a tener botón.** Eran una lista que no se podía usar.
+- **"Hacerlo" no es un rótulo**: nombra el acto, no la cosa. El mismo fallo que ya está escrito en
+  la habilidad `texto-de-la-barra`, colado en tres pantallas.
