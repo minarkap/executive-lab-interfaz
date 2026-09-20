@@ -410,66 +410,115 @@ async function radiografia() {
   const conQuien = asistentes.elDeAhora();
   const loTiene = conQuien ? asistentes.estaInstalado(conQuien) : false;
 
-  // Cada pieza: si está, cuánto hay, y qué se puede hacer si falta. `estado` es
-  // 'si' | 'no' | 'aMedias', y de ahí sale cómo se pinta.
+  // ── Cada pieza trae su salida ─────────────────────────────────────────
+  //
+  // Esta pantalla listaba ocho cosas y **no tenía ni un botón**: decía «se
+  // quedó a medias», «no lo tienes puesto», «N sin terminar», «el asistente
+  // puede ordenarlas» — y no se podía pulsar nada para ninguna. Diagnosticar
+  // sin ofrecer salida es dejar a alguien mirando una lista de problemas.
+  //
+  // La regla, y hay una prueba que la recorre entera: **toda pieza que no esté
+  // en 'si' trae `arreglo`**. Si alguien añade una fila sin salida, falla.
+  //
+  // `arreglo.como` dice quién puede hacerlo:
+  //   'solo'    lo hace la barra de un clic
+  //   'agente'  se lo pedimos al asistente, con el encargo escrito
+  //   'persona' solo puede hacerlo quien está delante del ordenador
+  const conArreglo = (pieza, arreglo) => (pieza.estado === 'si' || pieza.estado === 'noAplica'
+    ? pieza
+    : { ...pieza, arreglo });
+
+  // `estado` es 'si' | 'no' | 'aMedias' | 'noAplica', y de ahí sale cómo se pinta.
   const piezas = [
-    {
+    conArreglo({
       nombre: 'El asistente, montado aquí',
       estado: hay.tipo === 'conArnes' ? 'si' : hay.tipo === 'aMedias' ? 'aMedias' : 'no',
       detalle: hay.tipo === 'conArnes' ? 'Listo' : hay.tipo === 'aMedias' ? 'Se quedó a medias' : 'Todavía no',
-    },
-    {
+    }, { como: 'solo', etiqueta: 'Terminar de prepararlo', accion: { tipo: 'arrancar' } }),
+    conArreglo({
       nombre: 'Con quién hablas',
       estado: loTiene ? 'si' : 'no',
       detalle: loTiene
         ? conQuien.nombre
         : `${conQuien ? conQuien.nombre : 'Ninguno'}, y no lo tienes puesto en este ordenador`,
-    },
-    {
+    }, { como: 'persona', etiqueta: 'Ver con quién hablas', accion: { tipo: 'verAsistente' } }),
+    conArreglo({
       nombre: 'Conexiones con tus herramientas',
       estado: !proveedores.length ? 'no' : (aMedias ? 'aMedias' : 'si'),
       detalle: !proveedores.length
         ? 'Ninguna todavía'
         : `${proveedores.length}${aMedias ? `, y ${aMedias} sin terminar` : ''}`,
-    },
-    {
+    }, { como: 'solo', etiqueta: 'Ver tus conexiones', accion: { tipo: 'verConexiones' } }),
+    // El encargo ya estaba escrito en `sueltas.js` y **solo se podía lanzar
+    // desde la pantalla de conexiones, que exige arnés montado**. O sea: justo
+    // en el momento en que se avisa, no había nada que pulsar.
+    conArreglo({
       nombre: 'Claves que ya tenías, fuera de sitio',
       estado: fuera ? 'aMedias' : 'si',
       detalle: fuera
         ? `${fuera.claves} en ${fuera.sitios} sitio(s); el asistente puede ordenarlas`
         : 'Nada suelto',
-    },
-    {
+    }, { como: 'agente', etiqueta: 'Que las ordene', accion: { tipo: 'pedir', prompt: fuera ? fuera.prompt : '' } }),
+    conArreglo({
       nombre: 'Conocimiento',
       estado: temas ? 'si' : 'no',
       detalle: temas ? `${temas} tema(s)` : 'Todavía no ha aprendido nada',
-    },
+    }, { como: 'solo', etiqueta: 'Darle documentos', accion: { tipo: 'verPapeles' } }),
     // Los botones solo son una pieza que falta si ese asistente llega a
     // tenerlos. Con Codex no los hay nunca —RSC no le escribe comandos— así que
     // una cruz permanente ahí no es información: es un reproche por algo que no
     // se puede arreglar. Cuando no puede haberlos, esta línea no sale.
-    ...(donde.puedeTenerBotones() ? [{
+    ...(donde.puedeTenerBotones() ? [conArreglo({
       nombre: 'Botones que ha aprendido',
       estado: botones ? 'si' : 'no',
       detalle: botones ? `${botones}` : 'Ninguno todavía',
-    }] : []),
-    {
+    }, { como: 'solo', etiqueta: 'Ver los que hay', accion: { tipo: 'verComandos' } })] : []),
+    conArreglo({
       nombre: 'Copias de seguridad aquí',
       estado: hay.tipo === 'empezada' && hay.conHistorial ? 'si' : (conArnes ? 'si' : 'no'),
       detalle: hay.tipo === 'empezada' && hay.conHistorial
         ? 'Ya tenías un historial tuyo; no lo toco'
         : (conArnes ? 'Listas' : 'Cuando prepares la carpeta'),
-    },
-    {
+    }, { como: 'solo', etiqueta: 'Preparar esta carpeta', accion: { tipo: 'arrancar' } }),
+    conArreglo({
       nombre: 'Copias fuera de este ordenador',
       estado: cuenta.conectado ? 'si' : 'no',
       detalle: cuenta.conectado
         ? `Dentro${cuenta.usuario ? ` como ${cuenta.usuario}` : ''}${cuenta.remoto && cuenta.remoto.esGitHub ? ` · ${cuenta.remoto.corto}` : ''}`
         : 'Aún no has entrado en tu cuenta',
-    },
+    }, { como: 'persona', etiqueta: 'Guardar fuera de aquí', accion: { tipo: 'verCopiaFuera' } }),
   ];
 
-  return { queEs: hay.tipo, piezas };
+  // ── Dos piezas que antes no se veían por ningún lado ──────────────────
+  //
+  // Las dos salen del reconocimiento, que no cuesta ni un proceso.
+  const parte = mirarYClasificar();
+
+  // Lo que el repositorio declara y no está en esta máquina. Es lo que RSC
+  // llama «what a fresh clone looks like», y hasta ahora se veía como un arnés
+  // sano: la barra pintaba botones que no respondían.
+  if (parte.habilidades.colgando.length) {
+    piezas.push({
+      nombre: 'Lo que este proyecto traía puesto',
+      estado: 'no',
+      detalle: `${parte.habilidades.colgando.length} cosa(s) declaradas que no están en este ordenador`,
+      arreglo: { como: 'solo', etiqueta: 'Traerlo ahora', accion: { tipo: 'arrancar' } },
+    });
+  }
+
+  // Y lo nuestro, que es otra capa: un arnés puede estar entero para RSC y no
+  // tener nada de la barra.
+  if (conArnes) {
+    const railes = parte.railes.habilidadPropia && parte.railes.nombres;
+    piezas.push({
+      nombre: 'Lo que pone la barra',
+      estado: railes ? 'si' : 'aMedias',
+      detalle: railes ? 'Puesto' : 'Falta ajustarlo a esta carpeta',
+      ...(railes ? {} : { arreglo: { como: 'solo', etiqueta: 'Ajustarlo ahora', accion: { tipo: 'arrancar' } } }),
+    });
+  }
+
+  return { queEs: hay.tipo, piezas, listo: piezas.every((p) => p.estado === 'si' || p.estado === 'noAplica') };
 }
 
 module.exports = { queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia };

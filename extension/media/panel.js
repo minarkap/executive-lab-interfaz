@@ -1173,8 +1173,17 @@ function pantallaTrato({ escalones = [], vocabularios = [], trato, palabras, ele
 // Pieza por pieza, y sin esconder lo que falta. Quien abre la barra y no ve
 // conexiones no sabe si es que no tiene ninguna o es que no se encuentran; esto
 // lo dice con todas las letras.
+// Esta pantalla listaba ocho cosas y no tenía ni un botón. Decía «se quedó a
+// medias», «no lo tienes puesto», «N sin terminar» — y no se podía pulsar nada
+// para ninguna. Ahora cada cosa que falta trae su salida, y la acción se coge
+// **tal cual viene** de `terreno.js`: rehacerla aquí es el fallo que costó tres
+// versiones (decisión 79).
 function pantallaRadiografia(datos) {
-  const MARCA = { si: '✓', no: '·', aMedias: '!' };
+  const MARCA = { si: '✓', no: '·', aMedias: '!', noAplica: '·' };
+
+  // Al terminar de montar se entra aquí con otra cabecera: no es «qué falta»,
+  // es «esto es lo que ha quedado».
+  const reciénMontado = datos.origen === 'init';
 
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Qué hay aquí' }])}
@@ -1182,8 +1191,10 @@ function pantallaRadiografia(datos) {
     ${volver()}
 
     <div class="brujula">
-      <h2>Qué falta por montar</h2>
-      <p class="hiciste">Todo lo que la barra enseña sale de leer esta carpeta. Esto es lo que ha encontrado.</p>
+      <h2>${reciénMontado ? 'Esto es lo que ha quedado montado' : 'Qué falta por montar'}</h2>
+      <p class="hiciste">${reciénMontado
+        ? 'Lo que tiene una marca al lado es lo que todavía falta. Puedes dejarlo para luego.'
+        : 'Todo lo que la barra enseña sale de leer esta carpeta. Esto es lo que ha encontrado.'}</p>
     </div>
 
     <div class="radiografia">
@@ -1192,9 +1203,15 @@ function pantallaRadiografia(datos) {
           <span class="pieza-marca" aria-hidden="true">${MARCA[pieza.estado] || '·'}</span>
           <span class="pieza-nombre">${texto(pieza.nombre)}</span>
           <span class="pieza-detalle">${texto(pieza.detalle)}</span>
-        </div>`).join('')}
+        </div>
+        ${pieza.arreglo ? boton({
+    etiqueta: pieza.arreglo.etiqueta, icono: '→', pequeno: true, accion: pieza.arreglo.accion,
+  }) : ''}`).join('')}
     </div>
 
+    <hr class="separador">
+    ${reciénMontado ? boton({ etiqueta: 'Empezar a trabajar', icono: '✳', principal: true, accion: { tipo: 'volver' } }) : ''}
+    ${boton({ etiqueta: 'Guardar esto en un documento', icono: '📄', pequeno: true, discreto: true, accion: { tipo: 'guardarLaRevision' } })}
   `;
 }
 
@@ -1353,6 +1370,10 @@ function pantallaSinArnes() {
       <p class="hiciste">${texto(estado.aviso)}</p>
     </div>
     ${estado.faltaGit ? bloqueFaltaGit() : ofrecer}
+    ${/* La lista de piezas solo se alcanzaba desde pantallas que exigen tener
+          el arnés montado — o sea, nunca cuando hace falta. Aquí es donde
+          alguien se pregunta qué pasa. */''}
+    ${boton({ etiqueta: 'Ver qué hay aquí', icono: '🔎', pequeno: true, discreto: true, accion: { tipo: 'verRadiografia' } })}
     ${boton({ etiqueta: 'Elegir otra carpeta', icono: '📂', discreto: true, accion: { tipo: 'elegirCarpeta' } })}
   `;
 }

@@ -3541,6 +3541,81 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     }
   });
 
+  await comprobar('toda pieza que falta trae su salida', async () => {
+    // El invariante que mata el callejón. Esta pantalla listaba ocho cosas —«se
+    // quedó a medias», «no lo tienes puesto», «N sin terminar»— y no tenía ni
+    // un botón. Si alguien añade una fila sin salida, esto falla.
+    const terrenoM = cargar('terreno');
+    const COMO = ['solo', 'agente', 'persona'];
+    const rutas = fs.readFileSync(path.join(RAIZ, 'src', 'extension.js'), 'utf8');
+
+    const carpetas = {
+      'la empresa de mentira': empresa,
+      'una carpeta a medias': (() => {
+        const r = fs.mkdtempSync(path.join(os.tmpdir(), 'revision-medias-'));
+        fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'], skills: [] }));
+        return r;
+      })(),
+      'una carpeta de alguien': (() => {
+        const r = fs.mkdtempSync(path.join(os.tmpdir(), 'revision-ajena-'));
+        fs.mkdirSync(path.join(r, 'src'), { recursive: true });
+        fs.writeFileSync(path.join(r, 'src/app.py'), 'x');
+        return r;
+      })(),
+    };
+
+    let miradas = 0;
+    for (const [comoEs, raiz] of Object.entries(carpetas)) {
+      vscode.guion.raiz = raiz;
+      const { piezas } = await terrenoM.radiografia();
+      assert.ok(piezas.length, `${comoEs} no enseña ninguna pieza`);
+
+      for (const pieza of piezas) {
+        miradas += 1;
+        if (pieza.estado === 'si' || pieza.estado === 'noAplica') {
+          assert.ok(!pieza.arreglo, `"${pieza.nombre}" está bien y ofrece arreglarla`);
+          continue;
+        }
+        assert.ok(pieza.arreglo, `en ${comoEs}, "${pieza.nombre}" no ofrece salida`);
+        assert.ok(COMO.includes(pieza.arreglo.como), `"${pieza.nombre}": no se sabe quién lo hace`);
+        assert.ok(pieza.arreglo.etiqueta, `"${pieza.nombre}": el botón no dice nada`);
+        // Y la acción tiene que existir de verdad en la extensión, o el botón
+        // se pulsa y no pasa nada.
+        assert.match(rutas, new RegExp(`\\b${pieza.arreglo.accion.tipo}:`), `"${pieza.arreglo.accion.tipo}" no existe`);
+      }
+    }
+
+    vscode.guion.raiz = empresa;
+    return `${miradas} piezas en 3 carpetas, todas con salida`;
+  });
+
+  await comprobar('a la lista de piezas se llega sin arnés, que es cuando hace falta', () => {
+    // Sus dos entradas vivían en pantallas que exigen `listo: true`: en una
+    // carpeta rota solo se llegaba por la paleta de comandos, que el modo
+    // sencillo esconde.
+    const p = require('./panel-falso').montarPanel();
+    const sinArnes = p.mandar({
+      tipo: 'estado',
+      estado: { listo: false },
+      sinArnes: true,
+      donde: 'Aquí todavía no hay nada',
+      aviso: '',
+    });
+    assert.match(sinArnes, /verRadiografia/, 'desde una carpeta sin arnés no se llega');
+
+    // Y al terminar de montar, la pantalla cambia de cabecera y tiene salida.
+    const alFinal = p.mandar({
+      tipo: 'radiografia',
+      origen: 'init',
+      queEs: 'conArnes',
+      piezas: [{ nombre: 'Conocimiento', estado: 'no', detalle: 'Nada todavía', arreglo: { como: 'solo', etiqueta: 'Darle documentos', accion: { tipo: 'verPapeles' } } }],
+    });
+    assert.match(alFinal, /ha quedado montado/);
+    assert.match(alFinal, /Empezar a trabajar/, 'del final del arranque se tiene que poder salir');
+    assert.match(alFinal, /verPapeles/, 'y la pieza que falta trae su botón');
+    return 'alcanzable y con salida';
+  });
+
   await comprobar('un .rsc.json que no se puede leer no se pisa', async () => {
     // Es un fichero que viaja por git, y el propio RSC avisa de que es propenso
     // a conflictos de merge. Antes se veía como arnés montado y el arranque

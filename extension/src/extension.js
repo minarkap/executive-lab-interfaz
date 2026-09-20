@@ -373,6 +373,7 @@ ${cabecera}
       conectarGitHub: () => this.conectarGitHub(),
       verCopiaFuera: () => this.verCopiaFuera(),
       verRadiografia: () => this.verRadiografia(),
+      guardarLaRevision: () => this.guardarLaRevision(),
       verSaberes: () => this.verSaberes(),
       verSalidas: () => this.verSalidas(),
       verHuecos: () => this.verHuecos(),
@@ -946,6 +947,46 @@ ${cabecera}
     await this.refrescar(true);
   }
 
+  // Lo que se ve en pantalla, escrito en un documento para poder pasárselo a
+  // alguien. Jose: «podemos reportarlo en un markdown y luego un botón para
+  // afinar las cosas». Va donde va todo lo que se lee: la bandeja del arnés; y
+  // si no hay arnés, fuera del proyecto, que es donde no estorba.
+  async guardarLaRevision() {
+    const { piezas, queEs } = await terreno.radiografia();
+    const cuando = new Date().toISOString().slice(0, 10);
+
+    const linea = (p) => `| ${{ si: '✓', aMedias: '!', no: '·' }[p.estado] || '·'} | ${p.nombre} | ${p.detalle} |`;
+    const texto = [
+      `# Qué hay montado en esta carpeta`,
+      '',
+      `Fecha: ${cuando}`,
+      `Estado: ${queEs}`,
+      '',
+      '| | Pieza | Cómo está |',
+      '|---|---|---|',
+      ...piezas.map(linea),
+      '',
+      ...(piezas.some((p) => p.arreglo) ? [
+        '## Lo que falta, y quién puede hacerlo',
+        '',
+        ...piezas.filter((p) => p.arreglo).map((p) => `- **${p.nombre}** — ${p.arreglo.etiqueta} (${{ solo: 'lo hace la barra', agente: 'se lo pide al asistente', persona: 'lo tienes que hacer tú' }[p.arreglo.como]})`),
+      ] : ['Está todo.']),
+      '',
+    ].join('\n');
+
+    const dentro = proyecto.arnesCompleto() && proyecto.ruta('02-DOCS', 'raw');
+    const carpeta = dentro || (this.contexto.globalStorageUri && this.contexto.globalStorageUri.fsPath);
+    if (!carpeta) {
+      return this.enviar({ tipo: 'aviso', texto: 'No he podido dejarlo escrito en ningún sitio.', malo: true });
+    }
+
+    const fichero = path.join(carpeta, `que-hay-montado-${cuando}.md`);
+    fs.mkdirSync(carpeta, { recursive: true });
+    fs.writeFileSync(fichero, texto);
+    await vscode.commands.executeCommand('markdown.showPreviewToSide', vscode.Uri.file(fichero));
+    return this.enviar({ tipo: 'aviso', texto: 'Te lo he dejado escrito y abierto al lado.' });
+  }
+
   // ---------------------------------------------------------- soporte
 
   async algoVaMal() {
@@ -1064,7 +1105,7 @@ ${cabecera}
 
     if (!reciénMontado) {
       this.enviar({ tipo: 'aviso', texto: LO_QUE_SE_HIZO[hecho.rama] || hecho.mensaje });
-      await this.refrescar(true);
+      await this.siFaltaAlgoDecirlo(true);
       await puente.enviar('He puesto al día el arnés de esta carpeta. Mira qué hay montado y cuéntame en dos líneas por dónde seguimos.');
       return undefined;
     }
@@ -1078,6 +1119,8 @@ ${cabecera}
     );
     if (sencilla === 'Sí, más sencillo') await this.modoSencillo();
     await this.refrescar(true);
+    // La lista de lo que falta se deja para el final, después de GitHub: si
+    // saliera ahora, la pregunta de la cuenta le caería encima.
 
     // La cuenta de GitHub, aquí y no cuando haga falta.
     //
@@ -1103,7 +1146,22 @@ ${cabecera}
     const deQuien = hecho.nombres.empresa ? ` Es para ${hecho.nombres.empresa}.` : '';
     const comoSeLlama = hecho.nombres.arnes || identidad.deQuien();
     await puente.enviar(`Acabo de montar aquí un arnés que he llamado "${comoSeLlama}".${deQuien} Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb}Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
+    await this.siFaltaAlgoDecirlo(false);
     return undefined;
+  }
+
+  // Jose, sobre qué ver al terminar: «si está todo bien, ¿no debería ir a la
+  // pantalla principal?». Eso. La lista de piezas solo sale cuando hay algo que
+  // decir — y entonces sale con un botón por cada cosa, que es lo que le
+  // faltaba a esa pantalla desde el principio.
+  async siFaltaAlgoDecirlo(refrescarSiEstaTodo) {
+    const revision = await terreno.radiografia();
+    if (revision.listo) {
+      if (refrescarSiEstaTodo) await this.refrescar(true);
+      return;
+    }
+    this.donde = { tipo: 'quieto' };
+    this.enviar({ tipo: 'radiografia', origen: 'init', ...revision });
   }
 
   // La web se pregunta aquí, en una caja nativa, no mandándole a Claude un
