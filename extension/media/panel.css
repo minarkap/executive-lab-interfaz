@@ -603,6 +603,11 @@ mark {
 .pieza-nombre { font-weight: 600; }
 .pieza-detalle { grid-column: 2; color: var(--apagado); }
 
+/* Lo que todavía no aplica —conexiones y conocimiento mientras no hay arnés—
+   no es una cosa que falte: es una cosa que no toca. Se atenúa para que no
+   compita con la que sí importa, que es montar el arnés. */
+.pieza.noAplica { opacity: .5; }
+
 /* ── Una cosa que se puede hacer: el botón y su (i) ─────────────────────
    Un botón que ocupa toda la fila y, pegada, una (i) cuadrada del mismo alto.
    Lo que hace esa cosa vive debajo, plegado, y solo sale si se pulsa la (i).

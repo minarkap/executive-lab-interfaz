@@ -87,3 +87,21 @@ con un botón que ponía "Hacerlo". Worklog: `02-DOCS/raw/worklog/2026-09-19-una
 - **Las habilidades pasan a tener botón.** Eran una lista que no se podía usar.
 - **"Hacerlo" no es un rótulo**: nombra el acto, no la cosa. El mismo fallo que ya está escrito en
   la habilidad `texto-de-la-barra`, colado en tres pantallas.
+
+## El arranque sabe llegar desde donde sea — 20 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-20-el-arranque-sabe-llegar-desde-donde-sea.md`.
+
+Cuatro momentos: **reconocer → decidir → aplicar → comprobar**. Nueve estados de carpeta donde había
+cinco, un despachador que es una función pura, seis caminos nuevos, y una lista final en la que toda
+pieza que falta trae su salida.
+
+- **Determinista**: clasificar, decidir la rama, calcular qué preguntar, correr `onboard`/`sync`/
+  `repair`/`doctor`, poner los raíles, escribir los nombres, decidir si se escribe en el historial, y
+  **comprobar si un encargo quedó hecho**.
+- **Del agente**: ordenar claves fuera de sitio, enterarse de qué hay en una carpeta que ya era de
+  alguien, levantar el suelo que `repair` no sabe levantar. Siempre con contrato de cuatro partes y
+  con una función que mira el disco después.
+
+Dos cosas de RSC que cambian cómo se le habla: `repair` **no** levanta un suelo ausente (eso solo lo
+hace `onboard`), y `repair --yes` a ciegas puede mover el arnés a otro asistente.

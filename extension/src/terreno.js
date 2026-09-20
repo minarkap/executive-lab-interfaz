@@ -455,12 +455,18 @@ async function radiografia() {
         ? conQuien.nombre
         : `${conQuien ? conQuien.nombre : 'Ninguno'}, y no lo tienes puesto en este ordenador`,
     }, { como: 'persona', etiqueta: 'Ver con quién hablas', accion: { tipo: 'verAsistente' } }),
+    // ── Lo que cuelga del arnés, mientras no hay arnés ────────────────────
+    //
+    // Sin arnés montado, «no tienes conexiones» y «no ha aprendido nada» no son
+    // cosas que falten: son cosas que todavía no aplican. Marcarlas en rojo con
+    // un botón que lleva a una pantalla vacía es ruido, y esconde la única que
+    // importa, que es montar el arnés. `noAplica` no pide arreglo.
     conArreglo({
       nombre: 'Conexiones con tus herramientas',
-      estado: !proveedores.length ? 'no' : (aMedias ? 'aMedias' : 'si'),
-      detalle: !proveedores.length
+      estado: !conArnes ? 'noAplica' : (!proveedores.length ? 'no' : (aMedias ? 'aMedias' : 'si')),
+      detalle: !conArnes ? 'Cuando esté montado' : (!proveedores.length
         ? 'Ninguna todavía'
-        : `${proveedores.length}${aMedias ? `, y ${aMedias} sin terminar` : ''}`,
+        : `${proveedores.length}${aMedias ? `, y ${aMedias} sin terminar` : ''}`),
     }, { como: 'solo', etiqueta: 'Ver tus conexiones', accion: { tipo: 'verConexiones' } }),
     // El encargo ya estaba escrito en `sueltas.js` y **solo se podía lanzar
     // desde la pantalla de conexiones, que exige arnés montado**. O sea: justo
@@ -474,8 +480,8 @@ async function radiografia() {
     }, comoEncargo(encargos.ordenarLasClaves())),
     conArreglo({
       nombre: 'Conocimiento',
-      estado: temas ? 'si' : 'no',
-      detalle: temas ? `${temas} tema(s)` : 'Todavía no ha aprendido nada',
+      estado: !conArnes ? 'noAplica' : (temas ? 'si' : 'no'),
+      detalle: !conArnes ? 'Cuando esté montado' : (temas ? `${temas} tema(s)` : 'Todavía no ha aprendido nada'),
     }, { como: 'solo', etiqueta: 'Darle documentos', accion: { tipo: 'verPapeles' } }),
     // Los botones solo son una pieza que falta si ese asistente llega a
     // tenerlos. Con Codex no los hay nunca —RSC no le escribe comandos— así que
@@ -483,8 +489,8 @@ async function radiografia() {
     // se puede arreglar. Cuando no puede haberlos, esta línea no sale.
     ...(donde.puedeTenerBotones() ? [conArreglo({
       nombre: 'Botones que ha aprendido',
-      estado: botones ? 'si' : 'no',
-      detalle: botones ? `${botones}` : 'Ninguno todavía',
+      estado: !conArnes ? 'noAplica' : (botones ? 'si' : 'no'),
+      detalle: !conArnes ? 'Cuando esté montado' : (botones ? `${botones}` : 'Ninguno todavía'),
     }, { como: 'solo', etiqueta: 'Ver los que hay', accion: { tipo: 'verComandos' } })] : []),
     conArreglo({
       nombre: 'Copias de seguridad aquí',
@@ -524,6 +530,22 @@ async function radiografia() {
       detalle: 'El asistente todavía no lo ha mirado',
       arreglo: comoEncargo(encargos.ordenarLaCarpeta(parte)),
     });
+  }
+
+  // Con el fichero de la declaración ilegible no se ofrece tocar nada: cada
+  // botón que llevara a montar acabaría en un «no voy a tocar nada», y volver a
+  // ofrecerlo es prometer algo que no va a pasar.
+  if (parte.estado === 'reciboRoto') {
+    return {
+      queEs: hay.tipo,
+      listo: false,
+      piezas: [{
+        nombre: 'El fichero que dice cómo está montado esto',
+        estado: 'no',
+        detalle: 'No se puede leer. Suele ser un conflicto sin resolver, y no lo voy a tocar.',
+        arreglo: { como: 'persona', etiqueta: 'Algo va mal', accion: { tipo: 'algoVaMal' } },
+      }],
+    };
   }
 
   // Y lo nuestro, que es otra capa: un arnés puede estar entero para RSC y no
