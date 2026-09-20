@@ -57,10 +57,14 @@
      salía gris apagado. */
   --logo: #0a0a0a;
 
-  --alto-boton: 40px;
+  /* Jose, viendo la lista de comandos: «separa un poco los botones y tal y
+     hazlos un poco más finos». Eran 40 px de alto pegados de siete en siete, y
+     una lista de seis llenaba la pantalla de bloques. Ahora son más bajos y
+     respiran: se lee la lista de un vistazo en vez de recorrerla. */
+  --alto-boton: 34px;
   --radio: 10px;
   --radio-lg: 16px;
-  --hueco: 7px;
+  --hueco: 10px;
   --sombra: 0 1px 2px rgba(0, 0, 0, .06);
 }
 
@@ -243,7 +247,7 @@ button {
   width: 100%;
   min-height: var(--alto-boton);
   margin-bottom: var(--hueco);
-  padding: 9px 13px;
+  padding: 6px 12px;
   font-family: inherit;
   font-size: 14px;
   text-align: left;
@@ -279,7 +283,7 @@ button .texto { flex: 1; }
 
 /* Un botón discreto, para lo que no es la tarea de hoy. */
 button.discreto {
-  min-height: 38px;
+  min-height: 32px;
   font-size: 13.5px;
   color: var(--apagado);
   background: none;
@@ -600,7 +604,7 @@ mark {
 .fila {
   display: flex;
   align-items: stretch;
-  gap: 6px;
+  gap: 8px;
 }
 .fila > button:first-child { flex: 1; min-width: 0; }
 .fila .texto { overflow-wrap: anywhere; }
@@ -659,9 +663,9 @@ body.soltando {
    a diario. Con doce funciones, en botón grande esto era un scroll largo para
    llegar a lo de siempre. */
 button.pequeno {
-  min-height: 36px;
-  padding: 7px 11px;
-  margin-bottom: 6px;
+  min-height: 30px;
+  padding: 5px 11px;
+  margin-bottom: 8px;
   font-size: 13px;
 }
 button.pequeno .icono { font-size: 14px; }
