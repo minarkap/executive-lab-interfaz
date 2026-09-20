@@ -103,6 +103,7 @@ function deQueParece(raiz) {
 
 const rsc = require('./rsc');
 const donde = require('./donde');
+const identidad = require('./identidad');
 const sitios = require('../media/railes/sitios');
 
 // Los cuatro ficheros de raíz que se llevan la peor parte de un merge y que un
@@ -183,6 +184,7 @@ function mirar() {
       habilidades: { declaradas: [], enDisco: [], colgando: [] },
       conEstadoDeRsc: false,
       otroMontaje: { asistentes: [], ficheros: [] },
+      railes: { habilidadPropia: false, perfil: false, nombres: null },
       claves: null,
     };
   }
@@ -213,7 +215,26 @@ function mirar() {
     },
     conEstadoDeRsc: fs.existsSync(donde.ficheroDeEstado() || ''),
     otroMontaje: otroMontaje(),
+    railes: comoEstanLosRailes(),
     claves: sueltas.resumen(),
+  };
+}
+
+// Los raíles son lo nuestro: la habilidad que fija el español y el vocabulario,
+// y los dos nombres en el perfil. No los pone RSC, así que un arnés montado por
+// otra vía —o traído de otro ordenador— puede estar entero y no tenerlos.
+//
+// Y de aquí sale la única pregunta que un clon necesita: los nombres.
+function comoEstanLosRailes() {
+  const habilidades = donde.carpetaDeHabilidades();
+  const nombres = identidad.leer();
+
+  return {
+    habilidadPropia: Boolean(habilidades && fs.existsSync(path.join(habilidades, 'executive-lab', 'SKILL.md'))),
+    perfil: proyecto.existe(...identidad.PERFIL),
+    // `puesto` es lo que distingue un nombre escrito por alguien del que se
+    // deduce de la carpeta. Un nombre deducido no cuenta como contestado.
+    nombres: nombres.puesto ? { arnes: nombres.arnes, empresa: nombres.empresa } : null,
   };
 }
 

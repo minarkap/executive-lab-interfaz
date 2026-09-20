@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'rastro', 'nombres', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'rastro', 'nombres', 'rumbo', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -3146,6 +3146,144 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
 
     vscode.guion.raiz = empresa;
     return '1 habilidad · 1 ayudante · AGENTS.md';
+  });
+
+  // ------------------------------------------------ decidir qué hay que hacer
+  //
+  // `rumbo.js` es una función pura: entra un parte, sale un plan. Es la única
+  // pieza del arranque que se puede probar entera sin montar nada, así que aquí
+  // va el grueso. Los partes se inventan a mano: eso es lo que permite cubrir
+  // las nueve ramas en milisegundos.
+
+  await comprobar('cada estado de carpeta tiene su rama, y solo una', () => {
+    const rumbo = cargar('rumbo');
+    const RECORD = {
+      projectKind: 'software', goal: 'lo mío', softwareScope: 'small',
+      technicalLevel: 'mixed', accompaniment: 'L2', targets: ['claude'],
+    };
+    const parte = (estado, mas = {}) => ({
+      estado,
+      git: { hay: true },
+      carpeta: { vacia: estado === 'vacia', cuantos: estado === 'vacia' ? 0 : 3, parece: null },
+      suelo: { faltan: estado === 'aMedias' ? ['conocimiento'] : [] },
+      habilidades: { declaradas: [], enDisco: [], colgando: [] },
+      recibo: { record: RECORD },
+      railes: { habilidadPropia: true, perfil: true, nombres: { arnes: 'X', empresa: 'Y' } },
+      claves: null,
+      ...mas,
+    });
+
+    const ESPERADAS = {
+      sinCarpeta: 'sinCarpeta',
+      vacia: 'desdeCero',
+      empezada: 'encimaDeLoQueHay',
+      otroArnes: 'otroArnes',
+      clonado: 'traer',
+      aMedias: 'completar',
+      sinRecibo: 'sinRecibo',
+      conArnes: 'yaEstaba',
+      reciboRoto: 'reciboRoto',
+    };
+
+    for (const [estado, esperada] of Object.entries(ESPERADAS)) {
+      const plan = rumbo.elegirRama(parte(estado));
+      assert.equal(plan.rama, esperada, `"${estado}" debería ir a "${esperada}"`);
+      assert.ok(plan.porQue, `"${estado}" no dice por qué`);
+      for (const paso of plan.pasos) {
+        assert.ok(rumbo.PASOS[paso.id], `"${paso.id}" no está en el catálogo de pasos`);
+      }
+    }
+
+    // Un arnés entero de RSC al que le faltan NUESTROS raíles no es «ya
+    // estaba»: hay que adaptarlo. Es lo que pidió Jose y lo que pasa en un
+    // arnés montado por otra vía.
+    const sinRailes = rumbo.elegirRama(parte('conArnes', { railes: { habilidadPropia: false, perfil: true, nombres: null } }));
+    assert.equal(sinRailes.rama, 'adoptar');
+    assert.deepEqual(sinRailes.pasos.map((p) => p.id), ['ponerLosRailes', 'ponerLosNombres', 'apuntarLosEnganches']);
+    assert.deepEqual(sinRailes.preguntar, ['nombres'], 'y se pregunta solo lo que falta');
+
+    // Y decidir dos veces sobre lo mismo da lo mismo: es una función, no un
+    // proceso.
+    assert.deepEqual(rumbo.elegirRama(parte('clonado')), rumbo.elegirRama(parte('clonado')));
+    return `${Object.keys(ESPERADAS).length} estados, ${new Set(Object.values(ESPERADAS)).size} ramas`;
+  });
+
+  await comprobar('lo que ya está en el recibo no se vuelve a preguntar', () => {
+    // Cinco de las siete preguntas viven en `.rsc.json` desde que alguien
+    // aceptó el plan. Se preguntaban igual, las siete, cada vez.
+    const rumbo = cargar('rumbo');
+    const entero = {
+      projectKind: 'operations', goal: 'llevar las facturas', softwareScope: null,
+      technicalLevel: 'non-technical', accompaniment: 'L3', targets: ['claude'],
+    };
+    const base = {
+      estado: 'clonado', git: { hay: true },
+      carpeta: { vacia: false, cuantos: 9, parece: null },
+      suelo: { faltan: [] }, habilidades: { declaradas: [], enDisco: [], colgando: [] },
+      claves: null,
+    };
+
+    const conNombres = rumbo.elegirRama({ ...base, recibo: { record: entero }, railes: { nombres: { arnes: 'X' } } });
+    assert.deepEqual(conNombres.preguntar, [], 'con recibo y nombres no queda nada que preguntar');
+
+    const sinNombres = rumbo.elegirRama({ ...base, recibo: { record: entero }, railes: { nombres: null } });
+    assert.deepEqual(sinNombres.preguntar, ['nombres'], 'un clon pregunta una, no siete');
+
+    // Sin recibo se preguntan las siete.
+    const aPelo = rumbo.elegirRama({ ...base, estado: 'empezada', recibo: null, railes: { nombres: null } });
+    assert.equal(aPelo.preguntar.length, 7, `se esperaban 7 y son ${aPelo.preguntar.length}`);
+
+    // Y un valor que RSC no aceptaría se pregunta igual, aunque esté escrito.
+    const torcido = rumbo.elegirRama({
+      ...base,
+      recibo: { record: { ...entero, technicalLevel: 'experto', accompaniment: 'L9' } },
+      railes: { nombres: { arnes: 'X' } },
+    });
+    assert.deepEqual(torcido.preguntar.sort(), ['dial', 'nivel'], 'lo que no vale se vuelve a preguntar');
+    return '0 · 1 · 7 · 2';
+  });
+
+  await comprobar('un arnés que ya está no se toca, y el historial de alguien tampoco', () => {
+    const rumbo = cargar('rumbo');
+    const base = {
+      git: { hay: true }, carpeta: { vacia: false, cuantos: 4, parece: null },
+      suelo: { faltan: [] }, habilidades: { declaradas: [], enDisco: [], colgando: [] },
+      recibo: { record: { projectKind: 'software', goal: 'x', softwareScope: 'small', technicalLevel: 'mixed', accompaniment: 'L2', targets: ['claude'] } },
+      railes: { habilidadPropia: true, perfil: true, nombres: { arnes: 'X' } }, claves: null,
+    };
+
+    // La que existe para no hacer nada: ni un paso que escriba.
+    const sano = rumbo.elegirRama({ ...base, estado: 'conArnes' });
+    assert.ok(sano.pasos.every((p) => !p.escribe), 'un arnés sano no se toca');
+
+    // El punto de partida mete `git add -A` en el historial. Solo en una
+    // carpeta vacía, nunca sobre el trabajo de alguien. Es la decisión 28, y
+    // hasta ahora solo se podía comprobar leyendo el código fuente.
+    for (const estado of ['empezada', 'otroArnes', 'clonado', 'aMedias', 'sinRecibo', 'conArnes']) {
+      const plan = rumbo.elegirRama({ ...base, estado, railes: { habilidadPropia: false, perfil: true, nombres: null } });
+      assert.ok(!plan.pasos.some((p) => p.id === 'puntoDePartida'),
+        `"${estado}" escribiría en el historial de alguien`);
+    }
+    const vacia = rumbo.elegirRama({ ...base, estado: 'vacia', carpeta: { vacia: true, cuantos: 0, parece: null } });
+    assert.ok(vacia.pasos.some((p) => p.id === 'puntoDePartida'), 'una carpeta vacía sí lo deja');
+    return 'solo desde cero';
+  });
+
+  await comprobar('sin git no se escribe nada hasta que se decida', () => {
+    // Enterarse a mitad, después de cinco respuestas y con la barra en marcha,
+    // era la peor forma de descubrirlo.
+    const rumbo = cargar('rumbo');
+    const base = {
+      carpeta: { vacia: true, cuantos: 0, parece: null }, suelo: { faltan: [] },
+      habilidades: { declaradas: [], enDisco: [], colgando: [] }, recibo: null,
+      railes: { nombres: null }, claves: null,
+    };
+    for (const estado of ['vacia', 'empezada', 'otroArnes', 'clonado', 'aMedias']) {
+      const plan = rumbo.elegirRama({ ...base, estado, git: { hay: false } });
+      assert.equal(plan.rama, 'sinGit', `"${estado}" sin git no se para`);
+      assert.deepEqual(plan.preguntar, [], 'y no pregunta nada antes');
+    }
+    return 'se para antes de preguntar';
   });
 
   await comprobar('la empresa de mentira es un arnés montado, no un clon', () => {
