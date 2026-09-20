@@ -627,7 +627,15 @@ ${cabecera}
     this.donde = { tipo: 'quieto' };
     const sabe = saberes.queSabe(this.contexto.extensionPath, this.corpus());
     this.enviar({
-      tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, suyas: sabe.suyas, otras: sabe.otras, encajan: sabe.encajan,
+      tipo: 'saberes',
+      sabe: sabe.sabe,
+      puedeAprender: sabe.puedeAprender,
+      // Lo que no pega con este arnés: va plegado, no se tira.
+      lasDemas: sabe.lasDemas,
+      deQueVa: sabe.deQueVa,
+      suyas: sabe.suyas,
+      otras: sabe.otras,
+      encajan: sabe.encajan,
     });
   }
 

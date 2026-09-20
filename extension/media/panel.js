@@ -135,9 +135,15 @@ function boton({ etiqueta, icono = '', accion, principal = false, discreto = fal
 // Ahora una cosa **es** un botón, con su nombre. Lo que hace vive detrás de la
 // (i), que abre y cierra sin repintar —así no se pierde el scroll— y donde
 // además caben los botones de segunda fila que antes competían con el primero.
+//
+// Y dentro va también **cómo se llama de verdad**. Jose: *«¿pero cómo se llaman
+// las skills realmente? ¿Lo pondrías en algún lado, aunque sea en lo de info?»*.
+// Sí: el rótulo está en cristiano para poder leerlo, pero quien vaya a escribir
+// `/revisar-la-barra` en una conversación tiene que poder saber cuál es. En el
+// botón sería ruido; en la (i) está justo donde se va a buscar.
 let cuantasFilas = 0;
-function filaDeAccion({ etiqueta, icono, queHace, accion, principal = false, dentro = '' }) {
-  const hayQueContar = Boolean(queHace || dentro);
+function filaDeAccion({ etiqueta, icono, queHace, accion, principal = false, dentro = '', nombreReal = '', seEscribe = false }) {
+  const hayQueContar = Boolean(queHace || dentro || nombreReal);
   cuantasFilas += 1;
   const id = `q${cuantasFilas}`;
 
@@ -149,6 +155,7 @@ function filaDeAccion({ etiqueta, icono, queHace, accion, principal = false, den
     </div>
     ${hayQueContar ? `<div class="loQueHace" id="${id}" hidden>
       ${queHace ? `<p>${texto(queHace)}</p>` : ''}
+      ${nombreReal ? `<p class="deVerdad">${seEscribe ? 'Se escribe' : 'Se llama'} <code>${texto(nombreReal)}</code></p>` : ''}
       ${dentro}
     </div>` : ''}
   `;
@@ -382,10 +389,18 @@ function pantallaSalidas(datos) {
 // Lo que ya sabe y lo que podría aprender. La fontanería del arnés —orient,
 // suggest, harness, init— no se lista: es de la máquina, no de quien lo usa, y
 // se resume en una línea.
+const DE_QUE_VA = {
+  operations: 'llevar el día a día',
+  content: 'crear cosas',
+  software: 'construir algo',
+  research: 'estudiar un tema a fondo',
+};
+
 function pantallaSaberes(datos) {
   const sabe = datos.sabe || [];
   const otras = datos.otras || [];
   const puede = datos.puedeAprender || [];
+  const demas = datos.lasDemas || [];
 
   const enMayuscula = (n) => n.charAt(0).toUpperCase() + n.slice(1);
 
@@ -400,6 +415,7 @@ function pantallaSaberes(datos) {
       tipo: 'pedir',
       prompt: `Quiero ${c.frase ? c.frase.charAt(0).toLowerCase() + c.frase.slice(1) : c.nombre} Pregúntame lo que necesites.`,
     },
+    nombreReal: c.id,
   });
 
   // Una que todavía no: se pulsa y la aprende. El rótulo del montón lo dice,
@@ -409,6 +425,7 @@ function pantallaSaberes(datos) {
     icono: '＋',
     queHace: c.frase,
     accion: { tipo: 'aprenderCapacidad', capacidad: c.id, nombre: c.nombre },
+    nombreReal: c.id,
   });
 
   return `
@@ -466,12 +483,25 @@ function pantallaSaberes(datos) {
 
     <hr class="separador">
 
+    ${/* Lo que se ofrece va con ESTE arnés. Antes se pegaba el catálogo entero
+          detrás de las que encajaban, así que en una carpeta de código salían
+          facturas, gestoría y proveedores. Lo que no pega no se tira: se
+          pliega, por si alguien monta una carpeta para una cosa y acaba
+          haciendo otra. */''}
     <h2>Puede aprender</h2>
-    <p class="detalle">Pulsa una y la aprende. La (i) dice para qué sirve.</p>
+    <p class="detalle">${datos.deQueVa && DE_QUE_VA[datos.deQueVa]
+      ? `Las que pegan con esto, que montaste para ${texto(DE_QUE_VA[datos.deQueVa])}. Pulsa una y la aprende.`
+      : 'Pulsa una y la aprende. La (i) dice para qué sirve.'}</p>
     ${puede.length
       ? puede.map(puedeAprenderla).join('')
-      : nada('Ya sabe todo lo que tenemos.')}
+      : nada('Ya sabe todo lo que tenemos para esto.')}
 
+    ${demas.length ? `
+      <details class="acordeon grupo">
+        <summary>Las demás<span class="cuantos">${demas.length}</span></summary>
+        <p class="detalle">No pegan con para lo que montaste esto, pero si te hacen falta, ahí están.</p>
+        ${demas.map(puedeAprenderla).join('')}
+      </details>` : ''}
   `;
 }
 
@@ -537,6 +567,8 @@ function pantallaComandos({ comandos = [] }) {
     icono: c.icono || '▸',
     queHace: c.queHace,
     accion: { tipo: 'pedir', prompt: c.prompt },
+    nombreReal: c.prompt,
+    seEscribe: true,
   });
 
   const mios = comandos.filter((c) => !c.delArnes);
@@ -655,6 +687,7 @@ function pantallaAgentes({ agentes = [] }) {
         icono: '🤖',
         queHace: a.queHace,
         accion: { tipo: 'pedir', prompt: `Quiero que ${a.nombre} haga lo suyo ahora. Pregúntame lo que te falte.` },
+        nombreReal: a.fichero.replace(/\.[^.]+$/, ''),
         // El encargo entero va detrás de la (i): interesa una vez, y antes
         // competía con el botón que de verdad se pulsa.
         dentro: boton({ etiqueta: 'Ver su encargo', icono: '📄', pequeno: true, discreto: true, accion: { tipo: 'verAgente', fichero: a.fichero } }),

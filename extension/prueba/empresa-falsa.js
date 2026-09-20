@@ -24,7 +24,21 @@ const escribir = (raiz, relativa, contenido, modo) => {
 function montar(raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-falsa-'))) {
   fs.mkdirSync(raiz, { recursive: true });
 
-  escribirSiFalta(raiz, '.rsc.json', JSON.stringify({ version: 1, catalogVersion: '1.4.1', targets: ['claude'], skills: [], ownSkills: ['executive-lab'] }, null, 2));
+  // Con el recibo del onboarding, como lo deja RSC al aceptar el plan: de ahí
+  // sale PARA QUÉ se montó esta carpeta, y de eso depende qué se le ofrece
+  // aprender. Sin él, la barra no podía distinguir una gestoría de un repo.
+  escribirSiFalta(raiz, '.rsc.json', JSON.stringify({
+    version: 1,
+    catalogVersion: '1.4.1',
+    targets: ['claude'],
+    skills: [],
+    ownSkills: ['executive-lab'],
+    onboarding: {
+      schemaVersion: 1,
+      acceptedPlanId: 'f'.repeat(64),
+      plan: { record: { projectKind: 'operations', technicalLevel: 'non-technical', accompaniment: 'L3' } },
+    },
+  }, null, 2));
 
   // --- comandos: tres con botón, dos sin él (uno nuestro, uno de RSC) ---
   const comando = (nombre, cabecera) => escribir(raiz, `.claude/commands/${nombre}.md`, `---\n${cabecera}---\n\nInstrucciones.\n`);

@@ -21,6 +21,7 @@
 
 const path = require('node:path');
 const consejos = require('./consejos');
+const nombres = require('./nombres');
 const proyecto = require('./proyecto');
 const frontmatter = require('./frontmatter');
 const rsc = require('./rsc');
@@ -80,6 +81,17 @@ function comoSeLlama(id, raizDeHabilidades) {
 //
 // Las que no encajan **no se esconden**: van detrás, porque una carpeta recién
 // montada no tiene corpus todavía y ahí el orden no lo puede saber nadie.
+// Para qué se montó esta carpeta. Lo decidió quien la montó, respondiendo a
+// «¿De qué va esto?», y RSC lo dejó firmado dentro del plan aceptado. No se
+// adivina mirando ficheros: está escrito.
+function paraQueEs() {
+  const declaracion = require('./proyecto').declaracion();
+  const tipo = declaracion && declaracion.onboarding
+    && declaracion.onboarding.plan && declaracion.onboarding.plan.record
+    && declaracion.onboarding.plan.record.projectKind;
+  return typeof tipo === 'string' && tipo ? tipo : null;
+}
+
 function queSabe(carpetaDeLaExtension, corpus = '') {
   const catalogo = consejos.capacidades(carpetaDeLaExtension);
   const puestas = rsc.habilidadesPuestas();
@@ -89,13 +101,38 @@ function queSabe(carpetaDeLaExtension, corpus = '') {
   // se respeta: está pensado, no es alfabético.
   const sabe = catalogo.filter((c) => puestas.includes(c.id));
 
+  // ── Lo que se ofrece va con este arnés, no con todos ──────────────────
+  //
+  // Jose: *«¿estos "puede aprender" son fijos? deberían hacerse en el init del
+  // arnés ajustado al arnés, no?»*. Lo eran: se cogían las que encajaban por
+  // palabras y detrás **se pegaba el catálogo entero**. En un arnés de código
+  // eso ofrecía facturas, gestoría y proveedores — veinticinco cosas de las
+  // que veintiuna no venían a cuento.
+  //
+  // Ahora se ofrece en dos escalones, los dos deterministas:
+  //
+  //   1. las que encajan con lo que hay ESCRITO en esta carpeta (palabras),
+  //   2. las que encajan con PARA QUÉ se montó, que es lo que RSC guardó en
+  //      `.rsc.json` cuando se aceptó el plan.
+  //
+  // Y lo demás no desaparece: se queda detrás de un desplegable. Lo que no se
+  // puede calcular —qué habilidad le vendría bien a ESTA empresa y no existe
+  // todavía— no se adivina aquí: lo propone el asistente, que para eso tiene
+  // delante el perfil y la carpeta.
   const sinPoner = catalogo.filter((c) => !puestas.includes(c.id));
   const encajan = consejos.loQuePodriaAprender({ corpus, yaInstaladas: puestas, catalogo });
   const pegan = new Set(encajan.map((c) => c.id));
+
+  const deQueVa = paraQueEs();
+  const sirveAqui = (c) => !deQueVa || deQueVa === 'mixed'
+    || !Array.isArray(c.para) || !c.para.length || c.para.includes(deQueVa);
+
+  const restantes = sinPoner.filter((c) => !pegan.has(c.id));
   const puedeAprender = [
     ...encajan.map((c) => ({ ...c, porQue: c.porQue })),
-    ...sinPoner.filter((c) => !pegan.has(c.id)),
+    ...restantes.filter(sirveAqui),
   ];
+  const lasDemas = restantes.filter((c) => !sirveAqui(c));
 
   const raiz = require('./donde').carpetaDeHabilidades();
 
@@ -111,22 +148,22 @@ function queSabe(carpetaDeLaExtension, corpus = '') {
   // el diccionario prohíbe.
   const laFontaneria = ['orient', 'suggest', 'harness', 'init'];
 
-  // Las que RSC trae de serie vienen con su descripción en inglés y su nombre
-  // en clave — «Bro», «Eli5», «Show me»— que no significan nada. Son cuatro y
-  // se sabe cuáles son, así que se nombran a mano. Las demás se quedan con lo
-  // que diga su cabecera, que para eso la traen.
-  const LAS_DE_RSC = {
-    bro: { nombre: 'Escribirlo como lo diría una persona', frase: 'Quita el tono de máquina de un texto sin cambiar lo que dice.' },
-    eli5: { nombre: 'Explicártelo desde cero', frase: 'Una página con dibujos y sin palabras raras, para algo que no conoces de nada.' },
-    'show-me': { nombre: 'Enseñártelo con un dibujo', frase: 'Cuando es más fácil verlo que leerlo.' },
-    unslop: { nombre: 'Repasar un texto antes de mandarlo', frase: 'Busca las marcas de que lo ha escrito una máquina, y las quita.' },
-  };
+  // Cómo se llaman en cristiano las que trae el arnés: en `media/nombres.json`.
+  // Vienen con el nombre en clave —«Bro», «Eli5», «Show me»— y la descripción
+  // en inglés, y eso no significa nada para quien usa la barra. La tabla está
+  // fuera del código a propósito: renombrar una es cambiar una línea de datos.
 
   const otras = puestas
     .filter((id) => !catalogo.some((c) => c.id === id))
     .filter((id) => !propias.includes(id))
     .filter((id) => !laFontaneria.includes(id))
-    .map((id) => (LAS_DE_RSC[id] ? { id, ...LAS_DE_RSC[id] } : comoSeLlama(id, raiz)));
+    .map((id) => {
+      const suyo = comoSeLlama(id, raiz);
+      const dicho = nombres.comoSeLlama('habilidades', id, { nombre: '', queHace: '' });
+      // La tabla manda sobre la cabecera: la cabecera de una habilidad del
+      // arnés está en inglés y escrita para el asistente, no para quien mira.
+      return dicho.deFuera ? { id, nombre: dicho.nombre, frase: dicho.queHace } : suyo;
+    });
 
   const deSerie = puestas.filter((id) => laFontaneria.includes(id)).length;
 
@@ -143,6 +180,11 @@ function queSabe(carpetaDeLaExtension, corpus = '') {
     // Cuántas de las de arriba encajan con lo que hay montado, para poder
     // separarlas en pantalla de las que salen porque sí.
     encajan: encajan.length,
+    // Las que no pegan con este arnés. No se tiran: se pliegan.
+    lasDemas: lasDemas.map((c) => ({ id: c.id, nombre: c.nombre, frase: c.frase, porQue: [] })),
+    // Para qué se montó esta carpeta, dicho por RSC. La pantalla lo necesita
+    // para explicar por qué la lista es corta.
+    deQueVa,
     suyas: propias.map((id) => comoSeLlama(id, raiz)),
     // Las instaladas que no están en nuestro catálogo: se nombran con lo que
     // diga su propia cabecera, que para eso la traen.

@@ -60,11 +60,15 @@
   /* Jose, viendo la lista de comandos: «separa un poco los botones y tal y
      hazlos un poco más finos». Eran 40 px de alto pegados de siete en siete, y
      una lista de seis llenaba la pantalla de bloques. Ahora son más bajos y
-     respiran: se lee la lista de un vistazo en vez de recorrerla. */
+     respiran: se lee la lista de un vistazo en vez de recorrerla.
+
+     Y después, mirándolo otra vez: «aquí sigue apretao». El alto estaba bien;
+     lo que faltaba era el aire ENTRE ellos y entre los montones. El hueco va
+     aparte del alto justo para poder tocar una cosa sin la otra. */
   --alto-boton: 34px;
   --radio: 10px;
   --radio-lg: 16px;
-  --hueco: 10px;
+  --hueco: 14px;
   --sombra: 0 1px 2px rgba(0, 0, 0, .06);
 }
 
@@ -192,7 +196,7 @@ body {
 }
 
 h2 {
-  margin: 14px 0 6px;
+  margin: 26px 0 10px;
   font-family: var(--sans);
   font-size: 11px;
   font-weight: 700;
@@ -200,6 +204,8 @@ h2 {
   text-transform: uppercase;
   color: var(--apagado);
 }
+
+.separador + h2 { margin-top: 0; }
 
 /* Los cuatro datos de hoy. Una línea, en pequeño, sin caja: donde antes había
    una tarjeta que ocupaba lo más alto de la barra para contar lo que `orient`
@@ -214,7 +220,7 @@ h2 {
 /* La brújula: dónde estás y qué acabas de hacer. */
 .brujula {
   padding: 11px 13px 12px;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
   border-radius: var(--radio-lg);
   background: var(--superficie);
   border: 1px solid var(--borde);
@@ -376,7 +382,7 @@ body.vscode-dark .codigo { background: var(--vscode-textBlockQuote-background, r
 
 .separador {
   height: 1px;
-  margin: 14px 0 10px;
+  margin: 24px 0 18px;
   background: var(--borde);
   border: 0;
 }
@@ -642,6 +648,24 @@ button.info.abierta {
 .loQueHace button { margin: 0.5rem 0 0; }
 .loQueHace[hidden] { display: none; }
 
+/* Cómo se llama de verdad. El rótulo está en cristiano para poder leerlo, pero
+   quien vaya a escribirlo en una conversación tiene que poder saber cuál es.
+   En el botón sería ruido; aquí está donde se va a buscar. */
+.loQueHace .deVerdad {
+  margin-top: 0.45rem;
+  font-size: 12px;
+  opacity: .85;
+}
+.loQueHace code {
+  padding: 1px 5px;
+  font-family: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  color: var(--texto);
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: 5px;
+}
+
 /* Una capacidad de la lista de "qué sabe hacer". */
 .capacidad {
   padding: 0.7rem 0;
@@ -665,7 +689,7 @@ body.soltando {
 button.pequeno {
   min-height: 30px;
   padding: 5px 11px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-size: 13px;
 }
 button.pequeno .icono { font-size: 14px; }

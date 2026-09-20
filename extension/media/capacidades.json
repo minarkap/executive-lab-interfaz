@@ -20,151 +20,449 @@
       "id": "invoicing",
       "nombre": "llevar tus facturas de principio a fin",
       "frase": "Presupuesto, factura y cobro, sin perder ninguna por el camino.",
-      "palabras": ["factura", "facturas", "facturacion", "facturar", "presupuesto", "albaran", "abono", "cobro", "cobrar", "iva"]
+      "palabras": [
+        "factura",
+        "facturas",
+        "facturacion",
+        "facturar",
+        "presupuesto",
+        "albaran",
+        "abono",
+        "cobro",
+        "cobrar",
+        "iva"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "bookkeeping",
       "nombre": "llevar las cuentas al día",
       "frase": "Ingresos, gastos y cierres de mes que cuadren cuando los pida la gestoría.",
-      "palabras": ["contabilidad", "cuentas", "gastos", "ingresos", "gestoria", "cierre", "banco", "conciliacion", "asiento"]
+      "palabras": [
+        "contabilidad",
+        "cuentas",
+        "gastos",
+        "ingresos",
+        "gestoria",
+        "cierre",
+        "banco",
+        "conciliacion",
+        "asiento"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "finance-ops",
       "nombre": "saber cuánto dinero vas a tener",
       "frase": "La caja de los próximos meses, y qué pasa si un cliente se retrasa.",
-      "palabras": ["tesoreria", "caja", "liquidez", "previsiones", "flujo", "margen", "rentabilidad"]
+      "palabras": [
+        "tesoreria",
+        "caja",
+        "liquidez",
+        "previsiones",
+        "flujo",
+        "margen",
+        "rentabilidad"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "sales-pipeline",
       "nombre": "seguir a tus clientes y oportunidades",
       "frase": "Quién te ha pedido precio, en qué punto está y a quién toca llamar.",
-      "palabras": ["cliente", "clientes", "venta", "ventas", "oportunidad", "presupuestos", "seguimiento", "comercial", "crm", "leads"]
+      "palabras": [
+        "cliente",
+        "clientes",
+        "venta",
+        "ventas",
+        "oportunidad",
+        "presupuestos",
+        "seguimiento",
+        "comercial",
+        "crm",
+        "leads"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "proposals",
       "nombre": "escribir propuestas que se acepten",
       "frase": "El documento que el cliente lee para decir que sí.",
-      "palabras": ["propuesta", "propuestas", "oferta", "licitacion", "concurso", "presupuesto"]
+      "palabras": [
+        "propuesta",
+        "propuestas",
+        "oferta",
+        "licitacion",
+        "concurso",
+        "presupuesto"
+      ],
+      "para": [
+        "operations",
+        "content"
+      ]
     },
     {
       "id": "contracts",
       "nombre": "revisar y preparar contratos",
       "frase": "Contratos y cláusulas, con lo que hay que mirar antes de firmar.",
-      "palabras": ["contrato", "contratos", "clausula", "firma", "arrendamiento", "acuerdo", "convenio"]
+      "palabras": [
+        "contrato",
+        "contratos",
+        "clausula",
+        "firma",
+        "arrendamiento",
+        "acuerdo",
+        "convenio"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "sop-builder",
       "nombre": "dejar por escrito cómo se hacen las cosas",
       "frase": "Convertir lo que solo sabe una persona en un paso a paso que sigue cualquiera.",
-      "palabras": ["proceso", "procesos", "procedimiento", "manual", "protocolo", "instrucciones", "checklist", "rutina"]
+      "palabras": [
+        "proceso",
+        "procesos",
+        "procedimiento",
+        "manual",
+        "protocolo",
+        "instrucciones",
+        "checklist",
+        "rutina"
+      ],
+      "para": [
+        "operations",
+        "research"
+      ]
     },
     {
       "id": "automation-strategy",
       "nombre": "decidir qué merece la pena automatizar",
       "frase": "Cuáles de tus tareas repetidas compensa quitarse de encima, y por dónde empezar.",
-      "palabras": ["automatizar", "automatico", "repetitivo", "repetir", "manual", "tiempo", "tarea"]
+      "palabras": [
+        "automatizar",
+        "automatico",
+        "repetitivo",
+        "repetir",
+        "manual",
+        "tiempo",
+        "tarea"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
     },
     {
       "id": "email-connector",
       "nombre": "mandar correos por su cuenta",
       "frase": "Avisos y envíos que salen solos, sin que nadie se acuerde de mandarlos.",
-      "palabras": ["correo", "correos", "email", "mail", "aviso", "recordatorio", "envio"]
+      "palabras": [
+        "correo",
+        "correos",
+        "email",
+        "mail",
+        "aviso",
+        "recordatorio",
+        "envio"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
     },
     {
       "id": "google-workspace",
       "nombre": "trabajar con tu correo, tu calendario y tus documentos",
       "frase": "Leer y escribir en Gmail, Drive y Calendar sin abrirlos a mano.",
-      "palabras": ["gmail", "drive", "calendario", "agenda", "google", "hoja", "documento"]
+      "palabras": [
+        "gmail",
+        "drive",
+        "calendario",
+        "agenda",
+        "google",
+        "hoja",
+        "documento"
+      ],
+      "para": [
+        "operations",
+        "content",
+        "research"
+      ]
     },
     {
       "id": "spreadsheet-ops",
       "nombre": "manejar tus hojas de cálculo",
       "frase": "Leer, limpiar y rellenar hojas sin abrirlas una por una.",
-      "palabras": ["excel", "hoja", "hojas", "csv", "tabla", "listado", "columna"]
+      "palabras": [
+        "excel",
+        "hoja",
+        "hojas",
+        "csv",
+        "tabla",
+        "listado",
+        "columna"
+      ],
+      "para": [
+        "operations",
+        "research"
+      ]
     },
     {
       "id": "calendar-scheduling",
       "nombre": "dar cita a tus clientes",
       "frase": "Que elijan hueco y quede puesto en tu agenda.",
-      "palabras": ["cita", "citas", "agenda", "reserva", "turno", "calendario", "horario"]
+      "palabras": [
+        "cita",
+        "citas",
+        "agenda",
+        "reserva",
+        "turno",
+        "calendario",
+        "horario"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "whatsapp-telegram",
       "nombre": "hablar con tus clientes por mensajería",
       "frase": "Avisos y respuestas por WhatsApp o Telegram.",
-      "palabras": ["whatsapp", "telegram", "mensaje", "mensajes", "sms", "chat"]
+      "palabras": [
+        "whatsapp",
+        "telegram",
+        "mensaje",
+        "mensajes",
+        "sms",
+        "chat"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "inventory",
       "nombre": "saber qué tienes y cuándo pedir más",
       "frase": "Existencias, mínimos y cuándo toca reponer.",
-      "palabras": ["stock", "almacen", "existencias", "inventario", "material", "pedido", "proveedor"]
+      "palabras": [
+        "stock",
+        "almacen",
+        "existencias",
+        "inventario",
+        "material",
+        "pedido",
+        "proveedor"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "procurement",
       "nombre": "comprar mejor a tus proveedores",
       "frase": "A quién comprar, a qué precio y con qué condiciones.",
-      "palabras": ["proveedor", "proveedores", "compra", "compras", "pedido", "precio"]
+      "palabras": [
+        "proveedor",
+        "proveedores",
+        "compra",
+        "compras",
+        "pedido",
+        "precio"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "pricing",
       "nombre": "poner bien tus precios",
       "frase": "Qué cobrar y por qué, con los números delante.",
-      "palabras": ["precio", "precios", "tarifa", "tarifas", "margen", "descuento", "cobrar"]
+      "palabras": [
+        "precio",
+        "precios",
+        "tarifa",
+        "tarifas",
+        "margen",
+        "descuento",
+        "cobrar"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "hiring",
       "nombre": "contratar a alguien sin liarte",
       "frase": "La oferta, las preguntas de la entrevista y cómo comparar candidatos.",
-      "palabras": ["contratar", "contratacion", "empleado", "candidato", "entrevista", "personal", "plantilla", "curriculum"]
+      "palabras": [
+        "contratar",
+        "contratacion",
+        "empleado",
+        "candidato",
+        "entrevista",
+        "personal",
+        "plantilla",
+        "curriculum"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "people-ops",
       "nombre": "llevar el día a día de tu equipo",
       "frase": "Altas, vacaciones, nóminas y todo lo que viene después de firmar.",
-      "palabras": ["nomina", "nominas", "vacaciones", "empleado", "equipo", "personal", "baja", "horario"]
+      "palabras": [
+        "nomina",
+        "nominas",
+        "vacaciones",
+        "empleado",
+        "equipo",
+        "personal",
+        "baja",
+        "horario"
+      ],
+      "para": [
+        "operations"
+      ]
     },
     {
       "id": "gdpr-privacy",
       "nombre": "cumplir con la protección de datos",
       "frase": "Lo que la ley te pide tener escrito sobre los datos de tus clientes.",
-      "palabras": ["datos", "privacidad", "rgpd", "lopd", "consentimiento", "proteccion", "legal"]
+      "palabras": [
+        "datos",
+        "privacidad",
+        "rgpd",
+        "lopd",
+        "consentimiento",
+        "proteccion",
+        "legal"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
     },
     {
       "id": "reporting",
       "nombre": "recibir el informe de siempre sin pedirlo",
       "frase": "El resumen del mes o de la semana, hecho y enviado solo.",
-      "palabras": ["informe", "informes", "resumen", "reporte", "mensual", "semanal", "cuadro"]
+      "palabras": [
+        "informe",
+        "informes",
+        "resumen",
+        "reporte",
+        "mensual",
+        "semanal",
+        "cuadro"
+      ],
+      "para": [
+        "operations",
+        "research"
+      ]
     },
     {
       "id": "kpi-framework",
       "nombre": "elegir qué números mirar",
       "frase": "Los cuatro o cinco números que de verdad dicen cómo va esto.",
-      "palabras": ["indicador", "indicadores", "kpi", "objetivo", "objetivos", "medir", "metrica"]
+      "palabras": [
+        "indicador",
+        "indicadores",
+        "kpi",
+        "objetivo",
+        "objetivos",
+        "medir",
+        "metrica"
+      ],
+      "para": [
+        "operations",
+        "research"
+      ]
     },
     {
       "id": "data-cleaning",
       "nombre": "poner en orden un listado hecho un desastre",
       "frase": "Duplicados, huecos y formatos raros, arreglados antes de usarlos.",
-      "palabras": ["duplicado", "duplicados", "limpiar", "listado", "base de datos", "desordenado", "importar"]
+      "palabras": [
+        "duplicado",
+        "duplicados",
+        "limpiar",
+        "listado",
+        "base de datos",
+        "desordenado",
+        "importar"
+      ],
+      "para": [
+        "operations",
+        "research",
+        "software"
+      ]
     },
     {
       "id": "knowledge-ops",
       "nombre": "mantener en orden lo que va aprendiendo",
       "frase": "Repasar lo que sabe de tu empresa, quitar lo viejo y llenar los huecos.",
-      "palabras": ["documentacion", "documentos", "wiki", "conocimiento", "ordenar", "archivo", "desactualizado"]
+      "palabras": [
+        "documentacion",
+        "documentos",
+        "wiki",
+        "conocimiento",
+        "ordenar",
+        "archivo",
+        "desactualizado"
+      ],
+      "para": [
+        "operations",
+        "research",
+        "content"
+      ]
     },
     {
       "id": "marketing",
       "nombre": "contar mejor lo que haces",
       "frase": "Qué decir de tu empresa, y dónde decirlo.",
-      "palabras": ["marketing", "publicidad", "captar", "clientes nuevos", "anuncio", "campaña", "web"]
+      "palabras": [
+        "marketing",
+        "publicidad",
+        "captar",
+        "clientes nuevos",
+        "anuncio",
+        "campaña",
+        "web"
+      ],
+      "para": [
+        "content",
+        "operations"
+      ]
     },
     {
       "id": "newsletter",
       "nombre": "mandar un boletín a tus clientes",
       "frase": "Un correo periódico que la gente abra, con su lista y su calendario.",
-      "palabras": ["boletin", "newsletter", "suscriptores", "lista de correo", "envio", "campaña"]
+      "palabras": [
+        "boletin",
+        "newsletter",
+        "suscriptores",
+        "lista de correo",
+        "envio",
+        "campaña"
+      ],
+      "para": [
+        "content",
+        "operations"
+      ]
     }
   ]
 }

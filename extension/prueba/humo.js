@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'rastro', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'rastro', 'nombres', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -2686,6 +2686,91 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     fs.unlinkSync(suelto);
     fs.unlinkSync(path.join(empresa, 'README.md'));
     return `${hay.sueltos.length} sin colocar`;
+  });
+
+  await comprobar('renombrar algo es cambiar una línea de datos, no de código', () => {
+    // Jose: «¿cómo creas los nombres en lenguaje humano? […] lo digo para hacer
+    // un mapeo flexible a largo plazo». Antes estaba escrito a mano en dos
+    // objetos, en dos módulos que no se conocían entre ellos.
+    const nombres = cargar('nombres');
+    const tabla = JSON.parse(fs.readFileSync(path.join(RAIZ, 'media', 'nombres.json'), 'utf8'));
+
+    // 1. Lo que escribe alguien de esta casa manda sobre la tabla.
+    const mio = nombres.comoSeLlama('comandos', 'checkpoint', { nombre: 'Mi nombre', queHace: 'Lo mío.' });
+    assert.equal(mio.nombre, 'Mi nombre');
+
+    // 2. Sin nada suyo, traduce la tabla — y deja dicho que viene de fuera.
+    const delArnes = nombres.comoSeLlama('comandos', 'checkpoint');
+    assert.equal(delArnes.nombre, tabla.comandos.checkpoint.nombre);
+    assert.equal(delArnes.deFuera, true, 'lo que traduce la tabla es lo que trae el arnés');
+
+    // 3. Y lo que no conoce nadie, humanizado: nunca un identificador en crudo.
+    assert.equal(nombres.comoSeLlama('comandos', 'cerrar_el-mes').nombre, 'Cerrar el mes');
+
+    // Y lo que sale en la barra es lo que dice la tabla, no otra cosa.
+    const todos = cargar('acciones').todos();
+    const puesto = todos.find((c) => c.nombre === 'checkpoint');
+    assert.equal(puesto.etiqueta, tabla.comandos.checkpoint.nombre, 'la tabla no llega hasta la pantalla');
+    assert.equal(puesto.queHace, tabla.comandos.checkpoint.queHace);
+    assert.equal(puesto.delArnes, true);
+
+    // Un comando de la casa con su `boton:` no lo toca nadie.
+    const suyo = todos.find((c) => c.nombre === 'resumen-mes');
+    assert.equal(suyo.etiqueta, 'Preparar el resumen del mes');
+    assert.equal(suyo.delArnes, false);
+
+    return `${Object.keys(tabla.comandos).length} comandos y ${Object.keys(tabla.habilidades).length} habilidades, en un fichero`;
+  });
+
+  await comprobar('la (i) dice cómo se llama de verdad', () => {
+    // El rótulo está en cristiano para poder leerlo, pero quien vaya a escribir
+    // "/checkpoint" en una conversación tiene que poder saber cuál es.
+    const p = require('./panel-falso').montarPanel();
+    const pintada = p.mandar({ tipo: 'comandos', comandos: cargar('acciones').todos() });
+    assert.match(pintada, /Se escribe <code>\/checkpoint<\/code>/);
+    assert.match(pintada, /Se escribe <code>\/resumen-mes<\/code>/);
+
+    // Y va DENTRO del plegado: en el botón sería ruido.
+    const conCodigo = pintada.slice(0, pintada.indexOf('<code>/checkpoint</code>'));
+    assert.match(conCodigo.slice(-400), /<div class="loQueHace"/, 'el identificador se enseña fuera de la (i)');
+    return 'el nombre de verdad, en la (i)';
+  });
+
+  await comprobar('lo que se ofrece aprender va con este arnés, no con todos', () => {
+    // Jose: «¿estos "puede aprender" son fijos? deberían hacerse en el init del
+    // arnés ajustado al arnés». Lo eran: detrás de las que encajaban se pegaba
+    // el catálogo entero, así que una carpeta de código ofrecía facturas.
+    const catalogo = JSON.parse(fs.readFileSync(path.join(RAIZ, 'media', 'capacidades.json'), 'utf8')).capacidades;
+    for (const c of catalogo) {
+      assert.ok(Array.isArray(c.para) && c.para.length, `"${c.id}" no dice para qué arnés sirve`);
+    }
+
+    const s = cargar('saberes').queSabe(RAIZ);
+    assert.equal(s.deQueVa, 'operations', 'la empresa de mentira se montó para llevar el día a día');
+
+    // Nada se pierde por el camino: lo ofrecido más lo plegado es todo lo que
+    // falta por poner.
+    assert.equal(s.puedeAprender.length + s.lasDemas.length, catalogo.length - s.sabe.length,
+      'alguna capacidad se ha quedado sin salir por ningún lado');
+
+    // Y en un arnés de otra clase, lo que no pega se pliega de verdad.
+    const deCodigo = fs.mkdtempSync(path.join(os.tmpdir(), 'arnes-de-codigo-'));
+    fs.writeFileSync(path.join(deCodigo, '.rsc.json'), JSON.stringify({
+      version: 1, targets: ['claude'], skills: [], ownSkills: [],
+      onboarding: { plan: { record: { projectKind: 'software' } } },
+    }));
+    vscode.guion.raiz = deCodigo;
+    const codigo = cargar('saberes').queSabe(RAIZ);
+    vscode.guion.raiz = empresa;
+
+    assert.equal(codigo.deQueVa, 'software');
+    assert.ok(codigo.lasDemas.length > 10, `en un arnés de código se plegaban ${codigo.lasDemas.length}`);
+    for (const c of codigo.puedeAprender) {
+      const ficha = catalogo.find((x) => x.id === c.id);
+      if (!ficha || (c.porQue || []).length) continue; // las que encajan por palabras sí pasan
+      assert.ok(ficha.para.includes('software'), `"${c.id}" se ofrece en un arnés de código y no pega`);
+    }
+    return `${s.puedeAprender.length} ofrecidas aquí · ${codigo.lasDemas.length} plegadas en uno de código`;
   });
 
   await comprobar('una cosa es un botón, y lo que hace está detrás de la (i)', () => {

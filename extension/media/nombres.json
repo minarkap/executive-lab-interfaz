@@ -1,0 +1,62 @@
+{
+  "_": [
+    "Cómo se llama en cristiano lo que viene de fuera.",
+    "",
+    "Esto es una TABLA, no código: para renombrar algo se añade o se cambia una",
+    "línea aquí y no se toca ni un fichero de `src/`. Antes había dos objetos",
+    "escritos a mano en dos módulos distintos —`LOS_DE_RSC` en acciones.js y",
+    "`LAS_DE_RSC` en saberes.js— que no se conocían entre ellos: los mismos",
+    "datos, el mismo problema, en dos sitios.",
+    "",
+    "Solo entra aquí lo que NO podemos nombrar nosotros: lo que trae el arnés,",
+    "con su identificador en clave y su descripción en inglés. Lo que escribe",
+    "alguien de esta casa ya se nombra solo, en su propia cabecera.",
+    "",
+    "El identificador de verdad no se esconde: sale en la (i) de cada fila, para",
+    "que quien tenga que escribirlo en una conversación sepa cuál es.",
+    "",
+    "`queHace` se escribe en segunda persona y en una frase. Si se deja vacío,",
+    "la barra no enseña ninguna: media pantalla en cristiano y una línea en",
+    "inglés queda peor que no decir nada."
+  ],
+
+  "comandos": {
+    "resume-session": {
+      "nombre": "Seguir donde lo dejé",
+      "queHace": "Retoma lo que estabais haciendo la última vez."
+    },
+    "save-session": {
+      "nombre": "Guardar dónde vamos",
+      "queHace": "Deja apuntado en qué punto estáis, para poder retomarlo."
+    },
+    "learn": {
+      "nombre": "Que aprenda algo de ti",
+      "queHace": "Guarda una cosa sobre cómo trabajas, si tú la apruebas."
+    },
+    "checkpoint": {
+      "nombre": "Congelar esto para revisarlo",
+      "queHace": "Deja lo hecho a la espera de que alguien lo dé por bueno."
+    }
+  },
+
+  "habilidades": {
+    "bro": {
+      "nombre": "Escribirlo como lo diría una persona",
+      "queHace": "Quita el tono de máquina de un texto sin cambiar lo que dice."
+    },
+    "eli5": {
+      "nombre": "Explicártelo desde cero",
+      "queHace": "Una página con dibujos y sin palabras raras, para algo que no conoces de nada."
+    },
+    "show-me": {
+      "nombre": "Enseñártelo con un dibujo",
+      "queHace": "Cuando es más fácil verlo que leerlo."
+    },
+    "unslop": {
+      "nombre": "Repasar un texto antes de mandarlo",
+      "queHace": "Busca las marcas de que lo ha escrito una máquina, y las quita."
+    }
+  },
+
+  "ayudantes": {}
+}

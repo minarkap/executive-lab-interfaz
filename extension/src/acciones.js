@@ -12,6 +12,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const donde = require('./donde');
 const frontmatter = require('./frontmatter');
+const nombres = require('./nombres');
 
 // Orden: primero lo que el alumno hace a diario, luego lo que aprendió a
 // hacer. Dentro de cada grupo, por orden alfabético de etiqueta.
@@ -61,20 +62,10 @@ function acciones() {
 //
 // Los de RSC se marcan como suyos para poder ponerlos aparte: no los escribió
 // nadie de esta empresa y no se explican igual.
-// Los que trae el arnés, dichos en cristiano. Salen en crudo —«Resume
-// session»— y así no significan nada: son cuatro y se sabe cuáles son, así que
-// se nombran a mano. Lo que no esté aquí se humaniza y punto.
-const LOS_DE_RSC = {
-  'resume-session': { etiqueta: 'Seguir donde lo dejé', queHace: 'Retoma lo que estabais haciendo la última vez.' },
-  'save-session': { etiqueta: 'Guardar dónde vamos', queHace: 'Deja apuntado en qué punto estáis, para poder retomarlo.' },
-  learn: { etiqueta: 'Que aprenda algo de ti', queHace: 'Guarda una cosa sobre cómo trabajas, si tú la apruebas.' },
-  checkpoint: { etiqueta: 'Congelar esto para revisarlo', queHace: 'Deja lo hecho a la espera de que alguien lo dé por bueno.' },
-};
-
-function humanizar(nombre) {
-  const limpio = nombre.replace(/[-_]+/g, ' ').trim();
-  return limpio.charAt(0).toUpperCase() + limpio.slice(1);
-}
+// Cómo se llama en cristiano lo que trae el arnés: en `media/nombres.json`, no
+// aquí. Estaba escrito a mano en este fichero y otra vez en `saberes.js`, y los
+// dos objetos no se conocían: para renombrar algo había que tocar código en dos
+// sitios. Ahora es una tabla y esto solo la consulta (ver `nombres.js`).
 
 function todos() {
   const carpeta = donde.carpetaDeComandos();
@@ -87,21 +78,26 @@ function todos() {
     const nombre = fichero.replace(/\.md$/, '');
     const campos = frontmatter.leer(path.join(carpeta, fichero));
     const etiqueta = typeof campos.boton === 'string' ? campos.boton.trim() : '';
-    const delArnes = LOS_DE_RSC[nombre];
 
-    // La descripción de un comando está escrita para el asistente y en inglés
-    // los del arnés. Media barra en cristiano y una línea en inglés queda peor
-    // que no decir nada.
+    // La descripción de un comando está escrita para el asistente, y en inglés
+    // la de los que trae el arnés. Media barra en cristiano y una línea en
+    // inglés queda peor que no decir nada: si no está en español, no se enseña
+    // la suya y manda la de la tabla.
     const suya = typeof campos.description === 'string' ? campos.description.replace(/^["']|["']$/g, '').trim() : '';
     const enEspanol = /\b(el|la|los|las|un|una|de|del|que|para|con|por|tu|tus)\b/i.test(suya);
 
+    const dicho = nombres.comoSeLlama('comandos', nombre, {
+      nombre: etiqueta,
+      queHace: enEspanol ? suya : '',
+    });
+
     encontrados.push({
       nombre,
-      etiqueta: (delArnes && delArnes.etiqueta) || etiqueta || humanizar(nombre),
-      queHace: (delArnes && delArnes.queHace) || (enEspanol ? suya : ''),
+      etiqueta: dicho.nombre,
+      queHace: dicho.queHace,
       icono: typeof campos.icono === 'string' ? campos.icono : '▸',
       esBoton: Boolean(etiqueta),
-      delArnes: Boolean(delArnes),
+      delArnes: dicho.deFuera,
       prompt: `/${nombre}`,
     });
   }

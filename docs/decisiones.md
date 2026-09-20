@@ -2261,3 +2261,70 @@ De paso, dos cosas que estaban mal y se ven al juntarlas:
 Dos comprobaciones: ninguna de las tres listas puede volver a pintar bloques con
 párrafo a la vista, y los ayudantes tienen que estar dentro de Acciones y solo
 si hay alguno.
+
+## 81. Los nombres en cristiano son una tabla, no código
+
+Jose: *«¿Cómo creas los nombres de las skills en lenguaje humano? […] ¿Y no
+harías que las skills y los comandos se llamen como la barra, pero separado? Lo
+digo para hacer un mapeo flexible a largo plazo»*.
+
+No lo había. La traducción estaba escrita a mano en **dos objetos, en dos
+módulos que no se conocían entre ellos** — `LOS_DE_RSC` en `acciones.js` y
+`LAS_DE_RSC` en `saberes.js` —, así que renombrar algo era tocar código en dos
+sitios y arriesgarse a que quedaran distintos.
+
+Ahora la tabla vive en **`extension/media/nombres.json`** y `nombres.js` solo la
+consulta. El orden de quién manda es el mismo para comandos, habilidades y
+ayudantes, y está escrito ahí:
+
+1. **Lo que haya escrito alguien de esta casa** — el `boton:` de un comando, el
+   `name:` de un ayudante. Es una decisión de esa carpeta.
+2. **La tabla** — traduce lo que trae el arnés, que viene con nombre en clave y
+   descripción en inglés. Va fuera del fichero de origen a propósito: así una
+   actualización de RSC no se lleva por delante la traducción.
+3. **El nombre del fichero, humanizado** — `cerrar_el-mes` → «Cerrar el mes».
+   Nunca se enseña un identificador en crudo como si fuera un rótulo.
+
+## 82. El identificador de verdad no se esconde: está en la (i)
+
+*«¿Pero cómo se llaman las skills realmente? ¿Lo pondrías en algún lado, aunque
+sea en lo de info?»*. Sí. El rótulo está en cristiano para poder leerlo, pero
+quien vaya a escribir `/revisar-la-barra` en una conversación tiene que poder
+saber cuál es. En el botón sería ruido; en la (i) está donde se va a buscar:
+
+    Se escribe  /revisar-la-barra      (comandos)
+    Se llama    texto-de-la-barra      (habilidades y ayudantes)
+
+## 83. Lo que se ofrece aprender va con ESTE arnés
+
+*«¿Estos "puede aprender" son fijos? Deberían hacerse en el init del arnés
+ajustado al arnés, no?»*. Lo eran, y de la peor manera: se cogían las que
+encajaban por palabras y **detrás se pegaba el catálogo entero**. En este mismo
+repositorio —un arnés de código— eso ofrecía facturas, gestoría, proveedores y
+citas de clientes: veinticinco cosas de las que veintiuna no venían a cuento.
+
+Cada capacidad de `capacidades.json` lleva ahora `para: [...]` —para qué clase
+de arnés sirve— y se cruza con el `projectKind` que RSC firmó en `.rsc.json` al
+aceptar el plan. Aquí pasa de **25 a 4**. Las otras 21 no se tiran: quedan
+plegadas bajo «Las demás», por si alguien monta una carpeta para una cosa y
+acaba haciendo otra.
+
+## 84. El init es determinista, y las sugerencias son del agente
+
+Jose: *«El init del arnés ¿es determinista o con agente? Yo lo haría mixto. Para
+cosas como esta de sugerir qué aprender, con agente; pero los mapeos de
+conexiones, credenciales, comandos y skills, determinista»*.
+
+Es la línea que ya existía sin estar dicha, y ahora está dicha y respetada:
+
+- **Determinista** — `rsc onboard` (`scanProject` → `buildOnboardingPlan` →
+  `identifyPlan`, firmado por hash y aplicado en transacción; sin modelo en
+  ningún punto), nuestras siete preguntas, dónde vive cada cosa (`donde.js`), la
+  detección de conexiones y claves, y los nombres (decisión 81).
+- **Del agente** — qué habilidad le vendría bien a **esta** empresa y todavía no
+  existe. Eso no se calcula: se propone, con el perfil y la carpeta delante. Es
+  el botón «Proponme habilidades para lo mío», y es el `suggest` de RSC.
+
+La lista del catálogo se queda en el lado determinista, pero **filtrada** por lo
+que esta carpeta es. Lo que no se puede calcular no se adivina con una lista
+fija: se delega, y se dice que se delega.
