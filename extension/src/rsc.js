@@ -62,20 +62,52 @@ async function anadir(id) {
   return { ok: habilidadesPuestas().includes(id) };
 }
 
-// Las habilidades que esta carpeta ya tiene puestas.
-function habilidadesPuestas() {
+// Las habilidades que están **en disco, en este ordenador**.
+//
+// Va aparte de `habilidadesPuestas()` por un motivo concreto: aquella hace la
+// unión con lo declarado en `.rsc.json`, y con esa unión un repositorio clonado
+// es indetectable — lo declarado tapa lo que falta. Para saber si hay que
+// traerlas hay que mirar el disco a secas.
+function habilidadesEnDisco() {
   const carpeta = require('./donde').carpetaDeHabilidades();
-  const enDisco = carpeta && fs.existsSync(carpeta)
-    ? fs.readdirSync(carpeta, { withFileTypes: true })
+  if (!carpeta || !fs.existsSync(carpeta)) return [];
+  try {
+    return fs.readdirSync(carpeta, { withFileTypes: true })
       .filter((e) => (e.isDirectory() || e.isSymbolicLink()) && !e.name.startsWith('.'))
-      .map((e) => e.name)
-    : [];
+      .map((e) => e.name);
+  } catch {
+    return [];
+  }
+}
+
+// Las habilidades que esta carpeta tiene puestas: las de disco más las que
+// declara el arnés. Es lo que la barra enseña.
+function habilidadesPuestas() {
   const declaracion = proyecto.declaracion() || {};
-  return [...new Set([...enDisco, ...(declaracion.skills || []), ...(declaracion.ownSkills || [])])];
+  return [...new Set([...habilidadesEnDisco(), ...(declaracion.skills || []), ...(declaracion.ownSkills || [])])];
 }
 
 const revisar = () => correr(['doctor'], { tiempoMaximo: 120000 });
+
+// El mismo doctor, pero para máquina. Sin `--json` la salida lleva delante el
+// bloque de presupuesto de contexto, en texto, así que `JSON.parse` revienta.
+// `revisar()` se queda como está: esa la lee una persona, en el informe.
+const salud = () => correr(['doctor', '--json'], { tiempoMaximo: 120000 });
+
+// Traer a esta máquina lo que el repositorio declara. Es la acción correcta
+// para un clon: reconstruye desde el plan aceptado y —a diferencia de `add` y
+// de `install`— no exige que ya haya un arnés instalado aquí, que en un clon
+// es justo lo que no hay.
+const sincronizar = () => correr(['sync'], { tiempoMaximo: 300000 });
+
+// Si lo que se acordó al montar sigue encajando con lo que hay hoy. Es de
+// **solo lectura**: recomienda y no escribe nada. Aceptar un plan nuevo lo
+// tiene que hacer una persona, por su huella.
+const reevaluar = () => correr(['reassess'], { tiempoMaximo: 60000 });
 const arreglarEnSeco = () => correr(['repair', '--dry-run'], { tiempoMaximo: 120000 });
 const arreglar = () => correr(['repair'], { tiempoMaximo: 180000 });
 
-module.exports = { correr, retomar, revisar, arreglarEnSeco, arreglar, paquete, saberDondeEstamos, habilidadesPuestas, anadir };
+module.exports = {
+  correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar,
+  paquete, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
+};

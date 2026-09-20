@@ -3041,6 +3041,135 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
 
   // -------------------------------------------------- carpetas de alguien
 
+  // ------------------------------------------- reconocer antes de preguntar
+  //
+  // Jose: «primero, antes de lanzar las preguntas, debería escanear la carpeta».
+  // De lo que se encuentre depende la rama y, sobre todo, qué NO hay que volver
+  // a preguntar. Nueve estados, y cada uno con su carpeta de mentira.
+
+  await comprobar('los nueve estados de una carpeta se distinguen', async () => {
+    const poner = (raiz, rel, txt) => {
+      const f = path.join(raiz, rel);
+      fs.mkdirSync(path.dirname(f), { recursive: true });
+      fs.writeFileSync(f, txt);
+    };
+    const conSuelo = (r) => {
+      poner(r, '01-TOOLS/_TEMPLATE/README.md', '#');
+      poner(r, '02-DOCS/wiki/harness/user-profile.md', '---\narnes: X\n---\n');
+    };
+    const conHabilidades = (r) => {
+      poner(r, '.claude/skills/bro/SKILL.md', '#');
+      poner(r, '.claude/skills/orient/SKILL.md', '#');
+    };
+    const RECIBO = { onboarding: { plan: { record: { projectKind: 'software', technicalLevel: 'mixed', accompaniment: 'L2', goal: 'x', targets: ['claude'] } } } };
+    const manifiesto = (extra = {}) => JSON.stringify({ version: 1, targets: ['claude'], skills: ['bro', 'orient'], ownSkills: [], ...extra });
+
+    const CASOS = {
+      vacia: () => {},
+      empezada: (r) => { poner(r, 'src/app.py', 'print(1)'); },
+      // Sin `.rsc.json` pero con carpetas de asistente puestas a mano.
+      otroArnes: (r) => { poner(r, 'src/app.py', 'x'); poner(r, '.claude/skills/mia/SKILL.md', '# mia'); poner(r, 'CLAUDE.md', 'Mis reglas'); },
+      // Lo declarado está y en disco no hay nada: un repositorio clonado.
+      clonado: (r) => { poner(r, '.rsc.json', manifiesto(RECIBO)); conSuelo(r); },
+      aMedias: (r) => { poner(r, '.rsc.json', manifiesto(RECIBO)); conHabilidades(r); },
+      sinRecibo: (r) => { poner(r, '.rsc.json', manifiesto()); conSuelo(r); conHabilidades(r); },
+      conArnes: (r) => { poner(r, '.rsc.json', manifiesto(RECIBO)); conSuelo(r); conHabilidades(r); },
+      // Marcas de conflicto de merge: `.rsc.json` es un fichero comiteado y el
+      // propio RSC avisa de que esto pasa. No se toca nada.
+      reciboRoto: (r) => { poner(r, '.rsc.json', '<<<<<<< HEAD\n{"version":1}\n=======\n'); conSuelo(r); },
+    };
+
+    // Y lo que ya funcionaba tiene que seguir viéndose igual: `queHay()` es
+    // ahora una proyección, y la brújula, el informe y la radiografía llevan
+    // meses leyendo sus cinco palabras.
+    const COMO_SE_VEIA = {
+      vacia: 'vacia', empezada: 'empezada', otroArnes: 'empezada', clonado: 'conArnes',
+      aMedias: 'aMedias', sinRecibo: 'conArnes', conArnes: 'conArnes', reciboRoto: 'conArnes',
+    };
+
+    for (const [esperado, montar] of Object.entries(CASOS)) {
+      const raiz = fs.mkdtempSync(path.join(os.tmpdir(), `estado-${esperado}-`));
+      montar(raiz);
+      vscode.guion.raiz = raiz;
+
+      assert.equal(cargar('terreno').mirarYClasificar().estado, esperado, `"${esperado}" no se reconoce`);
+      assert.equal((await cargar('terreno').queHay()).tipo, COMO_SE_VEIA[esperado],
+        `"${esperado}" cambia lo que veía la brújula`);
+    }
+
+    // Sin carpeta abierta no se mira nada, y sobre todo no revienta.
+    vscode.guion.raiz = null;
+    assert.equal(cargar('terreno').mirarYClasificar().estado, 'sinCarpeta');
+    assert.equal((await cargar('terreno').queHay()).tipo, 'sinCarpeta');
+
+    vscode.guion.raiz = empresa;
+    return `${Object.keys(CASOS).length + 1} estados, y la proyección intacta`;
+  });
+
+  await comprobar('un clon se ve porque lo declarado no está en disco', () => {
+    // La unión de `habilidadesPuestas()` tapaba esto: lo declarado hacía de
+    // pantalla sobre lo que falta, y un clon era indistinguible de un arnés
+    // montado. La barra pintaba botones que no respondían.
+    const rscM = cargar('rsc');
+    const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'clon-'));
+    fs.mkdirSync(path.join(raiz, '.claude/skills'), { recursive: true });
+    fs.writeFileSync(path.join(raiz, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'], skills: ['bro', 'eli5'] }));
+    vscode.guion.raiz = raiz;
+
+    assert.deepEqual(rscM.habilidadesEnDisco(), [], 'en disco no hay ninguna');
+    assert.deepEqual(rscM.habilidadesPuestas().sort(), ['bro', 'eli5'], 'y declaradas sí: esa es la diferencia');
+
+    vscode.guion.raiz = empresa;
+    return 'lo declarado ya no tapa lo que falta';
+  });
+
+  await comprobar('lo que se encuentra de otro asistente se puede contar', () => {
+    // Para poder pedirle permiso hay que saber QUÉ tiene, no solo que tiene
+    // algo: «mantenemos lo que ya tenía».
+    const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'otro-'));
+    const poner = (rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(raiz, rel)), { recursive: true });
+      fs.writeFileSync(path.join(raiz, rel), txt);
+    };
+    poner('.claude/skills/la-mia/SKILL.md', '# mía');
+    poner('.claude/agents/el-mio.md', '# mío');
+    poner('AGENTS.md', 'Lo que quiero que haga');
+    vscode.guion.raiz = raiz;
+
+    const { otroMontaje, estado } = cargar('terreno').mirarYClasificar();
+    assert.equal(estado, 'otroArnes');
+    const suyo = otroMontaje.asistentes.find((a) => a.quien === 'claude');
+    assert.equal(suyo.habilidades, 1);
+    assert.equal(suyo.agentes, 1);
+    assert.equal(suyo.deRsc, false, 'esto no lo montó RSC');
+    assert.ok(otroMontaje.ficheros.includes('AGENTS.md'));
+
+    vscode.guion.raiz = empresa;
+    return '1 habilidad · 1 ayudante · AGENTS.md';
+  });
+
+  await comprobar('la empresa de mentira es un arnés montado, no un clon', () => {
+    // Guardarraíl del fixture, y de los caros. Declaraba `executive-lab` en
+    // `.rsc.json` y no la escribía en disco: en cuanto la barra aprendió a
+    // mirar el disco, la empresa entera pasó a verse como un repositorio
+    // clonado — y media suite habría tomado la rama equivocada sin que fallara
+    // ni una comprobación.
+    const p = cargar('terreno').mirarYClasificar();
+    assert.equal(p.estado, 'conArnes', `la empresa de mentira se ve como "${p.estado}"`);
+    assert.deepEqual(p.habilidades.colgando, [], 'declara algo que no tiene en disco');
+    assert.equal(p.conEstadoDeRsc, true, 'le falta el fichero de estado que deja RSC');
+    return 'montada, como debe ser';
+  });
+
+  await comprobar('mirar la carpeta no lanza ni un proceso', () => {
+    // La pantalla principal se repinta sola. Si reconocer costara dos
+    // subprocesos, cada repintado los pagaría.
+    const antes = vscode.registrado.ejecutados.length;
+    cargar('terreno').mirarYClasificar();
+    assert.equal(vscode.registrado.ejecutados.length, antes, 'mirar ha lanzado algo');
+    return 'gratis';
+  });
+
   await comprobar('una carpeta con trabajo de alguien no se confunde con una vacía', async () => {
     const { execFileSync } = require('node:child_process');
     const suya = fs.mkdtempSync(path.join(os.tmpdir(), 'proyecto-de-alguien-'));

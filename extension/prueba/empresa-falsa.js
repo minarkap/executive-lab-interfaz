@@ -40,6 +40,27 @@ function montar(raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-falsa-')))
     },
   }, null, 2));
 
+  // --- las habilidades, EN DISCO y no solo declaradas ---
+  //
+  // Esto faltaba y no se notaba. `.rsc.json` declaraba `executive-lab` y nadie
+  // la escribía, así que en cuanto la barra aprendió a mirar el disco —para
+  // distinguir un repositorio clonado de uno montado— la empresa de mentira
+  // pasó a clasificarse como **clon**, y con ella media suite habría tomado la
+  // rama equivocada sin que fallara ni una comprobación.
+  //
+  // Un fixture que declara lo que no tiene no es un atajo: es una carpeta que
+  // no existe en la realidad.
+  escribirSiFalta(raiz, '.claude/skills/executive-lab/SKILL.md', '---\nname: executive-lab\ndescription: "Los raíles de la barra."\ntags: [executive-lab]\n---\n\n# Raíles\n');
+
+  // Y lo que RSC apunta en cada máquina de lo que ha instalado. No viaja por
+  // git: es justo lo que diferencia «declarado» de «montado aquí».
+  escribirSiFalta(raiz, '.claude/skills/.rsc-state.json', JSON.stringify({
+    skills: { 'executive-lab': { files: ['SKILL.md'], base: null } },
+    agents: {},
+    commands: {},
+    version: '1.4.1',
+  }, null, 2));
+
   // --- comandos: tres con botón, dos sin él (uno nuestro, uno de RSC) ---
   const comando = (nombre, cabecera) => escribir(raiz, `.claude/commands/${nombre}.md`, `---\n${cabecera}---\n\nInstrucciones.\n`);
   const comandoSiFalta = (nombre, cabecera) => escribirSiFalta(raiz, `.claude/commands/${nombre}.md`, `---\n${cabecera}---\n\nInstrucciones.\n`);

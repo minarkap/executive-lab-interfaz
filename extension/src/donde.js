@@ -23,6 +23,7 @@
 // windsurf, cline y roo. Con Codex no hay ninguno que leer, nunca. Eso no es un
 // fallo nuestro, pero sí hay que decirlo en vez de enseñar un hueco.
 
+const path = require('node:path');
 const proyecto = require('./proyecto');
 const sitios = require('../media/railes/sitios');
 
@@ -43,6 +44,23 @@ const carpetaDe = (cual) => {
   return partes ? proyecto.ruta(...partes) : null;
 };
 
+// Lo mismo, pero para un asistente cualquiera y no para el de esta carpeta.
+// Hace falta para mirar si aquí ya había montado otro antes de que llegáramos.
+const carpetaDeOtro = (quien, cual) => {
+  const partes = (sitios.sitiosDe(quien) || {})[cual];
+  return partes ? proyecto.ruta(...partes) : null;
+};
+
+// Dónde apunta RSC lo que ha instalado **en esta máquina**. No viaja por git: es
+// la diferencia entre «este repositorio declara un arnés» y «este ordenador lo
+// tiene montado». Sin mirar esto, un repositorio clonado se ve idéntico a uno
+// montado, y la barra pinta botones que no responden.
+const ficheroDeEstadoDe = (quien) => {
+  const carpeta = carpetaDeOtro(quien, 'habilidades');
+  return carpeta ? path.join(carpeta, '.rsc-state.json') : null;
+};
+const ficheroDeEstado = () => ficheroDeEstadoDe(paraQuien());
+
 const carpetaDeHabilidades = () => carpetaDe('habilidades');
 const carpetaDeComandos = () => carpetaDe('comandos');
 const carpetaDeAgentes = () => carpetaDe('agentes');
@@ -54,5 +72,6 @@ const puedeTenerBotones = () => Boolean(susSitios().comandos);
 const puedeTenerAjustes = () => Boolean(susSitios().ajustes);
 
 module.exports = {
-  SITIOS, paraQuien, carpetaDeHabilidades, carpetaDeComandos, carpetaDeAgentes, ficheroDeAjustes, puedeTenerBotones, puedeTenerAjustes,
+  SITIOS, paraQuien, carpetaDeHabilidades, carpetaDeComandos, carpetaDeAgentes, ficheroDeAjustes,
+  carpetaDeOtro, ficheroDeEstado, ficheroDeEstadoDe, puedeTenerBotones, puedeTenerAjustes,
 };
