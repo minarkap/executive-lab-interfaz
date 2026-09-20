@@ -14,6 +14,10 @@
 //
 // ── Lo que no se vuelve a preguntar ──────────────────────────────────────
 //
+// `porQue` es para el canal de salida y para el informe de incidencia: lo lee
+// quien arregla, no quien usa la barra. Lo que se le dice al alumno lo escribe
+// la pantalla, con las palabras del diccionario.
+//
 // `preguntar` se calcula RESTANDO lo que el recibo de RSC ya contesta. Cuando
 // hay arnés, `.rsc.json → onboarding.plan.record` guarda cinco de las siete
 // respuestas, y se volvían a preguntar igual. Un clon tiene que preguntar una
@@ -112,7 +116,7 @@ function elegirRama(parte) {
   // esto suele ser un conflicto de merge: montar encima borraría el arnés que
   // esa persona ya tenía.
   if (parte.estado === 'reciboRoto') {
-    return { rama: 'reciboRoto', preguntar: [], pasos: [], porQue: 'el .rsc.json de esta carpeta no se puede leer' };
+    return { rama: 'reciboRoto', preguntar: [], pasos: [], porQue: 'el .rsc.json de esta carpeta no se puede leer' }; // diccionario: interno
   }
 
   // Portón previo a todo lo que escriba: sin git no hay copias de seguridad, y
