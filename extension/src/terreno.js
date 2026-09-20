@@ -385,13 +385,20 @@ const podemosGuardarElPuntoDePartida = async () => !(await historialAjeno(proyec
 async function radiografia() {
   const conexiones = require('./conexiones');
   const cerebro = require('./cerebro');
+  // Tarde a propósito: `encargos` lee `cerebro` y `sueltas`, y cargarlo arriba
+  // metería a `terreno` en un círculo con medio módulo del proyecto.
+  const encargos = require('./encargos');
   const acciones = require('./acciones');
   const github = require('./github');
   const asistentes = require('./asistentes');
   const donde = require('./donde');
 
   const hay = await queHay();
-  if (hay.tipo === 'sinCarpeta') return { queEs: hay.tipo, piezas: [] };
+  if (hay.tipo === 'sinCarpeta') return { queEs: hay.tipo, piezas: [], listo: false };
+
+  // Lo que se ha encontrado sin tocar nada: de aquí salen las piezas que la
+  // lista de antes no enseñaba por ningún lado.
+  const parte = mirarYClasificar();
 
   const conArnes = hay.tipo === 'conArnes' || hay.tipo === 'aMedias';
   const proveedores = conArnes ? conexiones.proveedores() : [];
@@ -424,9 +431,15 @@ async function radiografia() {
   //   'solo'    lo hace la barra de un clic
   //   'agente'  se lo pedimos al asistente, con el encargo escrito
   //   'persona' solo puede hacerlo quien está delante del ordenador
-  const conArreglo = (pieza, arreglo) => (pieza.estado === 'si' || pieza.estado === 'noAplica'
+  const conArreglo = (pieza, arreglo) => (pieza.estado === 'si' || pieza.estado === 'noAplica' || !arreglo
     ? pieza
     : { ...pieza, arreglo });
+
+  // Un encargo de `encargos.js` puesto en la forma que entiende la pantalla.
+  // `comprobar` no viaja: es una función, y al otro lado hay un navegador.
+  const comoEncargo = (encargo) => (encargo
+    ? { como: 'agente', etiqueta: encargo.etiqueta, accion: { tipo: 'pedir', prompt: encargo.prompt } }
+    : null);
 
   // `estado` es 'si' | 'no' | 'aMedias' | 'noAplica', y de ahí sale cómo se pinta.
   const piezas = [
@@ -458,7 +471,7 @@ async function radiografia() {
       detalle: fuera
         ? `${fuera.claves} en ${fuera.sitios} sitio(s); el asistente puede ordenarlas`
         : 'Nada suelto',
-    }, { como: 'agente', etiqueta: 'Que las ordene', accion: { tipo: 'pedir', prompt: fuera ? fuera.prompt : '' } }),
+    }, comoEncargo(encargos.ordenarLasClaves())),
     conArreglo({
       nombre: 'Conocimiento',
       estado: temas ? 'si' : 'no',
@@ -489,10 +502,6 @@ async function radiografia() {
     }, { como: 'persona', etiqueta: 'Guardar fuera de aquí', accion: { tipo: 'verCopiaFuera' } }),
   ];
 
-  // ── Dos piezas que antes no se veían por ningún lado ──────────────────
-  //
-  // Las dos salen del reconocimiento, que no cuesta ni un proceso.
-  const parte = mirarYClasificar();
 
   // Lo que el repositorio declara y no está en esta máquina. Es lo que RSC
   // llama «what a fresh clone looks like», y hasta ahora se veía como un arnés
@@ -503,6 +512,17 @@ async function radiografia() {
       estado: 'no',
       detalle: `${parte.habilidades.colgando.length} cosa(s) declaradas que no están en este ordenador`,
       arreglo: { como: 'solo', etiqueta: 'Traerlo ahora', accion: { tipo: 'arrancar' } },
+    });
+  }
+
+  // Una carpeta que ya era de alguien y de la que el asistente no sabe nada.
+  // No es un fallo: es trabajo por hacer, y no lo puede hacer la barra.
+  if (hay.tipo === 'empezada' && !temas) {
+    piezas.push({
+      nombre: 'Lo que ya había aquí',
+      estado: 'no',
+      detalle: 'El asistente todavía no lo ha mirado',
+      arreglo: comoEncargo(encargos.ordenarLaCarpeta(parte)),
     });
   }
 

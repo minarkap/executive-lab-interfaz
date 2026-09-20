@@ -2328,3 +2328,96 @@ Es la línea que ya existía sin estar dicha, y ahora está dicha y respetada:
 La lista del catálogo se queda en el lado determinista, pero **filtrada** por lo
 que esta carpeta es. Lo que no se puede calcular no se adivina con una lista
 fija: se delega, y se dice que se delega.
+
+## 85. El arranque reconoce antes de preguntar, y sabe llegar desde donde sea
+
+Jose: *«primero, antes de lanzar las preguntas, debería escanear la carpeta […]
+si no está RSC, potencialmente ni GIT, eso ya es una bifurcación aparte […] si
+ya está RSC, la idea es adaptarlo y luego ya preguntar lo que falte»*.
+
+El arranque solo sabía hacer una cosa: montar en una carpeta que no tenía nada.
+Todo lo demás era callejón, y eran cinco. El peor: con `.rsc.json` presente,
+`arrancar()` cortaba con «Aquí ya hay una empresa montada» — así que el botón
+«Terminar de prepararla» de un arnés a medias llamaba a una función que se
+negaba a hacer nada, y el aviso ni siquiera traía el botón de socorro porque no
+contenía la cadena «Algo va mal».
+
+Cuatro momentos, y la regla que los ordena: **reconocer → decidir → aplicar →
+comprobar**. Reconocer no escribe. Decidir no toca disco. Aplicar solo ejecuta
+lo que decidir le dio. Comprobar vuelve a mirar y ofrece salida.
+
+- **`terreno.reconocer()`** distingue **nueve** estados donde había cinco, en
+  tres niveles según lo que cuesta calcularlos. `queHay()` pasa a ser una
+  proyección, así que la brújula, el informe y la lista de piezas siguen leyendo
+  las cinco palabras de siempre.
+- **`rumbo.js`** es **una función pura**: entra un parte, sale un plan. Es la
+  única pieza del arranque que se puede probar entera sin montar nada, y ahí
+  está el grueso de las comprobaciones nuevas.
+- **`arrancar.js`** ejecuta ese plan. Seis caminos nuevos: traer un clon con
+  `sync`, completar un suelo con el recibo y **sin preguntar nada**, poner al
+  día un arnés sin plan firmado, adoptar uno al que le faltan nuestros raíles,
+  pedir permiso cuando ya había otro montaje, y no tocar nada cuando está bien.
+
+## 86. Los tres estados que no se distinguían, y lo que costaban
+
+- **Un repositorio clonado** se veía igual que uno montado, porque
+  `habilidadesPuestas()` hacía la unión de disco y declaración y **lo declarado
+  tapaba lo que falta**. La barra pintaba botones que no respondían. Se parte en
+  `habilidadesEnDisco()`, y se arregla con `sync`, que es la única orden de RSC
+  que funciona en un clon: `add` e `install` mueren con exit 2 porque
+  `hasDeclaredHarness()` es falso hasta que hay algo instalado.
+- **Un `.rsc.json` ilegible** —marcas de conflicto de merge, que el propio RSC
+  avisa de que pasan— no se distinguía de uno ausente. Ahora se para y no se
+  toca nada: lo grave sería montar encima y borrar el arnés que había.
+- **Una carpeta con otro montaje de asistente** hecho a mano se trataba como una
+  carpeta cualquiera. Ahora se enseña lo que tiene —sus habilidades, sus
+  botones, sus ayudantes— y se pide permiso. Jose: *«si el usuario dice que no
+  quiere implementarlo, entonces directamente no se ejecuta la instalación ni de
+  RSC ni de la extensión»*. Y si dice que sí, lo suyo no se borra: RSC solo
+  gobierna sus propias rutas, y lo escrito a mano no cae en ninguna.
+
+## 87. Sin git se pregunta, no se muere
+
+Era un callejón por diseño: sin git no se ofrecía montar, y si el sistema no
+sabía instalarlo solo, la pantalla se quedaba sin nada que pulsar. Jose:
+**preguntárselo a la persona**. Se explica qué se pierde —las copias y el poder
+volver atrás—, se ofrecen las dos salidas, y la respuesta se recuerda.
+
+## 88. Toda pieza que falta trae su salida
+
+«Qué falta por montar» listaba ocho cosas y **no tenía ni un botón**. Decía «se
+quedó a medias», «no lo tienes puesto», «N sin terminar», «el asistente puede
+ordenarlas» — y no se podía pulsar nada para ninguna. Y sus dos entradas vivían
+en pantallas que exigen el arnés montado, o sea que era inalcanzable justo
+cuando servía.
+
+Ahora toda pieza que no esté bien trae `arreglo`, con **quién puede hacerlo**:
+`solo` (un clic), `agente` (con encargo escrito) o `persona`. Hay una
+comprobación que recorre tres carpetas distintas exigiéndolo, y falla si alguien
+añade una fila sin salida. Se llega desde la pantalla sin arnés, y al terminar
+de montar sale sola **solo si falta algo** — si no, a la pantalla principal, que
+es lo que pidió Jose.
+
+## 89. Un encargo al asistente lleva contrato y forma de comprobarlo
+
+En la barra había **un** prompt bien hecho, el de las claves sueltas, y estaba
+bien hecho porque tenía cuatro partes: qué hay, qué tiene que quedar, qué no se
+toca y qué hay que avisar antes. En `encargos.js` son obligatorias.
+
+Y la quinta, que no existía: **`comprobar()`**, una función que mira el disco.
+La pieza pasa a estar bien porque el disco lo dice, no porque el asistente haya
+afirmado que sí. Eso es lo que lo convierte en un contrato.
+
+De paso, el encargo de ordenar las claves sueltas —escrito desde hace semanas—
+**solo se podía lanzar desde la pantalla de conexiones, que exige arnés
+montado**. O sea: en el momento en que se avisaba, no había nada que pulsar.
+
+## 90. Dos cosas que se descubrieron leyendo RSC, y que cambian cómo se le habla
+
+- **`repair` no levanta un suelo ausente.** `ensureHarnessSkeleton()` solo corre
+  al final de `onboard`. Por eso «completar» vuelve a pasar el montaje con los
+  flags del recibo en vez de llamar a `repair`, que no sabe.
+- **`repair --yes` a ciegas es peligroso.** Aplica también los hallazgos que
+  preguntan, y uno de ellos —`wrong-target`— **mueve el arnés a otro
+  asistente**. Regla: `--dry-run` primero, separar `[fix]` de `[ask]`, y
+  arreglar solo lo que no pregunta nada.

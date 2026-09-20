@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'rastro', 'nombres', 'rumbo', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'rastro', 'nombres', 'rumbo', 'encargos', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -3539,6 +3539,48 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       Object.assign(rscM, antes);
       vscode.guion.raiz = empresa;
     }
+  });
+
+  await comprobar('un encargo al asistente trae su contrato y su forma de comprobarlo', () => {
+    // Lo que no se puede calcular se delega, pero no a ciegas. Cada encargo
+    // dice qué hay, qué tiene que quedar y qué no se toca — y trae una función
+    // que mira el DISCO para saber si quedó hecho. Sin eso es un deseo, no un
+    // contrato: el asistente diría que sí y nadie lo comprobaría.
+    const encargos = cargar('encargos');
+
+    // 1. El suelo que `repair` no levanta.
+    const suelo = encargos.levantarElSuelo(['conexiones', 'conocimiento']);
+    assert.match(suelo.prompt, /01-TOOLS\/_TEMPLATE/, 'no dice qué falta');
+    assert.match(suelo.prompt, /harness/, 'no dice con qué se arregla');
+    assert.match(suelo.prompt, /No toques/, 'no dice qué no se toca');
+    assert.equal(typeof suelo.comprobar, 'function');
+
+    // 2. Una carpeta que ya era de alguien.
+    const carpeta = encargos.ordenarLaCarpeta({
+      carpeta: { parece: 'algo en Python', cuantos: 29 },
+      otroMontaje: { asistentes: [{ quien: 'claude' }], ficheros: [] },
+    });
+    assert.match(carpeta.prompt, /29 cosas/, 'no le pasa lo que ya sabemos');
+    assert.match(carpeta.prompt, /algo en Python/);
+    assert.match(carpeta.prompt, /No muevas/, 'no dice qué no se toca');
+    assert.match(carpeta.prompt, /sensible/, 'no dice qué hay que avisar antes');
+
+    // 3. Y el que comprueba de verdad: falso antes, verdadero después.
+    const conClaves = fs.mkdtempSync(path.join(os.tmpdir(), 'encargo-claves-'));
+    fs.writeFileSync(path.join(conClaves, '.env'), 'STRIPE_KEY=sk_test_123\n');
+    vscode.guion.raiz = conClaves;
+
+    const claves = encargos.ordenarLasClaves();
+    assert.ok(claves, 'con claves sueltas tiene que haber encargo');
+    assert.equal(claves.comprobar(), false, 'todavía no está hecho');
+    assert.match(claves.prompt, /01-TOOLS/, 'no dice dónde tienen que acabar');
+
+    fs.unlinkSync(path.join(conClaves, '.env'));
+    assert.equal(claves.comprobar(), true, 'y ahora sí: lo dice el disco, no el asistente');
+    assert.equal(encargos.ordenarLasClaves(), null, 'sin claves sueltas no se pide nada');
+
+    vscode.guion.raiz = empresa;
+    return `${encargos.LOS_QUE_HAY.length} encargos, los tres con contrato`;
   });
 
   await comprobar('toda pieza que falta trae su salida', async () => {
