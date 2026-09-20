@@ -87,6 +87,36 @@ function habilidadesPuestas() {
   return [...new Set([...habilidadesEnDisco(), ...(declaracion.skills || []), ...(declaracion.ownSkills || [])])];
 }
 
+// ── Leer lo que contesta el arnés ────────────────────────────────────────
+
+// `doctor --json` sale entero por la salida normal. Si no se puede leer, se
+// dice que no se sabe: inventarse un informe sano sería peor que no tenerlo.
+function comoEstaDeSalud({ codigo, salida }) {
+  if (codigo !== 0) return null;
+  try {
+    return JSON.parse(salida);
+  } catch {
+    return null;
+  }
+}
+
+// `repair --dry-run` imprime una línea por hallazgo, marcada `[fix]` si la sabe
+// arreglar sola y `[ask]` si hace falta que alguien decida.
+//
+// La diferencia no es cosmética: `repair --yes` a ciegas aplicaría también los
+// `[ask]`, y uno de ellos —`wrong-target`— **mueve el arnés a otro asistente**.
+// Así que solo se deja arreglar solo lo que no pregunta nada.
+function queHayQueArreglar({ codigo, salida }) {
+  const texto = String(salida || '');
+  if (codigo !== 0) return { sano: false, solas: [], aDecidir: [], sabemos: false };
+  return {
+    sabemos: true,
+    sano: /Nothing to repair/i.test(texto),
+    solas: texto.split('\n').map((l) => l.trim()).filter((l) => l.includes('[fix]')),
+    aDecidir: texto.split('\n').map((l) => l.trim()).filter((l) => l.includes('[ask]')),
+  };
+}
+
 const revisar = () => correr(['doctor'], { tiempoMaximo: 120000 });
 
 // El mismo doctor, pero para máquina. Sin `--json` la salida lleva delante el
@@ -107,7 +137,12 @@ const reevaluar = () => correr(['reassess'], { tiempoMaximo: 60000 });
 const arreglarEnSeco = () => correr(['repair', '--dry-run'], { tiempoMaximo: 120000 });
 const arreglar = () => correr(['repair'], { tiempoMaximo: 180000 });
 
+// Arreglar sin que nadie conteste. Solo se llama cuando `queHayQueArreglar()`
+// ha dicho que no hay nada que preguntar: ver arriba por qué.
+const arreglarSolo = () => correr(['repair', '--yes'], { tiempoMaximo: 180000 });
+
 module.exports = {
-  correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar,
+  correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar, arreglarSolo,
+  comoEstaDeSalud, queHayQueArreglar,
   paquete, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
 };

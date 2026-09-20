@@ -21,6 +21,7 @@ const rsc = require('./rsc');
 const guardar = require('./guardar');
 const identidad = require('./identidad');
 const asistentes = require('./asistentes');
+const rumbo = require('./rumbo');
 
 // Las preguntas que hace RSC, en cristiano. Antes se daban por supuestas tres
 // —siempre operaciones, siempre no técnico, siempre L3— y eso está mal: un
@@ -267,102 +268,297 @@ async function prepararHistorial() {
   return hecho.codigo === 0;
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+//                              LAS PREGUNTAS
+// ─────────────────────────────────────────────────────────────────────────
+//
+// Se hacen de una en una y **solo las que hagan falta**. Cuál hace falta lo
+// decide `rumbo.js` restando lo que el recibo de RSC ya contesta: cuando hay
+// arnés, cinco de las siete ya están escritas en `.rsc.json` y hasta ahora se
+// volvían a preguntar igual.
+
+const COMO_SE_PREGUNTA = {
+  asistente: () => preguntarAsistente(),
+  deQueVa: () => elegir('Para empezar', '¿De qué va esto?', DE_QUE_VA),
+  objetivo: (yaDicho) => preguntarObjetivo(yaDicho.kind),
+  tamano: () => elegir('Para empezar', '¿Es algo pequeño o va para largo?', [
+    { etiqueta: 'Algo pequeño', detalle: 'Una cosa concreta, para salir del paso', valor: 'small' },
+    { etiqueta: 'Va para largo', detalle: 'Le voy a dedicar tiempo y va a crecer', valor: 'large' },
+  ]),
+  nivel: () => elegir('Sobre ti', '¿Qué tal te manejas con el ordenador?', COMO_TE_MANEJAS),
+  dial: () => elegir('Sobre ti', '¿Cuánto quieres que te explique?', CUANTO_TE_EXPLICO),
+  nombres: (yaDicho) => preguntarNombres(yaDicho.objetivo),
+};
+
+// Lo que el recibo ya contesta, en la forma que espera `montarElArnes`.
+function loQueYaSeSabe(recibo) {
+  const r = recibo ? recibo.record : null;
+  if (!r) return {};
+  return {
+    asistente: (r.targets || [])[0],
+    kind: r.projectKind,
+    objetivo: r.goal,
+    tamano: r.softwareScope,
+    nivel: r.technicalLevel,
+    dial: r.accompaniment,
+  };
+}
+
+// Devuelve las respuestas completas, o null si alguien canceló.
+async function entrevistar(plan, parte) {
+  const sabido = loQueYaSeSabe(parte.recibo);
+  const respuestas = { ...sabido };
+  const nombres = parte.railes.nombres || null;
+
+  for (const que of plan.preguntar) {
+    if (que === 'permiso') continue; // se pide aparte, antes de todo
+
+    // El tamaño solo lo pide RSC cuando se va a construir algo. Sin recibo no
+    // se sabe el tipo hasta que se contesta la anterior, así que se mira aquí y
+    // no al calcular la lista.
+    if (que === 'tamano' && respuestas.kind !== 'software') continue;
+
+    const contestada = await COMO_SE_PREGUNTA[que](respuestas);
+    if (!contestada) return null;
+
+    if (que === 'deQueVa') respuestas.kind = contestada.kind;
+    else if (que === 'nivel') respuestas.nivel = contestada.nivel;
+    else if (que === 'dial') respuestas.dial = contestada.dial;
+    else if (que === 'tamano') respuestas.tamano = contestada.valor || contestada;
+    else if (que === 'nombres') Object.assign(respuestas, { nombres: contestada });
+    else respuestas[que] = contestada;
+  }
+
+  // La web no se pregunta nunca dos veces ni bloquea: es opcional.
+  const web = plan.pasos.some((p) => p.id === 'montarElArnes') && !parte.recibo ? await preguntarWeb() : null;
+
+  return { ...respuestas, nombres: respuestas.nombres || nombres, web };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//                               LOS PASOS
+// ─────────────────────────────────────────────────────────────────────────
+//
+// Uno por identificador del catálogo de `rumbo.js`. Si allí aparece uno que
+// aquí no está, la prueba lo caza antes que nadie.
+//
+// Cada uno devuelve `{ ok, detalle }`. Un paso que falla NO para el arranque
+// salvo que sea el montaje: es mejor un arnés con los raíles a medias, y
+// decirlo, que ninguno.
+
+async function arreglarLoQueSePuedaSolo(salida) {
+  const queHay = rsc.queHayQueArreglar(await rsc.arreglarEnSeco());
+
+  if (!queHay.sabemos) return { ok: true, detalle: 'no se ha podido revisar' };
+  if (queHay.sano) return { ok: true, detalle: 'nada que arreglar' };
+
+  // Lo que el arnés pregunta antes de tocar no se contesta por nadie: uno de
+  // esos hallazgos mueve el arnés a otro asistente.
+  if (queHay.aDecidir.length) {
+    return { ok: true, detalle: `${queHay.aDecidir.length} cosa(s) que tiene que decidir una persona`, aDecidir: queHay.aDecidir };
+  }
+
+  const hecho = await rsc.arreglarSolo();
+  return { ok: hecho.codigo === 0, detalle: `${queHay.solas.length} arreglada(s)` };
+}
+
+const COMO_SE_HACE = {
+  ponerGit: async () => ({ ok: await prepararHistorial() }),
+
+  montarElArnes: async ({ respuestas }) => {
+    const hecho = await montarElArnes(respuestas);
+    return { ok: hecho.ok, detalle: hecho.detalle, imprescindible: true };
+  },
+
+  // Traer a esta máquina lo que el repositorio ya declaraba. No se vuelve a
+  // montar nada: `sync` reconstruye desde el plan que alguien ya aceptó.
+  traerLasHabilidades: async () => {
+    const hecho = await rsc.sincronizar();
+    return { ok: hecho.codigo === 0, detalle: (hecho.salida || '').trim().split('\n').pop(), imprescindible: true };
+  },
+
+  arreglarLoRoto: ({ salida }) => arreglarLoQueSePuedaSolo(salida),
+  ponerLosRailes: async ({ contexto }) => ({ ok: await ponerLosRailes(contexto) }),
+  ponerLosNombres: ({ respuestas }) => ({ ok: respuestas.nombres ? ponerLosNombres(respuestas.nombres) : true }),
+  apuntarLosEnganches: ({ salida }) => ({ ok: true, detalle: apuntarLosEnganches(salida) ? 'apuntados' : 'no hacía falta' }),
+
+  puntoDePartida: async () => {
+    // El historial de alguien no se escribe. Se comprueba aquí y no solo en
+    // `rumbo`, porque una carpeta «vacía» puede tener un `.git` con commits.
+    if (!(await terreno.podemosGuardarElPuntoDePartida())) {
+      return { ok: true, detalle: 'historial de alguien: no se toca' };
+    }
+    await guardar.guardar(`Punto de partida — ${guardar.fechaLarga()}`);
+    return { ok: true };
+  },
+
+  // Los dos encargos no los hace la barra: los hace el asistente. Aquí solo se
+  // anotan para que quien llama sepa qué pedirle al terminar.
+  ordenarLasClaves: () => ({ ok: true, encargo: 'ordenarLasClaves' }),
+  ordenarLaCarpeta: () => ({ ok: true, encargo: 'ordenarLaCarpeta' }),
+};
+
+// ─────────────────────────────────────────────────────────────────────────
+//                              EL ENRUTADOR
+// ─────────────────────────────────────────────────────────────────────────
+
+// Un pestillo, porque ahora se llega aquí desde tres sitios y algunas ramas
+// empiezan a escribir sin abrir ningún diálogo antes. Dos pulsaciones seguidas
+// lanzarían dos montajes a la vez sobre la misma carpeta.
+let enMarcha = false;
+
+const CLAVE_SIN_GIT = 'executiveLab.sigueSinCopias';
+
+// Dónde se recuerda lo que esa persona ya decidió. Se pide con cuidado: un
+// contexto sin memoria —una prueba, o una versión de VS Code que cambie la
+// forma— no puede tumbar el arranque entero.
+const loQueDecidio = (contexto) => (contexto && contexto.workspaceState)
+  || { get: () => undefined, update: async () => {} };
+
 async function arrancar(contexto, salida) {
-  if (!proyecto.raiz()) {
+  if (enMarcha) return { ok: false, cancelado: true };
+  enMarcha = true;
+  try {
+    return await elCamino(contexto, salida);
+  } finally {
+    enMarcha = false;
+  }
+}
+
+async function elCamino(contexto, salida) {
+  const visto = await terreno.reconocer();
+  const parte = {
+    ...visto,
+    git: { ...visto.git, sigueSinCopias: Boolean(loQueDecidio(contexto).get(CLAVE_SIN_GIT)) },
+  };
+  const plan = rumbo.elegirRama(parte);
+  salida.appendLine(`[arrancar] ${plan.rama}: ${plan.porQue}`); // diccionario: interno
+
+  if (plan.rama === 'sinCarpeta') {
     return { ok: false, mensaje: 'Abre primero la carpeta donde quieres montar tu empresa.' };
   }
-  if (proyecto.existe('.rsc.json')) {
-    return { ok: false, mensaje: 'Aquí ya hay una empresa montada.' };
+
+  // Un `.rsc.json` ilegible no se pisa. Es un fichero que viaja por git y esto
+  // suele ser un conflicto sin resolver: montar encima borraría el arnés que
+  // esa persona ya tenía.
+  if (plan.rama === 'reciboRoto') {
+    return {
+      ok: false,
+      mensaje: 'El fichero que dice cómo está montado esto no se puede leer. No voy a tocar nada. Pulsa "Algo va mal".',
+    };
   }
 
-  // git es obligatorio, y por qué lo es está en git.js. Se comprueba ANTES de
-  // preguntar nada: enterarse a mitad, después de cinco respuestas y con la
-  // barra de progreso en marcha, era la peor forma posible de descubrirlo.
-  if (!(await git.hay())) {
-    return { ok: false, faltaGit: true, mensaje: 'Falta una pieza para poder guardar tu trabajo.' };
+  if (plan.rama === 'sinGit') return decidirSobreGit(contexto, parte);
+
+  if (plan.rama === 'yaEstaba') {
+    return { ok: true, yaEstaba: true, mensaje: 'Esto ya estaba montado y entero.' };
   }
 
-  const asistente = await preguntarAsistente();
-  if (!asistente) return { ok: false, cancelado: true };
+  if (plan.rama === 'otroArnes' && !(await pedirPermiso(parte))) {
+    // Jose: «si el usuario dice que no quiere implementarlo, entonces
+    // directamente no se ejecuta la instalación ni de RSC ni de la extensión».
+    return { ok: false, cancelado: true, sinPermiso: true };
+  }
 
-  const deQueVa = await elegir('Para empezar', '¿De qué va esto?', DE_QUE_VA);
-  if (!deQueVa) return { ok: false, cancelado: true };
+  const respuestas = await entrevistar(plan, parte);
+  if (!respuestas) return { ok: false, cancelado: true };
 
-  const objetivo = await preguntarObjetivo(deQueVa.kind);
-  if (!objetivo) return { ok: false, cancelado: true };
+  return hacerLosPasos(plan, parte, respuestas, contexto, salida);
+}
 
-  const tamano = deQueVa.kind === 'software'
-    ? await elegir('Para empezar', '¿Es algo pequeño o va para largo?', [
-      { etiqueta: 'Algo pequeño', detalle: 'Una cosa concreta, para salir del paso', valor: 'small' },
-      { etiqueta: 'Va para largo', detalle: 'Le voy a dedicar tiempo y va a crecer', valor: 'large' },
-    ])
-    : null;
-  if (deQueVa.kind === 'software' && !tamano) return { ok: false, cancelado: true };
+// Sin git no hay copias de seguridad. Se explica qué se pierde y se deja
+// elegir: Jose lo quiso así, y hasta ahora esto era un callejón — la pantalla
+// se quedaba sin ofrecer nada.
+async function decidirSobreGit(contexto, parte) {
+  const ponerlo = 'Ponerlo primero';
+  const seguir = 'Seguir sin copias';
 
-  const manejo = await elegir('Sobre ti', '¿Qué tal te manejas con el ordenador?', COMO_TE_MANEJAS);
-  if (!manejo) return { ok: false, cancelado: true };
+  const elegido = await vscode.window.showWarningMessage(
+    'Falta una pieza para poder guardar tu trabajo. Sin ella todo funciona, pero no podrás guardar copias ni volver atrás si algo sale mal.',
+    { modal: true, detail: parte.git.sePuedeInstalarSolo ? 'Tu ordenador puede ponerla solo. Tarda un rato.' : git.comoSeInstala() },
+    ponerlo,
+    seguir,
+  );
 
-  const explico = await elegir('Sobre ti', '¿Cuánto quieres que te explique?', CUANTO_TE_EXPLICO);
-  if (!explico) return { ok: false, cancelado: true };
+  if (elegido === seguir) {
+    await loQueDecidio(contexto).update(CLAVE_SIN_GIT, true);
+    return { ok: false, sigueSinCopias: true, mensaje: 'Sigo sin copias. Puedes ponerlo cuando quieras desde Histórico.' };
+  }
+  if (elegido === ponerlo) return { ok: false, faltaGit: true };
+  return { ok: false, cancelado: true };
+}
 
-  const nombres = await preguntarNombres(objetivo);
-  if (!nombres) return { ok: false, cancelado: true };
+// Aquí ya había un montaje de asistente. No se decide por nadie: se le enseña
+// lo que tiene y se le pregunta, y lo suyo no se borra pase lo que pase.
+async function pedirPermiso(parte) {
+  const suyo = parte.otroMontaje.asistentes
+    .map((a) => [a.habilidades && `${a.habilidades} habilidad(es)`, a.comandos && `${a.comandos} botón(es)`, a.agentes && `${a.agentes} ayudante(s)`].filter(Boolean).join(', '))
+    .filter(Boolean);
+  const ficheros = parte.otroMontaje.ficheros;
 
-  const web = await preguntarWeb();
+  const visto = [...suyo, ...(ficheros.length ? [ficheros.join(', ')] : [])].join(' · ');
 
-  const respuestas = {
-    asistente,
-    kind: deQueVa.kind,
-    objetivo,
-    tamano: tamano ? (tamano.valor || tamano) : null,
-    nivel: manejo.nivel,
-    dial: explico.dial,
-  };
+  const si = 'Sí, móntalo encima';
+  const elegido = await vscode.window.showInformationMessage(
+    'Aquí ya tienes un asistente montado a mano. Puedo poner el arnés encima sin quitarte nada de lo que ya tienes.',
+    { modal: true, detail: `He encontrado: ${visto}.\n\nTus habilidades, tus botones y tus ayudantes se quedan donde están. Lo que hago es ordenar la carpeta como el arnés espera.` },
+    si,
+  );
+  return elegido === si;
+}
+
+// Ejecutar el plan, con barra de progreso y sin tragarse ningún fallo.
+async function hacerLosPasos(plan, parte, respuestas, contexto, salida) {
+  const queEscriben = plan.pasos.filter((paso) => paso.escribe);
+  if (!queEscriben.length) return { ok: true, yaEstaba: true, mensaje: 'No hacía falta tocar nada.' };
 
   return vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: 'Preparando tu empresa', cancellable: false },
     async (progreso) => {
-      progreso.report({ message: 'preparando dónde guardar las copias…' });
-      if (!(await prepararHistorial())) {
-        salida.appendLine('[arrancar] git init falló');
-        return { ok: false, mensaje: 'No puedo guardar copias en esta carpeta. Prueba con "Algo va mal".' };
+      const avisos = [];
+      const encargos = [];
+
+      for (const paso of plan.pasos) {
+        if (paso.escribe) progreso.report({ message: `${paso.etiqueta}…` });
+
+        const hecho = await COMO_SE_HACE[paso.id]({ respuestas, parte, contexto, salida, progreso });
+        if (hecho.encargo) encargos.push(hecho.encargo);
+        if (hecho.detalle) salida.appendLine(`[arrancar] ${paso.id}: ${hecho.detalle}`); // diccionario: interno
+
+        if (hecho.ok) continue;
+
+        // Sin arnés no hay nada que hacer: se para y se cuenta.
+        if (hecho.imprescindible) {
+          return { ok: false, mensaje: 'No he podido montar el arnés. Pulsa "Algo va mal" y pásale el código a tu tutor.' };
+        }
+        // Lo demás se apunta y se sigue: media cosa puesta y dicha vale más que
+        // ninguna y callada. Antes estos fallos se tiraban sin mirarlos.
+        salida.appendLine(`[arrancar] ${paso.id} no ha salido bien`); // diccionario: interno
+        avisos.push(paso.id);
       }
 
-      progreso.report({ message: 'montando el arnés, esto tarda unos minutos…' });
-      const montado = await montarElArnes(respuestas);
-      if (!montado.ok) {
-        salida.appendLine(`[arrancar] ${montado.detalle}`);
-        return { ok: false, mensaje: 'No he podido montar el arnés. Pulsa "Algo va mal" y pásale el código a tu tutor.' };
+      // El suelo, después de montar: RSC puede decir que terminó y dejarlo a
+      // medias, y entonces lo que falta lo levanta el asistente.
+      const sueloAMedias = plan.pasos.some((p) => p.id === 'montarElArnes') && !proyecto.arnesCompleto();
+      if (sueloAMedias) {
+        const faltan = Object.entries(proyecto.sueloDelArnes()).filter(([, hay]) => !hay).map(([que]) => que);
+        salida.appendLine(`[arrancar] el arnés dijo estar listo y falta el suelo: ${faltan.join(', ')}`); // diccionario: interno
+        encargos.push('levantarElSuelo');
       }
 
-      if (!proyecto.arnesCompleto()) {
-        const suelo = proyecto.sueloDelArnes();
-        const faltan = Object.entries(suelo).filter(([, hay]) => !hay).map(([que]) => que);
-        salida.appendLine(`[arrancar] el arnés dijo estar listo y falta el suelo: ${faltan.join(', ') || '(nada, pero arnesCompleto() dice que no)'}`);
-        return { ok: false, mensaje: 'El arnés se ha montado a medias. Pulsa "Algo va mal".' };
-      }
-
-      progreso.report({ message: 'poniendo los raíles…' });
-      if (!(await ponerLosRailes(contexto))) salida.appendLine('[arrancar] no he podido poner los raíles');
-
-      ponerLosNombres(nombres);
-      apuntarLosEnganches(salida);
-
-      // El punto de partida solo se escribe si el historial es nuestro. En un
-      // proyecto que ya existía, `git add -A` metería el trabajo sin guardar de
-      // esa persona en un commit nuestro, dentro de SU historial. No se pierde
-      // nada, pero no se hace: se monta el arnés, se deja todo en el disco y
-      // que lo guarde cuando quiera, con su mensaje.
-      if (await terreno.podemosGuardarElPuntoDePartida()) {
-        progreso.report({ message: 'guardando el punto de partida…' });
-        await guardar.guardar(`Punto de partida — ${guardar.fechaLarga()}`);
-      } else {
-        salida.appendLine('[arrancar] historial de alguien: no se guarda punto de partida');
-      }
-
-      return { ok: true, objetivo, web, nombres, mensaje: `${nombres.arnes} ya está listo.` };
+      return {
+        ok: true,
+        rama: plan.rama,
+        avisos,
+        encargos,
+        sueloAMedias,
+        objetivo: respuestas.objetivo,
+        web: respuestas.web,
+        nombres: respuestas.nombres || { arnes: null, empresa: null },
+        mensaje: `${(respuestas.nombres && respuestas.nombres.arnes) || 'Tu arnés'} ya está listo.`,
+      };
     },
   );
 }
 
-module.exports = { arrancar, DE_QUE_VA, COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO };
+module.exports = { arrancar, entrevistar, COMO_SE_HACE, DE_QUE_VA, COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO };

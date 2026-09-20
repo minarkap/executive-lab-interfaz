@@ -52,6 +52,16 @@ const rastro = require('./rastro');
 // Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
 // peticiones (para detectar la que se repite) y los consejos que el alumno
 // apartó con "ahora no".
+// Qué se le dice a esa persona cuando el arranque NO ha montado nada nuevo.
+// Cada rama hizo una cosa distinta y decir «ya está listo» en las cuatro sería
+// no decir nada.
+const LO_QUE_SE_HIZO = {
+  traer: 'Ya tienes aquí lo que este proyecto traía puesto.',
+  completar: 'He terminado de prepararlo. Ya está entero.',
+  sinRecibo: 'Lo he puesto al día con lo que este proyecto declaraba.',
+  adoptar: 'Le he puesto lo que le faltaba de la barra.',
+};
+
 const CLAVE_PETICIONES = 'executiveLab.peticiones';
 const CLAVE_SILENCIADOS = 'executiveLab.consejosApartados';
 
@@ -1008,10 +1018,56 @@ ${cabecera}
 
   async arrancar() {
     const hecho = await arrancar.arrancar(this.contexto, this.salida);
-    if (hecho.cancelado) return this.refrescar();
-    // Falta git: no es un error que mirar, es un botón que pulsar.
+
+    if (hecho.cancelado) {
+      // Dijo que no a montar el arnés sobre lo que ya tenía. La barra funciona
+      // sobre el arnés, así que no se instala nada — y se dice, en vez de
+      // dejar la pantalla igual y que parezca que no ha pasado nada.
+      if (hecho.sinPermiso) {
+        this.enviar({ tipo: 'aviso', texto: 'No he tocado nada. Cuando quieras, el botón sigue aquí.' });
+      }
+      return this.refrescar();
+    }
+
+    // Falta git y ha dicho que lo pone: no es un error que mirar, es un botón
+    // que pulsar, y la pantalla ya lo enseña.
     if (hecho.faltaGit) return this.refrescar(true);
+
+    // Ha elegido seguir sin copias. Tampoco es un error.
+    if (hecho.sigueSinCopias) {
+      this.enviar({ tipo: 'aviso', texto: hecho.mensaje });
+      return this.refrescar(true);
+    }
+
     if (!hecho.ok) return this.enviar({ tipo: 'aviso', texto: hecho.mensaje, malo: true });
+
+    // Lo que ya estaba no se celebra: no se ha montado nada.
+    if (hecho.yaEstaba) {
+      this.enviar({ tipo: 'aviso', texto: hecho.mensaje });
+      return this.refrescar(true);
+    }
+
+    if (hecho.avisos && hecho.avisos.length) {
+      this.salida.appendLine(`[arrancar] terminó con pegas: ${hecho.avisos.join(', ')}`); // diccionario: interno
+    }
+    if (hecho.encargos && hecho.encargos.length) {
+      this.salida.appendLine(`[arrancar] falta que el asistente haga: ${hecho.encargos.join(', ')}`); // diccionario: interno
+    }
+
+    // ── Lo que solo tiene sentido cuando se acaba de montar de cero ───────
+    //
+    // Traer un arnés de otro ordenador, completar un suelo o adoptar uno que ya
+    // estaba no son "montar tu empresa": esa persona ya tenía esto. Preguntarle
+    // por la vista sencilla y por GitHub otra vez, y decirle «acabo de montar
+    // aquí un arnés», sería contarle una película que no ha pasado.
+    const reciénMontado = hecho.rama === 'desdeCero' || hecho.rama === 'encimaDeLoQueHay' || hecho.rama === 'otroArnes';
+
+    if (!reciénMontado) {
+      this.enviar({ tipo: 'aviso', texto: LO_QUE_SE_HIZO[hecho.rama] || hecho.mensaje });
+      await this.refrescar(true);
+      await puente.enviar('He puesto al día el arnés de esta carpeta. Mira qué hay montado y cuéntame en dos líneas por dónde seguimos.');
+      return undefined;
+    }
 
     // Se pregunta, no se impone: puede ser la carpeta de un alumno o la de
     // alguien que solo está mirando cómo funciona esto.
@@ -1045,7 +1101,8 @@ ${cabecera}
     // también cuando la web se da al montar la carpeta.
     const conWeb = hecho.web ? `\n\n${marca.queLePedimos(hecho.web)}\n\n` : '';
     const deQuien = hecho.nombres.empresa ? ` Es para ${hecho.nombres.empresa}.` : '';
-    await puente.enviar(`Acabo de montar aquí un arnés que he llamado "${hecho.nombres.arnes}".${deQuien} Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb}Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
+    const comoSeLlama = hecho.nombres.arnes || identidad.deQuien();
+    await puente.enviar(`Acabo de montar aquí un arnés que he llamado "${comoSeLlama}".${deQuien} Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb}Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
     return undefined;
   }
 

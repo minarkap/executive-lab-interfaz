@@ -283,8 +283,8 @@ async function reconocer({ profundo = false } = {}) {
   return Object.freeze({
     ...parte,
     arnes: {
-      salud: leerSalud(salud),
-      reparaciones: leerReparaciones(reparaciones),
+      salud: rsc.comoEstaDeSalud(salud),
+      reparaciones: rsc.queHayQueArreglar(reparaciones),
     },
   });
 }
@@ -304,31 +304,6 @@ async function comoEstaElHistorial(raiz) {
     ajeno,
     sinGuardar,
     sePuedeInstalarSolo: git.sePuedeInstalarSolo(),
-  };
-}
-
-// `doctor --json` sale entero por la salida normal. Si no se puede leer, se
-// dice que no se sabe: inventarse un informe sano sería peor que no tenerlo.
-function leerSalud({ codigo, salida }) {
-  if (codigo !== 0) return null;
-  try {
-    return JSON.parse(salida);
-  } catch {
-    return null;
-  }
-}
-
-// `repair --dry-run` imprime una línea por hallazgo, marcada `[fix]` si la sabe
-// arreglar sola y `[ask]` si hace falta que alguien decida. La diferencia
-// importa: `repair --yes` a ciegas aplicaría también los `[ask]`, y uno de
-// ellos —`wrong-target`— **mueve el arnés a otro asistente**.
-function leerReparaciones({ codigo, salida }) {
-  if (codigo !== 0) return { solas: [], aDecidir: [], sano: false };
-  const lineas = String(salida || '').split('\n').map((l) => l.trim()).filter(Boolean);
-  return {
-    sano: /Nothing to repair/i.test(salida || ''),
-    solas: lineas.filter((l) => l.includes('[fix]')),
-    aDecidir: lineas.filter((l) => l.includes('[ask]')),
   };
 }
 

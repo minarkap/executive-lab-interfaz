@@ -3229,9 +3229,10 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const sinNombres = rumbo.elegirRama({ ...base, recibo: { record: entero }, railes: { nombres: null } });
     assert.deepEqual(sinNombres.preguntar, ['nombres'], 'un clon pregunta una, no siete');
 
-    // Sin recibo se preguntan las siete.
+    // Sin recibo se preguntan las siete. El tamaño solo se llega a preguntar
+    // si el proyecto resulta ser software, y eso se decide al contestar.
     const aPelo = rumbo.elegirRama({ ...base, estado: 'empezada', recibo: null, railes: { nombres: null } });
-    assert.equal(aPelo.preguntar.length, 7, `se esperaban 7 y son ${aPelo.preguntar.length}`);
+    assert.deepEqual(aPelo.preguntar, ['asistente', 'deQueVa', 'objetivo', 'tamano', 'nivel', 'dial', 'nombres']);
 
     // Y un valor que RSC no aceptaría se pregunta igual, aunque esté escrito.
     const torcido = rumbo.elegirRama({
@@ -3432,19 +3433,135 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return estado.comoSeInstalaGit.slice(0, 46);
   });
 
-  await comprobar('sin git, preparar la carpeta se para antes de preguntar nada', async () => {
-    const vacia = fs.mkdtempSync(path.join(os.tmpdir(), 'carpeta-sin-git-2-'));
+  await comprobar('sin git se pregunta qué hacer, y no se escribe nada', async () => {
+    // Antes esto era un callejón: sin git la barra no ofrecía nada y se
+    // quedaba muerta. Jose: «preguntárselo a la persona». Lo que no cambia es
+    // que no se escribe ni se pregunta nada más hasta que conteste.
+    const vacia = fs.mkdtempSync(path.join(os.tmpdir(), 'sin-git-'));
     vscode.guion.raiz = vacia;
-    const preguntaAntes = vscode.registrado.quickPick;
+    vscode.registrado.quickPick = null;
+    vscode.registrado.mensajes.length = 0;
 
-    const hecho = await sinGit(() => cargar('arrancar').arrancar({}, { appendLine() {} }));
+    const memoria = new Map();
+    const contexto = {
+      extensionPath: RAIZ,
+      workspaceState: { get: (k) => memoria.get(k), update: async (k, v) => memoria.set(k, v) },
+    };
+
+    // Si elige ponerlo, se devuelve `faltaGit` y la pantalla enseña el botón.
+    vscode.guion.eleccion = 'Ponerlo primero';
+    const poner = await sinGit(() => cargar('arrancar').arrancar(contexto, { appendLine() {} }));
+    assert.equal(poner.faltaGit, true);
+    assert.equal(poner.cancelado, undefined);
+    assert.equal(vscode.registrado.quickPick, null, 'no se pregunta nada más antes');
+    assert.ok(vscode.registrado.mensajes.some((m) => /WARN .*copias/.test(m)), 'se explica qué se pierde');
+
+    // Y si elige seguir sin copias, se apunta y se dice, sin montar nada.
+    vscode.guion.eleccion = 'Seguir sin copias';
+    const seguir = await sinGit(() => cargar('arrancar').arrancar(contexto, { appendLine() {} }));
+    assert.equal(seguir.sigueSinCopias, true);
+    assert.equal(seguir.faltaGit, undefined);
+    assert.equal(memoria.get('executiveLab.sigueSinCopias'), true, 'y no se vuelve a preguntar');
+
+    vscode.guion.eleccion = undefined;
     vscode.guion.raiz = empresa;
+    return 'se para y se pregunta';
+  });
 
-    assert.equal(hecho.ok, false);
-    assert.equal(hecho.faltaGit, true, 'tiene que decir que lo que falta es git, no fallar a secas');
-    assert.equal(hecho.cancelado, undefined, 'y no confundirse con que el alumno cerrara la pregunta');
-    assert.equal(vscode.registrado.quickPick, preguntaAntes, 'no se pregunta nada si va a abortar igualmente');
-    return hecho.mensaje;
+  await comprobar('cada clase de carpeta toma su camino, y ninguna se queda muda', async () => {
+    // El callejón que esto viene a matar: con `.rsc.json` puesto, `arrancar()`
+    // cortaba con «Aquí ya hay una empresa montada» pasara lo que pasara. Un
+    // arnés a medias tenía un botón que llamaba a esa función y no hacía nada.
+    const rscM = cargar('rsc');
+    const arrancarM = cargar('arrancar');
+    const antes = { sincronizar: rscM.sincronizar, correr: rscM.correr, arreglarEnSeco: rscM.arreglarEnSeco };
+    const llamadas = [];
+
+    rscM.sincronizar = async () => { llamadas.push('sync'); return { codigo: 0, salida: 'Synced claude: bro' }; };
+    rscM.arreglarEnSeco = async () => { llamadas.push('repair --dry-run'); return { codigo: 0, salida: 'Nothing to repair — this harness is healthy.' }; };
+    rscM.correr = async (args) => {
+      llamadas.push(args[0]);
+      if (args[0] !== 'onboard') return { codigo: 0, salida: '' };
+      // Primera pasada: el plan. Segunda: listo.
+      return args.includes('--accept-plan')
+        ? { codigo: 0, salida: 'RSC_ONBOARDING_READY abc' }
+        : { codigo: 0, salida: `Plan id: ${'a'.repeat(64)}\nAccept exactly this plan: npx @ericrisco/rsc@1.4.1 onboard --accept-plan ${'a'.repeat(64)}` };
+    };
+
+    const poner = (raiz, rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(raiz, rel)), { recursive: true });
+      fs.writeFileSync(path.join(raiz, rel), txt);
+    };
+    const RECORD = { projectKind: 'operations', goal: 'x', technicalLevel: 'non-technical', accompaniment: 'L3', targets: ['claude'] };
+    const manifiesto = JSON.stringify({ version: 1, targets: ['claude'], skills: ['bro'], ownSkills: [], onboarding: { plan: { record: RECORD } } });
+    const contexto = { extensionPath: RAIZ, workspaceState: { get: () => undefined, update: async () => {} } };
+    const callar = { appendLine() {} };
+
+    try {
+      // Un clon: se trae lo declarado con `sync`. Nunca se vuelve a montar.
+      const clon = fs.mkdtempSync(path.join(os.tmpdir(), 'rama-clon-'));
+      poner(clon, '.rsc.json', manifiesto);
+      poner(clon, '01-TOOLS/_TEMPLATE/README.md', '#');
+      poner(clon, '02-DOCS/wiki/harness/user-profile.md', '---\narnes: Clonado\n---\n');
+      vscode.guion.raiz = clon;
+      llamadas.length = 0;
+      const traido = await arrancarM.arrancar(contexto, callar);
+      assert.equal(traido.ok, true, `el clon contestó: ${traido.mensaje}`);
+      assert.equal(traido.rama, 'traer');
+      assert.ok(llamadas.includes('sync'), 'un clon se trae con sync');
+      assert.ok(!llamadas.includes('onboard'), 'y no se vuelve a montar');
+
+      // A medias: se completa con el recibo y SIN preguntar nada.
+      const medias = fs.mkdtempSync(path.join(os.tmpdir(), 'rama-medias-'));
+      poner(medias, '.rsc.json', manifiesto);
+      poner(medias, '.claude/skills/bro/SKILL.md', '#');
+      vscode.guion.raiz = medias;
+      llamadas.length = 0;
+      vscode.registrado.quickPick = null;
+      const completado = await arrancarM.arrancar(contexto, callar);
+      assert.equal(completado.rama, 'completar');
+      assert.ok(llamadas.includes('onboard'), 'el suelo lo levanta onboard: repair no sabe');
+      assert.equal(vscode.registrado.quickPick, null, 'y no se pregunta ni una cosa');
+
+      // Entero y con raíles: no se toca nada.
+      vscode.guion.raiz = empresa;
+      llamadas.length = 0;
+      const sano = await arrancarM.arrancar(contexto, callar);
+      assert.equal(sano.yaEstaba, true);
+      assert.deepEqual(llamadas, [], 'un arnés sano no lanza ni un comando');
+
+      // Y en ningún caso se contesta lo de antes.
+      for (const r of [traido, completado, sano]) {
+        assert.ok(!/ya hay una empresa montada/.test(r.mensaje || ''), 'sigue el callejón');
+      }
+      return 'traer · completar · no tocar';
+    } finally {
+      Object.assign(rscM, antes);
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('un .rsc.json que no se puede leer no se pisa', async () => {
+    // Es un fichero que viaja por git, y el propio RSC avisa de que es propenso
+    // a conflictos de merge. Antes se veía como arnés montado y el arranque
+    // cortaba; lo grave sería montar encima y borrar el que había.
+    const roto = fs.mkdtempSync(path.join(os.tmpdir(), 'rama-roto-'));
+    fs.writeFileSync(path.join(roto, '.rsc.json'), '<<<<<<< HEAD\n{"version":1}\n=======\n');
+    vscode.guion.raiz = roto;
+    vscode.registrado.quickPick = null;
+
+    const dicho = await cargar('arrancar').arrancar(
+      { extensionPath: RAIZ, workspaceState: { get: () => undefined, update: async () => {} } },
+      { appendLine() {} },
+    );
+
+    assert.equal(dicho.ok, false);
+    assert.match(dicho.mensaje, /Algo va mal/, 'y hay salida: el aviso trae su botón');
+    assert.equal(vscode.registrado.quickPick, null, 'no se pregunta nada');
+    assert.equal(fs.readFileSync(path.join(roto, '.rsc.json'), 'utf8').slice(0, 7), '<<<<<<<', 'no se ha tocado');
+
+    vscode.guion.raiz = empresa;
+    return 'no se toca nada';
   });
 
   await comprobar('no se elige un ejecutable de otro sistema', () => {
