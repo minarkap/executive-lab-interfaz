@@ -140,3 +140,14 @@ paquete, las nueve escrituras.
 
 Rodeo en el `.gitignore` (`.rsc/*` + `!.rsc/.no-gitmoji`), y las dos cosas contadas para Eric en
 `docs/para-rsc.md` con fichero y línea.
+
+## Un arnés sin ajustar lo dice arriba — 21 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-21-la-rama-adoptar-se-ve-y-lo-del-gitmoji-va-a-issue.md`.
+
+La rama `adoptar` existía desde la 0.18 y solo se llegaba a ella entrando en «Qué falta por montar»,
+que es donde no entra quien no sabe que le falta algo. Ahora sale en la pantalla principal, con su
+botón, decidido por `rumbo` — el mismo que decide el arranque, y sin lanzar ni un proceso.
+
+Y el fallo de `optOuts` queda abierto en el repositorio de RSC:
+[ericrisco/rsc-harness#258](https://github.com/ericrisco/rsc-harness/issues/258).
