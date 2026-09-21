@@ -25,11 +25,21 @@ const frontmatter = require('./frontmatter');
 
 const SDD = ['02-DOCS', 'wiki', 'sdd'];
 
-// Las tres cosas que se leen, en el orden en que se escriben.
+// Las cuatro cosas que se leen, en el orden en que se escriben.
+//
+// `verifications/` entró al auditar el mapeo el 22-09-2026: la cadena la
+// escribe al terminar —qué se comprobó y con qué resultado— y no se veía por
+// ningún lado. Es la única de las cuatro que contesta «¿esto funciona?», que
+// es justo lo que quiere saber quien no va a leer un plan.
+//
+// Lo que sigue sin salir, a propósito: `progress/`, `sessions/` y `archive/`
+// son andamio de la cadena —dónde se quedó una sesión, el registro de aplicar
+// tarea por tarea—, no algo que alguien abra para enterarse de su proyecto.
 const MONTONES = [
   { id: 'proposals', etiqueta: 'Antes de empezar', pista: 'Lo que se miró antes de decidir.' },
   { id: 'specs', etiqueta: 'Qué queremos', pista: 'Qué se quiere y por qué. Sin nada técnico.' },
   { id: 'plans', etiqueta: 'Cómo se va a hacer', pista: 'El plan, con su lista de tareas.' },
+  { id: 'verifications', etiqueta: 'Qué se ha comprobado', pista: 'Lo que se probó al terminar, y si salió bien.' },
 ];
 
 const TOPE = 20;

@@ -3011,3 +3011,37 @@ Los artefactos están en `02-DOCS/wiki/sdd/`: spec, plan, el informe de `analyze
 con la prueba de mutación. Y el runtime quedó calibrado en `config.yaml`, que no existía.
 
 0.26.0. 186 comprobaciones.
+
+## 106. Lo que el asistente escribe en `02-DOCS` también se abre
+
+**Fecha:** 22 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«sigue con otras cosas, mapea todo»*. Cerrado el mapeo de habilidades, comandos, agentes,
+guardianes y credenciales, se auditó la otra mitad de la carpeta —`02-DOCS`— cruzando lo que RSC y
+la cadena SDD escriben con lo que la barra lee. Dos huecos, los dos del mismo tipo: **cosas que se
+escriben y que nadie puede abrir**.
+
+### La revisión del asistente
+
+`rsc audit` deja un informe entero en HTML en `02-DOCS/audits/audit-AAAA-MM-DD-HHMM.html`: qué
+stack hay, qué herramientas convendría crear, qué carpetas heredadas quedan. La barra ni sabía que
+existía. Y lo irónico: el aviso que la pide ya se nombraba en Las reglas desde la 102 («La revisión
+periódica de habilidades») — se veía la petición y no el resultado.
+
+Sale como pieza de *Qué falta por montar*, con la fecha de la más reciente y un botón que la abre
+fuera, como el panel de conocimiento: es una página entera, y dentro del editor se vería su código.
+
+### El resto de la cadena SDD
+
+`En qué estamos` leía tres montones —propuestas, specs, planes— de los seis que la cadena escribe.
+Faltaba el que contesta la única pregunta que le importa a quien no va a leer un plan: **«¿esto
+funciona?»**. Entra `verifications/` como *Qué se ha comprobado*.
+
+Y la cadena lleva su propio `decisions.md`, aparte del del arnés: lo que se decidió **mientras se
+construía**. Son la misma clase de cosa, así que salen en la misma lista de Decisiones.
+
+Lo que sigue fuera, a propósito: `progress/`, `sessions/` y `archive/` son andamio de la cadena
+—dónde se quedó una sesión, el registro de aplicar tarea por tarea—, no algo que alguien abra para
+enterarse de su proyecto.
+
+0.26.1. 187 comprobaciones, la nueva verificada por mutación.

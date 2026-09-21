@@ -35,6 +35,11 @@ const frontmatter = require('./frontmatter');
 
 const SESIONES = ['02-DOCS', 'raw', 'worklog'];
 const DECISIONES = ['02-DOCS', 'wiki', 'harness', 'decisions.md'];
+// La cadena SDD lleva su propio registro de decisiones, aparte del del arnés:
+// lo que se decidió **mientras se construía**. Son la misma clase de cosa —una
+// decisión tomada aquí, con su porqué— y salen en el mismo sitio. No se veía
+// (auditoría del mapeo, 22-09-2026).
+const DECISIONES_DE_SDD = ['02-DOCS', 'wiki', 'sdd', 'decisions.md'];
 
 // Suficientes para hacerse una idea, pocas para leerlas de un vistazo.
 const TOPE = 20;
@@ -170,10 +175,8 @@ function laCorta(texto) {
     .map((titulo) => ({ titulo, fecha: '', eleccion: '', porque: '' }));
 }
 
-function decisiones(cuantas = TOPE) {
-  const texto = leerTexto(...DECISIONES);
+function deUnRegistro(texto) {
   if (!texto) return [];
-
   const largas = laLarga(texto);
   // Las sueltas de arriba del todo, antes de la primera con encabezado: si hay
   // encabezados, lo de después ya está contado y volver a leerlo lo duplica.
@@ -181,7 +184,14 @@ function decisiones(cuantas = TOPE) {
   const cortas = laCorta(largas.length ? antes : texto);
 
   // Lo más nuevo primero: el fichero solo crece por abajo.
-  return [...largas.reverse(), ...cortas].slice(0, cuantas);
+  return [...largas.reverse(), ...cortas];
+}
+
+function decisiones(cuantas = TOPE) {
+  // Los dos registros, el del arnés y el de la cadena, en una sola lista: para
+  // quien lee, una decisión es una decisión.
+  return [...deUnRegistro(leerTexto(...DECISIONES)), ...deUnRegistro(leerTexto(...DECISIONES_DE_SDD))]
+    .slice(0, cuantas);
 }
 
 function hayDiario() {

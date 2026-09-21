@@ -295,3 +295,17 @@ Decisión 105 en `docs/decisiones.md`. Cadena SDD completa: spec, plan, `analyze
   Los gates encontraron cinco defectos que la lectura a ojo no vio.
 
 0.26.0. 186 comprobaciones.
+
+## Lo que el asistente escribe en 02-DOCS también se abre — 22 de septiembre de 2026
+
+Decisión 106 en `docs/decisiones.md`.
+
+- **La revisión de `rsc audit`** (`02-DOCS/audits/*.html`) se escribía y no la abría nadie. Sale en
+  «Qué falta por montar» con su fecha y un botón. El aviso que la pide ya se nombraba desde la 102:
+  faltaba el resultado.
+- **`02-DOCS/wiki/sdd/verifications/`** entra en «En qué estamos» como «Qué se ha comprobado»: es
+  lo que contesta «¿esto funciona?».
+- **`sdd/decisions.md`** se junta con el del arnés en Decisiones: una decisión es una decisión.
+- Fuera a propósito: `progress/`, `sessions/` y `archive/`, que son andamio de la cadena.
+
+0.26.1. 187 comprobaciones.

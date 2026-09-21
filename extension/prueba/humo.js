@@ -3685,6 +3685,58 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'cuenta de servicio · .pem · lo que está en su sitio no molesta · nada del contenido sale';
   });
 
+  await comprobar('lo que el asistente escribe en 02-DOCS se puede abrir', async () => {
+    // Auditoría del mapeo, 22-09-2026: dos cosas que RSC y la cadena escriben
+    // y que la barra no leía. La revisión de `rsc audit` es una página entera
+    // en `02-DOCS/audits/` —se escribía y no la abría nadie— y de
+    // `02-DOCS/wiki/sdd/` solo salían tres de los montones: faltaban las
+    // verificaciones y el registro de decisiones de la cadena.
+    const fs2 = require('node:fs');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'mapeo-'));
+    const escribir = (relativa, texto) => {
+      fs2.mkdirSync(path.dirname(path.join(carpeta, relativa)), { recursive: true });
+      fs2.writeFileSync(path.join(carpeta, relativa), texto);
+    };
+    escribir('.rsc.json', JSON.stringify({ version: 1, targets: ['claude'] }));
+    escribir('02-DOCS/wiki/harness/user-profile.md', '---\ntechnical_level: non-technical\n---\n');
+    escribir('02-DOCS/audits/audit-2026-09-20-1130.html', '<html><body>vieja</body></html>');
+    escribir('02-DOCS/audits/audit-2026-09-22-0900.html', '<html><body>la buena</body></html>');
+    escribir('02-DOCS/wiki/sdd/verifications/lo-mio-2026-09-22.md', '---\ntitle: Verificación de lo mío\nstatus: done\n---\n\n# Verificación\n');
+    escribir('02-DOCS/wiki/sdd/decisions.md', '## Se eligió guardar en un solo sitio\n\nPorque dos registros se desincronizan.\n');
+    escribir('02-DOCS/wiki/harness/decisions.md', '## Lo del arnés se queda como está\n\nPorque ya funciona.\n');
+
+    vscode.guion.raiz = carpeta;
+    try {
+      // La revisión: se coge la más nueva, se dice su fecha y se puede abrir.
+      const terrenoM = cargar('terreno');
+      const ultima = terrenoM.laUltimaRevision();
+      assert.equal(ultima.fichero, 'audit-2026-09-22-0900.html', 'la más nueva, no la primera');
+      assert.match(ultima.cuando, /22 de septiembre/, 'con su fecha en cristiano');
+      assert.ok(terrenoM.dondeViveLaRevision(ultima.fichero), 'y se puede abrir');
+      assert.equal(terrenoM.dondeViveLaRevision('../../../etc/passwd'), null, 'y solo de ahí dentro');
+      assert.equal(terrenoM.dondeViveLaRevision('audit.md'), null, 'y solo una página');
+
+      const radio = await terrenoM.radiografia();
+      const pieza = radio.piezas.find((p) => p.nombre === 'La última revisión del asistente');
+      assert.ok(pieza && pieza.arreglo, 'sale en la lista de piezas, con su botón (P1)');
+      assert.equal(pieza.arreglo.accion.tipo, 'abrirRevision');
+
+      // Las verificaciones de la cadena, con las otras.
+      const montones = Object.fromEntries(cargar('proyectos').queHay().map((m) => [m.id, m]));
+      assert.ok(montones.verifications, 'las verificaciones salen');
+      assert.equal(montones.verifications.etiqueta, 'Qué se ha comprobado');
+      assert.equal(montones.verifications.cosas[0].titulo, 'Verificación de lo mío');
+
+      // Y los dos registros de decisiones, en una sola lista.
+      const dichas = cargar('diario').decisiones().map((d) => d.titulo);
+      assert.ok(dichas.some((t) => /un solo sitio/.test(t)), 'la de la cadena');
+      assert.ok(dichas.some((t) => /se queda como está/.test(t)), 'y la del arnés');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return 'la revisión se abre · verificaciones y decisiones de la cadena, a la vista';
+  });
+
   await comprobar('una incidencia se resuelve con el diagnóstico de la barra delante', () => {
     // Jose: «debería haber un botón donde ponga resolver incidencias […] y el
     // asistente audita todo». El síntoma lo pone el alumno, el diagnóstico la

@@ -391,6 +391,7 @@ ${cabecera}
       verAyuda: () => this.verAyuda(),
       verReglas: () => this.verReglas(),
       abrirReglas: () => this.abrirReglas(mensaje.cual),
+      abrirRevision: () => this.abrirRevision(mensaje.fichero),
       verAsistente: () => this.verAsistente(),
       verComoTrabaja: () => this.verComoTrabaja(),
       verFijadas: () => this.verFijadas(),
@@ -781,6 +782,16 @@ ${cabecera}
   async verReglas() {
     this.donde = { tipo: 'quieto' };
     this.enviar({ tipo: 'reglas', ...reglas.queHay() });
+  }
+
+  // La revisión que escribió el asistente. Es una página entera, así que se
+  // abre fuera, como el panel de conocimiento: dentro del editor se vería el
+  // código de la página, que no es lo que nadie quiere ver.
+  async abrirRevision(fichero) {
+    const donde = terreno.dondeViveLaRevision(fichero);
+    if (!donde) return this.enviar({ tipo: 'aviso', texto: 'Esa revisión ya no está.', malo: true });
+    await vscode.env.openExternal(vscode.Uri.file(donde));
+    return undefined;
   }
 
   async abrirReglas(cual) {

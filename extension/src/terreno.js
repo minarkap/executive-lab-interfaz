@@ -585,6 +585,25 @@ async function radiografia({ aFondo = null } = {}) {
     });
   }
 
+  // ── La última revisión que hizo el asistente ──────────────────────────
+  //
+  // `rsc audit` deja un informe entero en HTML en `02-DOCS/audits/`: qué stack
+  // hay, qué herramientas convendría crear, qué carpetas heredadas quedan. Lo
+  // escribe y no lo abría nadie — la barra ni sabía que existía (auditoría del
+  // mapeo, 22-09-2026). Y el aviso que lo pide ya se nombra en Las reglas,
+  // como «La revisión periódica de habilidades»: faltaba la otra punta.
+  if (conArnes) {
+    const ultima = laUltimaRevision();
+    if (ultima) {
+      piezas.push({
+        nombre: 'La última revisión del asistente',
+        estado: 'si',
+        detalle: ultima.cuando,
+        arreglo: { como: 'solo', etiqueta: 'Abrir la revisión', accion: { tipo: 'abrirRevision', fichero: ultima.fichero } },
+      });
+    }
+  }
+
   // ── El plan con el que se montó ───────────────────────────────────────
   //
   // RSC deja escrito qué instaló y por qué en `installation-plan.md`, y en
@@ -722,6 +741,40 @@ async function radiografia({ aFondo = null } = {}) {
   return { queEs: hay.tipo, piezas, listo: piezas.every((p) => p.estado === 'si' || p.estado === 'noAplica') };
 }
 
+// La revisión más reciente de `02-DOCS/audits/`. RSC las nombra
+// `audit-AAAA-MM-DD-HHMM.html`, así que la más nueva es la última por nombre.
+const REVISIONES = ['02-DOCS', 'audits'];
+
+function laUltimaRevision() {
+  const carpeta = proyecto.ruta(...REVISIONES);
+  if (!carpeta || !fs.existsSync(carpeta)) return null;
+  let cual;
+  try {
+    cual = fs.readdirSync(carpeta).filter((n) => n.endsWith('.html')).sort().pop();
+  } catch {
+    return null;
+  }
+  if (!cual) return null;
+
+  // La fecha va en el nombre; si no se puede leer, se dice lo que se sabe.
+  const partes = cual.match(/(\d{4})-(\d{2})-(\d{2})/);
+  const cuando = partes
+    ? new Date(`${partes[1]}-${partes[2]}-${partes[3]}T00:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+    : 'sin fecha';
+  return { fichero: cual, cuando: partes ? `Del ${cuando}` : 'Escrita' };
+}
+
+// Abrirla. El nombre viene de un mensaje del panel, así que se comprueba que
+// sigue siendo de ahí dentro y que es un `.html`.
+function dondeViveLaRevision(fichero) {
+  const carpeta = proyecto.ruta(...REVISIONES);
+  if (!carpeta || typeof fichero !== 'string') return null;
+  const completa = path.resolve(carpeta, fichero);
+  const dentro = path.resolve(carpeta) + path.sep;
+  if (!completa.startsWith(dentro) || !completa.endsWith('.html')) return null;
+  return fs.existsSync(completa) ? completa : null;
+}
+
 // La fecha en que se aceptó el plan de montaje, dicha como se dice: «18 de
 // septiembre». Sin recibo, o con una fecha ilegible, no se inventa nada.
 function fechaDelPlan() {
@@ -732,4 +785,7 @@ function fechaDelPlan() {
   return fecha.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
 }
 
-module.exports = { queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia, fechaDelPlan };
+module.exports = {
+  queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia, fechaDelPlan,
+  laUltimaRevision, dondeViveLaRevision,
+};

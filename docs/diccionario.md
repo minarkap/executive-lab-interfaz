@@ -114,6 +114,9 @@ jerga por goteo.
 | escribir una habilidad nueva a medida | Proponme habilidades para lo mío · Quiero enseñarle algo concreto |
 | `02-DOCS/inbox/_processed/` | Documentos que ya ha leído |
 | `02-DOCS/wiki/dashboard.html` | El panel completo |
+| `02-DOCS/audits/audit-*.html` (lo que escribe `rsc audit`) | La última revisión del asistente · Abrir la revisión |
+| `02-DOCS/wiki/sdd/verifications/` | Qué se ha comprobado |
+| `02-DOCS/wiki/sdd/decisions.md` | (se enseña junto a las otras, en Decisiones) |
 | `rsc onboard` en una carpeta nueva | Preparar esta carpeta |
 | abrir otra carpeta | Elegir una carpeta (la primera vez) · Cambiar de proyecto |
 | quitar el disfraz en esta ventana | Ver el editor completo |
