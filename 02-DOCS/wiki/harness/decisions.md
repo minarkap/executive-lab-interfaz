@@ -309,3 +309,18 @@ Decisión 106 en `docs/decisiones.md`.
 - Fuera a propósito: `progress/`, `sessions/` y `archive/`, que son andamio de la cadena.
 
 0.26.1. 187 comprobaciones.
+
+## Un desorden enorme no puede ser una pared — 22 de septiembre de 2026
+
+Decisión 107 en `docs/decisiones.md`.
+
+- Probadas once carpetas raras contra el inventario de credenciales. Ocho bien; tres fallos.
+- **120 claves** pintaban 104 KB y 123 botones, con un encargo de 22.576 caracteres. Ahora 19 KB y
+  12 botones: se enseñan las primeras y **se dice cuántas quedan**, nunca se esconden sin contar.
+- **La barra deduce el dueño del nombre de cada clave**, así que puede equivocarse: lo dice, y trae
+  el botón «Esto no está bien» (P1: nada que se afirme sin salida).
+- Ese botón cubre las dos correcciones: que sea de otra herramienta, o que **estén bien donde
+  están** —un proyecto puede leerlas de la raíz a propósito—. En ese caso no se mueve nada y se
+  deja escrito, para no repetir la conversación cada semana.
+
+0.27.0. 188 comprobaciones.

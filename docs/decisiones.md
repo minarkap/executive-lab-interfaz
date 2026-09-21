@@ -3045,3 +3045,46 @@ Lo que sigue fuera, a propósito: `progress/`, `sessions/` y `archive/` son anda
 enterarse de su proyecto.
 
 0.26.1. 187 comprobaciones, la nueva verificada por mutación.
+
+## 107. Un desorden enorme no puede convertirse en una pared, y la barra tiene que dejarse corregir
+
+**Fecha:** 22 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«asegúrate de que no hay edge cases y todo se mapea bien y hay formas de que el usuario
+pueda corregirlo y de que sea fácil y sin fricción todo»*.
+
+Se ejecutó el inventario de credenciales contra once carpetas raras, no se leyó el código. Ocho se
+comportaron bien: sin `01-TOOLS`, la misma clave en dos ficheros, un `keys/` en la raíz (que sí es
+desorden, a diferencia del de una herramienta), una carpeta con acentos y espacios en el nombre, un
+`.env` vacío, uno ilegible por permisos, un `.json` roto y un enlace simbólico que no apunta a
+nada. Tres no.
+
+### 1. Ciento veinte claves
+
+Un `.env` con 120 claves existe, y la barra pintaba **121 líneas, 123 botones y 104 KB de
+pantalla**, con un encargo al asistente de **22.576 caracteres**. Eso no lo lee nadie: ni el alumno
+—que se encuentra un muro— ni el asistente, que trabaja peor con una parrafada que con un resumen.
+
+Ahora se enseñan las seis primeras y se dice cuántas quedan; los botones de «Por montar» se topan
+en ocho; el encargo nombra veinticinco y resume el resto. **Nada se esconde sin decir cuántas
+son**, y el botón las ordena todas igual. La misma pantalla, con el mismo caso: **19 KB y 12
+botones**, encargo de 5.654.
+
+### 2. La barra deduce, y deducir es equivocarse a veces
+
+El reparto sale del nombre de cada clave. Acertar siempre es imposible, así que afirmarlo sin dar
+salida incumple P1. La pantalla lo dice —*«Esto lo saco del nombre de cada una, así que puedo
+equivocarme»*— y trae el botón **Esto no está bien**.
+
+### 3. Y a veces no está mal: está bien donde está
+
+El caso que faltaba: un proyecto puede leer sus claves de la raíz **a propósito** —Next.js lo hace—
+y sin una salida la barra se lo diría cada semana sin que se pueda rebatir. Eso es fricción pura.
+
+El mismo botón cubre las dos correcciones, porque para quien lo pulsa son la misma frase («eso no
+es así»): o la clave es de otra herramienta, o están bien donde están. En el segundo caso el
+encargo manda **no mover nada y dejarlo escrito en el registro de decisiones**, para no repetir la
+conversación. Y el encargo de ordenar termina diciéndole al asistente que, si el alumno le corrige,
+manda el alumno y no el reparto.
+
+0.27.0. 188 comprobaciones.

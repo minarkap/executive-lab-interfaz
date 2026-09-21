@@ -42,6 +42,8 @@ jerga por goteo.
 | una herramienta que se autentica con un fichero y no con claves | Con su fichero de acceso |
 | una clave exportada en el entorno del ordenador | Puesta en tu ordenador, fuera de esta carpeta |
 | un proveedor que se deduce de las claves sueltas y no tiene carpeta | Por montar |
+| decir que la barra se equivocó al repartir las claves, o que están bien donde están | Esto no está bien · «Esto lo saco del nombre de cada una, así que puedo equivocarme» |
+| una lista larga que no cabe | · Y 114 más. Las ordena todas de una vez (nunca esconderlas sin decir cuántas son) |
 | pedirle al asistente que audite la carpeta por un problema concreto | Resolver una incidencia |
 | el catálogo de habilidades de RSC | Habilidades (skills) · Sugerencias del catálogo (las que pegan con esta carpeta) · Resto del catálogo (plegado) |
 | una habilidad, por su nombre | El nombre de la cosa: Facturación, Contratos, Tono humano. Nunca una frase sobre lo que sabe hacer |

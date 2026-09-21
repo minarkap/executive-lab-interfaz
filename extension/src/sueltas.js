@@ -405,6 +405,18 @@ function estanSubidas(sitios) {
 
 // El encargo al asistente, con el plan hecho. Las rutas y los nombres de las
 // claves van aquí porque esto se lo lee él; los valores, nunca.
+// Cuántas líneas de reparto caben en un encargo. Con un `.env` de 120 claves
+// —que existen— el encargo salía de 22.576 caracteres: una parrafada que el
+// asistente lee peor que un resumen, y que no cabe en ninguna cabeza. Se
+// nombran las primeras y se dice cuántas quedan; el asistente tiene la carpeta
+// delante para ver el resto.
+const CABEN_EN_EL_ENCARGO = 25;
+
+const yLasDemas = (lista, pintar, queSon) => (lista.length > CABEN_EN_EL_ENCARGO
+  ? [...lista.slice(0, CABEN_EN_EL_ENCARGO).map(pintar),
+    `- Y ${lista.length - CABEN_EN_EL_ENCARGO} ${queSon} más, en esos mismos ficheros: mismo criterio, míralas tú.`]
+  : lista.map(pintar));
+
 function encargo(sitios, { grupos, sinDueno }, subidas, ficheros = []) {
   // Puede no haber ni una clave suelta y sí un fichero de acceso tirado. Abrir
   // con «hay 0 claves guardadas fuera de su sitio, en: .» era exactamente eso,
@@ -414,9 +426,9 @@ function encargo(sitios, { grupos, sinDueno }, subidas, ficheros = []) {
       + `El sitio de una clave es 01-TOOLS/<HERRAMIENTA>/.env, por el protocolo de harness: una carpeta por proveedor, con su .env, su .env.example, su CREDENTIALS.md y su prueba de conexión.`,
     '',
     'Reparto que sale por el nombre de cada clave:',
-    ...grupos.map((g) => (g.existe
+    ...yLasDemas(grupos, (g) => (g.existe
       ? `- ${g.claves.join(', ')} (${g.donde.join(', ')}) → 01-TOOLS/${g.herramienta}/.env, que ya existe${g.claves.length === 1 ? ' y la espera' : ''}.`
-      : `- ${g.claves.join(', ')} (${g.donde.join(', ')}) → 01-TOOLS/${g.herramienta}/, que no existe: créala desde 01-TOOLS/_TEMPLATE, con su .env.example, su CREDENTIALS.md (dónde se saca cada una) y su prueba de conexión.`)),
+      : `- ${g.claves.join(', ')} (${g.donde.join(', ')}) → 01-TOOLS/${g.herramienta}/, que no existe: créala desde 01-TOOLS/_TEMPLATE, con su .env.example, su CREDENTIALS.md (dónde se saca cada una) y su prueba de conexión.`), 'herramientas'),
     ...(sinDueno.length
       ? [`- Sin dueño claro: ${sinDueno.map((x) => `${x.nombre} (${x.donde})`).join(', ')}. Pregúntame de qué herramienta son antes de moverlas.`]
       : []),
@@ -430,9 +442,9 @@ function encargo(sitios, { grupos, sinDueno }, subidas, ficheros = []) {
     ...(ficheros.length ? [
       '',
       'Y hay credenciales que no son una línea sino un fichero entero. Su sitio es 01-TOOLS/<HERRAMIENTA>/keys/, que el .gitignore de la plantilla ya excluye:',
-      ...ficheros.map((f) => (f.herramienta
+      ...yLasDemas(ficheros, (f) => (f.herramienta
         ? `- ${f.donde} — ${f.queEs.toLowerCase()} → 01-TOOLS/${f.herramienta}/keys/ (${f.por}).${f.existe ? '' : ' Esa herramienta no existe: créala desde 01-TOOLS/_TEMPLATE.'}`
-        : `- ${f.donde} — ${f.queEs.toLowerCase()}. No sé de qué herramienta es: pregúntamelo antes de moverlo.`)),
+        : `- ${f.donde} — ${f.queEs.toLowerCase()}. No sé de qué herramienta es: pregúntamelo antes de moverlo.`), 'credenciales'),
       'No abras ni me pegues el contenido de ninguno: con saber cuál es y a dónde va, basta.',
     ] : []),
     '',
@@ -440,7 +452,9 @@ function encargo(sitios, { grupos, sinDueno }, subidas, ficheros = []) {
     '',
     'Qué no se toca: no imprimas ni me pegues ningún valor de clave. No borres el fichero viejo si algo del proyecto lo lee todavía: mira primero qué lo carga (scripts, dotenv, docker-compose) y adapta eso, o deja el fichero viejo cargando desde el nuevo. No reescribas el historial de git.',
     '',
-    'Antes de mover nada, enséñame el reparto en una línea por herramienta y espera mi OK.',
+    'Antes de mover nada, enséñame el reparto en una línea por herramienta y espera mi OK. '
+      + 'Y déjame corregirte: este reparto lo he sacado yo del nombre de cada clave y puedo haberme equivocado, '
+      + 'así que si te digo que alguna es de otra herramienta, manda lo que yo diga.',
   ]);
   if (subidas.length) {
     lineas.push('', `AVISO IMPORTANTE: estos ficheros ya están guardados en el historial de git (${subidas.join(', ')}), `

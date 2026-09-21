@@ -3685,6 +3685,49 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'cuenta de servicio · .pem · lo que está en su sitio no molesta · nada del contenido sale';
   });
 
+  await comprobar('un desorden enorme no se convierte en una pared', () => {
+    // Jose, 22-09-2026: «asegúrate de que no hay edge cases […] y que sea
+    // fácil y sin fricción». Un `.env` de 120 claves existe, y pintaba 121
+    // líneas, 123 botones y 104 KB de pantalla, con un encargo de 22.576
+    // caracteres. Nadie lee eso: ni el alumno ni el asistente (decisión 107).
+    const fs2 = require('node:fs');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'muchas-'));
+    fs2.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'] }));
+    fs2.writeFileSync(path.join(carpeta, '.env'), Array.from({ length: 120 }, (_, i) => `PROV${i}_API_KEY=x`).join('\n'));
+
+    vscode.guion.raiz = carpeta;
+    try {
+      const hay = cargar('sueltas').resumen();
+      assert.equal(hay.claves, 120, 'se cuentan todas: no se pierde ninguna');
+      assert.equal(hay.reparto.length, 120, 'y el reparto las tiene todas');
+      assert.ok(hay.prompt.length < 8000, `el encargo no es una parrafada: ${hay.prompt.length}`);
+      assert.match(hay.prompt, /más, en esos mismos ficheros/, 'y dice cuántas se deja por nombrar');
+
+      const p = require('./panel-falso').montarPanel();
+      const pintado = p.mandar({ tipo: 'conexiones', proveedores: cargar('conexiones').proveedores(), sueltas: hay });
+      assert.ok(pintado.length < 30000, `la pantalla no es un muro: ${Math.round(pintado.length / 1024)} KB`);
+      assert.ok((pintado.match(/<button/g) || []).length < 20, 'ni una lista infinita de botones');
+      assert.match(pintado, /Y 114 más/, 'se dice cuántas quedan, no se esconden');
+      assert.match(pintado, /se montan todas de una vez/, 'y que el botón las coge todas');
+
+      // Y que el alumno pueda decir que la barra se equivoca. Esto lo deduce
+      // del nombre de cada clave: acertar siempre es imposible, así que la
+      // salida tiene que estar (P1).
+      assert.match(pintado, /Esto no está bien/, 'hay forma de corregir el reparto');
+      assert.match(pintado, /puedo equivocarme/, 'y se dice que puede estar mal');
+      assert.match(hay.prompt, /manda lo que yo diga/, 'y el encargo le hace caso al alumno por encima del reparto');
+      // Y la corrección cubre las dos formas de equivocarse: el dueño, y que
+      // estén bien donde están porque el proyecto las lee de ahí.
+      const corregir = (pintado.match(/prompt&quot;:&quot;La barra dice que tengo credenciales[^&]*/) || [])[0] || '';
+      assert.ok(/otra herramienta distinta/.test(corregir), 'se puede decir que es de otra');
+      assert.ok(/bien donde están/.test(corregir), 'y que están bien donde están');
+      assert.ok(/registro de decisiones/.test(corregir), 'y entonces se apunta, para no repetir la conversación');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return '120 claves: 19 KB y 12 botones, con salida para corregir';
+  });
+
   await comprobar('lo que el asistente escribe en 02-DOCS se puede abrir', async () => {
     // Auditoría del mapeo, 22-09-2026: dos cosas que RSC y la cadena escriben
     // y que la barra no leía. La revisión de `rsc audit` es una página entera

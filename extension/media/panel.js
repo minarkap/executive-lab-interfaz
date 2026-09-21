@@ -1781,25 +1781,64 @@ function pantallaConexiones({ proveedores, sueltas }) {
     sueltas && sueltas.claves ? plural(sueltas.claves, '1 clave', '{n} claves') : '',
     deAcceso.length ? plural(deAcceso.length, '1 fichero de acceso', '{n} ficheros de acceso') : '',
   ].filter(Boolean).join(' y ');
+  // Un `.env` de 120 claves existe, y pintaba 121 líneas y 123 botones: 104 KB
+  // de pantalla que nadie lee. Se enseñan las primeras y se dice cuántas
+  // quedan — el botón las ordena todas igual (decisión 107).
+  const CABEN = 6;
+  const lineasDelReparto = [
+    ...reparto.map((g) => `${g.herramienta}${g.existe ? '' : ' — sin conexión todavía, por montar'}: ${plural(g.claves.length, '1 clave', '{n} claves')}`),
+    ...deAcceso.map((f) => (f.herramienta
+      ? `${f.herramienta}${f.existe ? '' : ' — sin conexión todavía, por montar'}: ${f.queEs.toLowerCase()}`
+      : `${f.queEs}, y no sé de quién: se lo pregunto al asistente`)),
+  ];
   const desordenadas = sueltas ? `
     <div class="conexion">
       <p class="nombre">${texto(`Hay ${cuantoHay} fuera de sitio`)}</p>
       <p class="pista">De cuando este trabajo se llevaba sin esto. Por el nombre de cada una sé de quién es:</p>
-      ${reparto.map((g) => `<p class="pista">· ${texto(g.herramienta)}${g.existe ? '' : ' — sin conexión todavía, por montar'}: ${texto(plural(g.claves.length, '1 clave', '{n} claves'))}</p>`).join('')}
-      ${deAcceso.map((f) => `<p class="pista">· ${texto(f.herramienta ? `${f.herramienta}${f.existe ? '' : ' — sin conexión todavía, por montar'}: ${f.queEs.toLowerCase()}` : `${f.queEs}, y no sé de quién: se lo pregunto al asistente`)}</p>`).join('')}
+      ${lineasDelReparto.slice(0, CABEN).map((l) => `<p class="pista">· ${texto(l)}</p>`).join('')}
+      ${lineasDelReparto.length > CABEN ? `<p class="pista">· Y ${texto(plural(lineasDelReparto.length - CABEN, '1 más', '{n} más'))}. Las ordena todas de una vez.</p>` : ''}
       ${sueltas.sinDueno && sueltas.sinDueno.length ? `<p class="pista">· ${texto(plural(sueltas.sinDueno.length, '1 clave sin dueño claro', '{n} claves sin dueño claro'))}: se lo pregunto al asistente.</p>` : ''}
       ${sueltas.subidas ? `<p class="pista malo">Y están dentro de tus copias de seguridad, así que ponerlas en su sitio no las saca de ahí. Si alguna es importante, lo seguro es cambiarla donde la sacaste. Pídeselo y te lo explica.</p>` : ''}
       ${boton({ etiqueta: 'Que las ordene', icono: '🧹', principal: true, accion: { tipo: 'pedir', prompt: sueltas.prompt } })}
+      ${/* Esto lo he deducido yo del nombre de cada clave, y puedo haberme
+            equivocado. Decirlo y dar la salida es la diferencia entre una
+            barra que se equivoca y una que además no te deja corregirla. */''}
+      <p class="pista">Esto lo saco del nombre de cada una, así que puedo equivocarme.</p>
+      ${/* Dos correcciones distintas y un solo botón, porque para quien lo
+            pulsa son la misma frase: «eso no es así». Una es que la clave sea
+            de otra herramienta; la otra, que estén bien donde están — un
+            proyecto puede leerlas de la raíz a propósito, y sin esta salida la
+            barra se lo diría para siempre sin poder rebatirlo. */''}
+      ${boton({
+    etiqueta: 'Esto no está bien',
+    icono: '✏️',
+    pequeno: true,
+    discreto: true,
+    accion: {
+      tipo: 'pedir',
+      prompt: 'La barra dice que tengo credenciales fuera de sitio y algo no encaja. '
+        + `Esto es lo que dice: ${lineasDelReparto.join('; ')}. `
+        + 'Pregúntame qué falla, que puede ser una de dos: que alguna sea de otra herramienta distinta de la que dice, '
+        + 'o que estén bien donde están porque algo de este proyecto las lee de ahí a propósito. '
+        + 'Compruébalo mirando qué las carga antes de darme la razón. '
+        + 'Si es lo primero, ordénalas con el dueño correcto. Si es lo segundo, no muevas nada y déjalo escrito en el registro de decisiones, '
+        + 'con el porqué, para que no volvamos a esto cada semana.',
+    },
+  })}
     </div>` : '';
 
   // Las que existen por sus claves y todavía no tienen carpeta. Hasta hoy no
   // salían por ningún lado: el alumno tenía Pexels conectado de hecho y la
   // barra decía que no había nada (decisión 104).
-  const porMontar = ((sueltas && sueltas.porMontar) || []).length ? `
+  // Lo mismo aquí: con 120 proveedores sueltos esto eran 120 botones. Se
+  // enseñan los primeros y el resto se cuenta; el de arriba los monta todos.
+  const TOPE_POR_MONTAR = 8;
+  const todasPorMontar = (sueltas && sueltas.porMontar) || [];
+  const porMontar = todasPorMontar.length ? `
     <hr class="separador">
     <h2>Por montar</h2>
     <p class="detalle">Por tus claves veo que ya usas esto, pero todavía no tiene su sitio aquí.</p>
-    ${sueltas.porMontar.map((p) => boton({
+    ${todasPorMontar.slice(0, TOPE_POR_MONTAR).map((p) => boton({
     etiqueta: p.conFichero
       ? `${p.herramienta} — con un fichero de acceso suelto`
       : `${p.herramienta} — ${plural(p.claves, '1 clave suelta', '{n} claves sueltas')}`,
@@ -1811,7 +1850,10 @@ function pantallaConexiones({ proveedores, sueltas }) {
         + 'lleva ahí sus claves, escribe su .env.example, su CREDENTIALS.md con dónde se saca cada una, los pasos en el README y su prueba de conexión. '
         + 'No imprimas ningún valor, y antes de mover nada mira qué lo está leyendo ahora.',
     },
-  })).join('')}` : '';
+  })).join('')}
+    ${todasPorMontar.length > TOPE_POR_MONTAR
+    ? `<p class="detalle">${texto(plural(todasPorMontar.length - TOPE_POR_MONTAR, 'Y 1 más', 'Y {n} más'))}. Con "Que las ordene" se montan todas de una vez.</p>`
+    : ''}` : '';
 
   if (!proveedores.length) {
     return `
