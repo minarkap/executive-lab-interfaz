@@ -1061,8 +1061,24 @@ function pantallaAyuda({ github }) {
 
     <hr class="separador">
     <h2>Algo no funciona</h2>
-    ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
+    ${/* Tres cosas distintas, y antes solo había dos. «Algo va mal» saca el
+          informe para el tutor: sirve cuando la barra misma está rota.
+          «Qué falta por montar» es la lista de piezas. Lo que faltaba es lo de
+          en medio y lo más frecuente: algo no cuadra y no sabes por qué. Eso
+          lo mira el asistente, con el diagnóstico de la barra delante
+          (decisión 104). */''}
+    ${boton({
+      etiqueta: 'Resolver una incidencia',
+      icono: '🩺',
+      principal: true,
+      accion: { tipo: 'resolverIncidencia', cual: 'contar' },
+    })}
+    <p class="detalle">Cuéntale qué pasa y lo repasa todo: lo que hay montado, tus conexiones y sus claves, y qué lo explica.</p>
+    ${boton({ etiqueta: 'No encuentro mis conexiones', icono: '🔌', pequeno: true, discreto: true, accion: { tipo: 'resolverIncidencia', cual: 'conexiones' } })}
+    ${boton({ etiqueta: 'Dice que faltan claves y las tengo', icono: '🔑', pequeno: true, discreto: true, accion: { tipo: 'resolverIncidencia', cual: 'clave' } })}
+    ${boton({ etiqueta: 'No hace lo que le pido', icono: '💬', pequeno: true, discreto: true, accion: { tipo: 'resolverIncidencia', cual: 'noHace' } })}
     ${boton({ etiqueta: 'Qué falta por montar', icono: '🔎', accion: { tipo: 'verRadiografia' } })}
+    ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
 
     <hr class="separador">
     <h2>Guías</h2>
@@ -1752,18 +1768,45 @@ function pantallaPrincipal() {
 function pantallaConexiones({ proveedores, sueltas }) {
   // Caso brownfield: el arnés se montó sobre algo que ya existía y las claves
   // están donde estuvieran. El alumno vería "no hay conexiones" teniendo seis.
+  // Y se dice a quién va cada una, que es lo que el inventario ya sabe por el
+  // nombre (decisión 104): la de Replicate a Replicate, y las de un proveedor
+  // sin carpeta —Pexels, Drive— como conexiones por montar. Así nada queda
+  // invisible: lo que existe por sus claves sale aunque no tenga carpeta.
+  const reparto = (sueltas && sueltas.reparto) || [];
   const desordenadas = sueltas ? `
     <div class="conexion">
       <p class="nombre">${texto(plural(sueltas.claves, 'Hay 1 clave guardada fuera de sitio', 'Hay {n} claves guardadas fuera de sitio'))}</p>
-      <p class="pista">De cuando este trabajo se llevaba sin esto. Aquí no se ven, y por eso no salen abajo.</p>
+      <p class="pista">De cuando este trabajo se llevaba sin esto. Por el nombre de cada una sé de quién es:</p>
+      ${reparto.map((g) => `<p class="pista">· ${texto(g.herramienta)}${g.existe ? '' : ' — sin conexión todavía, por montar'}: ${texto(plural(g.claves.length, '1 clave', '{n} claves'))}</p>`).join('')}
+      ${sueltas.sinDueno && sueltas.sinDueno.length ? `<p class="pista">· ${texto(plural(sueltas.sinDueno.length, '1 clave sin dueño claro', '{n} claves sin dueño claro'))}: se lo pregunto al asistente.</p>` : ''}
       ${sueltas.subidas ? `<p class="pista malo">Y están dentro de tus copias de seguridad, así que ponerlas en su sitio no las saca de ahí. Si alguna es importante, lo seguro es cambiarla donde la sacaste. Pídeselo y te lo explica.</p>` : ''}
       ${boton({ etiqueta: 'Que las ordene', icono: '🧹', principal: true, accion: { tipo: 'pedir', prompt: sueltas.prompt } })}
     </div>` : '';
+
+  // Las que existen por sus claves y todavía no tienen carpeta. Hasta hoy no
+  // salían por ningún lado: el alumno tenía Pexels conectado de hecho y la
+  // barra decía que no había nada (decisión 104).
+  const porMontar = ((sueltas && sueltas.porMontar) || []).length ? `
+    <hr class="separador">
+    <h2>Por montar</h2>
+    <p class="detalle">Por tus claves veo que ya usas esto, pero todavía no tiene su sitio aquí.</p>
+    ${sueltas.porMontar.map((p) => boton({
+    etiqueta: `${p.herramienta} — ${plural(p.claves, '1 clave suelta', '{n} claves sueltas')}`,
+    icono: '◌',
+    accion: {
+      tipo: 'pedir',
+      prompt: `Veo claves de ${p.herramienta} guardadas fuera de sitio en esta carpeta y no tiene conexión montada. `
+        + `Móntala con el protocolo de harness: copia 01-TOOLS/_TEMPLATE a 01-TOOLS/${p.herramienta}, `
+        + 'lleva ahí sus claves, escribe su .env.example, su CREDENTIALS.md con dónde se saca cada una, los pasos en el README y su prueba de conexión. '
+        + 'No imprimas ningún valor, y antes de mover nada mira qué lo está leyendo ahora.',
+    },
+  })).join('')}` : '';
 
   if (!proveedores.length) {
     return `
       <p class="titulo">Conexiones (tools)</p>
       ${desordenadas}
+      ${porMontar}
       ${nada('Todavía no hay ninguna puesta en su sitio. Cuando le pidas al asistente que conecte tu correo, tu facturación o lo que uses, aparecerán aquí.')}
       ${boton({ etiqueta: 'Conectar algo', icono: '▸', principal: !sueltas, accion: { tipo: 'pedir', prompt: 'Quiero conectar una herramienta que uso. Pregúntame cuál y guíame paso a paso.' } })}
       ${volver()}`;
@@ -1776,21 +1819,27 @@ function pantallaConexiones({ proveedores, sueltas }) {
     ${desordenadas}
     ${proveedores.map((p) => boton({
       // Una que el asistente ha empezado y no ha terminado se dice, no se
-      // disfraza de conexión con claves que no se pueden rellenar.
+      // disfraza de conexión con claves que no se pueden rellenar. Y una cuyas
+      // claves están, pero en otro sitio, tampoco se disfraza de «le faltan»:
+      // no le falta nada, le falta orden.
       etiqueta: p.aMedioHacer
         ? `${p.etiqueta} — sin preparar`
         : (p.faltan
           ? `${p.etiqueta} — ${plural(p.faltan, 'falta una clave', 'faltan {n} claves')}`
-          : p.etiqueta),
-      icono: p.aMedioHacer ? '◌' : (p.faltan ? '○' : '●'),
+          : (p.fueraDeSitio
+            ? `${p.etiqueta} — puesta, pero fuera de su sitio`
+            : p.etiqueta)),
+      icono: p.aMedioHacer ? '◌' : (p.faltan ? '○' : (p.fueraDeSitio ? '◐' : '●')),
       accion: { tipo: 'verConexion', proveedor: p.id },
     })).join('')}
+    ${porMontar}
   `;
 }
 
 // Una herramienta: cómo se conecta, sus claves, su prueba y sus cositas.
-function pantallaConexion({ proveedor, claves, cositas, aviso: avisoLocal }) {
+function pantallaConexion({ proveedor, claves, cositas, ordenar = null, aviso: avisoLocal }) {
   const faltaAlguna = claves.some((c) => !c.puesta);
+  const algunaFuera = claves.some((c) => !c.puesta && c.fuera);
 
   // Los pasos los escribe el asistente al investigar la herramienta. Se
   // enseñan mientras falte alguna clave: cuando ya está todo puesto, estorban.
@@ -1803,7 +1852,9 @@ function pantallaConexion({ proveedor, claves, cositas, aviso: avisoLocal }) {
         <div class="conexion" data-proveedor="${atributo(proveedor.id)}">
           <p class="nombre">${texto(c.etiqueta)}</p>
           ${c.donde ? `<p class="donde">${texto(c.donde)}</p>` : ''}
-          <p class="pista">${c.puesta ? `Puesta: ${texto(c.pista)}` : 'Todavía sin poner'}</p>
+          <p class="pista">${c.puesta
+    ? `Puesta: ${texto(c.pista)}`
+    : (c.fuera ? `Ya la tienes, ${texto(c.fuera)}. Pulsa «Que las ordene» y aparecerá aquí.` : 'Todavía sin poner')}</p>
           <input type="${c.secreta ? 'password' : 'text'}" placeholder="${c.secreta ? 'Pega aquí la clave entera' : 'Escribe aquí el valor'}" data-clave="${atributo(c.clave)}">
           <div class="fila">
             ${boton({ etiqueta: 'Guardar', principal: true, accion: { tipo: 'guardarClave', proveedor: proveedor.id, clave: c.clave } })}
@@ -1834,6 +1885,7 @@ function pantallaConexion({ proveedor, claves, cositas, aviso: avisoLocal }) {
     ${guia ? `<h2>Cómo conectarla</h2>${guia}` : ''}
     ${proveedor.ayuda && faltaAlguna ? boton({ etiqueta: 'Abrir su página para sacar la clave', icono: '↗', principal: true, accion: { tipo: 'abrir', url: proveedor.ayuda } }) : ''}
     ${faltaAlguna ? '<hr class="separador">' : ''}
+    ${algunaFuera && ordenar ? boton({ etiqueta: 'Que las ordene', icono: '🧹', principal: true, accion: { tipo: 'pedir', prompt: ordenar } }) : ''}
     ${claves.length ? '<p class="detalle">Pega la clave entera. Los espacios y las comillas los quito yo.</p>' : ''}
     ${formularios}
     ${proveedor.ayuda && !faltaAlguna ? boton({ etiqueta: '¿Dónde consigo la clave?', icono: '❓', accion: { tipo: 'abrir', url: proveedor.ayuda } }) : ''}

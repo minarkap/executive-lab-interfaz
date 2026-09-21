@@ -3475,6 +3475,122 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'botón donde se le nombra';
   });
 
+  await comprobar('cada clave suelta sabe a qué herramienta va', async () => {
+    // Jose, 21-09-2026, con una captura: sus claves vivían en un `.env.local`
+    // de la raíz —Replicate, Pexels, Buffer, Drive, Telegram juntas— y la
+    // barra decía «faltan claves» de una herramienta que funcionaba, y no
+    // enseñaba a Pexels por ningún lado (decisión 104).
+    const fs2 = require('node:fs');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'claves-'));
+    const escribir = (relativa, texto) => {
+      fs2.mkdirSync(path.dirname(path.join(carpeta, relativa)), { recursive: true });
+      fs2.writeFileSync(path.join(carpeta, relativa), texto);
+    };
+    escribir('.rsc.json', JSON.stringify({ version: 1, targets: ['claude'] }));
+    escribir('.env.local', [
+      'PEXELS_API_KEY=eWsecreto',
+      'NEXT_PUBLIC_BUFFER_API_KEY=-jota',
+      'TELEGRAM_TOKEN=87secreto',
+      'PORT=3000',
+    ].join('\n'));
+    // Una herramienta montada, con su clave guardada dentro de su propia
+    // carpeta pero con otro nombre de fichero: ni la barra ni su prueba de
+    // conexión leen un `.env.local`, así que también está fuera de sitio.
+    escribir('01-TOOLS/REPLICATE/.env.example', 'REPLICATE_API_KEY=\n');
+    escribir('01-TOOLS/REPLICATE/.env.local', 'REPLICATE_API_KEY=r8_secretodeverdad\n');
+    escribir('01-TOOLS/MAGNIFIC/.env.example', 'MAGNIFIC_API_KEY=\n');
+    escribir('01-TOOLS/MAGNIFIC/.env', 'MAGNIFIC_API_KEY=puesta\n');
+    escribir('auto/.env', 'DRIVE_FOLDER_ID=1abc\n');
+
+    vscode.guion.raiz = carpeta;
+    try {
+      const sueltasM = cargar('sueltas');
+      const hay = sueltasM.resumen();
+      assert.ok(hay, 'con claves fuera de sitio hay resumen');
+      assert.deepEqual(hay.ficheros.sort(), ['.env.local', '01-TOOLS/REPLICATE/.env.local', 'auto/.env'].sort(),
+        'raíz, carpeta de primer nivel y dentro de una herramienta');
+      assert.ok(!hay.prompt.includes('r8_secretodeverdad') && !hay.prompt.includes('eWsecreto'), 'ningún valor viaja al asistente');
+
+      const porNombre = Object.fromEntries(hay.reparto.map((g) => [g.herramienta, g]));
+      assert.ok(porNombre.REPLICATE.existe, 'REPLICATE ya tiene carpeta');
+      assert.ok(porNombre.REPLICATE.claves.includes('REPLICATE_API_KEY'));
+      assert.ok(!porNombre.PEXELS.existe, 'PEXELS no la tiene: por montar');
+      assert.ok(porNombre.BUFFER, 'el prefijo del framework no tapa al proveedor');
+      assert.ok(porNombre.TELEGRAM && porNombre.DRIVE, 'y los demás salen por su prefijo');
+      assert.ok(hay.sinDueno.some((x) => x.nombre === 'PORT'), 'lo que no dice de quién es se pregunta');
+      assert.ok(!Object.keys(porNombre).includes('PORT'));
+      assert.deepEqual(hay.porMontar.map((p) => p.herramienta).sort(), ['BUFFER', 'DRIVE', 'PEXELS', 'TELEGRAM'],
+        'las que existen por sus claves y no tienen carpeta');
+      assert.match(hay.prompt, /01-TOOLS\/REPLICATE\/\.env, que ya existe/);
+      assert.match(hay.prompt, /01-TOOLS\/PEXELS\/, que no existe/);
+      assert.match(hay.prompt, /_TEMPLATE/);
+
+      // El prefijo, por separado: es lo que decide el reparto.
+      assert.equal(sueltasM.prefijoDe('NEXT_PUBLIC_BUFFER_API_KEY'), 'BUFFER');
+      assert.equal(sueltasM.prefijoDe('PEXELS_API_KEY'), 'PEXELS');
+      assert.equal(sueltasM.prefijoDe('DATABASE_URL'), null, 'no dice de quién es');
+      assert.equal(sueltasM.prefijoDe('TOKEN'), null);
+
+      // Y la herramienta no dice «falta»: dice que está, pero en otro sitio.
+      const conexionesM = cargar('conexiones');
+      const replicate = conexionesM.proveedores().find((p) => p.id === 'REPLICATE');
+      assert.equal(replicate.faltan, 0, 'no le falta nada: la tiene, mal guardada');
+      assert.equal(replicate.fueraDeSitio, 1);
+      const clave = conexionesM.claves('REPLICATE').claves.find((c) => c.clave === 'REPLICATE_API_KEY');
+      assert.ok(!clave.puesta && /en su carpeta, con otro nombre/.test(clave.fuera), `dice dónde está: ${clave.fuera}`);
+      const magnific = conexionesM.proveedores().find((p) => p.id === 'MAGNIFIC');
+      assert.equal(magnific.fueraDeSitio, 0, 'una bien puesta no se marca');
+
+      // Una clave del entorno del ordenador («las globales») cuenta igual.
+      process.env.MAGNIFIC_OTRA = 'x';
+      escribir('01-TOOLS/MAGNIFIC/.env.example', 'MAGNIFIC_API_KEY=\nMAGNIFIC_OTRA=\n');
+      try {
+        const otra = cargar('conexiones').claves('MAGNIFIC').claves.find((c) => c.clave === 'MAGNIFIC_OTRA');
+        assert.match(otra.fuera || '', /en tu ordenador/, 'una global se dice, no se cuenta como que falta');
+      } finally {
+        delete process.env.MAGNIFIC_OTRA;
+      }
+
+      // Y la pantalla lo pinta sin escribir jerga.
+      const p = require('./panel-falso').montarPanel();
+      const pintado = p.mandar({ tipo: 'conexiones', proveedores: cargar('conexiones').proveedores(), sueltas: hay });
+      assert.match(pintado, /Por montar/);
+      assert.match(pintado, /PEXELS/);
+      assert.match(pintado, /puesta, pero fuera de su sitio/i);
+      // Lo que el alumno VE, que es el HTML sin los encargos: esos viajan
+      // dentro de `data-accion` y están escritos para el asistente, que sí
+      // necesita leer «.env» y las rutas.
+      const aLaVista = pintado.replace(/data-accion="[^"]*"/g, '');
+      assert.ok(!/\.env/.test(aLaVista), 'sin nombrar ficheros de configuración en pantalla');
+      assert.ok(/\.env/.test(pintado), 'pero el encargo al asistente sí los nombra');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return 'raíz, carpeta y herramienta · 4 por montar · 1 puesta fuera de su sitio';
+  });
+
+  await comprobar('una incidencia se resuelve con el diagnóstico de la barra delante', () => {
+    // Jose: «debería haber un botón donde ponga resolver incidencias […] y el
+    // asistente audita todo». El síntoma lo pone el alumno, el diagnóstico la
+    // barra, y van juntos en el mismo encargo.
+    const encargo = cargar('encargos').resolverUnaIncidencia({
+      sintoma: 'No encuentro mis conexiones.',
+      queVe: ['Hay 5 claves fuera de sitio en: .env.local', 'A Replicate le faltan 0 claves'],
+    });
+    assert.match(encargo.prompt, /No encuentro mis conexiones/);
+    assert.match(encargo.prompt, /lo que ve la barra/i);
+    assert.match(encargo.prompt, /5 claves fuera de sitio/);
+    assert.match(encargo.prompt, /No toques nada todavía/);
+    assert.match(encargo.prompt, /no imprimas ni me pegues el valor de ninguna clave/i);
+
+    const p = require('./panel-falso').montarPanel();
+    const ayuda = p.mandar({ tipo: 'ayuda', github: { conectado: false } });
+    assert.match(ayuda, /Resolver una incidencia/);
+    assert.match(ayuda, /No encuentro mis conexiones/);
+    assert.match(ayuda, /Dice que faltan claves y las tengo/);
+    return 'síntoma del alumno + diagnóstico de la barra';
+  });
+
   await comprobar('ningún botón manda un texto vacío', () => {
     // El fallo que tuvo a Jose tres versiones viendo conversaciones vacías, y
     // que las tres veces se buscó en el sitio equivocado. Lo que pasaba era

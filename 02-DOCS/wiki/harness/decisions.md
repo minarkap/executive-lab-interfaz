@@ -256,3 +256,23 @@ Decisión 103 en `docs/decisiones.md`.
   de ser un cuarto nombre.
 
 0.24.0. 183 comprobaciones.
+
+## Cada clave tiene un sitio, y una incidencia se resuelve desde la barra — 22 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-22-cada-clave-tiene-un-sitio.md`.
+Decisión 104 en `docs/decisiones.md`.
+
+- **El sitio de una clave lo define RSC**: `01-TOOLS/<HERRAMIENTA>/.env`, variables
+  `<HERRAMIENTA>_<NOMBRE>`. Eso hace útil el desorden: el prefijo dice a qué herramienta va cada
+  clave suelta.
+- **`sueltas.js` inventaría y reparte**: todos los `.env*` (raíz, carpetas de primer nivel, y dentro
+  de cada herramienta los que no son su `.env`), solo los nombres, y a qué herramienta va cada uno.
+  El encargo al asistente lleva el plan hecho.
+- **«Puesta, pero fuera de su sitio»**, no «falta»: una clave que existe en otro fichero o en el
+  entorno del ordenador no falta, está mal guardada. Y los proveedores que existen por sus claves y
+  no tienen carpeta salen como **«Por montar»**.
+- **Resolver una incidencia** en Ayuda: el síntoma lo pone el alumno, el diagnóstico la barra, y el
+  asistente audita la carpeta entera antes de tocar nada.
+- Pendiente apuntado: las credenciales que no son variables (`.json` de cuenta de servicio, `.pem`).
+
+0.25.0. 185 comprobaciones.

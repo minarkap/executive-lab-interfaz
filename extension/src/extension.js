@@ -373,6 +373,7 @@ ${cabecera}
       volverA: () => this.volverA(mensaje.id),
 
       algoVaMal: () => this.algoVaMal(),
+      resolverIncidencia: () => this.resolverIncidencia(mensaje.cual),
       verElInforme: () => this.verElInforme(mensaje.fichero),
       arreglar: () => this.arreglar(),
       arrancar: () => this.arrancar(),
@@ -483,7 +484,16 @@ ${cabecera}
     const datos = conexiones.claves(proveedor);
     if (!datos) return this.verConexiones();
     this.donde = { tipo: 'conexion', proveedor };
-    return this.enviar({ tipo: 'conexion', ...datos, cositas: conexiones.scripts(proveedor), aviso });
+    const desordenadas = sueltas.resumen();
+    return this.enviar({
+      tipo: 'conexion',
+      ...datos,
+      cositas: conexiones.scripts(proveedor),
+      // Si alguna clave de esta conexión está en otro sitio, el botón que lo
+      // arregla va aquí mismo, que es donde se ve el problema (decisión 104).
+      ordenar: desordenadas ? desordenadas.prompt : null,
+      aviso,
+    });
   }
 
   guardarClave(proveedor, clave, valor) {
@@ -692,6 +702,71 @@ ${cabecera}
   async verAyuda() {
     this.donde = { tipo: 'quieto' };
     this.enviar({ tipo: 'ayuda', github: await github.estado() });
+  }
+
+  // ── Resolver una incidencia ────────────────────────────────────────────
+  //
+  // Jose: *«debería haber un botón donde ponga resolver incidencias […] y
+  // entonces el asistente audita todo»*. Lo que el alumno sabe decir es el
+  // síntoma; el diagnóstico lo tiene la barra. Se mandan juntos, y el
+  // asistente repasa la carpeta entera antes de contestar.
+  //
+  // Las opciones se dan hechas porque una caja de texto vacía delante de
+  // alguien atascado es una pared (regla 5 del diccionario). «Otra cosa» abre
+  // la caja, con ejemplos.
+  async resolverIncidencia(cual) {
+    const SINTOMAS = {
+      conexiones: 'No encuentro mis conexiones, o falta alguna que yo sé que tengo.',
+      clave: 'Una conexión dice que le faltan claves y yo creo que ya las tengo puestas.',
+      noHace: 'Le pido cosas al asistente y no hace lo que espero.',
+      montar: 'Algo no se ha montado bien en esta carpeta.',
+    };
+
+    let sintoma = SINTOMAS[cual];
+    if (!sintoma) {
+      sintoma = (await vscode.window.showInputBox({
+        title: 'Resolver una incidencia',
+        prompt: 'Cuéntame qué pasa, con tus palabras. Lo demás lo mira él.',
+        placeHolder: 'Por ejemplo: "no sé dónde están las claves de mis herramientas"',
+        ignoreFocusOut: true,
+      }) || '').trim();
+      if (!sintoma) return undefined;
+    }
+
+    this.enviar({ tipo: 'esperando', que: 'Mirando cómo está todo…' });
+    const encargo = encargos.resolverUnaIncidencia({ sintoma, queVe: await this.loQueNoCuadra() });
+    return this.pedir(encargo.prompt);
+  }
+
+  // Hechos leídos del disco para acompañar a la incidencia. Nada de
+  // impresiones: lo que el asistente no puede ver de un vistazo y la barra sí.
+  async loQueNoCuadra() {
+    const visto = [];
+    try {
+      const revision = await terreno.radiografia();
+      for (const pieza of revision.piezas || []) {
+        if (pieza.estado === 'no' || pieza.estado === 'aMedias') visto.push(`${pieza.nombre}: ${pieza.detalle}`);
+      }
+      for (const p of conexiones.proveedores()) {
+        if (p.aMedioHacer) visto.push(`La conexión ${p.etiqueta} está a medio preparar (sigue con la plantilla).`);
+        else if (p.fueraDeSitio) visto.push(`${p.etiqueta} tiene ${p.fueraDeSitio} clave(s) guardadas fuera de su carpeta.`);
+        else if (p.faltan) visto.push(`A ${p.etiqueta} le faltan ${p.faltan} clave(s).`);
+      }
+      const desordenadas = sueltas.resumen();
+      if (desordenadas) {
+        visto.push(`Hay ${desordenadas.claves} clave(s) fuera de sitio en: ${desordenadas.ficheros.join(', ')}.`);
+        for (const g of desordenadas.reparto) {
+          visto.push(`  · ${g.claves.join(', ')} parecen de ${g.herramienta}${g.existe ? '' : ', que no tiene carpeta en 01-TOOLS'}.`);
+        }
+        if (desordenadas.sinDueno.length) visto.push(`  · Sin dueño claro: ${desordenadas.sinDueno.map((x) => x.nombre).join(', ')}.`);
+      }
+      for (const g of reglas.losGuardianes()) {
+        if (g.estado === 'apagado') visto.push(`El freno "${g.nombre}" está apagado.`);
+      }
+    } catch (error) {
+      this.salida.appendLine(`[incidencia] ${error.stack || error.message}`); // diccionario: interno
+    }
+    return visto;
   }
 
   // Las reglas que el asistente respeta siempre. Son tres sitios de RSC y no se
@@ -1169,9 +1244,16 @@ ${cabecera}
     // lo afine, no que lo haga desde cero (decisión 103).
     const cara = hecho.web ? await this.sacarLaCara(hecho.web) : null;
     const conWeb = hecho.web ? `\n\n${marca.queLePedimos(hecho.web, Boolean(cara && cara.ok))}\n\n` : '';
+
+    // Si la carpeta ya traía claves —un `.env` de antes, un `.env.local`—, el
+    // plan de a dónde va cada una viaja en este primer mensaje: es cuando el
+    // asistente está montando y cuando el alumno espera trámites. Antes solo
+    // salía si alguien entraba en Conexiones y pulsaba (decisión 104).
+    const desordenadas = sueltas.resumen();
+    const conClaves = desordenadas ? `\n\n${desordenadas.prompt}\n\n` : '';
     const deQuien = hecho.nombres.empresa ? ` Es para ${hecho.nombres.empresa}.` : '';
     const comoSeLlama = hecho.nombres.arnes || identidad.deQuien();
-    await puente.enviar(`Acabo de montar aquí un arnés que he llamado "${comoSeLlama}".${deQuien} Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb}Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
+    await puente.enviar(`Acabo de montar aquí un arnés que he llamado "${comoSeLlama}".${deQuien} Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb}${conClaves}Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
     await this.siFaltaAlgoDecirlo(false);
     return undefined;
   }

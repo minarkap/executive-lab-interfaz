@@ -155,6 +155,32 @@ function reajustar(recomendaciones = []) {
   });
 }
 
+// ── 5. Una incidencia: que lo mire todo y lo deje en orden ───────────────
+//
+// Jose, 21-09-2026: *«debería haber un botón donde ponga resolver incidencias
+// […] y entonces el asistente audita todo, revisa las herramientas, revisa lo
+// que hay y comprueba que esté todo en orden»*. Lo que el alumno sabe decir es
+// el síntoma («no encuentro mis conexiones»); lo que hace falta para
+// arreglarlo es el diagnóstico, y ese lo tiene la barra. Van juntos.
+//
+// `queVe` son hechos leídos del disco, no impresiones: las piezas que faltan,
+// las conexiones a medias, las claves fuera de sitio, los frenos apagados.
+function resolverUnaIncidencia({ sintoma, queVe = [] }) {
+  return armar({
+    etiqueta: 'Que lo mire',
+    queHay: `Tengo un problema y quiero que lo mires tú entero: "${sintoma}".`
+      + (queVe.length ? `\n\nEsto es lo que ve la barra ahora mismo, leído de la carpeta:\n${queVe.map((q) => `- ${q}`).join('\n')}` : ''),
+    queTieneQueQuedar: 'Repasa esta carpeta de arriba abajo antes de contestarme: qué hay montado y qué falta, '
+      + 'cada herramienta de 01-TOOLS (si su .env tiene las claves que su .env.example espera, si su prueba de conexión pasa), '
+      + 'si hay claves guardadas fuera de sitio y de quién es cada una, y si algo del arnés está a medias o apagado. '
+      + 'Después dime en cristiano qué has encontrado, qué lo explica, y qué propones hacer — empezando por lo que desbloquea mi problema.',
+    queNoSeToca: 'No toques nada todavía: primero cuéntamelo y pregúntame. Y no imprimas ni me pegues el valor de ninguna clave, '
+      + 'ni siquiera cortado.',
+    queHayQueAvisar: 'Si algo de lo que encuentres es delicado —una clave que se ha podido filtrar, algo que puede romper lo que ya funciona— dímelo lo primero.',
+    comprobar: () => false,
+  });
+}
+
 // Por identificador, que es como los nombra `rumbo.js`.
 const POR_NOMBRE = {
   levantarElSuelo: (parte) => levantarElSuelo(parte.suelo.faltan),
@@ -166,5 +192,6 @@ const traer = (nombre, parte) => (POR_NOMBRE[nombre] ? POR_NOMBRE[nombre](parte)
 
 module.exports = {
   traer, levantarElSuelo, ordenarLasClaves, ordenarLaCarpeta, conectarUnaHerramienta, reajustar,
+  resolverUnaIncidencia,
   LOS_QUE_HAY: Object.keys(POR_NOMBRE),
 };

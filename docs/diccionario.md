@@ -34,6 +34,10 @@ jerga por goteo.
 | error / excepción / stack trace | Algo va mal |
 | log / diagnóstico | Informe para tu tutor |
 | una carpeta de `01-TOOLS/` | Una conexión |
+| una clave que existe pero no en `01-TOOLS/<X>/.env` | Puesta, pero fuera de su sitio · «Ya la tienes, en la carpeta principal» |
+| una clave exportada en el entorno del ordenador | Puesta en tu ordenador, fuera de esta carpeta |
+| un proveedor que se deduce de las claves sueltas y no tiene carpeta | Por montar |
+| pedirle al asistente que audite la carpeta por un problema concreto | Resolver una incidencia |
 | el catálogo de habilidades de RSC | Habilidades (skills) · Sugerencias del catálogo (las que pegan con esta carpeta) · Resto del catálogo (plegado) |
 | una habilidad, por su nombre | El nombre de la cosa: Facturación, Contratos, Tono humano. Nunca una frase sobre lo que sabe hacer |
 | una habilidad instalada / `rsc list` | Instaladas (las propias, las del catálogo y las de fuera, juntas; el origen va en la (i)) |

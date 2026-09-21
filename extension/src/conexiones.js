@@ -250,6 +250,34 @@ function dondeSeConsigue(carpeta) {
 // lo que pasa en vez de enseñar un hueco con rótulo.
 const ES_MARCADOR = (clave) => /[<{]/.test(clave);
 
+// ── Una clave que está, pero en otro sitio ───────────────────────────────
+//
+// Jose, 21-09-2026, con una captura: sus claves vivían en un `.env.local` de
+// la raíz, no en `01-TOOLS/<X>/.env`. La barra decía «faltan 2 claves» de una
+// herramienta que funcionaba perfectamente, porque solo miraba su `.env`.
+//
+// No le falta nada: le falta orden, que es otra cosa y se arregla de otra
+// manera. `sueltas.js` sabe dónde están y de quién son; aquí se le pregunta.
+// Y también se mira el entorno del propio ordenador —lo que Jose llama «las
+// globales»—: una clave exportada en el perfil del sistema funciona hoy y no
+// viaja con la carpeta, así que se dice, no se cuenta como que falta.
+function dondeMasEstan(proveedorId, nombres) {
+  if (!nombres.length) return new Map();
+  const donde = new Map();
+  try {
+    const sueltas = require('./sueltas');
+    for (const sitio of sueltas.buscar()) {
+      for (const nombre of sitio.nombres) {
+        if (nombres.includes(nombre) && !donde.has(nombre)) donde.set(nombre, sueltas.enCristiano(sitio.donde));
+      }
+    }
+    for (const nombre of sueltas.enElOrdenador(nombres)) {
+      if (!donde.has(nombre)) donde.set(nombre, 'puesta en tu ordenador, fuera de esta carpeta');
+    }
+  } catch { /* sin inventario, se sigue como antes */ }
+  return donde;
+}
+
 function proveedores() {
   const base = proyecto.ruta(CARPETA);
   if (!base || !fs.existsSync(base)) return [];
@@ -263,10 +291,14 @@ function proveedores() {
       // Los marcadores no son claves que falten: son la plantilla sin rellenar.
       // Contarlos daría «faltan 3» en algo que todavía no pide nada.
       const deVerdad = [...esperadas.keys()].filter((k) => !ES_MARCADOR(k));
+      const sinPoner = deVerdad.filter((k) => !puestas.get(k));
+      const enOtroSitio = dondeMasEstan(e.name, sinPoner);
       return {
         id: e.name,
         etiqueta: etiquetaDeProveedor(e.name, carpeta),
-        faltan: deVerdad.filter((k) => !puestas.get(k)).length,
+        // Las que no están en ningún sitio. Las que están fuera se cuentan aparte.
+        faltan: sinPoner.filter((k) => !enOtroSitio.has(k)).length,
+        fueraDeSitio: enOtroSitio.size,
         // Sigue siendo la plantilla: el asistente la creó y no la ha terminado.
         aMedioHacer: [...esperadas.keys()].some(ES_MARCADOR),
         tienePrueba: fs.readdirSync(carpeta).some((f) => f.startsWith('test_connection')),
@@ -290,6 +322,7 @@ function claves(proveedorId) {
   // `escribir` las rechaza, así que una casilla para ellas es una casilla que
   // no lleva a ninguna parte. Se dice que está a medio hacer y se acabó.
   const nombres = [...new Set([...esperadas.keys(), ...puestas.keys()])].filter((k) => !ES_MARCADOR(k));
+  const enOtroSitio = dondeMasEstan(proveedorId, nombres.filter((k) => !puestas.get(k)));
 
   return {
     proveedor: {
@@ -307,6 +340,9 @@ function claves(proveedorId) {
       donde: sacadaDe.get(clave) || null,
       secreta: ES_SECRETA.test(clave.toUpperCase()),
       puesta: Boolean(puestas.get(clave)),
+      // Está, pero en otro fichero o en el entorno del ordenador. Dicho en
+      // cristiano por `sueltas.enCristiano`: «en la carpeta principal».
+      fuera: enOtroSitio.get(clave) || null,
       pista: enmascarar(puestas.get(clave)),
     })),
   };
@@ -429,6 +465,13 @@ async function probar(proveedorId) {
   const error = `${resultado.error || ''}\n${resultado.salida || ''}`;
 
   if (resultado.codigo === 0) return { ok: true, mensaje: 'Conectado. Funciona.' };
+
+  // Si la clave existe pero en otro sitio, decir «falta» manda a rellenar algo
+  // que esa persona ya tiene. Se dice lo que pasa de verdad (decisión 104).
+  const fuera = [...dondeMasEstan(proveedorId, [...leerEnv(path.join(carpeta, '.env.example')).keys()]).values()];
+  if (fuera.length && /missing .*\.env|not set/i.test(error)) {
+    return { ok: false, mensaje: `Tus claves de esta conexión están ${fuera[0]}, y la prueba las busca aquí. Pulsa "Que las ordene" y vuelve a probar.` };
+  }
   if (/missing .*\.env/i.test(error)) return { ok: false, mensaje: 'Todavía no has puesto ninguna clave para esta conexión.' };
   if (/not set/i.test(error)) return { ok: false, mensaje: 'Falta alguna clave por rellenar.' };
   // Lo paró el reloj: `procesos.js` lo dice con estas palabras.

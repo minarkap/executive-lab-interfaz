@@ -103,7 +103,30 @@ Instrucciones para ti, no para él: qué mirar, en qué orden, qué preguntar si
 `grupo: diario` para lo de todos los días, `aprendido` (el valor por defecto) para lo que le has
 enseñado. Dile en una línea que ya lo tiene en la barra, y cómo se escribe (`/resumen-del-mes`).
 
-### 2. Al conectar una herramienta, rellena su tabla de scripts
+### 2. Cada clave, en el `.env` de su herramienta — y solo ahí
+
+**El sitio de una clave lo define RSC** y el panel lo da por hecho: `01-TOOLS/<HERRAMIENTA>/.env`,
+con la variable llamada `<HERRAMIENTA>_<NOMBRE>`. La prueba de conexión lee ese fichero y la barra
+también. Una clave en un `.env.local` de la raíz, o exportada en el ordenador, **funciona hoy y es
+invisible**: el alumno ve «faltan 2 claves» en algo que va perfectamente, y no entiende nada.
+
+Así que, cuando te encuentres claves fuera de sitio —te lo dirá el panel con el reparto hecho, o lo
+verás tú—:
+
+1. **Dilo antes de tocar.** Una línea por herramienta: «las tres de Replicate van a
+   `01-TOOLS/REPLICATE/.env`; Pexels no tiene carpeta, la creo». Y espera el sí.
+2. **Mira qué las lee ahora** antes de mover: un script, un `dotenv` que carga la raíz, un
+   `docker-compose`. Si algo las usa desde donde están, adáptalo o deja el fichero viejo cargando
+   desde el nuevo. Romper lo que ya funcionaba es peor que el desorden.
+3. **Una herramienta por proveedor.** Si en un mismo fichero hay claves de cinco sitios, salen cinco
+   carpetas. Nunca una carpeta «VARIOS».
+4. **Nunca imprimas el valor de una clave**, ni entero ni cortado, ni en la conversación ni en un
+   documento. Los nombres sí; los valores no salen de su fichero.
+5. **Si ya estaban guardadas en git**, moverlas no las saca del historial: díselo y explícale que lo
+   único que las inutiliza es cambiarlas en el proveedor.
+
+Las credenciales que no son variables —una cuenta de servicio `.json`, un `.pem`— van a
+`01-TOOLS/<HERRAMIENTA>/keys/`, que la plantilla ya excluye de las copias.
 
 Sigue el protocolo de `harness`: `cp -r 01-TOOLS/_TEMPLATE 01-TOOLS/<NOMBRE>` y completa
 `.env.example` y `test_connection.sh`. Y además **tres cosas que el panel enseña tal cual**, así que

@@ -2882,3 +2882,69 @@ botón de la radiografía, del 20—. No se reescribe: se publica. Queda una pru
 pantalla exacta —sin arnés, carpeta empezada, aviso malo— y exige el botón. Y de paso ese botón
 decía «Ver qué hay aquí»: el cuarto nombre de la radiografía, contra la decisión 101. Ahora dice
 «Qué falta por montar».
+
+## 104. Cada clave tiene un sitio, y la barra sabe cuál — y una incidencia se resuelve desde aquí
+
+**Fecha:** 22 de septiembre de 2026 · **Estado:** decidido
+
+Jose, con una captura de un proyecto suyo: las claves de Replicate, Pexels, Buffer, Drive y Telegram
+estaban juntas en un `.env.local` de la raíz, y había otro `.env.local` dentro de la carpeta de una
+herramienta. *«Las claves no están en el `.env` de las tools sino en un `.env.local`, ya sea de las
+tools o en global»* · *«hay que conseguir un mapeo muy bueno con las posibilidades de RSC»* ·
+*«debería haber un botón donde ponga resolver incidencias […] y el asistente audita todo»*.
+
+### El sitio lo define RSC, no nosotros
+
+`skills/harness` y su `_TEMPLATE`: una carpeta por proveedor en `01-TOOLS/`, con `.env` (los valores
+reales, que RSC nunca escribe), `.env.example`, `CREDENTIALS.md`, `README.md`, `test_connection` y su
+`.gitignore`. Y las variables se llaman `<HERRAMIENTA>_<NOMBRE>`. **Eso es lo que hace útil el
+desorden:** el prefijo de cada clave suelta dice a qué herramienta pertenece.
+
+### De contar a inventariar y repartir
+
+`sueltas.js` contaba ficheros en la raíz. Ahora:
+
+1. **Encuentra** todos los `.env*` — raíz, carpetas de primer nivel, `config/`, `credentials/`… y,
+   dentro de cada herramienta, los que **no** son su `.env`: un `.env.local` ahí también es
+   invisible, porque ni la barra ni la prueba de conexión lo leen.
+2. **Lee solo los nombres.** Ningún valor sale de su fichero, ni siquiera para el asistente.
+3. **Reparte**: primero, la herramienta cuyo `.env.example` ya espera esa clave; si no, por el
+   prefijo, saltando los del framework (`NEXT_PUBLIC_`, `VITE_`…). Lo que no dice de quién es
+   (`TOKEN`, `PORT`, `DATABASE_URL`) no se adivina: se le pregunta.
+4. El encargo al asistente **lleva el plan hecho**, clave por clave, con `_TEMPLATE` para las
+   herramientas que no existen, la orden de mirar qué las lee antes de mover, y la de no imprimir
+   valores.
+
+### Tres consecuencias en la barra
+
+- **«Puesta, pero fuera de su sitio»**, no «falta». Una clave que la herramienta espera y está en
+  otro fichero —o exportada en el ordenador, las «globales» de Jose— no falta: está mal guardada.
+  Decir «faltan 2 claves» de algo que funciona es lo que hacía que nada cuadrara. La prueba de
+  conexión que falla por eso también lo dice.
+- **«Por montar».** Los proveedores que existen por sus claves y no tienen carpeta (Pexels, Drive)
+  salen en Conexiones (tools) con el botón que se los pide al asistente. Antes no salían en ningún
+  sitio: el alumno los usaba y la barra decía que no había nada.
+- **Al montar**, si la carpeta ya traía claves, el plan viaja en el primer mensaje al asistente. Es
+  cuando está montando y cuando el alumno espera trámites.
+
+### Resolver una incidencia
+
+*«Como ver un diagnóstico […] y quizá donde le puedas decir el problema que tienes»*. En Ayuda, y
+con opciones hechas —«No encuentro mis conexiones», «Dice que faltan claves y las tengo», «No hace
+lo que le pido»— porque una caja vacía delante de alguien atascado es una pared (regla 5).
+
+Lo que el alumno sabe decir es **el síntoma**; el **diagnóstico** lo tiene la barra. Van juntos en el
+mismo encargo: piezas que faltan, conexiones a medias, claves fuera de sitio con su reparto, frenos
+apagados. Y el encargo manda mirar la carpeta entera y **contar antes de tocar**.
+
+Son tres cosas distintas y ahora se distinguen: *Algo va mal* saca el informe para el tutor (sirve
+cuando la barra misma está rota), *Qué falta por montar* es la lista de piezas, y *Resolver una
+incidencia* es el caso frecuente — algo no cuadra y no sabes por qué.
+
+### Lo que queda fuera, y apuntado
+
+Las credenciales que no son variables: cuentas de servicio `.json`, `.pem`, `.p12`. Van a
+`01-TOOLS/<X>/keys/`, que la plantilla ya excluye, y se reconocen por el nombre del fichero y su
+contenido sin abrirlo del todo. Apuntado en el documento de feature a petición de Jose. Y lo que
+está fuera de la carpeta (`~/.aws/credentials`) solo se nombra: la regla de no salir del directorio
+de trabajo manda.
