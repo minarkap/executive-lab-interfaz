@@ -561,4 +561,7 @@ async function hacerLosPasos(plan, parte, respuestas, contexto, salida) {
   );
 }
 
-module.exports = { arrancar, entrevistar, COMO_SE_HACE, DE_QUE_VA, COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO };
+module.exports = {
+  arrancar, entrevistar, ponerLosRailes,
+  COMO_SE_HACE, DE_QUE_VA, COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO,
+};

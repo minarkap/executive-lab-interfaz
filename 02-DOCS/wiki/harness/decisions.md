@@ -324,3 +324,18 @@ Decisión 107 en `docs/decisiones.md`.
   deja escrito, para no repetir la conversación cada semana.
 
 0.27.0. 188 comprobaciones.
+
+## Unos raíles de la semana pasada se ven, y se reponen solos — 22 de septiembre de 2026
+
+Decisión 108 en `docs/decisiones.md`.
+
+- Los raíles se copian **al montar**, así que una carpeta de antes corre las reglas de antes. Con
+  las reglas nuevas de credenciales, eso significaba que ninguna carpeta montada antes de hoy las
+  conocía. Esta misma carpeta era una de ellas.
+- `comoEstanLosRailes()` solo miraba si el fichero existe: «Puesto» quería decir «hay algo ahí».
+  Ahora **compara el contenido** y hay un tercer estado, «Puesto, pero de una versión anterior»,
+  con su botón.
+- **Se reponen solos al abrir**, en silencio: reponer no es decidir, es dejar la carpeta con lo que
+  ya declaró tener. Si falla, la lista de piezas lo dice.
+
+0.28.0. 189 comprobaciones.

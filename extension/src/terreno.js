@@ -245,12 +245,46 @@ function mirar() {
 // otra vía —o traído de otro ordenador— puede estar entero y no tenerlos.
 //
 // Y de aquí sale la única pregunta que un clon necesita: los nombres.
-function comoEstanLosRailes() {
+// ── Y si son los de hoy ──────────────────────────────────────────────────
+//
+// Esto solo miraba si el fichero **existe**. Pero los raíles los copia el
+// wizard al montar, con los que llevara la barra ese día: una carpeta montada
+// la semana pasada corre las reglas de la semana pasada, y la barra decía
+// «Puesto». Es la fricción F13 de la auditoría, y muerde justo cuando las
+// reglas nuevas importan — el día que se les añade el protocolo de
+// credenciales, todas las carpetas de antes siguen sin conocerlo.
+//
+// Se compara el contenido, no una fecha ni un número: es lo único que no
+// miente cuando alguien edita el fichero a mano. Barato — un fichero.
+function laHabilidadEsLaDeHoy(carpetaDeLaExtension, puesta) {
+  const nuestra = carpetaDeLaExtension
+    && path.join(carpetaDeLaExtension, 'media', 'railes', 'executive-lab', 'SKILL.md');
+  if (!nuestra || !fs.existsSync(nuestra) || !fs.existsSync(puesta)) return true;
+  try {
+    return fs.readFileSync(nuestra, 'utf8') === fs.readFileSync(puesta, 'utf8');
+  } catch {
+    // Sin poder leer uno de los dos no se afirma que esté viejo: decirlo mal
+    // manda a alguien a rehacer algo que estaba bien.
+    return true;
+  }
+}
+
+// Dónde vive la barra, para poder comparar sus raíles con los de la carpeta.
+// Mismo patrón que `buscar.saberDondeEstamos` y `rsc.saberDondeEstamos`: lo
+// dice `activate()` una vez y no hay que pasarlo por seis funciones.
+let carpetaDeLaBarra = null;
+const saberDondeEstamos = (ruta) => { carpetaDeLaBarra = ruta; };
+
+function comoEstanLosRailes(carpetaDeLaExtension = carpetaDeLaBarra) {
   const habilidades = donde.carpetaDeHabilidades();
   const nombres = identidad.leer();
+  const suSkill = habilidades && path.join(habilidades, 'executive-lab', 'SKILL.md');
+  const puesta = Boolean(suSkill && fs.existsSync(suSkill));
 
   return {
-    habilidadPropia: Boolean(habilidades && fs.existsSync(path.join(habilidades, 'executive-lab', 'SKILL.md'))),
+    habilidadPropia: puesta,
+    // Puestos, pero de una versión anterior de la barra.
+    alDia: !puesta || laHabilidadEsLaDeHoy(carpetaDeLaExtension, suSkill),
     perfil: proyecto.existe(...identidad.PERFIL),
     // `puesto` es lo que distingue un nombre escrito por alguien del que se
     // deduce de la carpeta. Un nombre deducido no cuenta como contestado.
@@ -730,11 +764,22 @@ async function radiografia({ aFondo = null } = {}) {
   // tener nada de la barra.
   if (conArnes) {
     const railes = parte.railes.habilidadPropia && parte.railes.nombres;
+    // Puestos pero viejos es un tercer estado, y el que más engaña: se ve
+    // igual que «Puesto» y el asistente está leyendo las reglas de otro día.
+    const viejos = railes && !parte.railes.alDia;
     piezas.push({
       nombre: 'Lo que pone la barra',
-      estado: railes ? 'si' : 'aMedias',
-      detalle: railes ? 'Puesto' : 'Falta ajustarlo a esta carpeta',
-      ...(railes ? {} : { arreglo: { como: 'solo', etiqueta: 'Ajustarlo ahora', accion: { tipo: 'arrancar' } } }),
+      estado: railes && !viejos ? 'si' : 'aMedias',
+      detalle: viejos
+        ? 'Puesto, pero de una versión anterior de la barra'
+        : (railes ? 'Puesto' : 'Falta ajustarlo a esta carpeta'),
+      ...(railes && !viejos ? {} : {
+        arreglo: {
+          como: 'solo',
+          etiqueta: viejos ? 'Ponerlo al día' : 'Ajustarlo ahora',
+          accion: viejos ? { tipo: 'ponerLosRailesAlDia' } : { tipo: 'arrancar' },
+        },
+      }),
     });
   }
 
@@ -787,5 +832,5 @@ function fechaDelPlan() {
 
 module.exports = {
   queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia, fechaDelPlan,
-  laUltimaRevision, dondeViveLaRevision,
+  laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos,
 };

@@ -3685,6 +3685,62 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'cuenta de servicio · .pem · lo que está en su sitio no molesta · nada del contenido sale';
   });
 
+  await comprobar('unos raíles de la semana pasada se ven, y se reponen', async () => {
+    // F13 de la auditoría, y hoy muerde de verdad: los raíles los copia el
+    // wizard al montar, con los que llevara la barra ese día. Al subir de
+    // versión, las carpetas de antes se quedan con las reglas viejas y la
+    // barra decía «Puesto» — el asistente leyendo lo de la semana pasada sin
+    // que nada lo dijera (decisión 108).
+    const fs2 = require('node:fs');
+    const terrenoM = cargar('terreno');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'railes-'));
+    const escribir = (relativa, texto) => {
+      fs2.mkdirSync(path.dirname(path.join(carpeta, relativa)), { recursive: true });
+      fs2.writeFileSync(path.join(carpeta, relativa), texto);
+    };
+    escribir('.rsc.json', JSON.stringify({ version: 1, targets: ['claude'] }));
+    escribir('02-DOCS/wiki/harness/user-profile.md', '---\narnes: Contabilidad\nempresa: Nexus\ntechnical_level: non-technical\n---\n');
+
+    const laDeHoy = fs2.readFileSync(path.join(RAIZ, 'media', 'railes', 'executive-lab', 'SKILL.md'), 'utf8');
+    vscode.guion.raiz = carpeta;
+    try {
+      terrenoM.saberDondeEstamos(RAIZ);
+
+      // Con la de hoy puesta: al día.
+      escribir('.claude/skills/executive-lab/SKILL.md', laDeHoy);
+      assert.ok(terrenoM.comoEstanLosRailes().alDia, 'la de hoy está al día');
+      let pieza = (await terrenoM.radiografia()).piezas.find((p) => p.nombre === 'Lo que pone la barra');
+      assert.equal(pieza.estado, 'si');
+      assert.equal(pieza.detalle, 'Puesto');
+
+      // Con una de antes: se ve, y trae su salida (P1).
+      escribir('.claude/skills/executive-lab/SKILL.md', `${laDeHoy}\n<!-- lo de la semana pasada -->\n`);
+      assert.ok(!terrenoM.comoEstanLosRailes().alDia, 'una distinta se detecta');
+      pieza = (await terrenoM.radiografia()).piezas.find((p) => p.nombre === 'Lo que pone la barra');
+      assert.equal(pieza.estado, 'aMedias', 'no puede decir «Puesto» como si nada');
+      assert.match(pieza.detalle, /de una versión anterior/);
+      assert.ok(pieza.arreglo, 'y trae botón');
+      assert.equal(pieza.arreglo.accion.tipo, 'ponerLosRailesAlDia');
+      assert.equal(pieza.arreglo.etiqueta, 'Ponerlo al día');
+
+      // Reponerlos es lo que hace `aplicar.js`, el mismo que usa el wizard.
+      const cp = require('node:child_process');
+      const hecho = cp.spawnSync(process.execPath, [path.join(RAIZ, 'media', 'railes', 'aplicar.js'), carpeta], { encoding: 'utf8' });
+      assert.equal(hecho.status, 0, `aplicar.js falla: ${hecho.stderr}`);
+      assert.ok(terrenoM.comoEstanLosRailes().alDia, 'después de reponerlos, al día');
+
+      // Sin raíles puestos no se dice que estén viejos: se dice que faltan.
+      fs2.rmSync(path.join(carpeta, '.claude', 'skills', 'executive-lab'), { recursive: true });
+      assert.ok(terrenoM.comoEstanLosRailes().alDia, 'lo que no está no está viejo');
+      pieza = (await terrenoM.radiografia()).piezas.find((p) => p.nombre === 'Lo que pone la barra');
+      assert.equal(pieza.arreglo.accion.tipo, 'arrancar', 'ahí lo que toca es montarlos, no reponerlos');
+    } finally {
+      terrenoM.saberDondeEstamos(null);
+      vscode.guion.raiz = empresa;
+    }
+    return 'puesto · viejo con su botón · repuesto · y lo que falta no está viejo';
+  });
+
   await comprobar('un desorden enorme no se convierte en una pared', () => {
     // Jose, 22-09-2026: «asegúrate de que no hay edge cases […] y que sea
     // fácil y sin fricción». Un `.env` de 120 claves existe, y pintaba 121

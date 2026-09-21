@@ -392,6 +392,7 @@ ${cabecera}
       verReglas: () => this.verReglas(),
       abrirReglas: () => this.abrirReglas(mensaje.cual),
       abrirRevision: () => this.abrirRevision(mensaje.fichero),
+      ponerLosRailesAlDia: () => this.ponerLosRailesAlDia(),
       verAsistente: () => this.verAsistente(),
       verComoTrabaja: () => this.verComoTrabaja(),
       verFijadas: () => this.verFijadas(),
@@ -782,6 +783,29 @@ ${cabecera}
   async verReglas() {
     this.donde = { tipo: 'quieto' };
     this.enviar({ tipo: 'reglas', ...reglas.queHay() });
+  }
+
+  // ── Los raíles de esta carpeta, al día ─────────────────────────────────
+  //
+  // Los raíles los copia el wizard al montar, con los que llevara la barra
+  // ese día. Cuando la barra sube de versión, las carpetas montadas antes se
+  // quedan con las reglas viejas y **nada lo dice**: el asistente sigue
+  // leyendo lo de la semana pasada (F13 de la auditoría, decisión 108).
+  //
+  // Esto no decide nada: repone lo que esta carpeta ya declaró tener, con la
+  // versión de ahora. Los raíles son nuestros y se sobrescriben enteros, así
+  // que es lo mismo que hace `repair` y va sin preguntar — pero se dice.
+  async ponerLosRailesAlDia(callado = false) {
+    if (!callado) this.enviar({ tipo: 'esperando', que: 'Poniendo al día lo que la barra deja escrito…' });
+    const ok = await arrancar.ponerLosRailes(this.contexto);
+    this.salida.appendLine(`[railes] al día: ${ok}`); // diccionario: interno
+    await this.refrescar(true);
+    if (!ok) {
+      this.enviar({ tipo: 'aviso', texto: 'No he podido ponerlo al día. Prueba con "Algo va mal".', malo: true });
+    } else if (!callado) {
+      this.enviar({ tipo: 'aviso', texto: 'Ya está al día. El asistente lee las reglas de ahora.' });
+    }
+    return ok;
   }
 
   // La revisión que escribió el asistente. Es una página entera, así que se
@@ -1532,6 +1556,8 @@ function activate(contexto) {
   );
   rsc.saberDondeEstamos(contexto.extensionPath);
   buscador.saberDondeEstamos(contexto.extensionPath);
+  // Para poder comparar los raíles de la carpeta con los que trae la barra.
+  terreno.saberDondeEstamos(contexto.extensionPath);
   const panel = new Panel(contexto, salida);
   const comando = (id, fn) => vscode.commands.registerCommand(id, fn);
   const repintarModo = vigilarElModo(contexto);
@@ -1601,6 +1627,18 @@ function activate(contexto) {
   if (contexto.extensionMode !== vscode.ExtensionMode.Development) {
     vestir(contexto, salida).catch((e) => salida.appendLine(`[disfraz] ${e.message}`));
   }
+
+  // Y si esta carpeta se montó con una barra anterior, sus raíles son de
+  // entonces: el asistente estaría leyendo las reglas de aquel día. Se repone
+  // lo que la carpeta ya declaró tener, con la versión de ahora — reponer no
+  // es decidir, así que va solo y sin preguntar (decisión 108). Callado: si
+  // sale bien no hay nada que contarle a nadie, y si sale mal la lista de
+  // piezas lo dice con su botón.
+  setTimeout(() => {
+    if (terreno.comoEstanLosRailes().alDia) return;
+    salida.appendLine('[railes] los de esta carpeta son de una versión anterior: se reponen'); // diccionario: interno
+    panel.ponerLosRailesAlDia(true).catch((e) => salida.appendLine(`[railes] ${e.message}`)); // diccionario: interno
+  }, 3000);
 }
 
 function deactivate() {}

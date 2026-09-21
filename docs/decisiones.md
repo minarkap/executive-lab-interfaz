@@ -3088,3 +3088,36 @@ conversación. Y el encargo de ordenar termina diciéndole al asistente que, si 
 manda el alumno y no el reparto.
 
 0.27.0. 188 comprobaciones.
+
+## 108. Unos raíles de la semana pasada se ven, y se reponen solos
+
+**Fecha:** 22 de septiembre de 2026 · **Estado:** decidido
+
+Auditoría a petición de Jose. Los raíles —la habilidad que fija el español y el vocabulario, y los
+cuatro comandos— los copia el wizard **al montar**, con los que llevara la barra ese día. Cuando la
+barra sube de versión, las carpetas montadas antes se quedan con las reglas de entonces.
+
+Es la fricción **F13**, que ya estaba escrita. Lo que la convierte hoy en un problema de verdad es
+que las reglas nuevas son las de credenciales (decisiones 104 y 105): **todas las carpetas montadas
+antes de hoy le están dando al asistente un protocolo que no las menciona.** Y esta misma carpeta
+era una de ellas — se comprobó, y lo era.
+
+### Lo que fallaba de la comprobación
+
+`comoEstanLosRailes()` solo miraba si el fichero **existe**. Así que «Puesto» significaba «hay algo
+ahí», no «es lo de ahora». Ahora compara el contenido con el que trae la barra — no una fecha ni un
+número de versión, que es lo único que no miente cuando alguien lo edita a mano — y hay un tercer
+estado: **«Puesto, pero de una versión anterior de la barra»**, con su botón.
+
+### Y se reponen solos
+
+Al abrir, si los raíles no son los de ahora, se reponen sin preguntar y en silencio. **Reponer no
+es decidir**: es dejar la carpeta con lo que ya declaró tener, con la versión de hoy — lo mismo que
+hace `repair`, y la misma regla que el propio arnés se aplica. Los raíles son nuestros y
+`aplicar.js` ya los sobrescribe enteros en cada montaje, así que no se pisa nada de nadie.
+
+Callado a propósito: si sale bien no hay nada que contarle a quien no sabe qué es un raíl, y si
+sale mal la lista de piezas lo dice con su botón. Queda apuntado en el registro interno, que acaba
+en el informe de «Algo va mal» (P3).
+
+0.28.0. 189 comprobaciones.
