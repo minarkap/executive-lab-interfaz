@@ -2551,3 +2551,52 @@ ni un proceso.
 Los dos casos —`adoptar` y `ponerAlDia`— comparten botón y cambian la frase:
 para quien lo lee es lo mismo —esto funciona pero le falta algo de lo nuestro—
 y no hace falta saber cuál de los dos es.
+
+---
+
+## 98. Las cosas se llaman por lo que son, y todo lo instalado se ve
+
+**Fecha:** 21 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«revisa todo bien, que haya un mapeo correcto entre RSC y la extensión y que funcione
+correctamente. También que no haya "simplificaciones" excesivas como llamar a las skills "Lo que
+sabe hacer" y esas tonterías»*.
+
+Tres cosas estaban mal, y las tres iban en la misma dirección: la barra había ido sustituyendo los
+nombres de RSC por perífrasis sobre el asistente.
+
+**Los nombres.** *Lo que sabe hacer*, *Puede aprender*, *Ya sabe*, *Ayudantes*, *Procesos con un
+clic*, *Tus botones*, *Con quién hablas*, *Lo que le has dado*, *Lo que ha hecho*. Y los nombres de
+las habilidades eran frases: `invoicing` se llamaba «llevar tus facturas de principio a fin». Todo
+eso parecía más amable y hacía imposible atar lo que se oye en clase con lo que se lee en la barra.
+Ahora una clase de cosa se llama por su nombre —**Habilidades (skills)**, **Comandos**, **Agentes**,
+**Conexiones (tools)**, **Conocimiento (wiki)**— y una cosa concreta por el suyo —**Facturación**,
+**Revisor de seguridad**, **Planificar**—. Lo que hace va en la (i), y el identificador también.
+Cuarta regla del diccionario.
+
+**El mapeo tenía un agujero de 27 habilidades.** La 2.0 monta 32; la barra enseñaba cinco y
+descontaba el resto como «fontanería» sin nombrarlas. Ahora cada habilidad instalada cae en uno de
+cuatro montones —propias, del catálogo, fuera del catálogo, del arnés— y una prueba exige que la
+suma cuadre con `habilidadesPuestas()`. Las del arnés van plegadas, con su nombre en español.
+
+**Y el botón de una habilidad no la invocaba.** Mandaba «Quiero <frase>. Pregúntame lo que
+necesites», que ni la nombraba ni la disparaba. RSC lo dice en `targets/commands.js`
+(`skillsAreCommands: true`): para Claude las habilidades **son** comandos. Así que el botón manda
+`/unslop`, exactamente lo que se escribiría a mano, y la (i) lo enseña como «Se escribe `/unslop`».
+Con un asistente sin barra se le pide con palabras, nombrando la habilidad. Los agentes igual: se
+lanzan por su identificador, no por su rótulo.
+
+**Lo que trae RSC tiene nombre en español, entero.** `nombres.json` pasa de ocho filas a
+cincuenta y cinco: los veinte comandos fijos que RSC puede escribir, las treinta y una habilidades
+del arnés, los cuatro agentes base, y dos patrones para las familias `<lenguaje>-reviewer` y
+`<lenguaje>-build-resolver`, que son más de veinte y crecen con cada versión. Una prueba lee el
+paquete de RSC y exige que nada se quede sin nombre. Y el catálogo curado pasa de 25 a 59: las de
+negocio que la 2.0.5 trae y no estaban —atención al cliente, actas, firma electrónica, reseñas,
+previsión de ventas, envíos…—, cada una con su nombre, su frase y sus palabras.
+
+**Y el propio arnés de este repositorio arrastraba `react`.** Leyendo `onboarding.js:226`: RSC
+conserva en cada plan nuevo las habilidades declaradas que ningún perfil reparte, porque las toma
+por pedidas a mano. `react` entró en el plan por el editor descargado (decisión 93) y se quedó
+fijado para siempre por esa regla, con sus dos agentes y sus tres comandos. Se quita de la
+declaración y se vuelve a aceptar el plan.
+

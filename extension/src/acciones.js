@@ -84,11 +84,10 @@ function todos() {
     // inglés queda peor que no decir nada: si no está en español, no se enseña
     // la suya y manda la de la tabla.
     const suya = typeof campos.description === 'string' ? campos.description.replace(/^["']|["']$/g, '').trim() : '';
-    const enEspanol = /\b(el|la|los|las|un|una|de|del|que|para|con|por|tu|tus)\b/i.test(suya);
 
     const dicho = nombres.comoSeLlama('comandos', nombre, {
       nombre: etiqueta,
-      queHace: enEspanol ? suya : '',
+      queHace: nombres.enEspanol(suya) ? suya : '',
     });
 
     encontrados.push({

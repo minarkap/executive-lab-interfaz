@@ -492,7 +492,7 @@ async function decidirSobreGit(contexto, parte) {
 // lo que tiene y se le pregunta, y lo suyo no se borra pase lo que pase.
 async function pedirPermiso(parte) {
   const suyo = parte.otroMontaje.asistentes
-    .map((a) => [a.habilidades && `${a.habilidades} habilidad(es)`, a.comandos && `${a.comandos} botón(es)`, a.agentes && `${a.agentes} ayudante(s)`].filter(Boolean).join(', '))
+    .map((a) => [a.habilidades && `${a.habilidades} habilidad(es)`, a.comandos && `${a.comandos} comando(s)`, a.agentes && `${a.agentes} agente(s)`].filter(Boolean).join(', '))
     .filter(Boolean);
   const ficheros = parte.otroMontaje.ficheros;
 
@@ -501,7 +501,7 @@ async function pedirPermiso(parte) {
   const si = 'Sí, móntalo encima';
   const elegido = await vscode.window.showInformationMessage(
     'Aquí ya tienes un asistente montado a mano. Puedo poner el arnés encima sin quitarte nada de lo que ya tienes.',
-    { modal: true, detail: `He encontrado: ${visto}.\n\nTus habilidades, tus botones y tus ayudantes se quedan donde están. Lo que hago es ordenar la carpeta como el arnés espera.` },
+    { modal: true, detail: `He encontrado: ${visto}.\n\nTus habilidades (skills), tus comandos y tus agentes se quedan donde están. Lo que hago es ordenar la carpeta como el arnés espera.` },
     si,
   );
   return elegido === si;

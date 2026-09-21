@@ -151,3 +151,27 @@ botón, decidido por `rumbo` — el mismo que decide el arranque, y sin lanzar n
 
 Y el fallo de `optOuts` queda abierto en el repositorio de RSC:
 [ericrisco/rsc-harness#258](https://github.com/ericrisco/rsc-harness/issues/258).
+
+## Las cosas se llaman por lo que son — 21 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-21-las-cosas-se-llaman-por-lo-que-son.md`.
+
+Jose paró las perífrasis: *«que no haya "simplificaciones" excesivas como llamar a las skills "Lo
+que sabe hacer"»*. Tres consecuencias, ahora comprobadas por pruebas:
+
+- **Nombres**: Habilidades (skills) · Comandos · Agentes · Conexiones (tools) · Conocimiento (wiki).
+  Una habilidad se llama por su nombre («Facturación»), no por una frase. Cuarta regla del diccionario.
+- **Mapeo completo**: las 27 habilidades que la 2.0 monta para funcionar se ven, plegadas y en español.
+  Todo lo que RSC puede escribir —20 comandos, 31 habilidades, agentes base y dos familias— tiene
+  nombre en `nombres.json`, y una prueba lee el paquete para exigirlo.
+- **Invocación real**: el botón de una habilidad manda `/su-identificador` (RSC: para Claude las
+  habilidades son comandos). Los agentes se lanzan por su identificador.
+
+Y el arnés propio deja de arrastrar `react`: RSC conserva las habilidades declaradas que ningún
+perfil reparte (`onboarding.js:226`), así que la contaminación de la decisión 93 se había quedado
+fijada. Fuera de la declaración y plan reaceptado.
+
+
+- Accepted plan `a552da0e4feb441e5467371100801fad5bf508dbef767c6c1e7a925844254203`.
+- Project kind: software.
+- SDD: selected.

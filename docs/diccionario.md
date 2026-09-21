@@ -23,26 +23,29 @@ jerga por goteo.
 | la radiografía de la carpeta | Qué falta por montar |
 | los datos de hoy, en una línea | 2 copias hoy · cambios sin guardar · 1 documento sin leer |
 | la tipografía de la marca | La de siempre · La de tu ordenador · Clásica · Fácil de leer |
-| `rsc add <skill>` | Que lo aprenda |
+| `rsc add <skill>` | Añadir (una habilidad del catálogo) |
 | skill | Habilidad |
-| `02-DOCS/wiki/` | Conocimiento (dentro, «Lo que sabe de <nombre>») |
+| `02-DOCS/wiki/` | Conocimiento (wiki) (dentro, «Conocimiento de <nombre>») |
 | `01-TOOLS/` | Conexiones (tools) |
 | `rsc memory resume` | Seguir donde lo dejé |
 | sesión / contexto / conversación del agente | Conversación |
 | prompt | Lo que le pides |
-| agente / modelo / LLM | El asistente |
+| el asistente principal (Claude, Codex) / modelo / LLM | El asistente |
 | error / excepción / stack trace | Algo va mal |
 | log / diagnóstico | Informe para tu tutor |
 | una carpeta de `01-TOOLS/` | Una conexión |
-| el catálogo de habilidades de RSC | Habilidades (skills) · Todo lo que sabe hacer (skills) |
+| el catálogo de habilidades de RSC | Habilidades (skills) · Del catálogo |
+| una habilidad, por su nombre | El nombre de la cosa: Facturación, Contratos, Tono humano. Nunca una frase sobre lo que sabe hacer |
+| una habilidad instalada / `rsc list` | Instaladas |
+| las que el arnés monta para funcionar (`orient`, `suggest`, la cadena SDD…) | Las del arnés |
 | `ownSkills` de `.rsc.json` | Las tuyas |
-| `.claude/agents/` (y su equivalente en cada asistente) | Ayudantes |
-| un agente | Un ayudante |
+| `.claude/agents/` (y su equivalente en cada asistente) | Agentes |
+| un agente (subagente con encargo fijo) | Un agente |
 | lo que el consejero y el asistente proponen | Sugerencias · Qué le vendría bien a esto |
 | `02-DOCS/wiki/sdd/constitution.md` | Innegociables |
 | `CLAUDE.md` / `AGENTS.md`, sección Working rules | Cómo se trabaja aquí |
 | los dos juntos | Las reglas |
-| `targets` de `.rsc.json` (Claude o Codex) | Con quién hablas |
+| `targets` de `.rsc.json` (Claude o Codex) | Tu asistente |
 | el subapartado de personalización | Cómo quieres que trabaje |
 | `permissions.defaultMode` de Claude | Qué puede hacer sin preguntarte |
 | `plan` / `default` / `acceptEdits` | Que me lo proponga antes · Que me pregunte al cambiar algo · Que cambie ficheros sin preguntar |
@@ -51,20 +54,20 @@ jerga por goteo.
 | borrar un documento sin leer | Quitar |
 | borrar uno ya leído, con lo que aprendió de él | Quitar algo que ya ha leído |
 | los scripts de una herramienta | Consultas (dentro de cada programa) |
-| `.claude/commands/` con `boton:` | Tus botones (comandos) |
+| `.claude/commands/` con `boton:` | Comandos (los que llevan botón salen arriba) |
 | lo que se fija arriba del todo | Acciones rápidas · Elegir cuáles |
-| `02-DOCS/wiki/` | Conocimiento (dentro, «Lo que sabe de <nombre>») |
+| `02-DOCS/wiki/` | Conocimiento (wiki) (dentro, «Conocimiento de <nombre>») |
 | un tema de la wiki | Un tema |
 | un artículo de la wiki | Un concepto |
 | `02-DOCS/wiki/log.md` | Lo último que ha anotado (dentro de El diario) |
 | `02-DOCS/wiki/gaps.md` | Preguntas sin contestar |
 | `02-DOCS/inbox/` | Darle documentos · Sin leer todavía |
 | `02-DOCS/raw/` | Originales guardados |
-| `01-TOOLS/<lo que sea>/out/` | Lo que ha hecho |
+| `01-TOOLS/<lo que sea>/out/` | Resultados |
 | sacar uno de ahí | Llevarte un archivo |
-| los tres montones juntos | Lo que le has dado |
+| los tres montones juntos (inbox, procesados, raw) | Documentos entregados |
 | un documento tirado en la carpeta, sin colocar | Sin colocar todavía |
-| `.claude/commands/` entero | Procesos con un clic (comandos) |
+| `.claude/commands/` entero | Comandos |
 | una habilidad instalada fuera del catálogo curado | (se nombra con lo que diga su propia cabecera, y solo si está en español) |
 | `bro` | Escribirlo como lo diría una persona |
 | `eli5` | Explicártelo desde cero |
@@ -91,7 +94,7 @@ jerga por goteo.
 | `git push` a un remoto | Subir a GitHub |
 | una sugerencia de la barra | (no se nombra: se enseña la frase y su botón) |
 | apartar una sugerencia | Ahora no |
-| `rsc add <skill>` desde la barra | Que lo aprenda |
+| `rsc add <skill>` desde la barra | Añadir · Añadirla |
 | crear un `.claude/commands/` nuevo por repetición | Que se quede como botón |
 | la web de la empresa del alumno | Tu web |
 | escribir el récord de marca | El tema de mi empresa |
@@ -134,7 +137,7 @@ herramienta vale; explicar sus tripas, no.
 ## Tercera excepción: tools, skills y comandos
 
 **Decisión de Jose, 18 de septiembre de 2026.** Tres rótulos llevan el término en inglés entre
-paréntesis: **Conexiones (tools)**, **Habilidades (skills)** y **Tus botones (comandos)**.
+paréntesis: **Conexiones (tools)**, **Habilidades (skills)** y **Comandos**.
 
 El motivo es el mismo que el de git y GitHub, y esta vez con más razón todavía: **en clase se
 explican con esas palabras**. El alumno va a oír «skill» en la segunda sesión, y va a leerla en
@@ -144,11 +147,39 @@ deja sin poder atar una cosa con otra justo cuando está aprendiendo las dos a l
 El paréntesis es la forma de tener las dos: manda la palabra en cristiano, y detrás va la que va a
 oír fuera. No al revés.
 
+## Cuarta regla: las cosas se llaman por lo que son, no por lo que el asistente sabe hacer
+
+**Decisión de Jose, 21 de septiembre de 2026:** *«que no haya "simplificaciones" excesivas como
+llamar a las skills "Lo que sabe hacer" y esas tonterías»*.
+
+La tabla de arriba había ido derivando hacia perífrasis sobre el asistente: *Lo que sabe hacer*,
+*Lo que le has dado*, *Lo que ha hecho*, *Puede aprender*, *Ya sabe*, *Ayudantes*, *Procesos con un
+clic*, *Con quién hablas*. Cada una parecía más amable que la palabra de verdad, y juntas hacían
+imposible atar lo que se oye en clase —skill, comando, agente— con lo que se lee en la barra.
+
+Tres consecuencias, que valen para todo lo que se escriba a partir de ahora:
+
+1. **Una clase de cosa se nombra por su nombre**, en español, con el término de RSC entre paréntesis
+   cuando en clase se dice en inglés: **Habilidades (skills)** · **Comandos** · **Agentes** ·
+   **Conexiones (tools)** · **Conocimiento (wiki)**. Ni «ayudantes», ni «botones», ni «procesos».
+2. **Una cosa concreta se nombra por su nombre**, no por una frase sobre lo que hace: la habilidad
+   `invoicing` es **Facturación**, no «llevar tus facturas de principio a fin»; el agente
+   `refuter-security` es **Revisor de seguridad**. Lo que hace va en la (i), en una frase. Y el
+   identificador de verdad también, porque es lo que se escribe para invocarla: *Se escribe
+   `/unslop`*.
+3. **Lo que está instalado se ve.** Las 27 habilidades que el arnés monta para funcionar estaban
+   escondidas bajo la palabra «fontanería»; ahora salen plegadas bajo *Las del arnés*, con su nombre
+   en español. Esconder no es simplificar: es mentir sobre lo que hay.
+
+Los nombres de las habilidades, los comandos y los agentes que trae RSC viven en
+`extension/media/nombres.json`; los del catálogo que se puede añadir, en `extension/media/capacidades.json`.
+Son tablas: renombrar es cambiar una línea.
+
 ## Palabras prohibidas
 
 Estas no aparecen nunca en la interfaz, ni en un tooltip, ni en un mensaje de error:
 
-terminal · consola · shell · comando · CLI · repositorio · commit · branch · push · pull · merge ·
+terminal · consola · shell · CLI · repositorio · commit · branch · push · pull · merge ·
 directorio · ruta · path · archivo de configuración · JSON · variable de entorno · dependencia ·
 instalar paquete · npm · Node · symlink · hook · VS Code · extensión · Claude Code · token · API
 

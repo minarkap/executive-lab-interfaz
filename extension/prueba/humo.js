@@ -613,7 +613,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   });
 
   await comprobar('buscar mira también los botones y las conexiones', () => {
-    const botones = buscador.buscar('resumen del mes').grupos.find((g) => g.titulo === 'Tus botones (comandos)');
+    const botones = buscador.buscar('resumen del mes').grupos.find((g) => g.titulo === 'Comandos');
     assert.ok(botones, 'los botones del arnés también se buscan');
     assert.equal(botones.aciertos[0].titulo, 'Preparar el resumen del mes');
 
@@ -1560,8 +1560,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     // Con quién habla la carpeta era la primera pregunta y no salía. Una
     // montada para un asistente que no está puesto se comporta como si
     // estuviera rota —los botones no hacen nada— y no lo decía nadie.
-    assert.ok(por['Con quién hablas'], 'se dice con quién se habla');
-    assert.ok(por['Botones que ha aprendido'], 'con Claude sí puede haberlos');
+    assert.ok(por['Tu asistente'], 'se dice cuál es el asistente');
+    assert.ok(por['Comandos'], 'con Claude sí puede haberlos');
 
     // Y con Codex no puede haberlos nunca: RSC no le escribe comandos. Una cruz
     // permanente ahí no informa, reprocha algo que no se puede arreglar.
@@ -1575,8 +1575,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     vscode.guion.raiz = empresa;
 
     const nombres = suya.piezas.map((p) => p.nombre);
-    assert.ok(!nombres.includes('Botones que ha aprendido'), 'con Codex esa línea no sale');
-    assert.ok(nombres.includes('Con quién hablas'), 'pero sí con quién habla');
+    assert.ok(!nombres.includes('Comandos'), 'con Codex esa línea no sale');
+    assert.ok(nombres.includes('Tu asistente'), 'pero sí cuál es el asistente');
     return `${radio.piezas.length} piezas`;
   });
 
@@ -1729,7 +1729,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${holded.etiqueta}: ${holded.scripts.length} de un vistazo`;
   });
 
-  await comprobar('se buscan también las habilidades y los ayudantes', () => {
+  await comprobar('se buscan también las habilidades y los agentes', () => {
     // Esta caja dice buscar "lo que puede hacer" y solo traía los botones. Una
     // habilidad instalada no aparecía escribiendo su nombre, ni un ayudante:
     // estaban, pero solo entrando en su pantalla. Quien busca no sabe en qué
@@ -1743,13 +1743,13 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.ok(habilidad, 'una habilidad se encuentra por su nombre');
     assert.deepEqual(habilidad.accion, { tipo: 'verSaberes' }, 'y lleva a su pantalla');
 
-    const ayudante = buscar.buscar('cobros').grupos
-      .flatMap((g) => g.aciertos).find((r) => r.tipo === 'ayudante');
-    assert.ok(ayudante, 'un ayudante también');
-    assert.equal(ayudante.accion.tipo, 'verAgente', 'y lleva al suyo');
+    const agente = buscar.buscar('cobros').grupos
+      .flatMap((g) => g.aciertos).find((r) => r.tipo === 'agente');
+    assert.ok(agente, 'un agente también');
+    assert.equal(agente.accion.tipo, 'verAgente', 'y lleva al suyo');
 
     buscar.olvidar();
-    return `${habilidad.titulo} · ${ayudante.titulo}`;
+    return `${habilidad.titulo} · ${agente.titulo}`;
   });
 
   await comprobar('el catálogo no se queda vacío para siempre por una llamada temprana', () => {
@@ -1768,24 +1768,198 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${consejos.capacidades(RAIZ).length} capacidades`;
   });
 
-  await comprobar('la lista de lo que sabe hacer separa lo suyo de la fontanería', () => {
+  await comprobar('cada habilidad instalada cae en un montón, y ninguna se esconde', () => {
+    // Jose, 21-09-2026: «que haya un mapeo correcto entre RSC y la extensión».
+    // Hasta hoy, 27 de las 32 habilidades que monta la 2.0 no salían por ningún
+    // lado: se llamaban «fontanería» y se descontaban en silencio. Ahora todo
+    // lo instalado cae en uno de cuatro montones, y la suma tiene que cuadrar.
     const saberes = cargar('saberes');
+    const rsc = cargar('rsc');
     const queSabe = saberes.queSabe(RAIZ);
 
-    assert.ok(queSabe.puedeAprender.length, 'tiene que haber algo que ofrecer');
-    assert.equal(
-      queSabe.sabe.length + queSabe.puedeAprender.length,
-      require(path.join(RAIZ, 'media', 'capacidades.json')).capacidades.length,
-      'cada capacidad del catálogo cae en un lado o en el otro, nunca en los dos ni en ninguno',
-    );
+    const montones = [...queSabe.suyas, ...queSabe.sabe, ...queSabe.otras, ...queSabe.deSerie].map((c) => c.id);
+    assert.deepEqual(montones.sort(), [...rsc.habilidadesPuestas()].sort(), 'lo instalado, entero y sin repetir');
+    assert.equal(montones.length, queSabe.instaladas);
 
-    // Lo que importa: la fontanería del arnés no se lista como capacidad. Si
-    // "harness" u "orient" salieran por nombre, el diccionario se rompería.
-    const nombres = [...queSabe.sabe, ...queSabe.puedeAprender].map((c) => c.id);
-    for (const interna of ['harness', 'orient', 'suggest', 'init']) {
-      assert.ok(!nombres.includes(interna), `${interna} es fontanería y no se enseña`);
+    // Y lo del catálogo cae en un lado o en el otro, nunca en los dos ni en ninguno.
+    const catalogo = require(path.join(RAIZ, 'media', 'capacidades.json')).capacidades.length;
+    assert.equal(queSabe.sabe.length + queSabe.puedeAprender.length + queSabe.lasDemas.length, catalogo);
+    assert.ok(queSabe.puedeAprender.length, 'tiene que haber algo que ofrecer');
+
+    // Las del arnés se ven —plegadas— con su nombre en español, no en clave.
+    const fs2 = require('node:fs');
+    const conArnes = fs2.mkdtempSync(path.join(os.tmpdir(), 'con-fontaneria-'));
+    fs2.writeFileSync(path.join(conArnes, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'], skills: ['orient', 'bro', 'react'] }));
+    vscode.guion.raiz = conArnes;
+    try {
+      const alli = saberes.queSabe(RAIZ);
+      const orient = alli.deSerie.find((c) => c.id === 'orient');
+      assert.ok(orient, 'orient está instalada y por tanto se ve');
+      assert.equal(orient.nombre, 'Brújula', 'con su nombre en español');
+      assert.ok(!alli.sabe.some((c) => c.id === 'orient') && !alli.otras.some((c) => c.id === 'orient'), 'y solo en su montón');
+      const bro = alli.otras.find((c) => c.id === 'bro');
+      assert.equal(bro && bro.nombre, 'Tono humano', 'una del arnés que no es fontanería, con el nombre de la tabla');
+      const react = alli.otras.find((c) => c.id === 'react');
+      assert.equal(react && react.nombre, 'React', 'una fuera de la tabla, con el nombre del fichero humanizado');
+      assert.equal(react.frase, '', 'y sin frase en inglés');
+
+      // Y se encuentra buscando su identificador: quien oyó «orient» en clase
+      // tiene que dar con «Brújula» escribiendo eso.
+      const buscar = cargar('buscar');
+      buscar.saberDondeEstamos(RAIZ);
+      buscar.olvidar();
+      const porId = buscar.buscar('orient').grupos.flatMap((g) => g.aciertos).find((r) => r.tipo === 'habilidad');
+      buscar.olvidar();
+      assert.ok(porId && porId.titulo === 'Brújula', 'una habilidad del arnés se encuentra por su identificador');
+    } finally {
+      vscode.guion.raiz = empresa;
     }
-    return `${queSabe.sabe.length} sabe · ${queSabe.puedeAprender.length} puede aprender`;
+    return `${queSabe.instaladas} instaladas en ${[queSabe.suyas, queSabe.sabe, queSabe.otras, queSabe.deSerie].filter((m) => m.length).length} montones · ${queSabe.puedeAprender.length} del catálogo`;
+  });
+
+  await comprobar('una habilidad se invoca por su identificador, como en clase', () => {
+    // Antes el botón mandaba «Quiero <frase>. Pregúntame lo que necesites»: ni
+    // nombraba la habilidad ni la disparaba. RSC dice (`targets/commands.js`,
+    // `skillsAreCommands: true`) que para Claude las habilidades SON comandos,
+    // así que el botón manda exactamente lo que se escribiría a mano.
+    const saberes = cargar('saberes');
+    assert.equal(saberes.comoSePide('unslop'), '/unslop');
+    const queSabe = saberes.queSabe(RAIZ);
+    for (const c of [...queSabe.suyas, ...queSabe.sabe, ...queSabe.otras, ...queSabe.deSerie]) {
+      assert.equal(c.prompt, `/${c.id}`, `${c.id} se pide por su nombre`);
+    }
+    for (const c of queSabe.puedeAprender) assert.equal(c.prompt, `/${c.id}`);
+
+    // Con un asistente sin barra, se le pide con palabras, nombrando la habilidad.
+    const fs2 = require('node:fs');
+    const conCodex = fs2.mkdtempSync(path.join(os.tmpdir(), 'codex-pide-'));
+    fs2.writeFileSync(path.join(conCodex, '.rsc.json'), JSON.stringify({ version: 1, targets: ['codex'] }));
+    vscode.guion.raiz = conCodex;
+    try {
+      assert.match(saberes.comoSePide('unslop'), /«unslop»/, 'nombrada por su identificador');
+      assert.ok(!saberes.comoSePide('unslop').startsWith('/'), 'y sin la barra, que Codex no lee');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+
+    // Y las fijadas arriba mandan lo mismo que su pantalla, no otra frase.
+    const fijadas = cargar('fijadas');
+    const fijada = fijadas.candidatos(RAIZ).flatMap((g) => g.cosas).find((c) => c.id === 'habilidad:executive-lab');
+    assert.ok(fijada, 'una habilidad propia se puede fijar');
+    assert.equal(fijada.accion.prompt, '/executive-lab');
+    return `/${queSabe.suyas[0].id} · Codex con palabras`;
+  });
+
+  await comprobar('todo lo que RSC 2.0.5 puede montar tiene nombre en español', () => {
+    // El mapeo entre el arnés y la barra es una tabla (`media/nombres.json`), y
+    // esta prueba es lo que la mantiene completa: cada comando fijo de RSC, cada
+    // habilidad del suelo y cada agente base tienen que estar. Si una versión
+    // nueva trae uno más, esto lo dice antes que la pantalla de nadie.
+    const nombres = cargar('nombres');
+    const paquete = path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc');
+    if (!fs.existsSync(paquete)) return 'SALTADA';
+
+    const comandosDeRsc = fs.readFileSync(path.join(paquete, 'targets', 'commands.js'), 'utf8');
+    const fijos = new Set([
+      ...[...comandosDeRsc.matchAll(/skillCommand\('([a-z-]+)'/g)].map((m) => m[1]),
+      ...[...comandosDeRsc.matchAll(/name: '([a-z-]+)', kind:/g)].map((m) => m[1]),
+      ...(comandosDeRsc.match(/\.\.\.\[([^\]]+)\]\.map\(\(name\) => skillCommand\(name\)\)/) || ['', ''])[1].split(',').map((x) => x.trim().replace(/'/g, '')).filter(Boolean),
+    ]);
+    const sinNombre = [...fijos].filter((id) => !nombres.loQueTraduce('comandos').includes(id));
+    assert.deepEqual(sinNombre, [], 'un comando de RSC sin nombre en español');
+
+    const suelo = fs.readFileSync(path.join(paquete, 'scripts', 'lib', 'default-skill-floor.js'), 'utf8');
+    for (const id of [...suelo.matchAll(/'([a-z-]+)'/g)].map((m) => m[1])) {
+      assert.ok(nombres.loQueTraduce('habilidades').includes(id), `${id} está en el suelo de RSC y no tiene nombre`);
+    }
+    for (const id of require(path.join(RAIZ, 'media', 'nombres.json')).fontaneria) {
+      assert.ok(nombres.loQueTraduce('habilidades').includes(id), `${id} es fontanería y no tiene nombre`);
+    }
+
+    // Los agentes: los cuatro base con fila, los de lenguaje con patrón.
+    for (const id of ['developer', 'refuter-correctness', 'refuter-security', 'refuter-tests']) {
+      assert.ok(nombres.comoSeLlama('ayudantes', id).deFuera, `${id} sin nombre`);
+    }
+    const revisor = nombres.comoSeLlama('ayudantes', 'react-reviewer');
+    assert.equal(revisor.nombre, 'Revisor de React');
+    assert.ok(revisor.deFuera && /React/.test(revisor.queHace));
+    assert.equal(nombres.comoSeLlama('ayudantes', 'flutter-build-resolver').nombre, 'Arreglador de compilación de Flutter');
+    assert.equal(nombres.comoSeLlama('ayudantes', 'cobros-atrasados').deFuera, false, 'uno de la casa no casa con ningún patrón');
+
+    // Y ningún nombre es una frase sobre lo que sabe hacer: empieza en mayúscula
+    // y no empieza por un verbo en infinitivo seguido de complemento largo.
+    const tabla = require(path.join(RAIZ, 'media', 'nombres.json'));
+    for (const monton of ['comandos', 'habilidades', 'ayudantes']) {
+      for (const [id, fila] of Object.entries(tabla[monton])) {
+        assert.match(fila.nombre, /^[A-ZÁÉÍÓÚÑ]/, `${monton}/${id}: el nombre empieza en mayúscula`);
+        assert.ok(fila.nombre.length <= 40, `${monton}/${id}: un nombre, no una frase`);
+      }
+    }
+    for (const c of require(path.join(RAIZ, 'media', 'capacidades.json')).capacidades) {
+      assert.match(c.nombre, /^[A-ZÁÉÍÓÚÑ]/, `${c.id}: el nombre empieza en mayúscula`);
+      assert.ok(!/^(llevar|saber|seguir|escribir|revisar|dejar|decidir|mandar|trabajar|manejar|dar|hablar|comprar|poner|contratar|cumplir|recibir|elegir|mantener|contar) /i.test(c.nombre), `${c.id}: «${c.nombre}» es una frase, no un nombre`);
+    }
+    return `${fijos.size} comandos · ${nombres.loQueTraduce('habilidades').length} habilidades · 4 agentes + 2 patrones`;
+  });
+
+  await comprobar('un agente del arnés se nombra en español, y uno de la casa con lo suyo', () => {
+    // Los agentes eran el único sitio de la barra donde se colaba una línea en
+    // inglés: RSC escribe `name` en clave y `description` en inglés, y los dos
+    // salían tal cual.
+    const fs2 = require('node:fs');
+    const conRsc = fs2.mkdtempSync(path.join(os.tmpdir(), 'agentes-rsc-'));
+    fs2.writeFileSync(path.join(conRsc, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'] }));
+    fs2.mkdirSync(path.join(conRsc, '.claude', 'agents'), { recursive: true });
+    fs2.writeFileSync(path.join(conRsc, '.claude', 'agents', 'refuter-security.md'),
+      '---\nname: refuter-security\ndescription: "Adversarial reviewer, security and privacy lens."\nmodel: sonnet\n---\nBody.\n');
+    fs2.writeFileSync(path.join(conRsc, '.claude', 'agents', 'react-reviewer.md'),
+      '---\nname: react-reviewer\ndescription: "React and Next.js reviewer."\n---\nBody.\n');
+    fs2.writeFileSync(path.join(conRsc, '.claude', 'agents', 'cobros.md'),
+      '---\nname: cobros atrasados\ndescription: "Reclama las facturas que se han pasado de plazo."\n---\nBody.\n');
+
+    vscode.guion.raiz = conRsc;
+    try {
+      const todos = cargar('agentes').queHay();
+      const por = Object.fromEntries(todos.map((a) => [a.id, a]));
+      assert.equal(por['refuter-security'].nombre, 'Revisor de seguridad');
+      assert.ok(!/Adversarial/.test(por['refuter-security'].queHace), 'la frase en inglés no se enseña');
+      assert.ok(por['refuter-security'].delArnes, 'y se sabe que es del arnés');
+      assert.equal(por['react-reviewer'].nombre, 'Revisor de React', 'por patrón');
+      assert.equal(por.cobros.nombre, 'cobros atrasados', 'el de la casa, con su nombre');
+      assert.match(por.cobros.queHace, /pasado de plazo/, 'y su frase, que está en español');
+      assert.equal(por.cobros.delArnes, false);
+      assert.match(por.cobros.prompt, /«cobros»/, 'y se lanza por su identificador, no por su rótulo');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return 'Revisor de seguridad · Revisor de React · cobros atrasados';
+  });
+
+  await comprobar('ningún rótulo de la barra es una perífrasis sobre lo que el asistente sabe hacer', () => {
+    // Jose, 21-09-2026: «que no haya "simplificaciones" excesivas como llamar a
+    // las skills "Lo que sabe hacer" y esas tonterías». Las cosas se llaman por
+    // lo que son. Esta lista es lo que se quitó; si vuelve, esto lo dice.
+    const perifrasis = [
+      'Lo que sabe hacer', 'sabe hacer (skills)', 'Ayudantes', 'Procesos con un clic', 'Tus botones',
+      'Puede aprender', 'Que lo aprenda', 'Ya sabe', 'Con quién hablas', 'Lo que le has dado', 'Lo que ha hecho',
+      'Lo que sabe de',
+    ];
+    const ficheros = [
+      path.join(RAIZ, 'media', 'panel.js'),
+      path.join(RAIZ, 'package.json'),
+      ...fs.readdirSync(path.join(RAIZ, 'src')).filter((f) => f.endsWith('.js')).map((f) => path.join(RAIZ, 'src', f)),
+    ];
+    const coladas = [];
+    for (const fichero of ficheros) {
+      fs.readFileSync(fichero, 'utf8').split('\n').forEach((linea, i) => {
+        const sinComentario = linea.trim().startsWith('//') || linea.trim().startsWith('*') || linea.trim().startsWith('/*') ? '' : linea;
+        for (const p of perifrasis) {
+          if (new RegExp(`['"\`>]${p}`).test(sinComentario)) coladas.push(`${path.basename(fichero)}:${i + 1} «${p}»`);
+        }
+      });
+    }
+    assert.deepEqual(coladas, [], 'una perífrasis ha vuelto a la pantalla');
+    return `${perifrasis.length} perífrasis vigiladas en ${ficheros.length} ficheros`;
   });
 
   await comprobar('el diario lee los dos formatos y no se traga las plantillas', () => {
@@ -2289,7 +2463,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'tres casos, y el nuestro teñido';
   });
 
-  await comprobar('los ayudantes no salen hasta que hay alguno', () => {
+  await comprobar('los agentes no salen hasta que hay alguno', () => {
     // Jose: "tiene que estar sin aparecer en el menú hasta que se acepte la
     // sugerencia y haya el primer agente". Es la regla de siempre —nada
     // predefinido— dicha para un caso nuevo.
@@ -2310,10 +2484,10 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.deepEqual(donde.SITIOS.codex.agentes, ['.codex', 'agents']);
 
     assert.equal(agentes.dondeVive('../../../etc/passwd'), null, 'no se abre nada de fuera');
-    return `${agentes.queHay().length} ayudante`;
+    return `${agentes.queHay().length} agente`;
   });
 
-  await comprobar('un ayudante de Codex se lee entero, aunque venga en otro formato', () => {
+  await comprobar('un agente de Codex se lee entero, aunque venga en otro formato', () => {
     // RSC escribe los ayudantes en tres sintaxis según el asistente: markdown
     // con cabecera para Claude, TOML para Codex, JSON para Kiro. Aquí se leían
     // los tres con el lector de cabeceras YAML, que solo entiende la primera.
@@ -2432,8 +2606,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
 
       const radio = await cargar('terreno').radiografia();
       const nombres = radio.piezas.map((p) => p.nombre);
-      assert.ok(nombres.includes('Con quién hablas'), 'se dice con quién habla');
-      assert.ok(!nombres.includes('Botones que ha aprendido'), 'y no se reprocha lo que no puede tener');
+      assert.ok(nombres.includes('Tu asistente'), 'se dice cuál es el asistente');
+      assert.ok(!nombres.includes('Comandos'), 'y no se reprocha lo que no puede tener');
       return `${suyo.otras.length + suyo.suyas.length} habilidades · 1 ayudante · 0 botones, y se sabe por qué`;
     } finally {
       vscode.guion.raiz = empresa;
@@ -2814,7 +2988,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${filas} filas, todas plegadas`;
   });
 
-  await comprobar('los ayudantes viven con sus hermanos, dentro de Acciones', () => {
+  await comprobar('los agentes viven con sus hermanos, dentro de Acciones', () => {
     // Tenían un apartado entero para ellos solos, arriba, con un botón dentro.
     // Son lo mismo que los comandos y las habilidades —algo que esta carpeta
     // sabe hacer—, así que van donde están esos dos.
@@ -2834,11 +3008,11 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const con = p.mandar(comun(true));
     assert.ok(!/grupo:agentes/.test(con), 'ya no hay un apartado suyo');
     const dentroDeAcciones = con.split('grupo:acciones')[1] || '';
-    assert.match(dentroDeAcciones, /Ayudantes \(agentes\)/, 'y están dentro de Acciones');
+    assert.match(dentroDeAcciones, />Agentes</, 'y están dentro de Acciones');
 
     // Y sin ninguno montado, no se nombran.
     const sin = p.mandar(comun(false));
-    assert.ok(!/Ayudantes/.test(sin), 'un rótulo con nada detrás es peor que no tenerlo');
+    assert.ok(!/>Agentes</.test(sin), 'un rótulo con nada detrás es peor que no tenerlo');
     return 'dentro de Acciones, y solo si hay';
   });
 
@@ -2964,7 +3138,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       }, /Conocimiento.*Histórico.*Ajustes/s],
       ['radiografia', { tipo: 'radiografia', ...radio }, /Qué falta por montar/],
       ['saberes', { tipo: 'saberes', sabe: sabe.sabe, puedeAprender: sabe.puedeAprender, deSerie: sabe.deSerie }, /Habilidades \(skills\)/],
-      ['salidas', { tipo: 'salidas', herramientas: cargar('salidas').loQueHaProducido() }, /Lo que ha hecho/],
+      ['salidas', { tipo: 'salidas', herramientas: cargar('salidas').loQueHaProducido() }, /Resultados/],
       // Con la forma exacta que manda la extensión: si a una pantalla le falta
       // un campo, revienta y antes eso no se veía.
       ['cerebro', {
@@ -2988,15 +3162,15 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       }, /Talleres Ruiz/],
       ['huecos', { tipo: 'huecos', huecos: cerebroM.loQueAunNoSabe(4) }, /Preguntas sin contestar/],
       ['papeles', { tipo: 'papeles', ...cargar('papeles').queHay() }, /contrato-talleres-ruiz/],
-      ['comandos', { tipo: 'comandos', comandos: cargar('acciones').todos() }, /Procesos con un clic/],
+      ['comandos', { tipo: 'comandos', comandos: cargar('acciones').todos() }, /<h2>Comandos<\/h2>/],
       ['ayuda', { tipo: 'ayuda', github: { conectado: false } }, /Estoy atascado|por dónde seguir/],
       ['reglas', { tipo: 'reglas', ...cargar('reglas').queHay() }, /albarán firmado/],
       ['asistente', { tipo: 'asistente', ...cargar('asistentes').comoEstamos(), aviso: null }, /Claude|Codex/],
       ['comoTrabaja', { tipo: 'comoTrabaja', ...cargar('ajustes').comoEstamos(), aviso: null }, /Cada cuánto guarda solo/],
       ['laCara', { tipo: 'laCara', ...cargar('tema').comoEstamos(), aviso: null }, /Dale material/],
       ['proyectos', { tipo: 'proyectos', montones: cargar('proyectos').queHay() }, /Vender recambios/],
-      ['agentes', { tipo: 'agentes', agentes: cargar('agentes').queHay() }, /cobros atrasados/],
-      ['sugerencias', { tipo: 'sugerencias', ahora: [], hayAgentes: true, hayProyectos: true }, /Que lo repase todo/],
+      ['agentes', { tipo: 'agentes', agentes: cargar('agentes').queHay() }, /cobros atrasados/i],
+      ['sugerencias', { tipo: 'sugerencias', ahora: [], hayAgentes: true, hayProyectos: true }, /Pedirle que revise la carpeta/],
       ['trato', { tipo: 'trato', ...tratoM.comoEstamos(), aviso: null }, /Cuánto te explica/],
       ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
     ];

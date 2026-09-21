@@ -364,13 +364,13 @@ function pantallaSalidas(datos) {
     </div>`;
 
   return `
-    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Lo que ha hecho' }])}
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Resultados' }])}
     ${bloqueAviso()}
     ${volver()}
 
     <div class="brujula">
-      <h2>Lo que ha hecho</h2>
-      <p class="hiciste">Lo que ha ido preparando para ti. Ábrelo para verlo, o guárdatelo donde quieras.</p>
+      <h2>Resultados</h2>
+      <p class="hiciste">Lo que ha producido con cada conexión. Ábrelo para verlo, o guárdatelo donde quieras.</p>
     </div>
 
     ${herramientas.length ? herramientas.map((h) => `
@@ -384,49 +384,60 @@ function pantallaSalidas(datos) {
   `;
 }
 
-// ------------------------------------------------------ qué sabe hacer
+// ------------------------------------------------------ habilidades (skills)
 
-// Lo que ya sabe y lo que podría aprender. La fontanería del arnés —orient,
-// suggest, harness, init— no se lista: es de la máquina, no de quien lo usa, y
-// se resume en una línea.
+// Para qué se montó esta carpeta, dicho como lo dijo quien la montó.
 const DE_QUE_VA = {
-  operations: 'llevar el día a día',
-  content: 'crear cosas',
+  operations: 'el día a día de un negocio',
+  content: 'crear contenido',
   software: 'construir algo',
   research: 'estudiar un tema a fondo',
 };
 
+// Una habilidad instalada: se pulsa y se invoca. Con Claude el botón manda
+// `/su-identificador`, que es exactamente lo que se escribiría a mano —RSC lo
+// dice: para Claude las habilidades son comandos—, y la (i) lo enseña como
+// «Se escribe /unslop» para que se pueda atar con lo que se oye en clase.
+const filaDeHabilidad = (c) => filaDeAccion({
+  etiqueta: c.nombre.charAt(0).toUpperCase() + c.nombre.slice(1),
+  icono: '✨',
+  queHace: c.frase,
+  accion: { tipo: 'pedir', prompt: c.prompt },
+  nombreReal: c.prompt && c.prompt.startsWith('/') ? c.prompt : c.id,
+  seEscribe: Boolean(c.prompt && c.prompt.startsWith('/')),
+});
+
+// Una del catálogo que todavía no está: se pulsa y se añade (`rsc add`).
+const filaDelCatalogo = (c) => filaDeAccion({
+  etiqueta: c.nombre.charAt(0).toUpperCase() + c.nombre.slice(1),
+  icono: '＋',
+  queHace: c.frase,
+  accion: { tipo: 'aprenderCapacidad', capacidad: c.id, nombre: c.nombre },
+  nombreReal: c.id,
+  dentro: `<p>${c.porQue && c.porQue.length
+    ? `Pega con lo que ya tienes escrito: ${texto(c.porQue.join(', '))}. `
+    : ''}Al pulsar se añade a esta carpeta.</p>`,
+});
+
+// Las habilidades (skills). Cuatro montones de lo instalado —las propias, las
+// del catálogo, las de fuera del catálogo y las del arnés— y debajo lo que se
+// puede añadir. Todo lo instalado se ve: el mapeo entre el arnés y la barra
+// tiene que ser completo, y una habilidad puesta que no sale en ningún sitio es
+// un agujero, no una simplificación.
 function pantallaSaberes(datos) {
+  const suyas = datos.suyas || [];
   const sabe = datos.sabe || [];
   const otras = datos.otras || [];
+  const deSerie = datos.deSerie || [];
   const puede = datos.puedeAprender || [];
   const demas = datos.lasDemas || [];
 
-  const enMayuscula = (n) => n.charAt(0).toUpperCase() + n.slice(1);
-
-  // Una que ya tiene puesta: se pulsa y se la pide. Antes estas no tenían
-  // botón —eran una lista que no se podía usar— y había que salir de aquí y
-  // escribirlo a mano.
-  const yaLaSabe = (c) => filaDeAccion({
-    etiqueta: enMayuscula(c.nombre),
-    icono: '✨',
-    queHace: c.frase,
-    accion: {
-      tipo: 'pedir',
-      prompt: `Quiero ${c.frase ? c.frase.charAt(0).toLowerCase() + c.frase.slice(1) : c.nombre} Pregúntame lo que necesites.`,
-    },
-    nombreReal: c.id,
-  });
-
-  // Una que todavía no: se pulsa y la aprende. El rótulo del montón lo dice,
-  // para que pulsar un nombre no tenga dos significados según dónde estés.
-  const puedeAprenderla = (c) => filaDeAccion({
-    etiqueta: enMayuscula(c.nombre),
-    icono: '＋',
-    queHace: c.frase,
-    accion: { tipo: 'aprenderCapacidad', capacidad: c.id, nombre: c.nombre },
-    nombreReal: c.id,
-  });
+  // Del catálogo: las que pegan con lo escrito, desplegadas; el resto de las
+  // que pegan con esta clase de carpeta, plegadas si son muchas. Con 59 en el
+  // catálogo, una lista plana era una pantalla entera de scroll.
+  const aLaVista = Math.max(datos.encajan || 0, Math.min(puede.length, 6));
+  const delante = puede.slice(0, aLaVista);
+  const detras = puede.slice(aLaVista);
 
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Habilidades (skills)' }])}
@@ -435,51 +446,28 @@ function pantallaSaberes(datos) {
 
     <div class="brujula">
       <h2>Habilidades (skills)</h2>
-      <p class="hiciste">Pídele cualquiera de estas con tus palabras. Y lo que no sepa todavía, puede aprenderlo aquí mismo.</p>
+      <p class="hiciste">Las que están puestas se piden con un clic, o escribiendo su nombre en la conversación. Las del catálogo se añaden desde aquí.</p>
     </div>
 
-    ${datos.suyas && datos.suyas.length ? `
-      <h2>Las tuyas</h2>
-      <p class="detalle">Escritas para esta carpeta, no vienen de ningún catálogo.</p>
-      ${datos.suyas.map(yaLaSabe).join('')}
-      <hr class="separador">` : ''}
+    ${suyas.length ? `
+      <h2>Propias de esta carpeta</h2>
+      <p class="detalle">Escritas aquí. No vienen de ningún catálogo.</p>
+      ${suyas.map(filaDeHabilidad).join('')}` : ''}
 
-    ${/* "Ya sabe: todavía nada de esta lista" no le dice nada a nadie, y contar
-          la fontanería del arnés menos todavía. Si no hay nada que enseñar en
-          un montón, ese montón no sale. */''}
-    ${sabe.length ? `<h2>Ya sabe</h2>${sabe.map(yaLaSabe).join('')}` : ''}
+    ${sabe.length ? `<h2>Instaladas</h2>${sabe.map(filaDeHabilidad).join('')}` : ''}
+
     ${otras.length ? `
-      <h2>Puestas por el camino</h2>
-      ${otras.map(yaLaSabe).join('')}` : ''}
+      <h2>Instaladas fuera del catálogo</h2>
+      ${otras.map(filaDeHabilidad).join('')}` : ''}
 
-    <hr class="separador">
+    ${deSerie.length ? `
+      <details class="acordeon grupo">
+        <summary>Las del arnés<span class="cuantos">${deSerie.length}</span></summary>
+        <p class="detalle">Las monta el arnés para funcionar. Están puestas como las demás; van plegadas porque no se piden a menudo.</p>
+        ${deSerie.map(filaDeHabilidad).join('')}
+      </details>` : ''}
 
-    ${/* No todo sale de un catálogo. Lo que hace falta en una carpeta depende de
-          para qué dijo esa persona que era, o —si ya venía con trabajo hecho— de
-          lo que haya dentro. Eso no lo sabemos nosotros: lo sabe el asistente
-          leyendo su perfil y su carpeta. */''}
-    <h2>Hazle una a medida</h2>
-    <p class="detalle">Si lo que necesitas no está en la lista, se le puede enseñar desde cero.</p>
-    ${boton({
-      etiqueta: 'Proponme habilidades para lo mío',
-      icono: '🧠',
-      principal: true,
-      accion: {
-        tipo: 'pedir',
-        prompt: [
-          'Mira para qué dije que era esta carpeta y lo que ya hay dentro, y proponme tres habilidades nuevas que me vendrían bien y que no existan ya.',
-          '',
-          'De cada una dime: cómo se llamaría en cristiano, qué me ahorraría, y con un ejemplo de algo concreto que yo le pediría.',
-          'No me propongas cosas genéricas: tienen que salir de lo que hay en esta carpeta.',
-          'Cuando elija una, escríbela y déjala puesta.',
-        ].join('\n'),
-      },
-    })}
-    ${boton({
-      etiqueta: 'Quiero enseñarle algo concreto',
-      icono: '✏️',
-      accion: { tipo: 'pedir', prompt: 'Quiero enseñarle a hacer algo que hago yo y que todavía no sabe. Pregúntame qué es, cómo lo hago paso a paso y qué tiene que salir al final, y déjalo escrito como habilidad suya.' },
-    })}
+    ${!suyas.length && !sabe.length && !otras.length && !deSerie.length ? nada('Todavía no hay ninguna puesta.') : ''}
 
     <hr class="separador">
 
@@ -488,20 +476,53 @@ function pantallaSaberes(datos) {
           facturas, gestoría y proveedores. Lo que no pega no se tira: se
           pliega, por si alguien monta una carpeta para una cosa y acaba
           haciendo otra. */''}
-    <h2>Puede aprender</h2>
+    <h2>Del catálogo</h2>
     <p class="detalle">${datos.deQueVa && DE_QUE_VA[datos.deQueVa]
-      ? `Las que pegan con esto, que montaste para ${texto(DE_QUE_VA[datos.deQueVa])}. Pulsa una y la aprende.`
-      : 'Pulsa una y la aprende. La (i) dice para qué sirve.'}</p>
+      ? `Las que pegan con una carpeta para ${texto(DE_QUE_VA[datos.deQueVa])}. Pulsa una y se añade.`
+      : 'Pulsa una y se añade. La (i) dice para qué sirve.'}</p>
     ${puede.length
-      ? puede.map(puedeAprenderla).join('')
-      : nada('Ya sabe todo lo que tenemos para esto.')}
+      ? delante.map(filaDelCatalogo).join('')
+      : nada('Ya están puestas todas las que pegan con esto.')}
+    ${detras.length ? `
+      <details class="acordeon grupo">
+        <summary>Ver las demás<span class="cuantos">${detras.length}</span></summary>
+        ${detras.map(filaDelCatalogo).join('')}
+      </details>` : ''}
 
     ${demas.length ? `
       <details class="acordeon grupo">
-        <summary>Las demás<span class="cuantos">${demas.length}</span></summary>
+        <summary>Para otra clase de carpeta<span class="cuantos">${demas.length}</span></summary>
         <p class="detalle">No pegan con para lo que montaste esto, pero si te hacen falta, ahí están.</p>
-        ${demas.map(puedeAprenderla).join('')}
+        ${demas.map(filaDelCatalogo).join('')}
       </details>` : ''}
+
+    <hr class="separador">
+
+    ${/* No todo sale de un catálogo. Lo que hace falta en una carpeta depende de
+          para qué dijo esa persona que era, o —si ya venía con trabajo hecho— de
+          lo que haya dentro. Eso no lo sabemos nosotros: lo sabe el asistente
+          leyendo su perfil y su carpeta. */''}
+    <h2>Crear una habilidad nueva</h2>
+    <p class="detalle">Si lo que necesitas no está en el catálogo, se escribe una a medida para esta carpeta.</p>
+    ${boton({
+      etiqueta: 'Pedirle propuestas de habilidades',
+      icono: '🧠',
+      accion: {
+        tipo: 'pedir',
+        prompt: [
+          'Mira para qué dije que era esta carpeta y lo que ya hay dentro, y proponme tres habilidades (skills) nuevas que me vendrían bien y que no existan ya.',
+          '',
+          'De cada una dime: cómo se llamaría, qué me ahorraría, y un ejemplo de algo concreto que yo le pediría.',
+          'No me propongas cosas genéricas: tienen que salir de lo que hay en esta carpeta.',
+          'Cuando elija una, escríbela como habilidad propia de esta carpeta y déjala puesta.',
+        ].join('\n'),
+      },
+    })}
+    ${boton({
+      etiqueta: 'Escribir una habilidad a medida',
+      icono: '✏️',
+      accion: { tipo: 'pedir', prompt: 'Quiero una habilidad (skill) nueva para algo que hago yo y que todavía no sabe hacer. Pregúntame qué es, cómo lo hago paso a paso y qué tiene que salir al final, y déjala escrita como habilidad propia de esta carpeta.' },
+    })}
   `;
 }
 
@@ -556,7 +577,7 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'c
 // Lo que RSC escribe cuando se construye algo con SDD: qué se quiere, por qué y
 // cómo. Aparece solo si esa carpeta lo tiene — una de contabilidad no lo tendrá
 // nunca, y una donde se monte una web, sí.
-// ------------------------------------------------- procesos con un clic
+// ------------------------------------------------------------- comandos
 
 // Todos los comandos de esta carpeta. Los que alguien marcó como botón salen
 // arriba —son los mismos que se pueden fijar en Acciones rápidas— y detrás los
@@ -575,25 +596,25 @@ function pantallaComandos({ comandos = [] }) {
   const delArnes = comandos.filter((c) => c.delArnes);
 
   return `
-    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Procesos con un clic' }])}
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Comandos' }])}
     ${bloqueAviso()}
     ${volver()}
 
     <div class="brujula">
-      <h2>Procesos con un clic</h2>
-      <p class="hiciste">Cosas que haces a menudo, guardadas para pedirlas de una vez.</p>
+      <h2>Comandos</h2>
+      <p class="hiciste">Peticiones guardadas con nombre. Se lanzan con un clic, o escribiendo su nombre en la conversación.</p>
     </div>
 
     ${mios.length ? mios.map(fila).join('') : nada('Todavía no hay ninguno. Se van creando conforme repites tareas.')}
     ${boton({
-      etiqueta: 'Que se quede uno nuevo',
+      etiqueta: 'Crear un comando',
       icono: '➕',
-      accion: { tipo: 'pedir', prompt: 'Quiero que algo que hago a menudo se quede guardado para pedirlo de una vez. Pregúntame cuál es, qué tiene que hacer exactamente, y déjalo montado.' },
+      accion: { tipo: 'pedir', prompt: 'Quiero un comando nuevo para algo que hago a menudo. Pregúntame cuál es, qué tiene que hacer exactamente y cómo quiero que se llame, y déjalo escrito con su botón en la barra.' },
     })}
 
     ${delArnes.length ? `
       <hr class="separador">
-      <h2>Los que trae de serie</h2>
+      <h2>Los del arnés</h2>
       <p class="detalle">No los ha escrito nadie de aquí: vienen con el arnés.</p>
       ${delArnes.map(fila).join('')}` : ''}
 
@@ -634,14 +655,14 @@ function pantallaSugerencias({ ahora = [], hayAgentes, hayProyectos }) {
       <p class="hiciste">Lo que le vendría bien a esto, mirado por los dos lados.</p>
     </div>
 
-    <h2>Lo que veo yo</h2>
+    <h2>Visto en la carpeta</h2>
     ${delDisco}
 
     <hr class="separador">
-    <h2>Lo que ve el asistente</h2>
+    <h2>Lo que proponga el asistente</h2>
     <p class="detalle">Mira lo que hay montado y lo que le pides, y propone. Tarda un poco.</p>
     ${boton({
-      etiqueta: 'Que lo repase todo',
+      etiqueta: 'Pedirle que revise la carpeta',
       icono: '🔍',
       principal: true,
       accion: {
@@ -650,9 +671,9 @@ function pantallaSugerencias({ ahora = [], hayAgentes, hayProyectos }) {
           'Repasa esta carpeta entera y dime qué le vendría bien. Mira lo que hay montado y lo que te vengo pidiendo, y propón como mucho cinco cosas, ordenadas por lo que más me ahorraría.',
           '',
           'Mira en concreto:',
-          '- Algo que te pida a menudo y que debería quedarse como botón.',
+          '- Algo que te pida a menudo y que debería quedarse como comando.',
           '- Alguna habilidad que no tenga puesta y que me haría falta.',
-          '- Algo que repito cada semana o cada mes y que podría llevar un ayudante por su cuenta, sin que yo esté delante.',
+          '- Algo que repito cada semana o cada mes y que podría llevar un agente por su cuenta, sin que yo esté delante.',
           '- Algún programa mío que todavía no está conectado y debería estarlo.',
           '- Algo que esté a medias o mal montado y convenga arreglar.',
           '- Y si lo que quiero construir es lo bastante gordo como para acordarlo antes de empezar en vez de ir haciendo.',
@@ -664,21 +685,21 @@ function pantallaSugerencias({ ahora = [], hayAgentes, hayProyectos }) {
 
     ${hayAgentes || hayProyectos ? '' : `
       <hr class="separador">
-      <p class="detalle">Todavía no hay ayudantes montados ni nada acordado para construir. En cuanto los haya, aparecen solos en la pantalla principal.</p>`}
+      <p class="detalle">Todavía no hay agentes ni nada acordado para construir. En cuanto los haya, aparecen solos en la pantalla principal.</p>`}
   `;
 }
 
-// ------------------------------------------------------------- los ayudantes
+// -------------------------------------------------------------- los agentes
 
 function pantallaAgentes({ agentes = [] }) {
   return `
-    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Ayudantes' }])}
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Agentes' }])}
     ${bloqueAviso()}
     ${volver()}
 
     <div class="brujula">
-      <h2>Ayudantes</h2>
-      <p class="hiciste">Cada uno tiene un encargo y lo hace por su cuenta.</p>
+      <h2>Agentes</h2>
+      <p class="hiciste">Cada agente tiene un encargo fijo y lo hace por su cuenta cuando se le lanza.</p>
     </div>
 
     ${agentes.length
@@ -686,19 +707,19 @@ function pantallaAgentes({ agentes = [] }) {
         etiqueta: a.nombre.charAt(0).toUpperCase() + a.nombre.slice(1),
         icono: '🤖',
         queHace: a.queHace,
-        accion: { tipo: 'pedir', prompt: `Quiero que ${a.nombre} haga lo suyo ahora. Pregúntame lo que te falte.` },
-        nombreReal: a.fichero.replace(/\.[^.]+$/, ''),
+        accion: { tipo: 'pedir', prompt: a.prompt },
+        nombreReal: a.id || a.fichero.replace(/\.[^.]+$/, ''),
         // El encargo entero va detrás de la (i): interesa una vez, y antes
         // competía con el botón que de verdad se pulsa.
-        dentro: boton({ etiqueta: 'Ver su encargo', icono: '📄', pequeno: true, discreto: true, accion: { tipo: 'verAgente', fichero: a.fichero } }),
+        dentro: boton({ etiqueta: 'Ver sus instrucciones', icono: '📄', pequeno: true, discreto: true, accion: { tipo: 'verAgente', fichero: a.fichero } }),
       })).join('')
       : nada('Todavía no hay ninguno.')}
 
     <hr class="separador">
     ${boton({
-      etiqueta: 'Montar otro',
+      etiqueta: 'Crear un agente',
       icono: '➕',
-      accion: { tipo: 'pedir', prompt: 'Quiero un ayudante que se encargue de algo por su cuenta. Pregúntame de qué, cada cuánto y qué tiene que hacer exactamente, y móntalo.' },
+      accion: { tipo: 'pedir', prompt: 'Quiero un agente nuevo que se encargue de algo por su cuenta. Pregúntame de qué, cada cuánto y qué tiene que hacer exactamente, y déjalo escrito.' },
     })}
   `;
 }
@@ -839,16 +860,16 @@ function pantallaComoTrabaja({
   `;
 }
 
-// ------------------------------------------------------- con quién hablas
+// ---------------------------------------------------------- tu asistente
 
 function pantallaAsistente({ ahora, cuales = [], aviso: avisoLocal }) {
   return `
-    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Con quién hablas' }])}
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Tu asistente' }])}
     ${bloqueAviso(avisoLocal)}
     ${volver()}
 
     <div class="brujula">
-      <h2>Con quién hablas</h2>
+      <h2>Tu asistente</h2>
       <p class="hiciste">El asistente al que le hablan los botones de esta barra.</p>
     </div>
 
@@ -861,7 +882,7 @@ function pantallaAsistente({ ahora, cuales = [], aviso: avisoLocal }) {
             : 'Puesto en este ordenador. Los botones abren su barra y te dejan el texto copiado, porque no admite que se lo pasen.')
           : 'No está en este ordenador. Díselo a tu tutor.')}</p>
         ${a.instalado && a.id !== ahora && !a.delArnes
-          ? '<p class="pista">Esta carpeta no se montó para él: al cambiar, tus habilidades y tus ayudantes dejan de verse hasta que se los vuelvas a pedir.</p>'
+          ? '<p class="pista">Esta carpeta no se montó para él: al cambiar, tus habilidades y tus agentes dejan de verse hasta que se los vuelvas a pedir.</p>'
           : ''}
         ${a.instalado && a.id !== ahora
           ? boton({ etiqueta: `Hablar con ${a.nombre}`, icono: '▸', pequeno: true, accion: { tipo: 'elegirAsistente', cual: a.id } })
@@ -1001,13 +1022,13 @@ function pantallaPapeles({
     : nada(vacio));
 
   return `
-    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Lo que le has dado' }])}
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Documentos entregados' }])}
     ${bloqueAviso(avisoLocal)}
     ${volver()}
 
     <div class="brujula">
-      <h2>Lo que le has dado</h2>
-      <p class="hiciste">Los papeles que han entrado aquí. Lo que ha entendido de ellos está en Conocimiento, y lo que ha producido él, en Lo que ha hecho.</p>
+      <h2>Documentos entregados</h2>
+      <p class="hiciste">Los documentos que han entrado aquí. Lo que ha entendido de ellos está en Conocimiento, y lo que ha producido él, en Resultados.</p>
     </div>
 
     ${cajaDeBusqueda('papeles')}
@@ -1527,13 +1548,13 @@ function pantallaPrincipal() {
               documentos", "llevarte un archivo"— no se distinguían. Nombradas
               por de quién son, sí. */''}
         ${boton({ etiqueta: 'Darle documentos', icono: '📎', pequeno: true, accion: { tipo: 'anadirDocumentos' } })}
-        ${boton({ etiqueta: 'Lo que le has dado', icono: '📁', pequeno: true, accion: { tipo: 'verPapeles' } })}
-        ${boton({ etiqueta: 'Lo que ha hecho', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
+        ${boton({ etiqueta: 'Documentos entregados', icono: '📁', pequeno: true, accion: { tipo: 'verPapeles' } })}
+        ${boton({ etiqueta: 'Resultados', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
     })}
 
     ${grupo({
       id: 'grupo:saber',
-      etiqueta: 'Conocimiento',
+      etiqueta: 'Conocimiento (wiki)',
       // El número dice de qué es. Un "4" a secas al lado de un rótulo no se
       // sabe si son cuatro botones dentro, cuatro conceptos o cuatro de otra
       // cosa; y al lado de otro rótulo significaba algo distinto.
@@ -1575,14 +1596,14 @@ function pantallaPrincipal() {
       dentro: `
         ${/* Todo lo que es actuar, junto: lo que ya está guardado para pedirlo
               de una vez, lo que sabe hacer, y con qué está conectado. */''}
-        ${boton({ etiqueta: 'Procesos con un clic (comandos)', icono: '🔖', pequeno: true, accion: { tipo: 'verComandos' } })}
+        ${boton({ etiqueta: 'Comandos', icono: '🔖', pequeno: true, accion: { tipo: 'verComandos' } })}
         ${boton({ etiqueta: 'Habilidades (skills)', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } })}
         ${/* Los ayudantes estaban en un apartado suyo, arriba, con un solo
               botón dentro: un desplegable entero para llegar a una cosa. Y son
               lo mismo que los otros dos —algo que esta carpeta sabe hacer—, así
               que van donde están sus hermanos. Siguen sin salir hasta que hay
               al menos uno: un rótulo con nada detrás es peor que no tenerlo. */''}
-        ${estado.hayAgentes ? boton({ etiqueta: 'Ayudantes (agentes)', icono: '🤖', pequeno: true, accion: { tipo: 'verAgentes' } }) : ''}
+        ${estado.hayAgentes ? boton({ etiqueta: 'Agentes', icono: '🤖', pequeno: true, accion: { tipo: 'verAgentes' } }) : ''}
         ${boton({ etiqueta: 'Conexiones (tools)', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
         ${boton({
           etiqueta: 'Conectar algo nuevo',
@@ -1606,7 +1627,7 @@ function pantallaPrincipal() {
       dentro: `
         ${boton({ etiqueta: 'Cómo quieres que trabaje', icono: '🎛️', pequeno: true, accion: { tipo: 'verComoTrabaja' } })}
         ${boton({ etiqueta: 'Las reglas', icono: '📜', pequeno: true, accion: { tipo: 'verReglas' } })}
-        ${boton({ etiqueta: 'Con quién hablas', icono: '💬', pequeno: true, accion: { tipo: 'verAsistente' } })}
+        ${boton({ etiqueta: 'Tu asistente', icono: '💬', pequeno: true, accion: { tipo: 'verAsistente' } })}
         ${boton({
           etiqueta: marcaPuesta ? 'Cambiar el tema de mi empresa' : 'Poner el tema de mi empresa',
           icono: '🎨',
@@ -1766,7 +1787,7 @@ function pantallaCerebro({ temas, sinOrdenar = [], esperando, yaLeidos, hayPanel
   return `
     ${bloqueAviso(avisoLocal)}
     ${volver()}
-    <p class="titulo">Lo que sabe de ${texto(comoSeLlama)}</p>
+    <p class="titulo">Conocimiento de ${texto(comoSeLlama)}</p>
     ${cajaDeBusqueda('conceptos')}
     ${porTemas}
 
@@ -1802,7 +1823,7 @@ function pantallaResultados({ texto: consulta, cuantos, grupos }) {
       </div>`).join('')}`).join('');
 
   return `
-    <p class="titulo">Lo que sabe de ${texto(comoSeLlama)}</p>
+    <p class="titulo">Conocimiento de ${texto(comoSeLlama)}</p>
     ${volver({ tipo: 'verCerebro' })}
     ${cajaDeBusqueda(ultimoBuscado, consulta)}
     <p class="detalle">${texto(cuantos ? plural(cuantos, '1 resultado', '{n} resultados') : '')}</p>

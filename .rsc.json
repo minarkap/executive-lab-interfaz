@@ -22,7 +22,6 @@
     "orient",
     "parallel",
     "plan",
-    "react",
     "review",
     "sdd",
     "sdd-init",
@@ -40,8 +39,6 @@
   ],
   "agents": [
     "developer",
-    "react-build-resolver",
-    "react-reviewer",
     "refuter-correctness",
     "refuter-security",
     "refuter-tests"
@@ -57,8 +54,8 @@
   ],
   "onboarding": {
     "schemaVersion": 1,
-    "acceptedPlanId": "e7a924dd80dd5d0199f76da6c571384d664c5899e6f941477c789c3817182dfb",
-    "acceptedAt": "2026-09-21T09:58:55.370Z",
+    "acceptedPlanId": "a552da0e4feb441e5467371100801fad5bf508dbef767c6c1e7a925844254203",
+    "acceptedAt": "2026-09-21T11:19:21.012Z",
     "plan": {
       "schemaVersion": 1,
       "record": {
@@ -76,7 +73,7 @@
         "schemaVersion": 1,
         "signals": [
           "manifest:package.json",
-          "markdown:35"
+          "markdown:39"
         ],
         "stacks": [
           "node"
@@ -89,22 +86,6 @@
         {
           "kind": "agent",
           "id": "developer",
-          "state": "selected",
-          "reason": "The accepted substantial software workflow requires this implementation or review role.",
-          "provenance": "declared-intent",
-          "reevaluateWhen": []
-        },
-        {
-          "kind": "agent",
-          "id": "react-build-resolver",
-          "state": "selected",
-          "reason": "The accepted substantial software workflow requires this implementation or review role.",
-          "provenance": "declared-intent",
-          "reevaluateWhen": []
-        },
-        {
-          "kind": "agent",
-          "id": "react-reviewer",
           "state": "selected",
           "reason": "The accepted substantial software workflow requires this implementation or review role.",
           "provenance": "declared-intent",
@@ -321,14 +302,6 @@
         },
         {
           "kind": "skill",
-          "id": "react",
-          "state": "selected",
-          "reason": "Included in the development workflow for growing software.",
-          "provenance": "declared-intent",
-          "reevaluateWhen": []
-        },
-        {
-          "kind": "skill",
           "id": "review",
           "state": "selected",
           "reason": "Included in the development workflow for growing software.",
@@ -460,7 +433,6 @@
           "orient",
           "parallel",
           "plan",
-          "react",
           "review",
           "sdd",
           "sdd-init",
@@ -482,8 +454,6 @@
         "baseAgents": true,
         "agents": [
           "developer",
-          "react-build-resolver",
-          "react-reviewer",
           "refuter-correctness",
           "refuter-security",
           "refuter-tests"
@@ -496,16 +466,11 @@
       },
       "governedPaths": [
         ".claude/agents/developer.md",
-        ".claude/agents/react-build-resolver.md",
-        ".claude/agents/react-reviewer.md",
         ".claude/agents/refuter-correctness.md",
         ".claude/agents/refuter-security.md",
         ".claude/agents/refuter-tests.md",
-        ".claude/commands/build-fix.md",
         ".claude/commands/checkpoint.md",
         ".claude/commands/learn.md",
-        ".claude/commands/react-build.md",
-        ".claude/commands/react-review.md",
         ".claude/commands/resume-session.md",
         ".claude/commands/save-session.md",
         ".claude/rsc-bootstrap.mjs",
@@ -530,7 +495,6 @@
         ".claude/skills/orient",
         ".claude/skills/parallel",
         ".claude/skills/plan",
-        ".claude/skills/react",
         ".claude/skills/review",
         ".claude/skills/sdd",
         ".claude/skills/sdd-init",
@@ -578,7 +542,6 @@
         ".rsc/skills/orient",
         ".rsc/skills/parallel",
         ".rsc/skills/plan",
-        ".rsc/skills/react",
         ".rsc/skills/review",
         ".rsc/skills/sdd",
         ".rsc/skills/sdd-init",
@@ -626,7 +589,6 @@
         "orient": "conserved",
         "parallel": "conserved",
         "plan": "conserved",
-        "react": "conserved",
         "review": "conserved",
         "sdd": "conserved",
         "sdd-init": "conserved",
@@ -647,16 +609,11 @@
       },
       "paths": {
         ".claude/agents/developer.md": "conserved",
-        ".claude/agents/react-build-resolver.md": "conserved",
-        ".claude/agents/react-reviewer.md": "conserved",
         ".claude/agents/refuter-correctness.md": "conserved",
         ".claude/agents/refuter-security.md": "conserved",
         ".claude/agents/refuter-tests.md": "conserved",
-        ".claude/commands/build-fix.md": "conserved",
         ".claude/commands/checkpoint.md": "conserved",
         ".claude/commands/learn.md": "conserved",
-        ".claude/commands/react-build.md": "conserved",
-        ".claude/commands/react-review.md": "conserved",
         ".claude/commands/resume-session.md": "conserved",
         ".claude/commands/save-session.md": "conserved",
         ".claude/rsc-bootstrap.mjs": "conserved",
@@ -681,7 +638,6 @@
         ".claude/skills/orient": "conserved",
         ".claude/skills/parallel": "conserved",
         ".claude/skills/plan": "conserved",
-        ".claude/skills/react": "conserved",
         ".claude/skills/review": "conserved",
         ".claude/skills/sdd": "conserved",
         ".claude/skills/sdd-init": "conserved",
@@ -729,7 +685,6 @@
         ".rsc/skills/orient": "conserved",
         ".rsc/skills/parallel": "conserved",
         ".rsc/skills/plan": "conserved",
-        ".rsc/skills/react": "conserved",
         ".rsc/skills/review": "conserved",
         ".rsc/skills/sdd": "conserved",
         ".rsc/skills/sdd-init": "conserved",
@@ -754,22 +709,17 @@
     },
     "artifactDigests": {
       ".claude/agents/developer.md": "bb9b7ddfad2adfe906d9e829564737a8dc24d9821834f69e4fc5c93bfd6cf8fd",
-      ".claude/agents/react-build-resolver.md": "669f157adb60916f69bbcdabfaea80704982d2d9ada14b3405d75f1e5700150b",
-      ".claude/agents/react-reviewer.md": "62cd5c38dd67990b849daa16533bf6803dd624492595e59375c13b1c63896e8a",
       ".claude/agents/refuter-correctness.md": "2b6cd34d741880b7c58c73023172ec1f0ef13ca754587b8db3f96b3c8b825fd9",
       ".claude/agents/refuter-security.md": "b127f03c85ad95c0618e20fa5e08bf5bdd43a576de3b5ea161f0987172a1770d",
       ".claude/agents/refuter-tests.md": "b27f023556dc7a7f4b972ab80a79a9bf5902383f9d4b8dceebd163d17cf97762",
-      ".claude/commands/build-fix.md": "a04fc021cd2cd68e0fe1e38d085e7b42f1ed6cbf36cf4e75e0ff78c1088aeca0",
       ".claude/commands/checkpoint.md": "3709d39e46dbc67d4178356c1f586998ebd15b2264926a07377c19c86f695271",
       ".claude/commands/learn.md": "b6e2f72d92cb1dabba437dd35544e4db4b3c33b3396aa50345c41d8cfb24af32",
-      ".claude/commands/react-build.md": "4a038255af18ebd89f450a059496b191bfdec738d95e76bded9fea7c97455c91",
-      ".claude/commands/react-review.md": "ce637bca8c30a2dab08cd4b1d343ce900616ce92cca6f210461071e19379d6ce",
       ".claude/commands/resume-session.md": "d03750a36f0b2eaac2782b4f356f0b48757fbcf96b31d2ad22f62d8db75212a2",
       ".claude/commands/save-session.md": "bccff1405b115834208ae96f4db935e94885ad4b008c2f71d925755932668a7b",
       ".claude/rsc-bootstrap.mjs": "b572dd9732f143d942ac9e14329d76e7c241369aea5aca991a153327e0fd53b6",
       ".claude/settings.json": "1eea2ac82fab4a20e7741f7082b0e452a9bffc4b3700988d28551b6a6b38d0e8",
       ".claude/settings.local.json": "b0dccf5df33faa99d89fa8c549e447b8602ada1f2346b76d30ec0efdd5c92b17",
-      ".claude/skills/.rsc-state.json": "c3b356310f19fa068e9d06ce502a6e101d28037a4b9d66c4efe1ec8b2b4b287d",
+      ".claude/skills/.rsc-state.json": "ccee6bb0529283330b5f0d388bc889bd37f1223989f90345f6e94f09aa5750e8",
       ".claude/skills/analyze": "7ee436e22b9c3c6485e5821ea90cf35053c518b3f58f39af7592451612608fc1",
       ".claude/skills/automation-strategy": "99c6ef43514baab29192f006646acfd17f7f0de65a47fecd9939eb7079d426c0",
       ".claude/skills/bro": "da7332949972c99e34c60cb8b7ee0f7c8581beaa7ddd8b807d6ab26f1e244e58",
@@ -788,7 +738,6 @@
       ".claude/skills/orient": "a3afb2e50a7fcadec4808b621f699fa6ca4333c277a11f85ddad2cd849379415",
       ".claude/skills/parallel": "deb8436ce377e7743339e60f0ce4a27e8db6387adf7d1f39236b4392831f2a2f",
       ".claude/skills/plan": "b415bb03be6231bd8294991d47629283e0cd9ef2ffbb727776b5a0ca22621506",
-      ".claude/skills/react": "7811f86d42d525894c936312c7bef475343be76888de75187e9b82ae7a173b11",
       ".claude/skills/review": "86caef1ac5bdf83bb7a62651be698922c632a6a2e7b0cc8f077bcda816d5357f",
       ".claude/skills/sdd": "bcee9db82931b9661fb50477fe71fa864585fb5824640e1d373e32184e4deece",
       ".claude/skills/sdd-init": "07c8ba54a431f3b707e0e02cb769c75ed8c234600d3f5ed082b6d34e4a23271c",
@@ -803,8 +752,8 @@
       ".claude/skills/unslop": "1e545b565cd4250d15dd60961763bee80a8a986521de4415fdf9b44e5981820f",
       ".claude/skills/verify": "e4bd4882a5d0c9a10328892477da72f32b092edda812310d9e7c73b50a46c7be",
       ".claude/skills/worktrees": "33d8aef127bcdbc7d3832f639600e43daedd4f3d5feed8fe0ceb8463cab6fcf5",
-      ".gitignore": "d4d5c4998c1411eeaed1bfa05b0881de82c9eb5afc7a3fc06e6a9f5be7fd3903",
-      ".rsc/.base-versions.json": "ac70641f1c4496df362b1fc929295d91ea4dd589ac98a65fe203bf4f981eec3e",
+      ".gitignore": "6885ff67ae0fcd748e5ef190441d5b577b3ac48d230eea91b6d5eaf07625fca1",
+      ".rsc/.base-versions.json": "062d058f5dfbe3e9e2532b723579e6607c3d9d42fec9c9dd1fa8c634d3850a0b",
       ".rsc/.no-context7": "f5486b5171bbf8c7ea1ea564faf743d8938e0be83436dacbd522ab68eaa41264",
       ".rsc/.version": "9c65612e39d2c96cbdf45f3553f62e90a8952823e22872b3ca1ddcf156105dfb",
       ".rsc/danger-guard.mjs": "5314cc298a074738a947c5504a80a63bcb80101def34d662f8f0092171608627",
@@ -834,7 +783,6 @@
       ".rsc/skills/orient": "fd4b8f553713a07c44f7a1bc100ee8bb0409145ae7bbf9dbf73672d9a04cbc38",
       ".rsc/skills/parallel": "7db3ac92fe7f13b07f0a3a85e4a0c4dc3eae155350e6136fe15b056ab4032887",
       ".rsc/skills/plan": "f68f73b5a475fef58bbde19b9f055fd02f9f78d9a3904f1dee3a6a57fdf8c797",
-      ".rsc/skills/react": "c0c20f721da607a46bc19cb14d1074341d0c0f66cf8080fca5a042ad26a78e45",
       ".rsc/skills/review": "70d904ccdf62bfc504ccc43f57fbf2f59b4163dd5e51f46b9b4de0df82b8e5f0",
       ".rsc/skills/sdd": "5d8e62146b79afe3843cbb0bd27b6a5049201df2b32e14fe9b53eb45f716e203",
       ".rsc/skills/sdd-init": "be470575a907442498819076f5eaf88334a57ed55d6a46fd78e0dae95a4350c3",
@@ -852,8 +800,8 @@
       ".rsc/userprompt-gate.mjs": "5ee7206755b2bb99acf0c535fb2c71e36af2e0841bf6b02000101c46e682468a",
       ".rsc/worklog-checkpoint.mjs": "a2bf2d97adb0a2e3b0dc1a288325ea6c3425778492dc68332c7824f8837986c6",
       ".rsc/worktree-reaper.mjs": "37e2d33388afd09db8610500417d594dc342fbeecb626e16fc5d13e3302029d1",
-      "02-DOCS/wiki/harness/decisions.md": "2560d2e72a742eaf9238558ffc4a1de52b5f24c2f1c755608f2796007a818041",
-      "02-DOCS/wiki/harness/installation-plan.md": "33da3611a85daca933260d2f00fb198e5af15dfb52e4a1c07027144419da2524",
+      "02-DOCS/wiki/harness/decisions.md": "817ddfad23ae758d1b4b17a974fd116ed0b6f5e87215fc95db7fd1b305d62f02",
+      "02-DOCS/wiki/harness/installation-plan.md": "3a75fcfcbc934d43726d4f7bb8d8781c1b199a9da69de6304f234092c640a01d",
       "02-DOCS/wiki/harness/user-profile.md": "5b0369e368c27dd6fa4fd99f40605f84978bb89b0fb63a31ce58fe64e2065dac"
     }
   }

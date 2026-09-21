@@ -322,16 +322,18 @@ ${cabecera}
     return this.refrescar(true);
   }
 
-  // Enseñarle algo nuevo del catálogo, sin que el alumno vea nada de esto.
+  // Añadir una habilidad del catálogo (`rsc add`), sin que el alumno vea nada
+  // de esto. Se nombra por su nombre —«Facturación»— y se le dice cómo se
+  // invoca, que con Claude es escribir `/su-identificador`.
   async aprenderCapacidad(id, nombre) {
-    this.enviar({ tipo: 'esperando', que: `Aprendiendo a ${nombre}…` });
+    this.enviar({ tipo: 'esperando', que: `Añadiendo ${nombre}…` });
     const { ok } = await rsc.anadir(id);
     await this.refrescar(true);
     this.enviar({
       tipo: 'aviso',
       texto: ok
-        ? `Ya sabe ${nombre}. Pídeselo cuando quieras.`
-        : 'No he podido enseñárselo. Prueba con "Algo va mal".',
+        ? `${nombre} ya está puesta. Se pide con ${saberes.comoSePide(id)}.`
+        : 'No he podido añadirla. Prueba con "Algo va mal".',
       malo: !ok,
     });
   }
@@ -647,6 +649,9 @@ ${cabecera}
       deQueVa: sabe.deQueVa,
       suyas: sabe.suyas,
       otras: sabe.otras,
+      // Las que el arnés monta para funcionar. Plegadas, pero se ven.
+      deSerie: sabe.deSerie,
+      instaladas: sabe.instaladas,
       encajan: sabe.encajan,
     });
   }

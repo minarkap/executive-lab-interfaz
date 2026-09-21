@@ -23,7 +23,11 @@ node_modules/
 # guardián vuelve en cada clon y le deniega el primer commit a quien llegue.
 # Está contado en `docs/para-rsc.md`.
 !.rsc/.no-gitmoji
-.claude/skills/
+# `.claude/skills/` NO se excluye entera: ahí viven también las habilidades
+# PROPIAS de esta carpeta (`ownSkills` en `.rsc.json`), que no están en ningún
+# catálogo y que un clon no puede reconstruir con `sync`. Los enlaces a las del
+# arnés los excluye RSC uno a uno, más abajo. Con la carpeta entera excluida,
+# `texto-de-la-barra` llevaba tres días fuera del repositorio sin que nadie lo viera.
 .claude/settings.local.json
 02-DOCS/raw/worklog/.rsc-memory/
 
@@ -67,7 +71,6 @@ extension/.vscode-test/
 .claude/skills/implement
 .claude/skills/parallel
 .claude/skills/plan
-.claude/skills/react
 .claude/skills/review
 .claude/skills/sdd
 .claude/skills/sdd-init
@@ -81,15 +84,15 @@ extension/.vscode-test/
 .claude/skills/worktrees
 .claude/skills/.rsc-state.json
 .claude/agents/developer.md
-.claude/agents/react-build-resolver.md
-.claude/agents/react-reviewer.md
 .claude/agents/refuter-correctness.md
 .claude/agents/refuter-security.md
 .claude/agents/refuter-tests.md
-.claude/commands/build-fix.md
 .claude/commands/checkpoint.md
 .claude/commands/learn.md
-.claude/commands/react-build.md
-.claude/commands/react-review.md
 .claude/commands/resume-session.md
 .claude/commands/save-session.md
+
+# RSC añade aquí `.rsc/` cada vez que aplica un plan, porque busca esa línea exacta
+# y no la encuentra (arriba está como `.rsc/*`, a propósito). Con `.rsc/` entera
+# excluida, git no deja recuperar `.rsc/.no-gitmoji`, así que hay que quitarla.
+# Ver `docs/para-rsc.md`, punto 1.

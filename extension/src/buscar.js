@@ -155,23 +155,24 @@ function armarElIndice() {
     cosas.push(cosa('diario', sesion.titulo, sesion.resumen || '', { tipo: 'verSesion', fichero: sesion.fichero }));
   }
 
-  // 6. Lo que sabe hacer y quién le ayuda.
+  // 6. Las habilidades y los agentes.
   //
-  // Esta caja dice buscar "lo que puede hacer" y solo traía los botones. Una
-  // habilidad instalada —«revisar contratos»— no aparecía escribiendo su
-  // nombre, y un ayudante tampoco: estaban, pero solo entrando en su pantalla.
-  // Quien busca no sabe en qué apartado vive cada cosa; para eso busca.
+  // Esta caja dice buscar "lo que puede hacer" y solo traía los comandos. Una
+  // habilidad instalada —«Contratos»— no aparecía escribiendo su nombre, y un
+  // agente tampoco: estaban, pero solo entrando en su pantalla. Quien busca no
+  // sabe en qué apartado vive cada cosa; para eso busca.
   //
   // Salen con lo que ya sabe decir de ellas el resto de la barra, así que se
-  // nombran igual aquí y allí. Al pulsar se va a su pantalla, que es donde se
-  // explican enteras y desde donde se usan.
+  // nombran igual aquí y allí, y se buscan también por su identificador: quien
+  // oyó «unslop» en clase tiene que encontrarla escribiendo eso. Al pulsar se
+  // va a su pantalla, que es donde se explican enteras y desde donde se usan.
   const suyo = saberes.queSabe(carpetaDeLaExtension);
-  for (const habilidad of [...suyo.sabe, ...suyo.suyas, ...suyo.otras]) {
-    cosas.push(cosa('habilidad', habilidad.nombre, habilidad.frase || '', { tipo: 'verSaberes' }));
+  for (const habilidad of [...suyo.suyas, ...suyo.sabe, ...suyo.otras, ...suyo.deSerie]) {
+    cosas.push(cosa('habilidad', habilidad.nombre, `${habilidad.id} ${habilidad.frase || ''}`, { tipo: 'verSaberes' }));
   }
 
-  for (const ayudante of agentes.queHay()) {
-    cosas.push(cosa('ayudante', ayudante.nombre, ayudante.queHace || '', { tipo: 'verAgente', fichero: ayudante.fichero }));
+  for (const agente of agentes.queHay()) {
+    cosas.push(cosa('agente', agente.nombre, `${agente.id} ${agente.queHace || ''}`, { tipo: 'verAgente', fichero: agente.fichero }));
   }
 
   // Se prepara una vez lo que se va a comparar mil veces.
@@ -211,11 +212,11 @@ function fraseCon(texto, termino) {
 
 const GRUPOS = [
   { tipo: 'sabe', titulo: 'Conocimiento' },
-  { tipo: 'hacer', titulo: 'Tus botones (comandos)' },
+  { tipo: 'hacer', titulo: 'Comandos' },
   { tipo: 'papel', titulo: 'Documentos' },
   { tipo: 'conexion', titulo: 'Conexiones (tools)' },
   { tipo: 'habilidad', titulo: 'Habilidades (skills)' },
-  { tipo: 'ayudante', titulo: 'Ayudantes' },
+  { tipo: 'agente', titulo: 'Agentes' },
   { tipo: 'diario', titulo: 'El diario' },
 ];
 

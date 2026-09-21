@@ -48,12 +48,16 @@ function candidatos(carpetaDeLaExtension) {
     accion: { tipo: 'pedir', prompt: a.prompt },
   }));
 
-  const habilidades = saberes.queSabe(carpetaDeLaExtension).sabe.map((h) => ({
+  // Todas las instaladas menos las que el arnés monta para funcionar por
+  // dentro: nadie fija «Brújula» arriba. El texto que manda cada una es el que
+  // decide `saberes.js`: con Claude, `/la-habilidad`, que es lo que la dispara.
+  const sabe = saberes.queSabe(carpetaDeLaExtension);
+  const habilidades = [...sabe.suyas, ...sabe.sabe, ...sabe.otras].map((h) => ({
     id: idDeHabilidad(h),
     etiqueta: h.nombre.charAt(0).toUpperCase() + h.nombre.slice(1),
     icono: '✨',
     pista: h.frase,
-    accion: { tipo: 'pedir', prompt: `Quiero ${h.frase ? h.frase.charAt(0).toLowerCase() + h.frase.slice(1) : h.nombre}. Pregúntame lo que necesites.` },
+    accion: { tipo: 'pedir', prompt: h.prompt },
   }));
 
   const consultas = conexiones.loQueSePuedeMirar().flatMap((p) => p.scripts.map((s) => ({
@@ -67,8 +71,8 @@ function candidatos(carpetaDeLaExtension) {
   })));
 
   return [
-    { titulo: 'Tus botones (comandos)', cosas: botones },
-    { titulo: 'Consultas de tus conexiones', cosas: consultas },
+    { titulo: 'Comandos', cosas: botones },
+    { titulo: 'Consultas de las conexiones (tools)', cosas: consultas },
     { titulo: 'Habilidades (skills)', cosas: habilidades },
   ].filter((g) => g.cosas.length);
 }

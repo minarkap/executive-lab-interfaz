@@ -3,7 +3,7 @@
   "displayName": "Executive Lab",
   "description": "Convierte VS Code en una sola pantalla sencilla para trabajar con un arnés de IA, sin ver ficheros, rutas ni terminales.",
   "publisher": "executivelab",
-  "version": "0.19.1",
+  "version": "0.20.0",
   "license": "UNLICENSED",
   "engines": {
     "vscode": "^1.98.0"
@@ -111,11 +111,11 @@
       },
       {
         "command": "executiveLab.salidas",
-        "title": "Executive Lab: Lo que ha hecho"
+        "title": "Executive Lab: Resultados"
       },
       {
         "command": "executiveLab.comandos",
-        "title": "Executive Lab: Procesos con un clic"
+        "title": "Executive Lab: Comandos"
       },
       {
         "command": "executiveLab.sugerencias",
@@ -123,7 +123,7 @@
       },
       {
         "command": "executiveLab.agentes",
-        "title": "Executive Lab: Ayudantes"
+        "title": "Executive Lab: Agentes"
       },
       {
         "command": "executiveLab.proyectos",
@@ -147,11 +147,11 @@
       },
       {
         "command": "executiveLab.asistente",
-        "title": "Executive Lab: Con quién hablas"
+        "title": "Executive Lab: Tu asistente"
       },
       {
         "command": "executiveLab.papeles",
-        "title": "Executive Lab: Lo que le has dado"
+        "title": "Executive Lab: Documentos entregados"
       },
       {
         "command": "executiveLab.ayuda",

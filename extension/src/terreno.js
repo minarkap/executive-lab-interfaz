@@ -474,12 +474,12 @@ async function radiografia({ aFondo = null } = {}) {
       detalle: hay.tipo === 'conArnes' ? 'Listo' : hay.tipo === 'aMedias' ? 'Se quedó a medias' : 'Todavía no',
     }, { como: 'solo', etiqueta: 'Terminar de prepararlo', accion: { tipo: 'arrancar' } }),
     conArreglo({
-      nombre: 'Con quién hablas',
+      nombre: 'Tu asistente',
       estado: loTiene ? 'si' : 'no',
       detalle: loTiene
         ? conQuien.nombre
         : `${conQuien ? conQuien.nombre : 'Ninguno'}, y no lo tienes puesto en este ordenador`,
-    }, { como: 'persona', etiqueta: 'Ver con quién hablas', accion: { tipo: 'verAsistente' } }),
+    }, { como: 'persona', etiqueta: 'Ver tu asistente', accion: { tipo: 'verAsistente' } }),
     // ── Lo que cuelga del arnés, mientras no hay arnés ────────────────────
     //
     // Sin arnés montado, «no tienes conexiones» y «no ha aprendido nada» no son
@@ -513,7 +513,7 @@ async function radiografia({ aFondo = null } = {}) {
     // una cruz permanente ahí no es información: es un reproche por algo que no
     // se puede arreglar. Cuando no puede haberlos, esta línea no sale.
     ...(donde.puedeTenerBotones() ? [conArreglo({
-      nombre: 'Botones que ha aprendido',
+      nombre: 'Comandos',
       estado: !conArnes ? 'noAplica' : (botones ? 'si' : 'no'),
       detalle: !conArnes ? 'Cuando esté montado' : (botones ? `${botones}` : 'Ninguno todavía'),
     }, { como: 'solo', etiqueta: 'Ver los que hay', accion: { tipo: 'verComandos' } })] : []),

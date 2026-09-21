@@ -165,8 +165,10 @@ function consejos(contexto = {}) {
   if (puede) {
     lista.push({
       id: `capacidad-${puede.id}`,
-      texto: `Puedo aprender a ${puede.nombre}. ${puede.frase}`,
-      boton: 'Que lo aprenda',
+      // La habilidad se nombra por su nombre —«Facturación»— y no por una
+      // frase sobre lo que sabría hacer. Lo que hace va detrás.
+      texto: `Hay una habilidad (skill) que pega con esto: ${puede.nombre}. ${puede.frase}`,
+      boton: 'Añadirla',
       accion: { tipo: 'aprenderCapacidad', capacidad: puede.id, nombre: puede.nombre },
       porQue: puede.porQue,
     });

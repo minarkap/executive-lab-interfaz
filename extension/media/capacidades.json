@@ -1,11 +1,15 @@
 {
   "_comentario": [
-    "Las habilidades del catálogo de RSC que tienen sentido en una pyme, dichas en español de negocio.",
+    "Las habilidades del catálogo de RSC que tienen sentido en una pyme, con nombre y descripción en español de negocio.",
     "",
-    "REGLA: lo que no esté en esta lista no se le ofrece nunca al alumno. El catálogo trae 272",
+    "REGLA: lo que no esté en esta lista no se le ofrece al alumno para añadir. El catálogo trae 272",
     "habilidades, todas descritas en inglés y en jerga ('instrumenting product analytics',",
     "'wiring server code'), y docs/diccionario.md manda: nada aparece en pantalla si no está escrito",
-    "en sus palabras. Preferimos ofrecer 18 cosas bien dichas que 272 mal dichas.",
+    "en sus palabras. Las que están instaladas y no están aquí SÍ se enseñan, con su identificador.",
+    "",
+    "'nombre' es el NOMBRE de la habilidad, no una frase sobre lo que sabe hacer: «Facturación», no",
+    "«llevar tus facturas de principio a fin». El identificador real (invoicing) sale en la (i) de la fila,",
+    "y es lo que se escribe para invocarla. Jose, 21-09-2026: sin simplificaciones excesivas.",
     "",
     "Tampoco se usa `rsc consult` para decidir: rankea en inglés (probado el 17-09-2026: la misma",
     "consulta en español devuelve '(no recommendations)'), y un alumno escribe en español.",
@@ -13,12 +17,12 @@
     "",
     "Cada 'id' tiene que existir en el catálogo instalado; hay una comprobación en prueba/humo.js.",
     "'palabras' son las que se buscan en lo que el alumno ya tiene escrito: su objetivo, sus temas,",
-    "sus botones y sus conexiones."
+    "sus comandos y sus conexiones. 'para' dice con qué clase de carpeta pega (projectKind de RSC)."
   ],
   "capacidades": [
     {
       "id": "invoicing",
-      "nombre": "llevar tus facturas de principio a fin",
+      "nombre": "Facturación",
       "frase": "Presupuesto, factura y cobro, sin perder ninguna por el camino.",
       "palabras": [
         "factura",
@@ -38,7 +42,7 @@
     },
     {
       "id": "bookkeeping",
-      "nombre": "llevar las cuentas al día",
+      "nombre": "Contabilidad",
       "frase": "Ingresos, gastos y cierres de mes que cuadren cuando los pida la gestoría.",
       "palabras": [
         "contabilidad",
@@ -57,7 +61,7 @@
     },
     {
       "id": "finance-ops",
-      "nombre": "saber cuánto dinero vas a tener",
+      "nombre": "Tesorería",
       "frase": "La caja de los próximos meses, y qué pasa si un cliente se retrasa.",
       "palabras": [
         "tesoreria",
@@ -74,7 +78,7 @@
     },
     {
       "id": "sales-pipeline",
-      "nombre": "seguir a tus clientes y oportunidades",
+      "nombre": "Ventas y oportunidades",
       "frase": "Quién te ha pedido precio, en qué punto está y a quién toca llamar.",
       "palabras": [
         "cliente",
@@ -94,7 +98,7 @@
     },
     {
       "id": "proposals",
-      "nombre": "escribir propuestas que se acepten",
+      "nombre": "Propuestas comerciales",
       "frase": "El documento que el cliente lee para decir que sí.",
       "palabras": [
         "propuesta",
@@ -111,7 +115,7 @@
     },
     {
       "id": "contracts",
-      "nombre": "revisar y preparar contratos",
+      "nombre": "Contratos",
       "frase": "Contratos y cláusulas, con lo que hay que mirar antes de firmar.",
       "palabras": [
         "contrato",
@@ -128,7 +132,7 @@
     },
     {
       "id": "sop-builder",
-      "nombre": "dejar por escrito cómo se hacen las cosas",
+      "nombre": "Procedimientos escritos",
       "frase": "Convertir lo que solo sabe una persona en un paso a paso que sigue cualquiera.",
       "palabras": [
         "proceso",
@@ -147,7 +151,7 @@
     },
     {
       "id": "automation-strategy",
-      "nombre": "decidir qué merece la pena automatizar",
+      "nombre": "Estrategia de automatización",
       "frase": "Cuáles de tus tareas repetidas compensa quitarse de encima, y por dónde empezar.",
       "palabras": [
         "automatizar",
@@ -165,7 +169,7 @@
     },
     {
       "id": "email-connector",
-      "nombre": "mandar correos por su cuenta",
+      "nombre": "Correo automático",
       "frase": "Avisos y envíos que salen solos, sin que nadie se acuerde de mandarlos.",
       "palabras": [
         "correo",
@@ -183,7 +187,7 @@
     },
     {
       "id": "google-workspace",
-      "nombre": "trabajar con tu correo, tu calendario y tus documentos",
+      "nombre": "Google Workspace",
       "frase": "Leer y escribir en Gmail, Drive y Calendar sin abrirlos a mano.",
       "palabras": [
         "gmail",
@@ -202,7 +206,7 @@
     },
     {
       "id": "spreadsheet-ops",
-      "nombre": "manejar tus hojas de cálculo",
+      "nombre": "Hojas de cálculo",
       "frase": "Leer, limpiar y rellenar hojas sin abrirlas una por una.",
       "palabras": [
         "excel",
@@ -220,7 +224,7 @@
     },
     {
       "id": "calendar-scheduling",
-      "nombre": "dar cita a tus clientes",
+      "nombre": "Citas y agenda",
       "frase": "Que elijan hueco y quede puesto en tu agenda.",
       "palabras": [
         "cita",
@@ -237,7 +241,7 @@
     },
     {
       "id": "whatsapp-telegram",
-      "nombre": "hablar con tus clientes por mensajería",
+      "nombre": "WhatsApp y Telegram",
       "frase": "Avisos y respuestas por WhatsApp o Telegram.",
       "palabras": [
         "whatsapp",
@@ -253,7 +257,7 @@
     },
     {
       "id": "inventory",
-      "nombre": "saber qué tienes y cuándo pedir más",
+      "nombre": "Inventario",
       "frase": "Existencias, mínimos y cuándo toca reponer.",
       "palabras": [
         "stock",
@@ -270,7 +274,7 @@
     },
     {
       "id": "procurement",
-      "nombre": "comprar mejor a tus proveedores",
+      "nombre": "Compras y proveedores",
       "frase": "A quién comprar, a qué precio y con qué condiciones.",
       "palabras": [
         "proveedor",
@@ -286,7 +290,7 @@
     },
     {
       "id": "pricing",
-      "nombre": "poner bien tus precios",
+      "nombre": "Precios",
       "frase": "Qué cobrar y por qué, con los números delante.",
       "palabras": [
         "precio",
@@ -303,7 +307,7 @@
     },
     {
       "id": "hiring",
-      "nombre": "contratar a alguien sin liarte",
+      "nombre": "Contratación de personal",
       "frase": "La oferta, las preguntas de la entrevista y cómo comparar candidatos.",
       "palabras": [
         "contratar",
@@ -321,7 +325,7 @@
     },
     {
       "id": "people-ops",
-      "nombre": "llevar el día a día de tu equipo",
+      "nombre": "Gestión del equipo",
       "frase": "Altas, vacaciones, nóminas y todo lo que viene después de firmar.",
       "palabras": [
         "nomina",
@@ -339,7 +343,7 @@
     },
     {
       "id": "gdpr-privacy",
-      "nombre": "cumplir con la protección de datos",
+      "nombre": "Protección de datos (RGPD)",
       "frase": "Lo que la ley te pide tener escrito sobre los datos de tus clientes.",
       "palabras": [
         "datos",
@@ -357,7 +361,7 @@
     },
     {
       "id": "reporting",
-      "nombre": "recibir el informe de siempre sin pedirlo",
+      "nombre": "Informes periódicos",
       "frase": "El resumen del mes o de la semana, hecho y enviado solo.",
       "palabras": [
         "informe",
@@ -375,7 +379,7 @@
     },
     {
       "id": "kpi-framework",
-      "nombre": "elegir qué números mirar",
+      "nombre": "Indicadores (KPI)",
       "frase": "Los cuatro o cinco números que de verdad dicen cómo va esto.",
       "palabras": [
         "indicador",
@@ -393,7 +397,7 @@
     },
     {
       "id": "data-cleaning",
-      "nombre": "poner en orden un listado hecho un desastre",
+      "nombre": "Limpieza de datos",
       "frase": "Duplicados, huecos y formatos raros, arreglados antes de usarlos.",
       "palabras": [
         "duplicado",
@@ -412,7 +416,7 @@
     },
     {
       "id": "knowledge-ops",
-      "nombre": "mantener en orden lo que va aprendiendo",
+      "nombre": "Mantenimiento del conocimiento",
       "frase": "Repasar lo que sabe de tu empresa, quitar lo viejo y llenar los huecos.",
       "palabras": [
         "documentacion",
@@ -431,7 +435,7 @@
     },
     {
       "id": "marketing",
-      "nombre": "contar mejor lo que haces",
+      "nombre": "Marketing",
       "frase": "Qué decir de tu empresa, y dónde decirlo.",
       "palabras": [
         "marketing",
@@ -449,7 +453,7 @@
     },
     {
       "id": "newsletter",
-      "nombre": "mandar un boletín a tus clientes",
+      "nombre": "Newsletter",
       "frase": "Un correo periódico que la gente abra, con su lista y su calendario.",
       "palabras": [
         "boletin",
@@ -458,6 +462,628 @@
         "lista de correo",
         "envio",
         "campaña"
+      ],
+      "para": [
+        "content",
+        "operations"
+      ]
+    },
+    {
+      "id": "client-onboarding",
+      "nombre": "Alta de clientes nuevos",
+      "frase": "Los primeros treinta días de un cliente: quién hace qué, cuándo, y cómo saber que ha arrancado bien.",
+      "palabras": [
+        "alta",
+        "onboarding",
+        "bienvenida",
+        "cliente nuevo",
+        "kickoff",
+        "arranque",
+        "primeros dias",
+        "activacion"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "customer-support",
+      "nombre": "Atención al cliente",
+      "frase": "Responder a quejas e incidencias con prioridad, plazo y tono, y saber cuándo escalar.",
+      "palabras": [
+        "soporte",
+        "atencion",
+        "incidencia",
+        "queja",
+        "reclamacion",
+        "ticket",
+        "sla",
+        "cliente enfadado"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "meeting-notes",
+      "nombre": "Actas de reuniones",
+      "frase": "De unas notas o una grabación, el acta: decisiones con su porqué, tareas con responsable y fecha.",
+      "palabras": [
+        "reunion",
+        "acta",
+        "notas",
+        "transcripcion",
+        "decisiones",
+        "tareas",
+        "seguimiento",
+        "minutas"
+      ],
+      "para": [
+        "operations",
+        "research"
+      ]
+    },
+    {
+      "id": "presentations",
+      "nombre": "Presentaciones",
+      "frase": "Montar y dar forma a una presentación: la de ventas, la del consejo, la de un curso.",
+      "palabras": [
+        "presentacion",
+        "diapositivas",
+        "slides",
+        "powerpoint",
+        "ponencia",
+        "consejo",
+        "charla"
+      ],
+      "para": [
+        "content",
+        "operations"
+      ]
+    },
+    {
+      "id": "project-ops",
+      "nombre": "Seguimiento de proyectos",
+      "frase": "Llevar un proyecto con hitos, responsables y semáforo, sin montar ninguna herramienta nueva.",
+      "palabras": [
+        "proyecto",
+        "hitos",
+        "plazos",
+        "retraso",
+        "responsable",
+        "planificacion",
+        "seguimiento",
+        "entregas"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "research-ops",
+      "nombre": "Investigación con fuentes",
+      "frase": "Contestar una pregunta abierta con fuentes fechadas, y decir dónde las fuentes no se ponen de acuerdo.",
+      "palabras": [
+        "investigar",
+        "fuentes",
+        "normativa",
+        "estudio",
+        "informe",
+        "verificar",
+        "contrastar",
+        "citas"
+      ],
+      "para": [
+        "research",
+        "operations"
+      ]
+    },
+    {
+      "id": "market-research",
+      "nombre": "Estudio de mercado",
+      "frase": "Cuánto mercado hay, en qué segmentos, y por cuál empezar, con una fuente detrás de cada número.",
+      "palabras": [
+        "mercado",
+        "segmento",
+        "demanda",
+        "tamano",
+        "oportunidad",
+        "nicho",
+        "clientes potenciales",
+        "estudio"
+      ],
+      "para": [
+        "research",
+        "operations"
+      ]
+    },
+    {
+      "id": "competitor-watch",
+      "nombre": "Vigilancia de la competencia",
+      "frase": "Seguir a tus competidores: sus precios, sus novedades y sus cambios, apuntados con fecha.",
+      "palabras": [
+        "competencia",
+        "competidor",
+        "precios de",
+        "comparativa",
+        "benchmark",
+        "rival",
+        "novedades",
+        "seguimiento"
+      ],
+      "para": [
+        "research",
+        "operations"
+      ]
+    },
+    {
+      "id": "lead-gen",
+      "nombre": "Captación de clientes",
+      "frase": "Decidir a quién vender y armar la lista de contactos, ordenada por lo que encaja y sin duplicados.",
+      "palabras": [
+        "captacion",
+        "prospectos",
+        "leads",
+        "contactos",
+        "lista de clientes",
+        "perfil de cliente",
+        "cliente ideal",
+        "comercial"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "cold-outreach",
+      "nombre": "Primer contacto comercial",
+      "frase": "El correo o el mensaje a alguien que no te conoce, y los recordatorios que van detrás.",
+      "palabras": [
+        "correo frio",
+        "prospeccion",
+        "primer contacto",
+        "secuencia",
+        "recordatorio",
+        "linkedin",
+        "comercial",
+        "puerta fria"
+      ],
+      "para": [
+        "operations",
+        "content"
+      ]
+    },
+    {
+      "id": "landing-copy",
+      "nombre": "Textos de la web",
+      "frase": "Las palabras de una página que tiene que convencer: el titular, la oferta, las pruebas y el botón.",
+      "palabras": [
+        "web",
+        "pagina",
+        "titular",
+        "landing",
+        "textos",
+        "conversion",
+        "llamada a la accion",
+        "testimonios"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "brand-voice",
+      "nombre": "Tono de la marca",
+      "frase": "Cómo suena tu empresa cuando escribe, dejado por escrito para que todo suene a la misma casa.",
+      "palabras": [
+        "tono",
+        "voz",
+        "marca",
+        "estilo",
+        "como escribimos",
+        "comunicacion",
+        "identidad",
+        "palabras que usamos"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "case-studies",
+      "nombre": "Casos de éxito",
+      "frase": "Convertir lo que conseguiste con un cliente en un caso que convenza al siguiente, con su permiso y sus números.",
+      "palabras": [
+        "caso de exito",
+        "testimonio",
+        "cliente contento",
+        "resultados",
+        "referencia",
+        "historia de cliente",
+        "prueba social"
+      ],
+      "para": [
+        "content",
+        "operations"
+      ]
+    },
+    {
+      "id": "social-publisher",
+      "nombre": "Redes sociales",
+      "frase": "Qué publicar, cuándo y en qué red, y cómo convertir una pieza en varias.",
+      "palabras": [
+        "redes",
+        "instagram",
+        "linkedin",
+        "publicar",
+        "calendario de contenidos",
+        "post",
+        "facebook",
+        "tiktok"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "linkedin-content",
+      "nombre": "Publicaciones en LinkedIn",
+      "frase": "Escribir una publicación de LinkedIn que se lea entera: el gancho, el cuerpo y el cierre.",
+      "palabras": [
+        "linkedin",
+        "publicacion",
+        "post",
+        "gancho",
+        "carrusel",
+        "perfil",
+        "contenido"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "linkedin-strategy",
+      "nombre": "Estrategia en LinkedIn",
+      "frase": "Decidir de qué hablas en LinkedIn, cada cuánto y desde dónde: tu perfil o la página de la empresa.",
+      "palabras": [
+        "linkedin",
+        "estrategia",
+        "posicionamiento",
+        "marca personal",
+        "pagina de empresa",
+        "cadencia",
+        "pilares"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "review-management",
+      "nombre": "Reseñas y reputación",
+      "frase": "Contestar reseñas públicas con criterio, conseguir más de forma legal y frenar una nota que baja.",
+      "palabras": [
+        "resenas",
+        "opiniones",
+        "google",
+        "reputacion",
+        "valoraciones",
+        "estrellas",
+        "trustpilot",
+        "critica"
+      ],
+      "para": [
+        "operations",
+        "content"
+      ]
+    },
+    {
+      "id": "retention",
+      "nombre": "Fidelización",
+      "frase": "Que los clientes no se vayan: detectar al que está a punto, intentar retenerlo y recuperar al que se fue.",
+      "palabras": [
+        "fidelizacion",
+        "baja",
+        "cancelacion",
+        "churn",
+        "retener",
+        "recuperar cliente",
+        "renovacion",
+        "satisfaccion"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "document-processing",
+      "nombre": "Documentos escaneados y PDF",
+      "frase": "Sacar el texto y las tablas de un PDF o un escaneado, rellenar formularios y juntar o separar páginas.",
+      "palabras": [
+        "pdf",
+        "escaneado",
+        "formulario",
+        "extraer",
+        "ocr",
+        "documento",
+        "rellenar",
+        "paginas"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "e-signature",
+      "nombre": "Firma electrónica",
+      "frase": "Mandar un documento a firmar, elegir el tipo de firma que vale legalmente y guardar el firmado con su rastro.",
+      "palabras": [
+        "firma",
+        "firmar",
+        "docusign",
+        "firma electronica",
+        "firmado",
+        "contrato firmado",
+        "validez legal"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "terms-conditions",
+      "nombre": "Términos y condiciones",
+      "frase": "Las condiciones de uso, la política de uso aceptable y los avisos legales que tu web o tu servicio tiene que enseñar.",
+      "palabras": [
+        "terminos",
+        "condiciones",
+        "aviso legal",
+        "politica",
+        "condiciones de uso",
+        "legal",
+        "renovacion automatica"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "ip-trademark",
+      "nombre": "Marca registrada y propiedad intelectual",
+      "frase": "Elegir y proteger un nombre o un logotipo: si conviene registrarlo, dónde, y qué derechos ya tienes sin hacer nada.",
+      "palabras": [
+        "marca registrada",
+        "registrar",
+        "patente",
+        "propiedad intelectual",
+        "derechos de autor",
+        "logotipo",
+        "nombre comercial",
+        "oepm"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "compliance",
+      "nombre": "Cumplimiento normativo",
+      "frase": "Saber qué normas te obligan y llevar el registro de controles con responsables y pruebas, listo para una auditoría.",
+      "palabras": [
+        "cumplimiento",
+        "normativa",
+        "auditoria",
+        "iso",
+        "controles",
+        "certificacion",
+        "regulacion",
+        "inspeccion"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "unit-economics",
+      "nombre": "Rentabilidad por cliente",
+      "frase": "Cuánto te cuesta conseguir un cliente, cuánto te deja y en cuánto tiempo lo recuperas.",
+      "palabras": [
+        "rentabilidad",
+        "coste de adquisicion",
+        "margen",
+        "por cliente",
+        "cac",
+        "ltv",
+        "recuperacion",
+        "cuanto deja"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "financial-model",
+      "nombre": "Proyecciones financieras",
+      "frase": "Los próximos dos o tres años en números: ingresos, gastos, plantilla y cuándo se acaba la caja si no cambia nada.",
+      "palabras": [
+        "proyeccion",
+        "previsiones",
+        "plan financiero",
+        "escenarios",
+        "plan de negocio",
+        "inversion",
+        "caja",
+        "tres anos"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "forecasting",
+      "nombre": "Previsión de ventas",
+      "frase": "Proyectar lo que ya pasó hacia delante, ventas o pedidos, con un margen de error que se puede defender.",
+      "palabras": [
+        "prevision",
+        "ventas del ano",
+        "estimar",
+        "tendencia",
+        "proyectar",
+        "demanda",
+        "estacionalidad",
+        "historico"
+      ],
+      "para": [
+        "operations",
+        "research"
+      ]
+    },
+    {
+      "id": "logistics-ops",
+      "nombre": "Envíos y devoluciones",
+      "frase": "Elegir transportista, sacar la etiqueta, reaccionar a una entrega que falla y gestionar una devolución.",
+      "palabras": [
+        "envio",
+        "envios",
+        "transportista",
+        "devolucion",
+        "paquete",
+        "entrega",
+        "seguimiento del pedido",
+        "reembolso"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "webinar",
+      "nombre": "Webinars",
+      "frase": "Preparar, promocionar y dar un webinar que venda: la inscripción, el guion y el seguimiento de después.",
+      "palabras": [
+        "webinar",
+        "seminario",
+        "evento online",
+        "inscripcion",
+        "asistentes",
+        "directo",
+        "charla online"
+      ],
+      "para": [
+        "content",
+        "operations"
+      ]
+    },
+    {
+      "id": "automation-flows",
+      "nombre": "Automatizaciones sin código",
+      "frase": "Montar o arreglar una automatización en Make o Zapier: el disparador, los pasos y qué pasa cuando falla.",
+      "palabras": [
+        "automatizar",
+        "automatizacion",
+        "make",
+        "zapier",
+        "flujo",
+        "integracion",
+        "disparador",
+        "cuando pasa esto"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
+    },
+    {
+      "id": "no-code-app",
+      "nombre": "Aplicación sin código",
+      "frase": "Construir una aplicación sencilla sin programar, eligiendo la plataforma y sin quedarte atado a ella.",
+      "palabras": [
+        "aplicacion",
+        "app",
+        "sin codigo",
+        "no code",
+        "bubble",
+        "glide",
+        "airtable",
+        "formulario interno"
+      ],
+      "para": [
+        "software",
+        "operations"
+      ]
+    },
+    {
+      "id": "dashboard",
+      "nombre": "Panel de indicadores",
+      "frase": "Un panel que se lee de un vistazo: qué números merecen estar y con qué gráfico se entiende cada uno.",
+      "palabras": [
+        "panel",
+        "cuadro de mando",
+        "dashboard",
+        "grafico",
+        "de un vistazo",
+        "indicadores",
+        "metricas",
+        "visualizar"
+      ],
+      "para": [
+        "operations",
+        "research"
+      ]
+    },
+    {
+      "id": "backups",
+      "nombre": "Copias de seguridad de tus datos",
+      "frase": "Que una avería o un error no se lleve tus datos: cuántas copias, dónde, y comprobar que se pueden recuperar.",
+      "palabras": [
+        "copia de seguridad",
+        "backup",
+        "recuperar",
+        "perdida de datos",
+        "restaurar",
+        "averia",
+        "servidor",
+        "nube"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
+    },
+    {
+      "id": "decision-records",
+      "nombre": "Registro de decisiones",
+      "frase": "Dejar por escrito las decisiones difíciles de deshacer: qué se decidió, entre qué opciones y por qué.",
+      "palabras": [
+        "decision",
+        "decidimos",
+        "por que",
+        "opciones",
+        "registro",
+        "acuerdo",
+        "proveedor elegido",
+        "historial de decisiones"
+      ],
+      "para": [
+        "operations",
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "course-builder",
+      "nombre": "Diseño de cursos",
+      "frase": "Convertir «quiero enseñar esto» en un curso con objetivos medibles, módulos ordenados y forma de comprobar que se aprende.",
+      "palabras": [
+        "curso",
+        "formacion",
+        "taller",
+        "alumnos",
+        "modulos",
+        "temario",
+        "ensenar",
+        "clase"
       ],
       "para": [
         "content",

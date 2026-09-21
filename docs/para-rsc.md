@@ -1,9 +1,9 @@
-# Dos cosas para Eric
+# Tres cosas para Eric
 
-Salieron montando esta barra sobre RSC, y las dos son de RSC, no nuestras. Están
+Salieron montando esta barra sobre RSC, y las tres son de RSC, no nuestras. Están
 contra la **2.0.5** y comprobadas leyendo el paquete publicado, no deducidas.
 
-Ninguna nos bloquea: las dos tienen rodeo y lo hemos puesto. Van por si sirven.
+Ninguna nos bloquea: las dos primeras tienen rodeo y lo hemos puesto; la tercera es cosmética. Van por si sirven.
 
 > **La primera está abierta como issue**:
 > [ericrisco/rsc-harness#258](https://github.com/ericrisco/rsc-harness/issues/258),
@@ -57,7 +57,11 @@ fichero que su equipo ya creó.
 !.rsc/.no-gitmoji
 ```
 
-Funciona, pero es una excepción a mano por cada interruptor, y hay once:
+Funciona, pero con una pega más: `ignoreLocalState` (`install-apply.js:301`) busca la línea
+exacta `.rsc/` —normalizando barras, no comodines— y al no encontrarla **vuelve a añadirla al final
+cada vez que se aplica un plan**. Y una `.rsc/` al final anula el `!.rsc/.no-gitmoji` de arriba,
+porque git no entra en un directorio excluido. Así que después de cada `onboard` hay que quitarla a
+mano. Y es una excepción a mano por cada interruptor, y hay once:
 `.no-audit`, `.no-claudemd-check`, `.no-context7`, `.no-danger-guard`,
 `.no-feature-gate`, `.no-git`, `.no-gitmoji`, `.no-harness`, `.no-scope-check`,
 `.no-ship-guard`, `.no-worktree-cleanup`.
@@ -123,6 +127,27 @@ pequeñas se habría evitado esto:
   `renderPlan` imprime las decisiones pero no la evidencia; un
   `Evidence: 81 source files · node` habría cantado a la primera, porque nadie
   mira un `sourceFileCount` dentro de un JSON de 300 líneas.
+
+---
+
+## 3. El adaptador de memoria contesta a `PreCompact` con un campo que Claude Code no acepta
+
+**Qué pasa.** `.rsc/session-memory-adapter.mjs` se engancha a `PreCompact` y devuelve:
+
+```json
+{ "hookSpecificOutput": { "hookEventName": "PreCompact", "additionalContext": "rsc memory: …" } }
+```
+
+Claude Code (2.1.x) valida la salida de cada hook contra su esquema, y `hookSpecificOutput` solo
+admite `PreToolUse`, `UserPromptSubmit`, `PostToolUse`, `Stop`… **`PreCompact` no está**. Así que
+cada compactación imprime en la terminal del alumno un bloque rojo de «Hook JSON output validation
+failed» con el esquema entero, y el mensaje que RSC quería dar no llega.
+
+**Lo que parece que falta.** Para `PreCompact`, el campo que sí se acepta es `systemMessage` (o no
+devolver nada). El contenido es el mismo; cambia la envoltura.
+
+**Rodeo.** Ninguno: es cosmético y no rompe nada. Pero es lo primero que un alumno no técnico ve en
+rojo, y es de RSC.
 
 ---
 

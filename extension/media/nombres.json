@@ -1,6 +1,6 @@
 {
   "_": [
-    "Cómo se llama en cristiano lo que viene de fuera.",
+    "Cómo se llama en español lo que viene de fuera.",
     "",
     "Esto es una TABLA, no código: para renombrar algo se añade o se cambia una",
     "línea aquí y no se toca ni un fichero de `src/`. Antes había dos objetos",
@@ -12,14 +12,16 @@
     "con su identificador en clave y su descripción en inglés. Lo que escribe",
     "alguien de esta casa ya se nombra solo, en su propia cabecera.",
     "",
-    "El identificador de verdad no se esconde: sale en la (i) de cada fila, para",
-    "que quien tenga que escribirlo en una conversación sepa cuál es.",
+    "REGLA DE LOS NOMBRES (Jose, 21-09-2026): `nombre` es el NOMBRE de la cosa,",
+    "corto y en español —«Facturación», «Revisor de seguridad», «Planificar»—,",
+    "nunca una frase sobre lo que el asistente sabe hacer. Lo que hace va en",
+    "`queHace`, en una frase y en segunda persona. Si se deja vacío, la barra no",
+    "enseña ninguna: media pantalla en español y una línea en inglés queda peor",
+    "que no decir nada.",
     "",
-    "`queHace` se escribe en segunda persona y en una frase. Si se deja vacío,",
-    "la barra no enseña ninguna: media pantalla en cristiano y una línea en",
-    "inglés queda peor que no decir nada."
+    "El identificador de verdad no se esconde: sale en la (i) de cada fila, y es",
+    "lo que se escribe para invocarlo (`/unslop`, `/resume-session`)."
   ],
-
   "comandos": {
     "resume-session": {
       "nombre": "Seguir donde lo dejé",
@@ -30,57 +32,280 @@
       "queHace": "Deja apuntado en qué punto estáis, para poder retomarlo."
     },
     "learn": {
-      "nombre": "Que aprenda algo de ti",
-      "queHace": "Guarda una cosa sobre cómo trabajas, si tú la apruebas."
+      "nombre": "Guardar una lección",
+      "queHace": "Propone una cosa que ha aprendido de cómo trabajas y la guarda si tú la apruebas."
     },
     "checkpoint": {
-      "nombre": "Congelar esto para revisarlo",
+      "nombre": "Congelar para revisar",
       "queHace": "Deja lo hecho a la espera de que alguien lo dé por bueno."
+    },
+    "specify": {
+      "nombre": "Especificar",
+      "queHace": "Deja por escrito qué se quiere construir antes de empezar."
+    },
+    "clarify": {
+      "nombre": "Aclarar",
+      "queHace": "Resuelve las dudas de una especificación antes de planificar."
+    },
+    "plan": {
+      "nombre": "Planificar",
+      "queHace": "Decide cómo se va a hacer lo especificado."
+    },
+    "tasks": {
+      "nombre": "Tareas",
+      "queHace": "Parte el plan en tareas pequeñas y ordenadas."
+    },
+    "analyze": {
+      "nombre": "Analizar",
+      "queHace": "Comprueba que especificación, plan y tareas cuadran entre sí."
+    },
+    "implement": {
+      "nombre": "Implementar",
+      "queHace": "Hace las tareas, una a una, con sus pruebas."
+    },
+    "verify": {
+      "nombre": "Verificar",
+      "queHace": "Comprueba que lo hecho cumple lo especificado."
+    },
+    "review": {
+      "nombre": "Revisar el código",
+      "queHace": "Revisión adversaria de un cambio antes de darlo por bueno."
+    },
+    "ship": {
+      "nombre": "Publicar",
+      "queHace": "Cierra y publica un cambio cuando está verificado."
+    },
+    "debug": {
+      "nombre": "Depurar",
+      "queHace": "Encuentra la causa de un fallo y la arregla."
+    },
+    "build-fix": {
+      "nombre": "Arreglar una compilación rota",
+      "queHace": "Manda el fallo al agente que sabe arreglar compilaciones de ese lenguaje."
+    },
+    "refactor-clean": {
+      "nombre": "Simplificar código",
+      "queHace": "Deja un código más corto y claro sin cambiar lo que hace."
+    },
+    "test-coverage": {
+      "nombre": "Cobertura de pruebas",
+      "queHace": "Amplía las pruebas donde faltan."
+    },
+    "update-docs": {
+      "nombre": "Actualizar la documentación",
+      "queHace": "Repasa el conocimiento escrito y lo pone al día."
+    },
+    "harness-audit": {
+      "nombre": "Auditar el arnés",
+      "queHace": "Revisa que la carpeta sigue organizada como el arnés espera."
+    },
+    "security-scan": {
+      "nombre": "Escaneo de seguridad",
+      "queHace": "Busca fallos de seguridad conocidos en el código."
     }
   },
-
   "habilidades": {
     "bro": {
-      "nombre": "Escribirlo como lo diría una persona",
+      "nombre": "Tono humano",
       "queHace": "Quita el tono de máquina de un texto sin cambiar lo que dice."
     },
     "eli5": {
-      "nombre": "Explicártelo desde cero",
+      "nombre": "Explicación desde cero",
       "queHace": "Una página con dibujos y sin palabras raras, para algo que no conoces de nada."
     },
     "show-me": {
-      "nombre": "Enseñártelo con un dibujo",
-      "queHace": "Cuando es más fácil verlo que leerlo."
+      "nombre": "Dibujo o esquema",
+      "queHace": "Te lo enseña con un esquema cuando es más fácil verlo que leerlo."
     },
     "unslop": {
-      "nombre": "Repasar un texto antes de mandarlo",
+      "nombre": "Repaso de marcas de IA",
       "queHace": "Busca las marcas de que lo ha escrito una máquina, y las quita."
+    },
+    "orient": {
+      "nombre": "Brújula",
+      "queHace": "Cierra cada respuesta diciendo dónde estás, qué se ha hecho y qué toca."
+    },
+    "suggest": {
+      "nombre": "Sugerir habilidades",
+      "queHace": "Detecta cuándo te haría falta una habilidad que no tienes y te la ofrece."
+    },
+    "harness": {
+      "nombre": "El arnés",
+      "queHace": "Cómo está organizada esta carpeta: herramientas, documentos y conocimiento."
+    },
+    "init": {
+      "nombre": "Primer arranque",
+      "queHace": "Las preguntas del primer día: cómo te manejas y cuánto quieres que te explique."
+    },
+    "ftd": {
+      "nombre": "Trabajo directo (FTD)",
+      "queHace": "La forma normal de hacer un cambio: un documento por tarea y pruebas de que está hecho."
+    },
+    "sdd": {
+      "nombre": "Desarrollo por especificación (SDD)",
+      "queHace": "La cadena larga para construir algo grande: qué queremos, cómo, tareas y comprobación."
+    },
+    "sdd-init": {
+      "nombre": "Arranque de SDD",
+      "queHace": "Prepara la carpeta para trabajar por especificación."
+    },
+    "constitution": {
+      "nombre": "Constitución",
+      "queHace": "Las reglas que no se saltan nunca en esta carpeta."
+    },
+    "specify": {
+      "nombre": "Especificar",
+      "queHace": "Deja por escrito qué se quiere construir antes de empezar."
+    },
+    "clarify": {
+      "nombre": "Aclarar",
+      "queHace": "Resuelve las dudas de una especificación antes de planificar."
+    },
+    "plan": {
+      "nombre": "Planificar",
+      "queHace": "Decide cómo se va a hacer lo especificado."
+    },
+    "tasks": {
+      "nombre": "Tareas",
+      "queHace": "Parte el plan en tareas pequeñas y ordenadas."
+    },
+    "implement": {
+      "nombre": "Implementar",
+      "queHace": "Hace las tareas, una a una, con sus pruebas."
+    },
+    "verify": {
+      "nombre": "Verificar",
+      "queHace": "Comprueba que lo hecho cumple lo especificado."
+    },
+    "analyze": {
+      "nombre": "Analizar",
+      "queHace": "Comprueba que especificación, plan y tareas cuadran entre sí."
+    },
+    "review": {
+      "nombre": "Revisar el código",
+      "queHace": "Revisión adversaria de un cambio antes de darlo por bueno."
+    },
+    "ship": {
+      "nombre": "Publicar",
+      "queHace": "Cierra y publica un cambio cuando está verificado."
+    },
+    "worktrees": {
+      "nombre": "Copias de trabajo paralelas",
+      "queHace": "Trabaja en varias cosas a la vez sin que se pisen."
+    },
+    "parallel": {
+      "nombre": "Trabajo en paralelo",
+      "queHace": "Reparte una tarea grande entre varios agentes a la vez."
+    },
+    "decision-challenge": {
+      "nombre": "Cuestionar una decisión",
+      "queHace": "Pone a prueba una decisión antes de tomarla."
+    },
+    "idea-refinement": {
+      "nombre": "Afinar una idea",
+      "queHace": "Convierte una idea vaga en algo concreto que se pueda hacer."
+    },
+    "source-grounded-development": {
+      "nombre": "Desarrollo basado en fuentes",
+      "queHace": "Construye leyendo la documentación real, no de memoria."
+    },
+    "deprecation": {
+      "nombre": "Retirar algo con cuidado",
+      "queHace": "Quita una pieza sin romper lo que dependía de ella."
+    },
+    "simplify-code": {
+      "nombre": "Simplificar código",
+      "queHace": "Deja un código más corto y claro sin cambiar lo que hace."
+    },
+    "debug": {
+      "nombre": "Depurar",
+      "queHace": "Encuentra la causa de un fallo y la arregla."
+    },
+    "ui-engineering": {
+      "nombre": "Interfaces",
+      "queHace": "Construye pantallas que funcionan bien y se leen bien."
+    },
+    "fable-operator": {
+      "nombre": "Operar con Fable",
+      "queHace": "Cómo sacar partido al modelo más capaz de Claude."
     }
   },
-
-  "ayudantes": {},
-
+  "ayudantes": {
+    "developer": {
+      "nombre": "Desarrollador",
+      "queHace": "Convierte un plan aprobado en código probado, tarea a tarea."
+    },
+    "refuter-correctness": {
+      "nombre": "Revisor de corrección",
+      "queHace": "Ataca un cambio buscando fallos en los límites y en los caminos de error."
+    },
+    "refuter-security": {
+      "nombre": "Revisor de seguridad",
+      "queHace": "Busca datos que se escapan, permisos mal puestos y secretos a la vista."
+    },
+    "refuter-tests": {
+      "nombre": "Revisor de pruebas",
+      "queHace": "Intenta que las pruebas pasen sin merecerlo, para ver si de verdad valen."
+    }
+  },
+  "_patrones": [
+    "Los agentes por lenguaje de RSC (`targets/agent-catalog.js`) son dos familias con",
+    "el mismo molde: `<lenguaje>-reviewer` y `<lenguaje>-build-resolver`. Hay más de",
+    "veinte y salen nuevos con cada versión, así que en vez de una fila por cada uno",
+    "hay una regla por familia. `{resto}` es el lenguaje, humanizado."
+  ],
+  "patrones": {
+    "ayudantes": [
+      {
+        "sufijo": "-build-resolver",
+        "nombre": "Arreglador de compilación de {resto}",
+        "queHace": "Reproduce una compilación rota de {resto} y aplica el arreglo mínimo que la deja pasando."
+      },
+      {
+        "sufijo": "-reviewer",
+        "nombre": "Revisor de {resto}",
+        "queHace": "Revisa los cambios de código de {resto} y señala fallos, sin tocar nada."
+      }
+    ]
+  },
   "_fontaneria": [
     "Lo que el arnés monta para funcionar por dentro, y que nadie pide por su nombre.",
     "",
-    "No se esconde por vergüenza: se esconde porque un alumno que abre «Habilidades»",
-    "tiene que ver lo que puede pedir, no la maquinaria. Lo que NO esté en esta lista",
-    "y no esté en el catálogo sí sale, con el nombre que traiga — así una habilidad",
-    "útil instalada más tarde no desaparece en silencio.",
+    "Ya NO se esconde: todo lo instalado se ve, porque el mapeo entre el arnés y la",
+    "barra tiene que ser completo. Esta lista solo decide dónde: lo de aquí va",
+    "plegado, bajo «Las del arnés», con su nombre en español de la tabla de arriba.",
     "",
     "Hasta la 1.4.1 eran cuatro. La 2.0 cambió el reparto: monta UN arnés para todos",
     "—32 habilidades— en vez de ocho, así que la cadena de trabajo entera (especificar,",
-    "planificar, tareas, implementar, verificar…) llega puesta de serie. Sin esta",
-    "lista, la pantalla de habilidades pasaba de cuatro líneas a veintisiete, en inglés."
+    "planificar, tareas, implementar, verificar…) llega puesta de serie."
   ],
   "fontaneria": [
-    "orient", "suggest", "harness", "init", "ftd",
-
-    "sdd", "sdd-init", "constitution", "specify", "clarify", "plan", "tasks",
-    "implement", "verify", "analyze", "review", "ship",
-
-    "worktrees", "parallel", "decision-challenge", "idea-refinement",
-    "source-grounded-development", "deprecation", "simplify-code", "debug",
-    "ui-engineering", "fable-operator"
+    "orient",
+    "suggest",
+    "harness",
+    "init",
+    "ftd",
+    "sdd",
+    "sdd-init",
+    "constitution",
+    "specify",
+    "clarify",
+    "plan",
+    "tasks",
+    "implement",
+    "verify",
+    "analyze",
+    "review",
+    "ship",
+    "worktrees",
+    "parallel",
+    "decision-challenge",
+    "idea-refinement",
+    "source-grounded-development",
+    "deprecation",
+    "simplify-code",
+    "debug",
+    "ui-engineering",
+    "fable-operator"
   ]
 }

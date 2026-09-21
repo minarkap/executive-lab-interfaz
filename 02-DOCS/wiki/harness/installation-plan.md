@@ -1,12 +1,10 @@
 # Accepted harness plan
 
-Plan id: `e7a924dd80dd5d0199f76da6c571384d664c5899e6f941477c789c3817182dfb`
+Plan id: `a552da0e4feb441e5467371100801fad5bf508dbef767c6c1e7a925844254203`
 
 | Kind | Component | Decision | Reason | Reevaluate when |
 | --- | --- | --- | --- | --- |
 | agent | developer | selected | The accepted substantial software workflow requires this implementation or review role. | — |
-| agent | react-build-resolver | selected | The accepted substantial software workflow requires this implementation or review role. | — |
-| agent | react-reviewer | selected | The accepted substantial software workflow requires this implementation or review role. | — |
 | agent | refuter-correctness | selected | The accepted substantial software workflow requires this implementation or review role. | — |
 | agent | refuter-security | selected | The accepted substantial software workflow requires this implementation or review role. | — |
 | agent | refuter-tests | selected | The accepted substantial software workflow requires this implementation or review role. | — |
@@ -33,7 +31,6 @@ Plan id: `e7a924dd80dd5d0199f76da6c571384d664c5899e6f941477c789c3817182dfb`
 | skill | orient | selected | Included in the development workflow for growing software. | — |
 | skill | parallel | selected | Included in the development workflow for growing software. | — |
 | skill | plan | selected | Included in the development workflow for growing software. | — |
-| skill | react | selected | Included in the development workflow for growing software. | — |
 | skill | review | selected | Included in the development workflow for growing software. | — |
 | skill | sdd | selected | Included in the development workflow for growing software. | — |
 | skill | sdd-init | selected | Included in the development workflow for growing software. | — |
