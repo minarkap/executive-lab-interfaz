@@ -143,10 +143,12 @@ function queSabe(carpetaDeLaExtension, corpus = '') {
   // cientos. Una habilidad instalada fuera de esa lista —`nextjs`, `design`,
   // cualquiera— se contaba como fontanería y no se veía por ningún lado.
   //
-  // Fontanería de verdad son cuatro, y esas sí se cuentan sin nombrarlas: son
-  // de la máquina, no del alumno, y `harness` es justo el tipo de palabra que
-  // el diccionario prohíbe.
-  const laFontaneria = ['orient', 'suggest', 'harness', 'init'];
+  // Qué es fontanería está en `media/nombres.json`, no aquí: es un dato, y
+  // cambia con la versión del arnés. Con la 1.4.1 eran cuatro; la 2.0 monta un
+  // arnés entero para todos —32 habilidades, la cadena de trabajo incluida— y
+  // sin esa lista esta pantalla pasaba de cuatro líneas a veintisiete, en
+  // inglés. Lo que no esté en la lista y no esté en el catálogo **sí sale**:
+  // una habilidad útil instalada más tarde no desaparece en silencio.
 
   // Cómo se llaman en cristiano las que trae el arnés: en `media/nombres.json`.
   // Vienen con el nombre en clave —«Bro», «Eli5», «Show me»— y la descripción
@@ -156,7 +158,7 @@ function queSabe(carpetaDeLaExtension, corpus = '') {
   const otras = puestas
     .filter((id) => !catalogo.some((c) => c.id === id))
     .filter((id) => !propias.includes(id))
-    .filter((id) => !laFontaneria.includes(id))
+    .filter((id) => !nombres.esFontaneria(id))
     .map((id) => {
       const suyo = comoSeLlama(id, raiz);
       const dicho = nombres.comoSeLlama('habilidades', id, { nombre: '', queHace: '' });
@@ -165,7 +167,7 @@ function queSabe(carpetaDeLaExtension, corpus = '') {
       return dicho.deFuera ? { id, nombre: dicho.nombre, frase: dicho.queHace } : suyo;
     });
 
-  const deSerie = puestas.filter((id) => laFontaneria.includes(id)).length;
+  const deSerie = puestas.filter((id) => nombres.esFontaneria(id)).length;
 
   return {
     sabe: sabe.map((c) => ({ id: c.id, nombre: c.nombre, frase: c.frase })),

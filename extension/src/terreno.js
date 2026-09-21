@@ -119,10 +119,26 @@ const tieneAlgoDentro = (carpeta) => {
   }
 };
 
+// ── Lo que escribe RSC en un fichero compartido no es de nadie ───────────
+//
+// RSC mete su capa siempre-activa dentro del `AGENTS.md` de la casa, entre
+// marcas, y desde la 2.0 escribe además un `CLAUDE.md` propio entero —para que
+// Claude Code no se lea el bloque dos veces desde que lee `AGENTS.md`—.
+//
+// Sin quitar eso, un `CLAUDE.md` puesto por RSC contaría como «aquí ya había
+// otro asistente montado a mano», y le pediríamos permiso a alguien para
+// respetar un fichero que hemos escrito nosotros. RSC hace esta misma resta en
+// su `scanProject` por el mismo motivo.
+const MARCAS_DE_RSC = [
+  /<!-- rsc-suggest:start -->[\s\S]*?<!-- rsc-suggest:end -->/g,
+  /<!-- rsc:claude-md-shadow -->[\s\S]*/g,
+];
+
 const tieneTexto = (fichero) => {
   if (!fichero || !fs.existsSync(fichero)) return false;
   try {
-    return fs.readFileSync(fichero, 'utf8').trim().length > 0;
+    const crudo = fs.readFileSync(fichero, 'utf8');
+    return MARCAS_DE_RSC.reduce((texto, marca) => texto.replace(marca, ''), crudo).trim().length > 0;
   } catch {
     return false;
   }

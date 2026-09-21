@@ -58,5 +58,29 @@
     }
   },
 
-  "ayudantes": {}
+  "ayudantes": {},
+
+  "_fontaneria": [
+    "Lo que el arnés monta para funcionar por dentro, y que nadie pide por su nombre.",
+    "",
+    "No se esconde por vergüenza: se esconde porque un alumno que abre «Habilidades»",
+    "tiene que ver lo que puede pedir, no la maquinaria. Lo que NO esté en esta lista",
+    "y no esté en el catálogo sí sale, con el nombre que traiga — así una habilidad",
+    "útil instalada más tarde no desaparece en silencio.",
+    "",
+    "Hasta la 1.4.1 eran cuatro. La 2.0 cambió el reparto: monta UN arnés para todos",
+    "—32 habilidades— en vez de ocho, así que la cadena de trabajo entera (especificar,",
+    "planificar, tareas, implementar, verificar…) llega puesta de serie. Sin esta",
+    "lista, la pantalla de habilidades pasaba de cuatro líneas a veintisiete, en inglés."
+  ],
+  "fontaneria": [
+    "orient", "suggest", "harness", "init", "ftd",
+
+    "sdd", "sdd-init", "constitution", "specify", "clarify", "plan", "tasks",
+    "implement", "verify", "analyze", "review", "ship",
+
+    "worktrees", "parallel", "decision-challenge", "idea-refinement",
+    "source-grounded-development", "deprecation", "simplify-code", "debug",
+    "ui-engineering", "fable-operator"
+  ]
 }

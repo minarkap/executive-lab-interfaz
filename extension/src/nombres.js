@@ -47,11 +47,12 @@ function tabla() {
       comandos: leida.comandos || {},
       habilidades: leida.habilidades || {},
       ayudantes: leida.ayudantes || {},
+      fontaneria: leida.fontaneria || [],
     };
   } catch {
     // Sin tabla la barra sigue funcionando: se cae al nombre humanizado. Un
     // fichero de datos roto no puede dejar sin comandos a nadie.
-    tablaEnMemoria = { comandos: {}, habilidades: {}, ayudantes: {} };
+    tablaEnMemoria = { comandos: {}, habilidades: {}, ayudantes: {}, fontaneria: [] };
   }
   return tablaEnMemoria;
 }
@@ -91,4 +92,10 @@ function comoSeLlama(montón, id, suyo = {}) {
 
 const loQueTraduce = (montón) => Object.keys(tabla()[montón] || {});
 
-module.exports = { comoSeLlama, humanizar, loQueTraduce, FICHERO };
+// Lo que el arnés monta para funcionar por dentro. Está en el mismo fichero de
+// datos que las traducciones porque es la misma clase de decisión: cómo se le
+// enseña a alguien lo que hay montado. Eran cuatro hasta la 1.4.1 y son
+// veintisiete desde la 2.0, que monta un arnés entero para todos.
+const esFontaneria = (id) => tabla().fontaneria.includes(id);
+
+module.exports = { comoSeLlama, humanizar, loQueTraduce, esFontaneria, FICHERO };

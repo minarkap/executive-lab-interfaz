@@ -3300,6 +3300,32 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'montada, como debe ser';
   });
 
+  await comprobar('lo que escribe el propio arnés no cuenta como otro asistente', () => {
+    // Desde la 2.0, RSC escribe un `CLAUDE.md` suyo para que Claude Code no se
+    // lea su capa siempre-activa dos veces. Sin restarlo, le pediríamos permiso
+    // a alguien para respetar un fichero que hemos escrito nosotros.
+    const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'sombra-'));
+    fs.writeFileSync(path.join(raiz, 'CLAUDE.md'), '<!-- rsc:claude-md-shadow -->\nlo que escribe RSC\n');
+    fs.writeFileSync(path.join(raiz, 'AGENTS.md'), '<!-- rsc-suggest:start -->\ncapa siempre activa\n<!-- rsc-suggest:end -->\n');
+    fs.mkdirSync(path.join(raiz, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(raiz, 'src/a.py'), 'x');
+    vscode.guion.raiz = raiz;
+
+    const soloDeRsc = cargar('terreno').mirarYClasificar();
+    assert.equal(soloDeRsc.estado, 'empezada', `se ha visto como "${soloDeRsc.estado}"`);
+    assert.deepEqual(soloDeRsc.otroMontaje.ficheros, [], 'lo nuestro no es de nadie');
+
+    // Pero lo que esa persona escriba alrededor sí cuenta, y por eso RSC
+    // escribe entre marcas en vez de sobrescribir el fichero.
+    fs.appendFileSync(path.join(raiz, 'AGENTS.md'), '\nY estas son MIS reglas.\n');
+    const conLoSuyo = cargar('terreno').mirarYClasificar();
+    assert.equal(conLoSuyo.estado, 'otroArnes');
+    assert.deepEqual(conLoSuyo.otroMontaje.ficheros, ['AGENTS.md']);
+
+    vscode.guion.raiz = empresa;
+    return 'la resta que hace RSC, hecha también aquí';
+  });
+
   await comprobar('mirar la carpeta no lanza ni un proceso', () => {
     // La pantalla principal se repinta sola. Si reconocer costara dos
     // subprocesos, cada repintado los pagaría.
