@@ -16,6 +16,21 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const proyecto = require('./proyecto');
+
+// Cuántas ideas de automatización dejó el asistente sin mirar. `skill-scout`
+// escribe una línea por veredicto en `.rsc/automation-gaps.md`; las que empiezan
+// por `proposed-` son propuestas y las `covered-` ya estaban cubiertas. Se lee
+// del disco y gratis, como todo lo que alimenta a los consejos.
+function huecosDeAutomatizacion() {
+  const ruta = proyecto.ruta('.rsc', 'automation-gaps.md');
+  if (!ruta || !fs.existsSync(ruta)) return 0;
+  try {
+    return fs.readFileSync(ruta, 'utf8').split('\n').filter((l) => /\bproposed-/.test(l)).length;
+  } catch {
+    return 0;
+  }
+}
 
 // ------------------------------------------------------------- capacidades
 
@@ -108,6 +123,7 @@ function consejos(contexto = {}) {
     catalogo = [],
     huecos = [],
     silenciados = {},            // { id: fecha en la que se dijo "ahora no" }
+    huecosDeAutomatizacion = 0,  // ideas que el asistente apuntó tras trabajar (`.rsc/automation-gaps.md`)
     ahora = Date.now(),
   } = contexto;
 
@@ -133,6 +149,20 @@ function consejos(contexto = {}) {
         : `A ${aMedias.etiqueta} le faltan ${aMedias.faltan} claves por poner.`,
       boton: 'Terminar de conectarla',
       accion: { tipo: 'verConexion', proveedor: aMedias.id },
+    });
+  }
+
+  // Lo que el propio asistente apuntó después de trabajar: `skill-scout` deja
+  // en `.rsc/automation-gaps.md` un veredicto por tarea, y los que empiezan por
+  // `proposed-` son ideas que nadie ha mirado. Se escribían y no se leían.
+  if (huecosDeAutomatizacion > 0) {
+    lista.push({
+      id: 'huecos-de-automatizacion',
+      texto: huecosDeAutomatizacion === 1
+        ? 'El asistente apuntó 1 idea de automatización después de trabajar.'
+        : `El asistente apuntó ${huecosDeAutomatizacion} ideas de automatización después de trabajar.`,
+      boton: 'Ver cuáles',
+      accion: { tipo: 'pedir', prompt: 'Léeme las ideas de automatización que apuntaste después de trabajar, en tu registro de huecos de automatización. Dime en dos líneas cada una que siga pendiente, qué me ahorraría, y pregúntame cuál quieres que monte antes de tocar nada.' },
     });
   }
 
@@ -190,4 +220,6 @@ function consejos(contexto = {}) {
 // El que toca enseñar, que es como mucho uno.
 const elQueToca = (contexto) => consejos(contexto)[0] || null;
 
-module.exports = { consejos, elQueToca, loQuePodriaAprender, loQueRepite, seParecen, capacidades };
+module.exports = {
+  consejos, elQueToca, loQuePodriaAprender, loQueRepite, seParecen, capacidades, huecosDeAutomatizacion,
+};

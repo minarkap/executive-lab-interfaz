@@ -550,7 +550,7 @@ function pantallaSaberes(datos) {
 const MARCA_GUARDIAN = { armado: '●', apagado: '○', noAplica: '·' };
 
 function pantallaReglas({
-  innegociables = [], deLaCasa = [], guardianes = [], hay = {}, cual = 'claude',
+  innegociables = [], deLaCasa = [], guardianes = [], automatismos = [], hay = {}, cual = 'claude',
 }) {
   const lista = (reglas, vacio, comoQuitar) => (reglas.length
     ? reglas.map((r) => `<div class="entrada"><p class="nombre">${enLinea(r)}</p></div>`).join('')
@@ -593,7 +593,7 @@ function pantallaReglas({
           Pero no se quita, porque cuando el freno actúa al alumno le sale en la
           conversación un aviso en inglés que empieza por BLOCKED y la barra no
           puede interceptarlo: este es el único sitio donde pone qué es eso. */''}
-    ${guardianes.length ? `
+    ${guardianes.length || automatismos.length ? `
       <hr class="separador">
       <details class="acordeon grupo">
         <summary>Lo que se comprueba solo<span class="cuantos">${guardianes.length}</span></summary>
@@ -605,6 +605,20 @@ function pantallaReglas({
             <span class="pieza-detalle">${texto(g.porQue || 'Puesto')}</span>
           </div>
           ${g.queHace ? `<p class="detalle">${texto(g.queHace)}</p>` : ''}`).join('')}
+        ${/* Y lo que el arnés hace solo sin parar nada: la brújula al empezar,
+              el aviso del diario al cerrar, la memoria entre conversaciones…
+              Es lo que un alumno ve pasar sin saber qué es, y no se nombraba en
+              ningún sitio (decisión 102). Va aquí porque la pregunta es la
+              misma: «¿qué hace esto por su cuenta?». */''}
+        ${automatismos.length ? `
+          <p class="detalle">Y lo que hace solo, sin parar nada:</p>
+          ${automatismos.map((a) => `
+            <div class="pieza ${a.estado === 'activo' ? 'si' : 'noAplica'}">
+              <span class="pieza-marca" aria-hidden="true">${a.estado === 'activo' ? '●' : '○'}</span>
+              <span class="pieza-nombre">${texto(a.nombre)}</span>
+              <span class="pieza-detalle">${texto(a.porQue || 'Activo')}</span>
+            </div>
+            ${a.queHace ? `<p class="detalle">${texto(a.queHace)}</p>` : ''}`).join('')}` : ''}
         ${boton({
     etiqueta: 'Cambiar lo que se comprueba',
     icono: '🔧',

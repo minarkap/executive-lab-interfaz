@@ -303,6 +303,8 @@ ${cabecera}
       // enseña todos, así que aquí se piden unos cuantos.
       huecos: cerebro.loQueAunNoSabe(4),
       silenciados: this.almacen().get(CLAVE_SILENCIADOS) || {},
+      // Lo que el asistente apuntó tras trabajar y nadie leía (decisión 102).
+      huecosDeAutomatizacion: consejos.huecosDeAutomatizacion(),
     };
   }
 

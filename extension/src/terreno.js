@@ -466,12 +466,18 @@ async function radiografia({ aFondo = null } = {}) {
     ? { como: 'agente', etiqueta: encargo.etiqueta, accion: { tipo: 'pedir', prompt: encargo.prompt } }
     : null);
 
+  // Cuándo se aceptó el plan de montaje. RSC lo deja en `.rsc.json`
+  // (`onboarding.acceptedAt`) y no se enseñaba: «Listo» no dice desde cuándo.
+  const montadoEl = fechaDelPlan();
+
   // `estado` es 'si' | 'no' | 'aMedias' | 'noAplica', y de ahí sale cómo se pinta.
   const piezas = [
     conArreglo({
       nombre: 'El asistente, montado aquí',
       estado: hay.tipo === 'conArnes' ? 'si' : hay.tipo === 'aMedias' ? 'aMedias' : 'no',
-      detalle: hay.tipo === 'conArnes' ? 'Listo' : hay.tipo === 'aMedias' ? 'Se quedó a medias' : 'Todavía no',
+      detalle: hay.tipo === 'conArnes'
+        ? (montadoEl ? `Listo, desde el ${montadoEl}` : 'Listo')
+        : hay.tipo === 'aMedias' ? 'Se quedó a medias' : 'Todavía no',
     }, { como: 'solo', etiqueta: 'Terminar de prepararlo', accion: { tipo: 'arrancar' } }),
     conArreglo({
       nombre: 'Tu asistente',
@@ -579,19 +585,34 @@ async function radiografia({ aFondo = null } = {}) {
     });
   }
 
+  // ── El plan con el que se montó ───────────────────────────────────────
+  //
+  // RSC deja escrito qué instaló y por qué en `installation-plan.md`, y en
+  // `.rsc.json` cuándo se aceptó. Ninguno se enseñaba: quien quería saber
+  // «¿por qué tengo esto puesto?» no tenía dónde mirar (decisión 102). Se
+  // pide a `reglas.js` en el momento, como el resto de lo que abre ficheros.
+  if (conArnes && require('./reglas').dondeVive('plan')) {
+    piezas.push({
+      nombre: 'El plan de montaje',
+      estado: 'si',
+      detalle: montadoEl ? `Aceptado el ${montadoEl}` : 'Escrito',
+      arreglo: { como: 'solo', etiqueta: 'Ver el plan de montaje', accion: { tipo: 'abrirReglas', cual: 'plan' } },
+    });
+  }
+
   // ── Lo que aquí se decidió no usar ────────────────────────────────────
   //
-  // `optOuts` de `.rsc.json`: lo que quien montó esto apagó a propósito. No
-  // salía en ningún sitio, y es justo lo que explica que un guardián figure
-  // como apagado en Las reglas: la barra lo deducía de su interruptor sin
-  // decir de dónde venía la decisión. No es un fallo, así que no pide arreglo.
+  // Lo que quien montó esto apagó a propósito: `optOuts` de `.rsc.json` y los
+  // interruptores `.rsc/.no-*`, unidos y nombrados en español por `reglas.js`.
+  // Es lo que explica que un guardián figure como apagado en Las reglas. No es
+  // un fallo, así que no pide arreglo.
   if (conArnes) {
-    const apagado = (proyecto.declaracion() || {}).optOuts;
-    if (Array.isArray(apagado) && apagado.length) {
+    const apagado = require('./reglas').loApagado();
+    if (apagado.length) {
       piezas.push({
         nombre: 'Lo que tiene apagado',
         estado: 'noAplica',
-        detalle: `${apagado.length} cosa(s) del arnés que aquí se decidió no usar: ${apagado.join(', ')}`, // diccionario: interno
+        detalle: apagado.map((a) => a.nombre).join(' · '),
       });
     }
   }
@@ -701,4 +722,14 @@ async function radiografia({ aFondo = null } = {}) {
   return { queEs: hay.tipo, piezas, listo: piezas.every((p) => p.estado === 'si' || p.estado === 'noAplica') };
 }
 
-module.exports = { queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia };
+// La fecha en que se aceptó el plan de montaje, dicha como se dice: «18 de
+// septiembre». Sin recibo, o con una fecha ilegible, no se inventa nada.
+function fechaDelPlan() {
+  const declaracion = proyecto.declaracion();
+  const cuando = declaracion && declaracion.onboarding && declaracion.onboarding.acceptedAt;
+  const fecha = new Date(cuando || NaN);
+  if (Number.isNaN(fecha.getTime())) return null;
+  return fecha.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+}
+
+module.exports = { queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia, fechaDelPlan };

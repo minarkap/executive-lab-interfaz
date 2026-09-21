@@ -1,15 +1,17 @@
 {
   "_comentario": [
-    "Las habilidades del catálogo de RSC que tienen sentido en una pyme, con nombre y descripción en español de negocio.",
+    "Las habilidades del catálogo de RSC, TODAS, con nombre y descripción en español de negocio.",
     "",
-    "REGLA: lo que no esté en esta lista no se le ofrece al alumno para añadir. El catálogo trae 272",
-    "habilidades, todas descritas en inglés y en jerga ('instrumenting product analytics',",
-    "'wiring server code'), y docs/diccionario.md manda: nada aparece en pantalla si no está escrito",
-    "en sus palabras. Las que están instaladas y no están aquí SÍ se enseñan, con su identificador.",
+    "Hasta el 21-09-2026 esto era una selección de 59 «con sentido en una pyme», y las otras 183 del",
+    "catálogo salían —si alguien las instalaba— con el identificador humanizado y sin frase. Jose:",
+    "«quiero que revises todo y mapees todo bien». Ahora cada una de las 273 tiene su fila; una prueba",
+    "en prueba/humo.js lee el manifiesto del paquete y exige que no quede ninguna sin nombre. Lo que no",
+    "pega con la clase de carpeta no se ofrece arriba: cae plegado en «Resto del catálogo» (decisión 102).",
     "",
     "'nombre' es el NOMBRE de la habilidad, no una frase sobre lo que sabe hacer: «Facturación», no",
     "«llevar tus facturas de principio a fin». El identificador real (invoicing) sale en la (i) de la fila,",
-    "y es lo que se escribe para invocarla. Jose, 21-09-2026: sin simplificaciones excesivas.",
+    "y es lo que se escribe para invocarla. Jose, 21-09-2026: sin simplificaciones excesivas. Los nombres",
+    "propios de programas (React, Docker, Stripe) se quedan como son: son nombres, no jerga.",
     "",
     "Tampoco se usa `rsc consult` para decidir: rankea en inglés (probado el 17-09-2026: la misma",
     "consulta en español devuelve '(no recommendations)'), y un alumno escribe en español.",
@@ -1088,6 +1090,2745 @@
       "para": [
         "content",
         "operations"
+      ]
+    },
+    {
+      "id": "ab-testing",
+      "nombre": "Pruebas A/B",
+      "frase": "Diseñar y leer un experimento controlado sin engañarse con el azar.",
+      "palabras": [
+        "ab testing",
+        "experimento",
+        "experimentos",
+        "variante",
+        "significancia"
+      ],
+      "para": [
+        "operations",
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "accessibility",
+      "nombre": "Accesibilidad web",
+      "frase": "Que una web la pueda usar todo el mundo, también con teclado o lector de pantalla.",
+      "palabras": [
+        "accesibilidad",
+        "wcag",
+        "lector de pantalla",
+        "contraste"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "ads",
+      "nombre": "Anuncios de pago",
+      "frase": "Campañas en Google y Meta que se pagan solas, y arreglar las que no.",
+      "palabras": [
+        "anuncios",
+        "google ads",
+        "meta ads",
+        "campaña",
+        "campañas",
+        "publicidad de pago"
+      ],
+      "para": [
+        "operations",
+        "content"
+      ]
+    },
+    {
+      "id": "agent-eval",
+      "nombre": "Evaluación de agentes de IA",
+      "frase": "Medir si un asistente o un agente mejora de verdad antes de cambiarlo.",
+      "palabras": [
+        "evaluacion",
+        "evals",
+        "golden set",
+        "juez automatico"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "agent-safety",
+      "nombre": "Seguridad de agentes de IA",
+      "frase": "Acotar lo que un agente puede hacer y protegerlo de órdenes coladas.",
+      "palabras": [
+        "prompt injection",
+        "guardrails",
+        "permisos del agente",
+        "seguridad del agente"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "ai-media",
+      "nombre": "Medios generados con IA",
+      "frase": "Voz, imagen y vídeo generados con IA, encadenados hasta el fichero final.",
+      "palabras": [
+        "voz sintetica",
+        "texto a voz",
+        "imagen a video",
+        "generar video",
+        "generar audio"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "analytics",
+      "nombre": "Analítica web y de producto",
+      "frase": "Medir qué hace la gente en tu web o tu aplicación, sin contar dos veces.",
+      "palabras": [
+        "analitica",
+        "ga4",
+        "posthog",
+        "eventos",
+        "embudo",
+        "conversion"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
+    },
+    {
+      "id": "angular",
+      "nombre": "Angular",
+      "frase": "Construir y arreglar aplicaciones web hechas con Angular.",
+      "palabras": [
+        "angular",
+        "signals",
+        "componentes standalone"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "api-connector-builder",
+      "nombre": "Conector con el programa de otro",
+      "frase": "Hablar con el programa de otro desde el código: acceso, paginación y reintentos bien hechos.",
+      "palabras": [
+        "conector",
+        "api externa",
+        "rest",
+        "graphql",
+        "paginacion"
+      ],
+      "para": [
+        "software",
+        "operations"
+      ]
+    },
+    {
+      "id": "api-design",
+      "nombre": "Contrato de tu servicio",
+      "frase": "Decidir cómo otros programas hablan con el tuyo antes de programarlo: direcciones, versiones y errores.",
+      "palabras": [
+        "api",
+        "contrato",
+        "endpoints",
+        "versionado",
+        "openapi"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "article-writing",
+      "nombre": "Artículos largos",
+      "frase": "Escribir un artículo completo, de la primera frase al título y la meta.",
+      "palabras": [
+        "articulo",
+        "articulos",
+        "blog",
+        "entrada larga",
+        "seo del articulo"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "astro",
+      "nombre": "Astro",
+      "frase": "Webs de contenido y marketing rápidas, hechas con Astro.",
+      "palabras": [
+        "astro",
+        "web estatica",
+        "islas",
+        "colecciones de contenido"
+      ],
+      "para": [
+        "software",
+        "content"
+      ]
+    },
+    {
+      "id": "author-skill",
+      "nombre": "Habilidad a medida",
+      "frase": "Crear o corregir una habilidad del arnés, acotada a un solo trabajo.",
+      "palabras": [
+        "habilidad nueva",
+        "skill nueva",
+        "escribir skill",
+        "crear habilidad"
+      ],
+      "para": [
+        "operations",
+        "content",
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "aws-essentials",
+      "nombre": "AWS, lo esencial",
+      "frase": "Montar lo básico de un producto pequeño en AWS con la cuenta bien cerrada.",
+      "palabras": [
+        "aws",
+        "s3",
+        "rds",
+        "fargate",
+        "iam"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "bash-scripting",
+      "nombre": "Scripts de sistema",
+      "frase": "Escribir un script que sobreviva a otra máquina y a otro día.",
+      "palabras": [
+        "script",
+        "bash",
+        "cron",
+        "instalador"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "brand-identity",
+      "nombre": "Identidad visual",
+      "frase": "Logotipo, colores y tipografías de tu marca en un solo sistema.",
+      "palabras": [
+        "logotipo",
+        "logo",
+        "identidad visual",
+        "paleta",
+        "colores de marca",
+        "tipografia"
+      ],
+      "para": [
+        "content",
+        "operations"
+      ]
+    },
+    {
+      "id": "building-agents",
+      "nombre": "Construcción de agentes de IA",
+      "frase": "Montar un agente que usa herramientas, se evalúa y controla su coste.",
+      "palabras": [
+        "agente",
+        "agentes",
+        "llm",
+        "herramientas del agente",
+        "bucle del agente"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "business-intelligence",
+      "nombre": "Inteligencia de negocio",
+      "frase": "Definir cada métrica una sola vez para que todos los informes den el mismo número.",
+      "palabras": [
+        "metricas",
+        "kpi",
+        "cuadro de mando",
+        "capa semantica",
+        "informes",
+        "ingresos recurrentes"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "chatbot",
+      "nombre": "Chatbot de atención o ventas",
+      "frase": "Un bot en tu web que no se inventa precios ni políticas.",
+      "palabras": [
+        "chatbot",
+        "bot",
+        "atencion al cliente",
+        "bot de ventas",
+        "preguntas frecuentes"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
+    },
+    {
+      "id": "chrome-extension",
+      "nombre": "Complemento para Chrome",
+      "frase": "Construir y publicar un complemento de Chrome sin sus trampas.",
+      "palabras": [
+        "chrome",
+        "manifest v3",
+        "complemento de navegador",
+        "navegador"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "clickhouse-analytics",
+      "nombre": "ClickHouse",
+      "frase": "Analítica sobre miles de millones de eventos con ClickHouse.",
+      "palabras": [
+        "clickhouse",
+        "olap",
+        "eventos masivos",
+        "columnar"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "cloudflare",
+      "nombre": "Cloudflare",
+      "frase": "Trabajar en el borde de Cloudflare: Workers, dominios y almacenamiento.",
+      "palabras": [
+        "cloudflare",
+        "workers",
+        "wrangler",
+        "d1",
+        "r2"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "code-review",
+      "nombre": "Revisión de código",
+      "frase": "Juzgar un cambio de código por sí mismo, sin especificación detrás.",
+      "palabras": [
+        "revision de codigo",
+        "code review",
+        "pull request",
+        "diff"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "codebase-onboarding",
+      "nombre": "Aterrizaje en un código ajeno",
+      "frase": "Hacerse un mapa de un código heredado para ser útil en él pronto.",
+      "palabras": [
+        "codigo heredado",
+        "onboarding tecnico",
+        "mapa del codigo",
+        "entrar en el proyecto"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "community",
+      "nombre": "Comunidad",
+      "frase": "Montar y llevar una comunidad viva en Discord, Telegram o Circle.",
+      "palabras": [
+        "comunidad",
+        "discord",
+        "telegram",
+        "circle",
+        "miembros"
+      ],
+      "para": [
+        "content",
+        "operations"
+      ]
+    },
+    {
+      "id": "compose-multiplatform",
+      "nombre": "Compose Multiplatform",
+      "frase": "Una sola interfaz en Kotlin para Android, iOS y escritorio.",
+      "palabras": [
+        "compose multiplatform",
+        "kotlin multiplataforma",
+        "kmp"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "content-engine",
+      "nombre": "Motor de contenidos",
+      "frase": "Un calendario editorial con sus fases, briefs y límites, no piezas sueltas.",
+      "palabras": [
+        "calendario editorial",
+        "contenidos",
+        "pilares",
+        "piezas",
+        "publicaciones"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "context-budget",
+      "nombre": "Presupuesto de contexto",
+      "frase": "Decidir qué guardar, soltar o traspasar cuando una tarea larga llena la conversación.",
+      "palabras": [
+        "contexto",
+        "ventana de contexto",
+        "compactar",
+        "tarea larga"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "continuous-learning",
+      "nombre": "Lecciones de los errores",
+      "frase": "Que un error corregido se quede aprendido: retros y post mortem que se aplican.",
+      "palabras": [
+        "retro",
+        "retrospectiva",
+        "post mortem",
+        "leccion",
+        "error repetido"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
+    },
+    {
+      "id": "coolify",
+      "nombre": "Coolify",
+      "frase": "Alojar tus aplicaciones y bases de datos en tu propio servidor con Coolify.",
+      "palabras": [
+        "coolify",
+        "autoalojado",
+        "vps",
+        "desplegar en mi servidor"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "cost-tracking",
+      "nombre": "Control del gasto en IA",
+      "frase": "Medir y limitar lo que se gasta en IA y nube, por usuario y por tarea.",
+      "palabras": [
+        "gasto en ia",
+        "coste por peticion",
+        "presupuesto de ia",
+        "factura de la nube"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
+    },
+    {
+      "id": "course-storytelling",
+      "nombre": "Narrativa para cursos",
+      "frase": "Que un concepto de un curso se entienda y se recuerde, no solo sea correcto.",
+      "palabras": [
+        "curso",
+        "leccion",
+        "alumno",
+        "concepto dificil",
+        "historia",
+        "clase"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "cpp",
+      "nombre": "C++",
+      "frase": "Escribir, revisar y modernizar código C++.",
+      "palabras": [
+        "c++",
+        "cpp",
+        "raii",
+        "punteros"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "csharp-dotnet",
+      "nombre": "C# y .NET",
+      "frase": "Construir y publicar servicios con C# y .NET.",
+      "palabras": [
+        "c#",
+        "csharp",
+        ".net",
+        "dotnet",
+        "asp.net"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "data-policy",
+      "nombre": "Política de datos",
+      "frase": "Cuánto tiempo se guarda cada dato, con qué base legal y dónde se borra.",
+      "palabras": [
+        "retencion",
+        "politica de datos",
+        "borrado",
+        "base legal",
+        "gobierno del dato"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "data-scraper",
+      "nombre": "Extracción de datos de una web",
+      "frase": "Sacar datos de una web que no los ofrece, dentro de la ley y sin que te bloqueen.",
+      "palabras": [
+        "scraping",
+        "extraer datos",
+        "rastreador",
+        "precios de la competencia",
+        "listados"
+      ],
+      "para": [
+        "operations",
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "db-migrations",
+      "nombre": "Cambios de base de datos sin parar",
+      "frase": "Cambiar el esquema de una base de datos en producción sin apagarla.",
+      "palabras": [
+        "migracion",
+        "migraciones",
+        "esquema",
+        "sin parada",
+        "backfill"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "deep-learning",
+      "nombre": "Redes neuronales con PyTorch",
+      "frase": "Entrenar y depurar una red neuronal con PyTorch.",
+      "palabras": [
+        "pytorch",
+        "red neuronal",
+        "entrenamiento",
+        "deep learning",
+        "gpu"
+      ],
+      "para": [
+        "research",
+        "software"
+      ]
+    },
+    {
+      "id": "deployment",
+      "nombre": "Despliegue",
+      "frase": "Llevar una aplicación del código a estar en marcha, eligiendo dónde.",
+      "palabras": [
+        "desplegar",
+        "despliegue",
+        "poner en marcha",
+        "servidor",
+        "produccion"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "design",
+      "nombre": "Diseño de interfaz",
+      "frase": "Diseñar o refrescar una web o una página para que no parezca hecha con plantilla.",
+      "palabras": [
+        "diseño",
+        "interfaz",
+        "landing",
+        "tipografia",
+        "composicion"
+      ],
+      "para": [
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "design-dna",
+      "nombre": "ADN de diseño",
+      "frase": "Fijar el estilo que ha ganado en reglas medibles para que no se pierda.",
+      "palabras": [
+        "estilo",
+        "sistema de diseño",
+        "proporciones",
+        "adn visual"
+      ],
+      "para": [
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "design-loop",
+      "nombre": "Bucle de diseño",
+      "frase": "Construir algo comparándolo contra una referencia real hasta superarla.",
+      "palabras": [
+        "referencia",
+        "comparar",
+        "critica",
+        "mejor que",
+        "iterar el diseño"
+      ],
+      "para": [
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "digitalocean",
+      "nombre": "DigitalOcean",
+      "frase": "Desplegar y operar en DigitalOcean.",
+      "palabras": [
+        "digitalocean",
+        "droplet",
+        "app platform",
+        "doctl"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "django",
+      "nombre": "Django",
+      "frase": "Construir, asegurar y publicar aplicaciones con Django.",
+      "palabras": [
+        "django",
+        "python web",
+        "orm de django",
+        "admin de django"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "docker",
+      "nombre": "Docker",
+      "frase": "Escribir y auditar contenedores: imágenes pequeñas y sin correr como root.",
+      "palabras": [
+        "docker",
+        "contenedor",
+        "contenedores",
+        "dockerfile",
+        "compose"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "domains-dns",
+      "nombre": "Dominios y DNS",
+      "frase": "Apuntar un dominio a un servidor y arreglar un HTTPS roto.",
+      "palabras": [
+        "dominio",
+        "dns",
+        "https",
+        "certificado",
+        "ssl",
+        "registros dns"
+      ],
+      "para": [
+        "software",
+        "operations"
+      ]
+    },
+    {
+      "id": "drizzle-orm",
+      "nombre": "Drizzle ORM",
+      "frase": "Modelar y consultar la base de datos con Drizzle en TypeScript.",
+      "palabras": [
+        "drizzle",
+        "orm typescript",
+        "pgtable"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "duckdb",
+      "nombre": "DuckDB",
+      "frase": "Consultas analíticas sobre ficheros, sin servidor, con DuckDB.",
+      "palabras": [
+        "duckdb",
+        "parquet",
+        "csv grande",
+        "analitica local"
+      ],
+      "para": [
+        "research",
+        "software"
+      ]
+    },
+    {
+      "id": "dynamodb",
+      "nombre": "DynamoDB",
+      "frase": "Modelar y operar tablas en DynamoDB según cómo se van a consultar.",
+      "palabras": [
+        "dynamodb",
+        "nosql",
+        "clave de particion",
+        "tabla unica"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "e2e-testing",
+      "nombre": "Pruebas de extremo a extremo",
+      "frase": "Pruebas que recorren la web en un navegador real, con Playwright, y no fallan porque sí.",
+      "palabras": [
+        "playwright",
+        "pruebas e2e",
+        "extremo a extremo",
+        "selectores",
+        "navegador real"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "electron",
+      "nombre": "Electron",
+      "frase": "Aplicaciones de escritorio con Electron, seguras y empaquetadas.",
+      "palabras": [
+        "electron",
+        "escritorio",
+        "aplicacion de escritorio",
+        "ipc"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "elixir",
+      "nombre": "Elixir",
+      "frase": "Escribir y refactorizar Elixir sobre la máquina BEAM.",
+      "palabras": [
+        "elixir",
+        "otp",
+        "genserver",
+        "beam"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "email-deliverability",
+      "nombre": "Entregabilidad del correo",
+      "frase": "Arreglar la autenticación y la reputación cuando el correo enviado no llega.",
+      "palabras": [
+        "spam",
+        "entregabilidad",
+        "spf",
+        "dkim",
+        "dmarc",
+        "correo rebotado"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "embeddings-search",
+      "nombre": "Búsqueda semántica",
+      "frase": "Elegir modelo, troceado y consulta para que la búsqueda por significado acierte.",
+      "palabras": [
+        "embeddings",
+        "busqueda semantica",
+        "troceado",
+        "chunks",
+        "busqueda hibrida"
+      ],
+      "para": [
+        "research",
+        "software"
+      ]
+    },
+    {
+      "id": "error-handling",
+      "nombre": "Gestión de errores",
+      "frase": "Decidir cómo reacciona el sistema a cada clase de fallo: reintentos, tiempos y cortes.",
+      "palabras": [
+        "errores",
+        "reintentos",
+        "timeout",
+        "circuit breaker",
+        "resiliencia"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "expo",
+      "nombre": "Expo",
+      "frase": "Publicar una aplicación React Native con Expo: compilación, tiendas y actualizaciones.",
+      "palabras": [
+        "expo",
+        "eas",
+        "react native",
+        "app store",
+        "play store"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "fal",
+      "nombre": "Generación con fal.ai",
+      "frase": "Generar imagen, audio o vídeo llamando a fal.ai desde el código.",
+      "palabras": [
+        "fal",
+        "fal.ai",
+        "generacion de imagen",
+        "cola de inferencia"
+      ],
+      "para": [
+        "software",
+        "content"
+      ]
+    },
+    {
+      "id": "fastapi",
+      "nombre": "FastAPI",
+      "frase": "Construir y asegurar un servicio en Python asíncrono con FastAPI.",
+      "palabras": [
+        "fastapi",
+        "pydantic",
+        "python asincrono",
+        "servicio en python"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "finetuning",
+      "nombre": "Ajuste fino de modelos",
+      "frase": "Adaptar un modelo abierto a tu tono o tu formato con LoRA o entrenamiento completo.",
+      "palabras": [
+        "fine tuning",
+        "ajuste fino",
+        "lora",
+        "qlora",
+        "modelo abierto"
+      ],
+      "para": [
+        "research"
+      ]
+    },
+    {
+      "id": "firebase",
+      "nombre": "Firebase",
+      "frase": "Construir sobre Firebase: datos, reglas de seguridad, acceso y funciones.",
+      "palabras": [
+        "firebase",
+        "firestore",
+        "reglas de seguridad",
+        "cloud functions"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "flutter",
+      "nombre": "Flutter",
+      "frase": "Construir, estructurar y probar una aplicación con Flutter.",
+      "palabras": [
+        "flutter",
+        "dart",
+        "riverpod",
+        "aplicacion movil"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "fly-io",
+      "nombre": "Fly.io",
+      "frase": "Desplegar y operar una aplicación en Fly.io cerca de tus usuarios.",
+      "palabras": [
+        "fly.io",
+        "fly.toml",
+        "machines",
+        "fly"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "fundraising",
+      "nombre": "Ronda de inversión",
+      "frase": "Planear y llevar una ronda: cuánto, con qué instrumento y con qué inversores.",
+      "palabras": [
+        "ronda",
+        "inversion",
+        "inversores",
+        "safe",
+        "valoracion",
+        "levantar capital"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "game-design",
+      "nombre": "Diseño de juego",
+      "frase": "Lo que hace divertido un juego: mecánicas, bucles, progresión y economía.",
+      "palabras": [
+        "juego",
+        "mecanicas",
+        "bucle de juego",
+        "progresion",
+        "economia del juego"
+      ],
+      "para": [
+        "software",
+        "content"
+      ]
+    },
+    {
+      "id": "game-storytelling",
+      "nombre": "Narrativa de videojuego",
+      "frase": "La historia de un juego: premisa, ramas, decisiones con peso y diálogos.",
+      "palabras": [
+        "narrativa",
+        "historia del juego",
+        "dialogos",
+        "misiones",
+        "ramas de la historia"
+      ],
+      "para": [
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "gamedev-multiplayer",
+      "nombre": "Multijugador",
+      "frase": "Añadir juego en red: autoridad del servidor, réplica de estado y predicción.",
+      "palabras": [
+        "multijugador",
+        "netcode",
+        "servidor de juego",
+        "replicacion"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "gamedev-pathing",
+      "nombre": "Navegación de personajes",
+      "frase": "Que los personajes de un juego encuentren el camino por el nivel.",
+      "palabras": [
+        "pathfinding",
+        "navmesh",
+        "a estrella",
+        "navegacion",
+        "npc"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "gamedev-physics",
+      "nombre": "Físicas de juego",
+      "frase": "Cuerpos, colisiones y controladores de personaje en el motor de juego.",
+      "palabras": [
+        "fisicas",
+        "colisiones",
+        "rigidbody",
+        "controlador de personaje"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "gamedev-shaders",
+      "nombre": "Shaders y efectos visuales",
+      "frase": "Escribir y depurar shaders, materiales y efectos en el motor de juego.",
+      "palabras": [
+        "shader",
+        "shaders",
+        "materiales",
+        "vfx",
+        "postprocesado"
+      ],
+      "para": [
+        "software",
+        "content"
+      ]
+    },
+    {
+      "id": "gamedev-shipping",
+      "nombre": "Publicación de un juego",
+      "frase": "Exportar, firmar y publicar un juego en cada plataforma.",
+      "palabras": [
+        "exportar el juego",
+        "publicar el juego",
+        "notarizacion",
+        "steam",
+        "build del juego"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "gcp-essentials",
+      "nombre": "Google Cloud, lo esencial",
+      "frase": "Lo básico de un producto pequeño en Google Cloud, bien cerrado.",
+      "palabras": [
+        "gcp",
+        "google cloud",
+        "cloud run",
+        "cloud sql",
+        "gcloud"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "git-workflow",
+      "nombre": "Trabajo con git",
+      "frase": "Nombrar cambios, escribir buenos mensajes y desenredar el historial.",
+      "palabras": [
+        "git",
+        "mensaje de guardado",
+        "historial",
+        "rebase",
+        "gitmoji"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "github-actions",
+      "nombre": "GitHub Actions",
+      "frase": "Automatizar comprobaciones y despliegues desde GitHub Actions.",
+      "palabras": [
+        "github actions",
+        "ci",
+        "workflows",
+        "integracion continua"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "go",
+      "nombre": "Go",
+      "frase": "Escribir, probar y publicar servicios en Go.",
+      "palabras": [
+        "golang",
+        "goroutine",
+        "servicio en go",
+        "lenguaje go"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "godot",
+      "nombre": "Godot",
+      "frase": "Juegos con Godot 4 en GDScript o C#.",
+      "palabras": [
+        "godot",
+        "gdscript",
+        "escenas",
+        "nodos"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "grants",
+      "nombre": "Subvenciones y ayudas",
+      "frase": "Financiación pública o de fundaciones que no se devuelve: encontrar, decidir y solicitar.",
+      "palabras": [
+        "subvencion",
+        "subvenciones",
+        "ayudas",
+        "convocatoria",
+        "fondos publicos",
+        "kit digital"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "hetzner",
+      "nombre": "Hetzner",
+      "frase": "Levantar y asegurar un servidor en Hetzner de forma reproducible.",
+      "palabras": [
+        "hetzner",
+        "vps",
+        "servidor propio",
+        "hcloud"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "htmx",
+      "nombre": "Interactividad con htmx",
+      "frase": "Interactividad en una web servida desde el servidor sin adoptar un framework de JavaScript.",
+      "palabras": [
+        "htmx",
+        "hipermedia",
+        "sin framework",
+        "servidor renderiza"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "huggingface",
+      "nombre": "Hugging Face",
+      "frase": "Modelos abiertos y la plataforma Hugging Face: inferencia, modelos y datasets.",
+      "palabras": [
+        "hugging face",
+        "huggingface",
+        "transformers",
+        "inferencia",
+        "modelos abiertos"
+      ],
+      "para": [
+        "research",
+        "software"
+      ]
+    },
+    {
+      "id": "instagram-api",
+      "nombre": "Conexión con Instagram",
+      "frase": "Publicar y medir en Instagram desde el código, por su conexión oficial.",
+      "palabras": [
+        "instagram",
+        "reels",
+        "graph api",
+        "publicar en instagram"
+      ],
+      "para": [
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "investor-materials",
+      "nombre": "Materiales para inversores",
+      "frase": "Lo que un inversor lee fuera de la reunión: data room, resumen y actualizaciones.",
+      "palabras": [
+        "data room",
+        "inversores",
+        "one pager",
+        "actualizacion a inversores",
+        "memorandum"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "java",
+      "nombre": "Java",
+      "frase": "Escribir y refactorizar Java moderno.",
+      "palabras": [
+        "java",
+        "jvm",
+        "records",
+        "sealed"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "kotlin-android",
+      "nombre": "Android con Kotlin",
+      "frase": "Aplicaciones Android nativas en Kotlin y Jetpack Compose.",
+      "palabras": [
+        "android",
+        "kotlin",
+        "jetpack compose",
+        "viewmodel"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "laravel",
+      "nombre": "Laravel",
+      "frase": "Construir y ampliar aplicaciones con Laravel.",
+      "palabras": [
+        "laravel",
+        "eloquent",
+        "php web",
+        "artisan"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "level-design",
+      "nombre": "Diseño de niveles",
+      "frase": "El espacio de un nivel: distribución, ritmo y guiar al jugador sin flechas.",
+      "palabras": [
+        "nivel",
+        "niveles",
+        "blockout",
+        "ritmo del nivel",
+        "encuentros"
+      ],
+      "para": [
+        "software",
+        "content"
+      ]
+    },
+    {
+      "id": "linkedin-api",
+      "nombre": "Conexión con LinkedIn",
+      "frase": "Publicar en LinkedIn desde una aplicación, con su acceso y su conexión oficial.",
+      "palabras": [
+        "linkedin",
+        "api de linkedin",
+        "publicar en linkedin",
+        "oauth de linkedin"
+      ],
+      "para": [
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "linkedin-carousels",
+      "nombre": "Carruseles de LinkedIn",
+      "frase": "Un carrusel de LinkedIn diapositiva a diapositiva: gancho, hilo y una idea por página.",
+      "palabras": [
+        "carrusel",
+        "carruseles",
+        "linkedin",
+        "documento pdf",
+        "diapositivas"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "linkedin-outreach",
+      "nombre": "Prospección en LinkedIn",
+      "frase": "Venta social en LinkedIn como rutina: búsquedas, alertas y mensajes que no cansan.",
+      "palabras": [
+        "linkedin",
+        "prospeccion",
+        "sales navigator",
+        "venta social",
+        "contactos"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "llm-pipeline",
+      "nombre": "Cadena de llamadas a IA",
+      "frase": "Varias llamadas a modelos encadenadas en producción, con relevo si una falla.",
+      "palabras": [
+        "pipeline",
+        "orquestacion",
+        "gateway",
+        "fallback",
+        "varias llamadas"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "machine-learning",
+      "nombre": "Modelos predictivos clásicos",
+      "frase": "Predecir una columna a partir de otras con modelos clásicos, sin fugas de datos.",
+      "palabras": [
+        "prediccion",
+        "scikit",
+        "xgboost",
+        "modelo predictivo",
+        "tabla de datos",
+        "churn"
+      ],
+      "para": [
+        "research",
+        "operations"
+      ]
+    },
+    {
+      "id": "make",
+      "nombre": "Make",
+      "frase": "Crear y operar escenarios de Make desde el código o desde un agente.",
+      "palabras": [
+        "make.com",
+        "integromat",
+        "escenario",
+        "escenarios",
+        "automatizacion make"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
+    },
+    {
+      "id": "medium-publishing",
+      "nombre": "Publicación en Medium",
+      "frase": "Que un artículo terminado aterrice bien en Medium, con su enlace canónico.",
+      "palabras": [
+        "medium",
+        "publicar en medium",
+        "canonico",
+        "republicar"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "medium-strategy",
+      "nombre": "Estrategia en Medium",
+      "frase": "Medium como sistema de crecimiento e ingresos a meses vista.",
+      "palabras": [
+        "medium",
+        "partner program",
+        "publicacion en medium",
+        "monetizar articulos"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "medium-writing",
+      "nombre": "Historias para Medium",
+      "frase": "Una historia de Medium que gane lecturas: título, subtítulo y gancho.",
+      "palabras": [
+        "medium",
+        "titulo",
+        "subtitulo",
+        "historia",
+        "gancho"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "modal",
+      "nombre": "Modal",
+      "frase": "Correr Python o trabajos con GPU sin servidor en Modal.",
+      "palabras": [
+        "modal.com",
+        "serverless gpu",
+        "modal.app",
+        "modal"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "mongodb",
+      "nombre": "MongoDB",
+      "frase": "Modelar documentos e índices en MongoDB.",
+      "palabras": [
+        "mongodb",
+        "mongo",
+        "documentos anidados",
+        "nosql",
+        "indices"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "monitoring",
+      "nombre": "Monitorización y alertas",
+      "frase": "Saber que algo se ha caído antes de que te lo diga un cliente.",
+      "palabras": [
+        "monitorizacion",
+        "alertas",
+        "caida",
+        "uptime",
+        "guardia"
+      ],
+      "para": [
+        "software",
+        "operations"
+      ]
+    },
+    {
+      "id": "motion-craft",
+      "nombre": "Movimiento en la interfaz",
+      "frase": "Animaciones que se sienten bien: duraciones, curvas y lo que nunca debe moverse.",
+      "palabras": [
+        "animacion",
+        "animaciones",
+        "transicion",
+        "movimiento",
+        "easing"
+      ],
+      "para": [
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "mysql",
+      "nombre": "MySQL y MariaDB",
+      "frase": "Diseñar, consultar e indexar en MySQL o MariaDB.",
+      "palabras": [
+        "mysql",
+        "mariadb",
+        "innodb",
+        "indices"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "n8n",
+      "nombre": "Flujos con n8n",
+      "frase": "Crear y operar flujos en una instancia de n8n desde el código o un agente.",
+      "palabras": [
+        "n8n",
+        "flujo",
+        "flujos",
+        "workflow",
+        "automatizacion n8n"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
+    },
+    {
+      "id": "neon",
+      "nombre": "Neon",
+      "frase": "Postgres sin servidor con Neon: conexión desde el borde y ramas de base de datos.",
+      "palabras": [
+        "neon",
+        "postgres serverless",
+        "ramas de base de datos"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "nestjs",
+      "nombre": "NestJS",
+      "frase": "Estructurar un backend con NestJS: módulos, proveedores e inyección.",
+      "palabras": [
+        "nestjs",
+        "nest",
+        "modulos",
+        "inyeccion de dependencias"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "netlify",
+      "nombre": "Netlify",
+      "frase": "Desplegar y operar una web en Netlify.",
+      "palabras": [
+        "netlify",
+        "netlify.toml",
+        "edge functions",
+        "redirecciones"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "nextjs",
+      "nombre": "Next.js",
+      "frase": "Construir y optimizar una aplicación Next.js con App Router.",
+      "palabras": [
+        "next.js",
+        "nextjs",
+        "app router",
+        "server components"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "nlp",
+      "nombre": "Procesamiento de lenguaje",
+      "frase": "Elegir cómo trocear texto y qué modelo encaja para una tarea de lenguaje.",
+      "palabras": [
+        "nlp",
+        "tokenizacion",
+        "lenguaje natural",
+        "transformer"
+      ],
+      "para": [
+        "research"
+      ]
+    },
+    {
+      "id": "nodejs",
+      "nombre": "Node.js y Express",
+      "frase": "Un servicio backend sencillo con Node.js y Express, bien montado.",
+      "palabras": [
+        "nodejs",
+        "node.js",
+        "express",
+        "backend en node"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "notion-connector",
+      "nombre": "Conector con Notion",
+      "frase": "Usar Notion como trastienda desde el código: filas, sincronía y sin duplicados.",
+      "palabras": [
+        "notion",
+        "base de datos de notion",
+        "sincronizar notion",
+        "api de notion"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
+    },
+    {
+      "id": "observability",
+      "nombre": "Observabilidad",
+      "frase": "Instrumentar un servicio para explicar un incidente solo con su telemetría.",
+      "palabras": [
+        "observabilidad",
+        "opentelemetry",
+        "trazas",
+        "telemetria",
+        "logs"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "ollama",
+      "nombre": "Ollama",
+      "frase": "Correr modelos abiertos en tu ordenador con Ollama.",
+      "palabras": [
+        "ollama",
+        "modelo local",
+        "llm local",
+        "gguf"
+      ],
+      "para": [
+        "research",
+        "software"
+      ]
+    },
+    {
+      "id": "open-weights",
+      "nombre": "Elección de un modelo abierto",
+      "frase": "Qué modelo abierto encaja con la tarea, el hardware y el presupuesto, y si se puede usar.",
+      "palabras": [
+        "modelo abierto",
+        "pesos abiertos",
+        "licencia del modelo",
+        "elegir modelo"
+      ],
+      "para": [
+        "research"
+      ]
+    },
+    {
+      "id": "performance",
+      "nombre": "Rendimiento web",
+      "frase": "Una página lenta se arregla desde la medida: Core Web Vitals y peso del JavaScript.",
+      "palabras": [
+        "rendimiento",
+        "lento",
+        "lenta",
+        "core web vitals",
+        "lcp",
+        "velocidad de carga"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "phoenix",
+      "nombre": "Phoenix",
+      "frase": "Aplicaciones web en Elixir con Phoenix y LiveView.",
+      "palabras": [
+        "phoenix",
+        "liveview",
+        "ecto",
+        "elixir web"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "php",
+      "nombre": "PHP",
+      "frase": "Escribir y modernizar PHP fuera de Laravel.",
+      "palabras": [
+        "php",
+        "composer",
+        "php moderno"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "pitch-deck",
+      "nombre": "Presentación para inversores",
+      "frase": "El relato y las pocas cifras que mueven a un inversor, diapositiva a diapositiva.",
+      "palabras": [
+        "pitch",
+        "deck",
+        "presentacion a inversores",
+        "ronda",
+        "diapositivas"
+      ],
+      "para": [
+        "operations"
+      ]
+    },
+    {
+      "id": "planetscale",
+      "nombre": "PlanetScale",
+      "frase": "Operar MySQL sin servidor con PlanetScale y sus ramas de esquema.",
+      "palabras": [
+        "planetscale",
+        "vitess",
+        "pscale"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "podcast",
+      "nombre": "Podcast",
+      "frase": "Un episodio de podcast de principio a fin: guion, grabación, edición y publicación.",
+      "palabras": [
+        "podcast",
+        "episodio",
+        "grabacion",
+        "audio",
+        "rss"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "postgresdb",
+      "nombre": "PostgreSQL",
+      "frase": "Cuando el comportamiento de PostgreSQL decide: esquema, índices y consultas lentas.",
+      "palabras": [
+        "postgres",
+        "postgresql",
+        "explain",
+        "indices",
+        "consulta lenta"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "power-automate",
+      "nombre": "Power Automate",
+      "frase": "Crear y operar flujos de Microsoft Power Automate desde el código.",
+      "palabras": [
+        "power automate",
+        "microsoft",
+        "dataverse",
+        "flujos de microsoft"
+      ],
+      "para": [
+        "operations",
+        "software"
+      ]
+    },
+    {
+      "id": "press-kit",
+      "nombre": "Nota de prensa y kit de medios",
+      "frase": "Una nota de prensa y un kit que un periodista pueda usar tal cual.",
+      "palabras": [
+        "nota de prensa",
+        "prensa",
+        "kit de medios",
+        "periodista",
+        "lanzamiento"
+      ],
+      "para": [
+        "content",
+        "operations"
+      ]
+    },
+    {
+      "id": "prisma-orm",
+      "nombre": "Prisma ORM",
+      "frase": "Modelar y consultar la base de datos con Prisma en TypeScript.",
+      "palabras": [
+        "prisma",
+        "schema.prisma",
+        "orm"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "prompt-engineering",
+      "nombre": "Prompts fiables",
+      "frase": "Que una petición a la IA dé la misma respuesta correcta siempre, también con entradas hostiles.",
+      "palabras": [
+        "prompt",
+        "prompts",
+        "instrucciones a la ia",
+        "esquema fijo",
+        "few shot"
+      ],
+      "para": [
+        "research",
+        "software",
+        "operations"
+      ]
+    },
+    {
+      "id": "python",
+      "nombre": "Python",
+      "frase": "Python en sí: tipos, estructuras y asincronía, con cualquier framework o ninguno.",
+      "palabras": [
+        "python",
+        "tipado",
+        "mypy",
+        "dataclass",
+        "asyncio"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "rag",
+      "nombre": "Preguntas sobre tus documentos",
+      "frase": "Que la IA responda con tus propios documentos, citando y callándose cuando no sabe.",
+      "palabras": [
+        "rag",
+        "preguntas sobre documentos",
+        "recuperacion",
+        "citar fuentes",
+        "base de conocimiento"
+      ],
+      "para": [
+        "research",
+        "software",
+        "operations"
+      ]
+    },
+    {
+      "id": "rails",
+      "nombre": "Ruby on Rails",
+      "frase": "Construir y mantener una aplicación con Rails.",
+      "palabras": [
+        "rails",
+        "ruby on rails",
+        "activerecord",
+        "hotwire"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "railway",
+      "nombre": "Railway",
+      "frase": "Desplegar una aplicación y su base de datos en Railway.",
+      "palabras": [
+        "railway",
+        "railway up",
+        "variables de railway"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "react",
+      "nombre": "React",
+      "frase": "Construir y revisar una aplicación React con Vite.",
+      "palabras": [
+        "react",
+        "vite",
+        "componentes",
+        "hooks",
+        "spa"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "react-native",
+      "nombre": "React Native",
+      "frase": "Las pantallas y la lógica dentro de una aplicación React Native o Expo.",
+      "palabras": [
+        "react native",
+        "expo router",
+        "pantallas moviles",
+        "reanimated"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "redis",
+      "nombre": "Redis",
+      "frase": "Redis como caché, cola o limitador, sin sorpresas.",
+      "palabras": [
+        "redis",
+        "valkey",
+        "cache",
+        "cola de trabajos",
+        "rate limit"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "remotion-video",
+      "nombre": "Vídeo con Remotion",
+      "frase": "Renderizar un vídeo de verdad desde componentes React con Remotion.",
+      "palabras": [
+        "remotion",
+        "video programatico",
+        "renderizar video",
+        "react video"
+      ],
+      "para": [
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "render",
+      "nombre": "Render",
+      "frase": "Desplegar y arreglar una aplicación en Render.",
+      "palabras": [
+        "render.com",
+        "servicios web en render",
+        "cron en render"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "replicate",
+      "nombre": "Replicate",
+      "frase": "Correr, empaquetar y escalar un modelo en Replicate desde el código.",
+      "palabras": [
+        "replicate",
+        "cog",
+        "predicciones",
+        "desplegar modelo"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "replicate-images",
+      "nombre": "Imágenes con Replicate",
+      "frase": "Generar y editar imágenes por Replicate, y que el modelo obedezca al prompt.",
+      "palabras": [
+        "generar imagenes",
+        "editar imagenes",
+        "replicate",
+        "imagen con ia"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "roast-me",
+      "nombre": "Auditoría de mis prompts",
+      "frase": "Una revisión honesta y con humor de cómo le pides las cosas a la IA.",
+      "palabras": [
+        "mis prompts",
+        "como pido",
+        "auditoria de prompts",
+        "roast"
+      ],
+      "para": [
+        "operations",
+        "research"
+      ]
+    },
+    {
+      "id": "ruby",
+      "nombre": "Ruby",
+      "frase": "Ruby puro fuera de Rails: scripts, gemas y librerías.",
+      "palabras": [
+        "ruby",
+        "gema",
+        "gemas",
+        "bundler"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "runpod",
+      "nombre": "RunPod",
+      "frase": "Cómputo con GPU en RunPod: pods siempre encendidos o sin servidor.",
+      "palabras": [
+        "runpod",
+        "gpu",
+        "pods",
+        "serverless gpu"
+      ],
+      "para": [
+        "research",
+        "software"
+      ]
+    },
+    {
+      "id": "rust",
+      "nombre": "Rust",
+      "frase": "Escribir, probar y publicar Rust.",
+      "palabras": [
+        "rust",
+        "cargo",
+        "tokio",
+        "axum",
+        "borrow checker"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "scaling",
+      "nombre": "Escalado del sistema",
+      "frase": "Qué añadir y en qué orden cuando el tráfico crece y el sistema se dobla.",
+      "palabras": [
+        "escalar",
+        "escalado",
+        "trafico",
+        "carga",
+        "capacidad",
+        "pico de trafico"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "secure-coding",
+      "nombre": "Código seguro",
+      "frase": "Modelar amenazas, revisar cambios y cerrar fallos de seguridad clásicos.",
+      "palabras": [
+        "seguridad",
+        "owasp",
+        "amenazas",
+        "autenticacion",
+        "secretos",
+        "vulnerabilidad"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "security-scan",
+      "nombre": "Escaneo de seguridad",
+      "frase": "Barrido automático del código: librerías con fallos conocidos, secretos filtrados y configuración.",
+      "palabras": [
+        "escaneo",
+        "sast",
+        "vulnerabilidades",
+        "cve",
+        "secretos en el codigo"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "seo-geo",
+      "nombre": "SEO y respuestas de IA",
+      "frase": "Que una página posicione en Google y la citen los buscadores con IA.",
+      "palabras": [
+        "seo",
+        "posicionar",
+        "posicionamiento",
+        "datos estructurados",
+        "buscadores",
+        "google"
+      ],
+      "para": [
+        "content",
+        "operations"
+      ]
+    },
+    {
+      "id": "shopify",
+      "nombre": "Shopify",
+      "frase": "Construir y personalizar una tienda Shopify: temas, aplicaciones y checkout.",
+      "palabras": [
+        "shopify",
+        "tienda online",
+        "liquid",
+        "ecommerce"
+      ],
+      "para": [
+        "software",
+        "operations"
+      ]
+    },
+    {
+      "id": "shortform-editing",
+      "nombre": "Edición de vídeo corto",
+      "frase": "Convertir metraje vertical en bruto en un corto listo, con subtítulos quemados.",
+      "palabras": [
+        "editar video",
+        "video vertical",
+        "subtitulos",
+        "cortes",
+        "9:16"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "shortform-ideation",
+      "nombre": "Ideas para vídeos cortos",
+      "frase": "La lista de próximos vídeos cortos, puntuada con tus datos y las tendencias.",
+      "palabras": [
+        "ideas de videos",
+        "reels",
+        "tiktok",
+        "shorts",
+        "tendencias"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "shortform-packaging",
+      "nombre": "Empaquetado de un vídeo corto",
+      "frase": "El gancho, el texto y la portada con los que un corto gana en el feed.",
+      "palabras": [
+        "gancho",
+        "portada",
+        "texto del video",
+        "subir el video",
+        "tiktok"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "shortform-strategy",
+      "nombre": "Estrategia de vídeo corto",
+      "frase": "La cuenta de TikTok o Reels como sistema: posicionamiento, cadencia y formatos.",
+      "palabras": [
+        "tiktok",
+        "reels",
+        "cadencia",
+        "formatos",
+        "video corto"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "skill-scout",
+      "nombre": "Búsqueda de la habilidad que falta",
+      "frase": "Detectar que hay una habilidad que haría el trabajo mejor y todavía no está puesta.",
+      "palabras": [
+        "habilidad que falta",
+        "que skill",
+        "hueco de capacidad",
+        "buscar habilidad"
+      ],
+      "para": [
+        "operations",
+        "content",
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "solid-js",
+      "nombre": "SolidJS",
+      "frase": "Construir y depurar una aplicación SolidJS.",
+      "palabras": [
+        "solidjs",
+        "solid",
+        "reactividad fina",
+        "signals"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "spring-boot",
+      "nombre": "Spring Boot",
+      "frase": "Construir y asegurar un backend con Spring Boot.",
+      "palabras": [
+        "spring",
+        "spring boot",
+        "jpa",
+        "java backend"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "sql",
+      "nombre": "SQL avanzado",
+      "frase": "Consultas SQL complejas que valen en cualquier motor: joins, ventanas y CTE.",
+      "palabras": [
+        "sql",
+        "consulta",
+        "consultas",
+        "joins",
+        "funciones de ventana",
+        "cte"
+      ],
+      "para": [
+        "software",
+        "research",
+        "operations"
+      ]
+    },
+    {
+      "id": "sqlite-turso",
+      "nombre": "SQLite y Turso",
+      "frase": "Cuándo basta SQLite y cómo llevarlo al borde con Turso o libSQL.",
+      "palabras": [
+        "sqlite",
+        "turso",
+        "libsql",
+        "base de datos local"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "stripe",
+      "nombre": "Stripe",
+      "frase": "Cobrar con Stripe: pagos, suscripciones, checkout y avisos de pago.",
+      "palabras": [
+        "stripe",
+        "pagos",
+        "suscripciones",
+        "checkout",
+        "cobrar online",
+        "pasarela"
+      ],
+      "para": [
+        "software",
+        "operations"
+      ]
+    },
+    {
+      "id": "structured-extraction",
+      "nombre": "Extracción de datos con estructura",
+      "frase": "Convertir un texto en datos con forma fija y fiable: campos, líneas e importes.",
+      "palabras": [
+        "extraer campos",
+        "json",
+        "estructurado",
+        "ticket",
+        "factura escaneada",
+        "campos de un documento"
+      ],
+      "para": [
+        "operations",
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "supabase",
+      "nombre": "Supabase",
+      "frase": "Construir sobre Supabase: cliente, seguridad por filas y acceso.",
+      "palabras": [
+        "supabase",
+        "rls",
+        "postgres gestionado",
+        "auth de supabase"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "svelte",
+      "nombre": "Svelte y SvelteKit",
+      "frase": "Construir y arreglar aplicaciones con Svelte 5 y SvelteKit.",
+      "palabras": [
+        "svelte",
+        "sveltekit",
+        "runes"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "swift-ios",
+      "nombre": "Aplicaciones de Apple con Swift",
+      "frase": "Aplicaciones nativas de Apple con Swift y SwiftUI.",
+      "palabras": [
+        "swift",
+        "swiftui",
+        "ios",
+        "iphone",
+        "app de apple"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "tauri",
+      "nombre": "Tauri",
+      "frase": "Aplicaciones de escritorio ligeras con Tauri: núcleo en Rust y vista web nativa.",
+      "palabras": [
+        "tauri",
+        "escritorio ligero",
+        "rust y web"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "technical-writing",
+      "nombre": "Documentación técnica",
+      "frase": "Un README, un tutorial o una referencia que alguien pueda seguir de verdad.",
+      "palabras": [
+        "documentacion",
+        "readme",
+        "tutorial",
+        "guia paso a paso",
+        "referencia tecnica"
+      ],
+      "para": [
+        "software",
+        "content"
+      ]
+    },
+    {
+      "id": "testing-go",
+      "nombre": "Pruebas en Go",
+      "frase": "Escribir y correr pruebas en Go: tablas de casos, subpruebas y cobertura.",
+      "palabras": [
+        "pruebas en go",
+        "go test",
+        "tabla de casos",
+        "cobertura"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "testing-py",
+      "nombre": "Pruebas en Python",
+      "frase": "Pruebas con pytest que atrapen los fallos que la suite verde deja pasar.",
+      "palabras": [
+        "pytest",
+        "pruebas en python",
+        "mocks",
+        "cobertura"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "testing-web",
+      "nombre": "Pruebas de interfaz web",
+      "frase": "Pruebas de componentes con Vitest o Jest y Testing Library.",
+      "palabras": [
+        "vitest",
+        "jest",
+        "testing library",
+        "pruebas de componentes"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "tiktok-api",
+      "nombre": "Conexión con TikTok",
+      "frase": "Conectar una cuenta real de TikTok al código: publicar y medir por su conexión oficial.",
+      "palabras": [
+        "tiktok",
+        "api de tiktok",
+        "publicar en tiktok",
+        "content posting"
+      ],
+      "para": [
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "together-fireworks",
+      "nombre": "Together AI y Fireworks",
+      "frase": "Llamar a modelos abiertos alojados en Together o Fireworks.",
+      "palabras": [
+        "together",
+        "fireworks",
+        "inferencia alojada",
+        "modelos abiertos por api"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "training-data",
+      "nombre": "Datos de entrenamiento",
+      "frase": "Preparar el corpus con el que se ajusta un modelo, en la forma que espera el entrenador.",
+      "palabras": [
+        "datos de entrenamiento",
+        "jsonl",
+        "dataset",
+        "corpus",
+        "ejemplos de entrenamiento"
+      ],
+      "para": [
+        "research"
+      ]
+    },
+    {
+      "id": "translation-l10n",
+      "nombre": "Traducción y varios idiomas",
+      "frase": "Añadir otro idioma a una web o aplicación sin romper plurales ni fechas.",
+      "palabras": [
+        "traduccion",
+        "idiomas",
+        "i18n",
+        "localizacion",
+        "plurales",
+        "varios idiomas"
+      ],
+      "para": [
+        "software",
+        "content"
+      ]
+    },
+    {
+      "id": "typescript",
+      "nombre": "TypeScript",
+      "frase": "Tipos en TypeScript: genéricos, uniones y por qué no estrecha.",
+      "palabras": [
+        "typescript",
+        "tipos",
+        "genericos",
+        "narrowing"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "unity",
+      "nombre": "Unity",
+      "frase": "Código de juego en C# para Unity 6.",
+      "palabras": [
+        "unity",
+        "monobehaviour",
+        "gameobject",
+        "c# de unity"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "unreal",
+      "nombre": "Unreal Engine",
+      "frase": "Juegos en Unreal Engine 5 con Blueprint o C++.",
+      "palabras": [
+        "unreal",
+        "ue5",
+        "blueprint",
+        "actor"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "unsloth",
+      "nombre": "Unsloth",
+      "frase": "Ajuste fino rápido de un modelo abierto en una sola GPU con poca memoria.",
+      "palabras": [
+        "unsloth",
+        "qlora",
+        "una gpu",
+        "ajuste fino rapido"
+      ],
+      "para": [
+        "research"
+      ]
+    },
+    {
+      "id": "variant-explorer",
+      "nombre": "Varias versiones para elegir",
+      "frase": "Cuando quieres opciones y no una respuesta: varias versiones distintas de verdad para elegir.",
+      "palabras": [
+        "varias versiones",
+        "opciones",
+        "alternativas",
+        "enseñame versiones",
+        "comparar propuestas"
+      ],
+      "para": [
+        "operations",
+        "content",
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "vector-db",
+      "nombre": "Base de datos vectorial",
+      "frase": "Elegir y operar el almacén de vectores: Pinecone, Qdrant, Weaviate o pgvector.",
+      "palabras": [
+        "vectorial",
+        "pinecone",
+        "qdrant",
+        "weaviate",
+        "pgvector"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "vercel",
+      "nombre": "Vercel",
+      "frase": "Operar un proyecto en Vercel: despliegues de prueba y de producción, variables y dominios.",
+      "palabras": [
+        "vercel",
+        "preview",
+        "despliegue en vercel",
+        "vercel.json"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "video-shorts",
+      "nombre": "Guion de un vídeo corto",
+      "frase": "Escribir y dirigir un corto vertical que aguante la atención desde el primer segundo.",
+      "palabras": [
+        "guion",
+        "video corto",
+        "vertical",
+        "primer segundo",
+        "montaje"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "viral-score",
+      "nombre": "Nota de viralidad",
+      "frase": "Puntuar de 0 a 100 si un corto merece publicarse, con diez criterios.",
+      "palabras": [
+        "viral",
+        "puntuacion",
+        "publicar o no",
+        "clip",
+        "rubrica"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "vllm",
+      "nombre": "Servidor de modelos vLLM",
+      "frase": "Servir un modelo abierto a muchos usuarios a la vez con vLLM.",
+      "palabras": [
+        "vllm",
+        "servir modelo",
+        "alto rendimiento",
+        "endpoint compatible"
+      ],
+      "para": [
+        "software",
+        "research"
+      ]
+    },
+    {
+      "id": "vue-nuxt",
+      "nombre": "Vue y Nuxt",
+      "frase": "Construir y revisar una aplicación con Vue 3 y Nuxt 4.",
+      "palabras": [
+        "vue",
+        "nuxt",
+        "script setup",
+        "ssr"
+      ],
+      "para": [
+        "software"
+      ]
+    },
+    {
+      "id": "webhooks",
+      "nombre": "Recepción de avisos de otros programas",
+      "frase": "El lado que recibe avisos de otro programa: comprobar que son de verdad y no procesar uno dos veces.",
+      "palabras": [
+        "webhook",
+        "webhooks",
+        "avisos entrantes",
+        "firma hmac",
+        "idempotencia"
+      ],
+      "para": [
+        "software",
+        "operations"
+      ]
+    },
+    {
+      "id": "wordpress",
+      "nombre": "WordPress y WooCommerce",
+      "frase": "Construir y endurecer webs WordPress y tiendas WooCommerce.",
+      "palabras": [
+        "wordpress",
+        "woocommerce",
+        "plugin",
+        "tema de bloques"
+      ],
+      "para": [
+        "software",
+        "operations",
+        "content"
+      ]
+    },
+    {
+      "id": "youtube-api",
+      "nombre": "Conexión con YouTube",
+      "frase": "Conectar el código a un canal real de YouTube: subir, editar y medir.",
+      "palabras": [
+        "youtube",
+        "api de youtube",
+        "subir video",
+        "analiticas de youtube"
+      ],
+      "para": [
+        "content",
+        "software"
+      ]
+    },
+    {
+      "id": "youtube-ideation",
+      "nombre": "Ideas para YouTube",
+      "frase": "Qué vídeos hacer a continuación y si cada apuesta superó la media del canal.",
+      "palabras": [
+        "youtube",
+        "ideas de videos",
+        "proximos videos",
+        "canal"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "youtube-packaging",
+      "nombre": "Título y descripción en YouTube",
+      "frase": "El texto que acompaña a un vídeo —título, descripción, etiquetas y capítulos— cuando nadie hace clic.",
+      "palabras": [
+        "youtube",
+        "titulo del video",
+        "descripcion",
+        "etiquetas",
+        "capitulos",
+        "clics"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "youtube-strategy",
+      "nombre": "Estrategia de canal en YouTube",
+      "frase": "Decisiones de canal: nicho, cadencia, listas y series.",
+      "palabras": [
+        "youtube",
+        "canal",
+        "nicho",
+        "cadencia",
+        "listas de reproduccion"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "youtube-thumbnails",
+      "nombre": "Miniaturas de YouTube",
+      "frase": "Diseñar y probar miniaturas que ganen clics.",
+      "palabras": [
+        "miniatura",
+        "miniaturas",
+        "thumbnail",
+        "portada del video",
+        "youtube"
+      ],
+      "para": [
+        "content"
+      ]
+    },
+    {
+      "id": "zapier",
+      "nombre": "Zapier",
+      "frase": "Operar Zapier desde un agente por su servidor MCP oficial.",
+      "palabras": [
+        "zapier",
+        "zap",
+        "zaps",
+        "automatizacion zapier"
+      ],
+      "para": [
+        "operations",
+        "software"
       ]
     }
   ]

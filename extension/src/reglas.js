@@ -55,6 +55,76 @@ const hayEnRsc = (nombre) => {
   return Boolean(ruta && fs.existsSync(ruta));
 };
 
+// ── Lo que hace solo, sin parar nada ─────────────────────────────────────
+//
+// Además de los tres frenos, el arnés engancha piezas que no le dicen que no
+// a nadie: recuerdan, guardan, recogen. No se nombraban, y son la mitad de lo
+// que un alumno ve pasar sin saber qué es —la brújula que aparece al abrir,
+// el aviso de apuntar el diario al cerrar— (decisión 102). Se leen del disco
+// como los guardianes: existe su fichero en `.rsc/`, y su interruptor `.no-*`
+// es el que mira el propio código de RSC (`targets/session-start.mjs`,
+// `userprompt-gate.mjs`, `worktree-reaper.mjs`, `scripts/install-apply.js`).
+//
+// Las tres comprobaciones de arranque —revisión periódica, arnés duplicado,
+// reglas largas— viven dentro de `session-start.mjs`: están si está él.
+// `context7` no deja fichero propio: RSC escribe el interruptor cuando el plan
+// lo apaga, y si lo enciende lo apunta en la configuración del asistente. Se
+// nombra cuando hay interruptor, que es cuando hay algo que explicar.
+const AUTOMATISMOS = [
+  { id: 'session-start', fichero: 'session-start.mjs' },
+  { id: 'worklog-checkpoint', fichero: 'worklog-checkpoint.mjs' },
+  { id: 'userprompt-gate', fichero: 'userprompt-gate.mjs', interruptor: '.no-feature-gate' },
+  { id: 'worktree-reaper', fichero: 'worktree-reaper.mjs', interruptor: '.no-worktree-cleanup' },
+  { id: 'session-memory', fichero: 'session-memory.mjs' },
+  { id: 'audit', fichero: 'session-start.mjs', interruptor: '.no-audit' },
+  { id: 'scope-check', fichero: 'session-start.mjs', interruptor: '.no-scope-check' },
+  { id: 'claudemd-check', fichero: 'session-start.mjs', interruptor: '.no-claudemd-check' },
+  { id: 'context7', interruptor: '.no-context7' },
+];
+
+function losAutomatismos() {
+  return AUTOMATISMOS
+    .filter((a) => hayEnRsc(a.fichero || a.interruptor))
+    .map((a) => {
+      const dicho = nombres.comoSeLlama('automatismos', a.id, {});
+      const apagado = Boolean(a.interruptor && hayEnRsc(a.interruptor));
+      return {
+        id: a.id,
+        nombre: dicho.nombre,
+        queHace: dicho.queHace,
+        estado: apagado ? 'apagado' : 'activo',
+        porQue: apagado ? 'Apagado aquí, a propósito' : '',
+      };
+    });
+}
+
+// ── Lo que aquí se decidió no usar, junto y en español ───────────────────
+//
+// Dos fuentes que decían lo mismo a medias: `optOuts` de `.rsc.json` (lo que
+// el plan aceptado apagó) y los interruptores `.rsc/.no-*` (lo que de verdad
+// mira cada pieza al arrancar). La radiografía leía solo la primera y la
+// enseñaba con el identificador en clave. Ahora se unen, sin repetir, y cada
+// uno se nombra por su fila de guardián o de automatismo.
+const OPT_OUT_A_PIEZA = { gitmoji: 'gitmoji-guard' };
+
+function loApagado() {
+  const nombrar = (monton, id) => nombres.comoSeLlama(monton, id, {}).nombre;
+  const lista = [];
+  const meter = (id, nombre) => {
+    if (!lista.some((x) => x.nombre === nombre)) lista.push({ id, nombre });
+  };
+  for (const g of GUARDIANES) if (hayEnRsc(g.interruptor)) meter(g.id, nombrar('guardianes', g.id));
+  for (const a of AUTOMATISMOS) if (a.interruptor && hayEnRsc(a.interruptor)) meter(a.id, nombrar('automatismos', a.id));
+
+  const declarados = (proyecto.declaracion() || {}).optOuts;
+  for (const id of Array.isArray(declarados) ? declarados : []) {
+    const pieza = OPT_OUT_A_PIEZA[id] || id;
+    const monton = GUARDIANES.some((g) => g.id === pieza) ? 'guardianes' : 'automatismos';
+    meter(pieza, nombrar(monton, pieza));
+  }
+  return lista;
+}
+
 // Qué guardianes hay montados y cuáles están actuando ahora mismo.
 //
 // Tres estados, y los tres significan cosas distintas para quien mira:
@@ -160,6 +230,9 @@ function queHay() {
     // pantalla porque es lo mismo que lo de arriba —reglas de esta carpeta—
     // con la diferencia de que estas las aplica una máquina.
     guardianes: losGuardianes(),
+    // Y lo que hace solo sin parar nada: va en el mismo desplegable, porque
+    // es la misma pregunta —«¿qué hace esto por su cuenta?»— con otra respuesta.
+    automatismos: losAutomatismos(),
     deLaCasa: puntosDe(primero, 'Working rules').length
       ? puntosDe(primero, 'Working rules')
       : puntosDe(segundo, 'Working rules'),
@@ -173,13 +246,21 @@ function queHay() {
   };
 }
 
-// Para el botón que las abre enteras, al lado. Solo estos tres ficheros.
+// Para el botón que las abre enteras, al lado. Solo estos cuatro ficheros: los
+// tres de reglas y el plan con el que RSC montó esto, que también es una
+// decisión escrita de esta carpeta y no se podía abrir desde ningún sitio.
+const PLAN_DE_MONTAJE = ['02-DOCS', 'wiki', 'harness', 'installation-plan.md'];
+
 function dondeVive(cual) {
-  const sitios = { constitucion: CONSTITUCION, claude: DE_CLAUDE, otros: DE_LOS_DEMAS };
+  const sitios = {
+    constitucion: CONSTITUCION, claude: DE_CLAUDE, otros: DE_LOS_DEMAS, plan: PLAN_DE_MONTAJE,
+  };
   const partes = sitios[cual];
   if (!partes) return null;
   const ruta = proyecto.ruta(...partes);
   return ruta && fs.existsSync(ruta) ? ruta : null;
 }
 
-module.exports = { queHay, dondeVive, losGuardianes, GUARDIANES };
+module.exports = {
+  queHay, dondeVive, losGuardianes, losAutomatismos, loApagado, GUARDIANES, AUTOMATISMOS,
+};

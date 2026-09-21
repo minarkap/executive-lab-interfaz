@@ -2758,3 +2758,79 @@ botón. El título recién montado se queda: es un estado, no otro nombre.
   *Lo que tiene apagado*. Es lo que explica que un guardián figure como apagado.
 
 Con esto, todo lo que RSC monta o escribe tiene un sitio en la barra.
+
+## 102. El mapeo se completa: todo lo que RSC puede montar tiene nombre y sitio
+
+**Fecha:** 21 de septiembre de 2026 · **Estado:** decidido
+
+Jose: *«quiero que revises todo y mapees todo bien»*. Se inventarió el paquete RSC 2.0.5 que viaja
+dentro de la barra —manifiesto, `targets/`, `scripts/lib/`, lo que escribe en la carpeta y lo que
+engancha en la configuración del asistente— y se cruzó pieza a pieza con lo que la barra lee y
+nombra. Esto es lo que faltaba, y lo que se decidió con cada cosa.
+
+### El catálogo entero, no una selección
+
+RSC trae **273 habilidades**. La barra nombraba 90: 31 en `nombres.json` y 59 en
+`capacidades.json`, cuyo comentario decía *«lo que no esté en esta lista no se le ofrece al alumno»*.
+Las otras 183, si alguien las instalaba, salían con el identificador humanizado («Youtube
+thumbnails») y sin frase, porque la suya está en inglés y el diccionario la filtra.
+
+Se revoca la selección: **las 273 tienen fila**, con nombre, frase, palabras y `para`. La razón de la
+selección era el diccionario —nada en pantalla que no esté en sus palabras— y se cumple igual
+escribiendo las 183 en español. Lo que no pega con la clase de carpeta ya tenía dónde caer: plegado,
+en *Resto del catálogo*. Una prueba lee el manifiesto del paquete y exige que no quede ninguna sin
+nombre; el día que RSC añada una, la suite lo dice antes que la pantalla de nadie.
+
+Tres reglas al escribirlas: los **nombres propios de programas se quedan** (React, Docker, Stripe,
+Node.js: son nombres, no jerga, como git y GitHub); las **palabras prohibidas no entran ni en el
+nombre ni en la frase** (`API` → «conexión» o «contrato»; `extensión` → «complemento»; `ruta` →
+«dirección»); y `para` se asigna por lo que la habilidad es, no por quién la pediría.
+
+### Los agentes por lenguaje, con el lenguaje por su nombre
+
+Los patrones cubrían `<lenguaje>-reviewer` y `<lenguaje>-build-resolver`, pero humanizar el lenguaje
+daba «Revisor de Cpp», «Revisor de Csharp», «Revisor de Mle». Una tabla `patrones.lenguajes` pone el
+nombre de verdad (C++, C#, ML en producción, PostgreSQL, PyTorch…); lo que no está en ella se
+humaniza como antes. Y `spec-miner`, el único agente de RSC fuera de las dos familias, se llama
+**Extractor de especificación**.
+
+### Lo que hace solo, sin parar nada
+
+Los guardianes eran lo único del arnés que se nombraba de todo lo que se engancha. Pero el arnés hace
+más cosas por su cuenta y ninguna paraba a nadie, así que no se veían: la brújula que aparece al
+abrir (`session-start`), el aviso de apuntar el diario al cerrar (`worklog-checkpoint`), la puerta
+antes de construir en cada petición (`userprompt-gate`), la recogida de copias de trabajo
+(`worktree-reaper`), la memoria entre conversaciones, la conexión `context7`, y las tres
+comprobaciones de arranque (revisión periódica, arnés duplicado, reglas demasiado largas).
+
+Van en el mismo desplegable que los guardianes, bajo *«Y lo que hace solo, sin parar nada»*, con su
+estado leído del disco igual que ellos: su fichero en `.rsc/` y el interruptor `.no-*` que mira el
+propio código de RSC. La tabla de nombres está en `nombres.json` (`automatismos`).
+
+### Lo apagado, junto y en español
+
+La radiografía leía `optOuts` de `.rsc.json` y lo enseñaba en clave («context7, gitmoji»). Pero lo
+que cada pieza mira de verdad al arrancar son los interruptores `.rsc/.no-*`, y aquí había cinco
+(`.no-audit`, `.no-context7`, `.no-gitmoji`, `.no-scope-check`, `.no-worktree-cleanup`). *Lo que
+tiene apagado* une las dos fuentes sin repetir y nombra cada una por su fila de guardián o de
+automatismo: «Formato al guardar en git · Documentación al día (context7) · …».
+
+### El plan de montaje se puede abrir
+
+RSC deja escrito qué instaló y por qué en `02-DOCS/wiki/harness/installation-plan.md`, y cuándo se
+aceptó en `.rsc.json`. Ninguno se enseñaba. Ahora *El asistente, montado aquí* dice «Listo, desde el
+18 de septiembre», y una pieza *El plan de montaje* lo abre al lado.
+
+### Las ideas que el asistente apunta y nadie leía
+
+`skill-scout` escribe en `.rsc/automation-gaps.md` un veredicto por trabajo hecho; los `proposed-`
+son ideas de automatización pendientes. Sugerencias las cuenta y ofrece leerlas.
+
+### Lo que se deja sin cara, y por qué
+
+El sello de revisión (`.rsc/sello*`) es opcional y aquí no está activado; `eval-sandbox/`,
+`.base-versions.json` y los adaptadores de memoria son fontanería sin decisión que enseñar. Quedan
+en el diccionario como «no se nombran», que es distinto de olvidarlos.
+
+Con esto, cada cosa que RSC 2.0.5 puede montar o escribir tiene un nombre en español y un sitio en la
+barra, y una prueba lo vigila.

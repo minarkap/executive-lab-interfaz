@@ -1841,7 +1841,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const apagado = sano.piezas.find((p) => p.nombre === 'Lo que tiene apagado');
     assert.ok(apagado, 'lo apagado a propósito se ve en la radiografía');
     assert.equal(apagado.estado, 'noAplica', 'sin marcarlo como un fallo');
-    assert.match(apagado.detalle, /gitmoji/, 'y nombrando qué es');
+    assert.match(apagado.detalle, /Formato al guardar en git/, 'y nombrándolo en español, no con el identificador');
+    assert.ok(!/gitmoji/.test(apagado.detalle), 'el identificador en clave no sale');
     assert.ok(!apagado.arreglo, 'ni ofrecer arreglar una decisión');
 
     const roto = await terreno.radiografia({
@@ -1986,7 +1987,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     // Las del arnés se ven —plegadas— con su nombre en español, no en clave.
     const fs2 = require('node:fs');
     const conArnes = fs2.mkdtempSync(path.join(os.tmpdir(), 'con-fontaneria-'));
-    fs2.writeFileSync(path.join(conArnes, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'], skills: ['orient', 'bro', 'react'] }));
+    fs2.writeFileSync(path.join(conArnes, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'], skills: ['orient', 'bro', 'react', 'mi-cosa-rara'] }));
     vscode.guion.raiz = conArnes;
     try {
       const alli = saberes.queSabe(RAIZ);
@@ -1996,9 +1997,15 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       assert.ok(!alli.sabe.some((c) => c.id === 'orient') && !alli.otras.some((c) => c.id === 'orient'), 'y solo en su montón');
       const bro = alli.otras.find((c) => c.id === 'bro');
       assert.equal(bro && bro.nombre, 'Tono humano', 'una del arnés que no es fontanería, con el nombre de la tabla');
-      const react = alli.otras.find((c) => c.id === 'react');
-      assert.equal(react && react.nombre, 'React', 'una fuera de la tabla, con el nombre del fichero humanizado');
-      assert.equal(react.frase, '', 'y sin frase en inglés');
+      // Desde la decisión 102 el catálogo entero tiene nombre, así que `react`
+      // ya no es «una fuera de la tabla»: cae en las del catálogo, con su fila.
+      const react = alli.sabe.find((c) => c.id === 'react');
+      assert.equal(react && react.nombre, 'React', 'una del catálogo completo, con el nombre de su fila');
+      assert.ok(react.frase && /\bcon\b|\bde\b/.test(react.frase), 'y con frase en español');
+      // Lo que de verdad está fuera de toda tabla se humaniza y no dice nada en inglés.
+      const rara = alli.otras.find((c) => c.id === 'mi-cosa-rara');
+      assert.equal(rara && rara.nombre, 'Mi cosa rara', 'una fuera de la tabla, con el nombre del fichero humanizado');
+      assert.equal(rara.frase, '', 'y sin frase en inglés');
 
       // Y se encuentra buscando su identificador: quien oyó «orient» en clase
       // tiene que dar con «Brújula» escribiendo eso.
@@ -3280,6 +3287,107 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'instaladas · sugerencias · resto · arnés, y los guardianes al final';
   });
 
+  await comprobar('todo lo que RSC puede montar tiene nombre en la barra', () => {
+    // Jose, 21-09-2026: «quiero que revises todo y mapees todo bien». El paquete
+    // trae 273 habilidades y la barra nombraba 90: las otras 183 habrían salido
+    // con el identificador humanizado y sin frase. Se lee el manifiesto del
+    // paquete que viaja dentro y se exige que no quede ninguna sin nombre, ni
+    // ningún agente por lenguaje con el lenguaje en clave (decisión 102).
+    const paquete = path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc');
+    if (!fs.existsSync(path.join(paquete, 'manifest.json'))) return 'SALTADA';
+    const manifiesto = JSON.parse(fs.readFileSync(path.join(paquete, 'manifest.json'), 'utf8'));
+    const tabla = JSON.parse(fs.readFileSync(path.join(RAIZ, 'media', 'nombres.json'), 'utf8'));
+    const catalogo = JSON.parse(fs.readFileSync(path.join(RAIZ, 'media', 'capacidades.json'), 'utf8')).capacidades;
+
+    const conNombre = new Set([...Object.keys(tabla.habilidades), ...catalogo.map((c) => c.id)]);
+    const sinNombre = manifiesto.skills.map((s) => s.id).filter((id) => !conNombre.has(id));
+    assert.deepEqual(sinNombre, [], `habilidades del catálogo sin nombre en español: ${sinNombre.join(', ')}`);
+    const suyas = new Set(manifiesto.skills.map((s) => s.id));
+    const fantasmas = catalogo.map((c) => c.id).filter((id) => !suyas.has(id));
+    assert.deepEqual(fantasmas, [], `en capacidades.json y ya no en el catálogo: ${fantasmas.join(', ')}`);
+
+    // Cada fila del catálogo trae lo que la pantalla necesita, y en las palabras
+    // del diccionario: ni identificadores ni jerga prohibida en lo que se ve.
+    const PARA = new Set(['operations', 'content', 'software', 'research']);
+    const PROHIBIDAS = /\b(API|token|JSON|hook|repositorio|commit|branch|extensión|terminal|consola)\b/;
+    for (const c of catalogo) {
+      assert.ok(c.nombre && c.frase, `${c.id} sin nombre o sin frase`);
+      assert.ok(Array.isArray(c.palabras) && c.palabras.length >= 2, `${c.id} con menos de dos palabras`);
+      assert.ok(Array.isArray(c.para) && c.para.length && c.para.every((p) => PARA.has(p)), `${c.id} con un "para" que no existe: ${c.para}`);
+      assert.ok(!PROHIBIDAS.test(`${c.nombre} ${c.frase}`), `${c.id} usa una palabra prohibida en pantalla: ${c.nombre} — ${c.frase}`);
+    }
+
+    // Los agentes por lenguaje se nombran con el lenguaje, no con su clave.
+    const nombres = cargar('nombres');
+    assert.equal(nombres.comoSeLlama('ayudantes', 'cpp-reviewer').nombre, 'Revisor de C++');
+    assert.equal(nombres.comoSeLlama('ayudantes', 'csharp-reviewer').nombre, 'Revisor de C#');
+    assert.equal(nombres.comoSeLlama('ayudantes', 'mle-reviewer').nombre, 'Revisor de ML en producción');
+    assert.equal(nombres.comoSeLlama('ayudantes', 'pytorch-build-resolver').nombre, 'Arreglador de compilación de PyTorch');
+    assert.equal(nombres.comoSeLlama('ayudantes', 'elixir-reviewer').nombre, 'Revisor de Elixir', 'uno que no está en la tabla se humaniza como antes');
+    assert.ok(nombres.comoSeLlama('ayudantes', 'spec-miner').deFuera, 'spec-miner tiene nombre en la tabla');
+    const catalogoAgentes = require(path.join(paquete, 'targets', 'agent-catalog.js'));
+    for (const n of catalogoAgentes.stackAgentNames()) {
+      const dicho = nombres.comoSeLlama('ayudantes', n);
+      assert.ok(dicho.deFuera, `${n} sin nombre en español`);
+      assert.ok(!/\b(Cpp|Csharp|Php|Mle|Rag|Fastapi|Postgres|Pytorch)\b/.test(dicho.nombre), `${n} sale con el lenguaje en clave: ${dicho.nombre}`);
+    }
+    return `${manifiesto.skills.length} habilidades y ${catalogoAgentes.stackAgentNames().length} agentes, todos con nombre`;
+  });
+
+  await comprobar('lo que el arnés hace solo se nombra, y lo apagado se dice en español', () => {
+    // Además de los tres frenos, el arnés engancha piezas que no paran nada:
+    // la brújula al empezar, el aviso del diario, la memoria… No se nombraban.
+    // Y lo apagado se leía solo de .rsc.json y con el identificador en clave.
+    const reglas = cargar('reglas');
+    const fs2 = require('node:fs');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'automatismos-'));
+    fs2.mkdirSync(path.join(carpeta, '.rsc'), { recursive: true });
+    fs2.mkdirSync(path.join(carpeta, '02-DOCS', 'wiki', 'harness'), { recursive: true });
+    fs2.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'], optOuts: ['context7', 'gitmoji'] }));
+    for (const f of ['session-start.mjs', 'worklog-checkpoint.mjs', 'userprompt-gate.mjs', 'worktree-reaper.mjs', 'session-memory.mjs', 'gitmoji-guard.mjs']) {
+      fs2.writeFileSync(path.join(carpeta, '.rsc', f), '// pieza del arnés');
+    }
+    for (const s of ['.no-gitmoji', '.no-context7', '.no-worktree-cleanup', '.no-audit']) fs2.writeFileSync(path.join(carpeta, '.rsc', s), '');
+    fs2.writeFileSync(path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'installation-plan.md'), '# Plan\n');
+
+    vscode.guion.raiz = carpeta;
+    try {
+      const auto = Object.fromEntries(reglas.losAutomatismos().map((a) => [a.id, a]));
+      assert.equal(Object.keys(auto).length, 9, 'los ocho de fichero más context7, que aquí tiene interruptor');
+      assert.equal(auto['session-start'].nombre, 'La brújula al empezar');
+      assert.equal(auto['session-start'].estado, 'activo');
+      assert.equal(auto['worktree-reaper'].estado, 'apagado', 'su interruptor está en disco');
+      assert.equal(auto['audit'].estado, 'apagado');
+      assert.equal(auto['scope-check'].estado, 'activo', 'sin interruptor, activo');
+      assert.equal(auto['context7'].estado, 'apagado', 'context7 se nombra cuando hay algo que explicar');
+      for (const a of Object.values(auto)) assert.ok(a.nombre && a.queHace && !/[a-z]-[a-z]/.test(a.nombre), `${a.id} sin nombre en español`);
+
+      const apagado = reglas.loApagado().map((a) => a.nombre);
+      assert.ok(apagado.includes('Formato al guardar en git'), 'gitmoji, por su nombre de guardián');
+      assert.ok(apagado.includes('Documentación al día (context7)'));
+      assert.ok(apagado.includes('Recogida de copias de trabajo'));
+      assert.ok(apagado.includes('La revisión periódica de habilidades'));
+      assert.equal(new Set(apagado).size, apagado.length, 'sin repetir lo que está en .rsc.json y en disco a la vez');
+      assert.ok(!apagado.includes('gitmoji') && !apagado.includes('context7'), 'ninguno con el identificador a secas');
+
+      assert.ok(reglas.dondeVive('plan'), 'el plan de montaje se puede abrir');
+
+      // Sin fichero, context7 no se menciona: no hay nada que explicar.
+      fs2.rmSync(path.join(carpeta, '.rsc', '.no-context7'));
+      assert.ok(!reglas.losAutomatismos().some((a) => a.id === 'context7'));
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+
+    // Y las ideas de automatización que el asistente apunta y nadie leía.
+    const consejos = cargar('consejos');
+    const idea = consejos.consejos({ huecosDeAutomatizacion: 2 }).find((c) => c.id === 'huecos-de-automatizacion');
+    assert.ok(idea, 'con propuestas apuntadas hay consejo');
+    assert.match(idea.texto, /2 ideas de automatización/);
+    assert.ok(!consejos.consejos({ huecosDeAutomatizacion: 0 }).some((c) => c.id === 'huecos-de-automatizacion'), 'y sin ellas, nada');
+    return 'nueve automatismos con nombre, cuatro apagados dichos en español';
+  });
+
   await comprobar('ningún botón manda un texto vacío', () => {
     // El fallo que tuvo a Jose tres versiones viendo conversaciones vacías, y
     // que las tres veces se buscó en el sitio equivocado. Lo que pasaba era
@@ -3430,6 +3538,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['ayuda', { tipo: 'ayuda', github: { conectado: false } }, /Estoy atascado|por dónde seguir/],
       ['reglas', { tipo: 'reglas', ...cargar('reglas').queHay() }, /albarán firmado/],
       ['reglas con guardianes', { tipo: 'reglas', ...cargar('reglas').queHay(), guardianes: [{ id: 'danger-guard', nombre: 'Freno ante órdenes peligrosas', queHace: 'Para una orden peligrosa.', estado: 'armado', porQue: '' }] }, /Lo que se comprueba solo/],
+      // Y lo que hace solo sin parar nada, en el mismo desplegable (decisión 102).
+      ['reglas con automatismos', { tipo: 'reglas', ...cargar('reglas').queHay(), guardianes: [], automatismos: [{ id: 'session-start', nombre: 'La brújula al empezar', queHace: 'Recuerda cómo se trabaja aquí.', estado: 'activo', porQue: '' }, { id: 'worktree-reaper', nombre: 'Recogida de copias de trabajo', queHace: 'Recoge lo ya guardado.', estado: 'apagado', porQue: 'Apagado aquí, a propósito' }] }, /Y lo que hace solo, sin parar nada[\s\S]*La brújula al empezar[\s\S]*Activo[\s\S]*Recogida de copias de trabajo[\s\S]*Apagado aquí/],
       ['asistente', { tipo: 'asistente', ...cargar('asistentes').comoEstamos(), aviso: null }, /Claude|Codex/],
       ['comoTrabaja', { tipo: 'comoTrabaja', ...cargar('ajustes').comoEstamos(), aviso: null }, /Cada cuánto guarda solo/],
       ['laCara', { tipo: 'laCara', ...cargar('tema').comoEstamos(), aviso: null }, /Dale material/],

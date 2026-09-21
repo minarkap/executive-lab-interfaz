@@ -62,6 +62,9 @@ function tabla() {
       habilidades: leida.habilidades || {},
       ayudantes: leida.ayudantes || {},
       guardianes: leida.guardianes || {},
+      // Lo que el arnés hace solo sin parar nada (la brújula al empezar, el
+      // aviso del diario…): misma clase de decisión que los guardianes.
+      automatismos: leida.automatismos || {},
       patrones: leida.patrones || {},
       fontaneria: leida.fontaneria || [],
     };
@@ -69,7 +72,7 @@ function tabla() {
     // Sin tabla la barra sigue funcionando: se cae al nombre humanizado. Un
     // fichero de datos roto no puede dejar sin comandos a nadie.
     tablaEnMemoria = {
-      comandos: {}, habilidades: {}, ayudantes: {}, guardianes: {}, patrones: {}, fontaneria: [],
+      comandos: {}, habilidades: {}, ayudantes: {}, guardianes: {}, automatismos: {}, patrones: {}, fontaneria: [],
     };
   }
   return tablaEnMemoria;
@@ -89,11 +92,17 @@ function deLaTabla(montón, id) {
 }
 
 // Qué dice un patrón, si alguno casa. `react-reviewer` → «Revisor de React».
+//
+// El resto es el lenguaje, y humanizarlo a secas daba «Cpp», «Csharp», «Mle»:
+// un rótulo que no reconoce ni quien programa en él. Si la tabla `lenguajes`
+// lo conoce, se usa su nombre de verdad; si no, se humaniza como antes.
 function dePatron(montón, id) {
   const reglas = (tabla().patrones || {})[montón] || [];
+  const lenguajes = (tabla().patrones || {}).lenguajes || {};
   for (const regla of reglas) {
     if (typeof regla.sufijo !== 'string' || !String(id).endsWith(regla.sufijo)) continue;
-    const resto = humanizar(String(id).slice(0, -regla.sufijo.length));
+    const base = String(id).slice(0, -regla.sufijo.length);
+    const resto = lenguajes[base] || humanizar(base);
     if (!resto) continue;
     const rellenar = (t) => String(t || '').replace(/\{resto\}/g, resto);
     return { nombre: rellenar(regla.nombre), queHace: rellenar(regla.queHace) };

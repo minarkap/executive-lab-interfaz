@@ -46,7 +46,23 @@ jerga por goteo.
 | pedirle que mire si hace falta un agente (cuando no hay ninguno) | Ver si te vendría bien un agente |
 | `02-DOCS/wiki/sdd/constitution.md` | Innegociables |
 | los guardianes de RSC (`danger-guard`, `gitmoji-guard`, `ship-guard`) | Lo que se comprueba solo (plegado, al final de Las reglas) |
-| `optOuts` de `.rsc.json` (lo que aquí se decidió no usar) | Lo que tiene apagado (en Qué falta por montar) |
+| `optOuts` de `.rsc.json` y los interruptores `.rsc/.no-*` (lo que aquí se decidió no usar) | Lo que tiene apagado (en Qué falta por montar), cada uno por su nombre de guardián o de automatismo |
+| lo que el arnés hace solo sin parar nada (`session-start`, `worklog-checkpoint`, `userprompt-gate`, `worktree-reaper`, la memoria, `context7`, y las tres comprobaciones de arranque) | Lo que hace solo, sin parar nada (dentro de Lo que se comprueba solo) |
+| `session-start.mjs` | La brújula al empezar |
+| `worklog-checkpoint.mjs` | El aviso del diario |
+| `userprompt-gate.mjs` (`.no-feature-gate`) | La puerta antes de construir |
+| `worktree-reaper.mjs` (`.no-worktree-cleanup`) | Recogida de copias de trabajo |
+| `session-memory.mjs` | La memoria entre conversaciones |
+| el MCP `context7` (`.no-context7`) | Documentación al día (context7) |
+| el aviso de `rsc audit` (`.no-audit`) | La revisión periódica de habilidades |
+| el aviso de dos arneses (`.no-scope-check`) | El aviso de arnés duplicado |
+| el aviso de `CLAUDE.md` largo (`.no-claudemd-check`) | El aviso de reglas demasiado largas |
+| `02-DOCS/wiki/harness/installation-plan.md` y `onboarding.acceptedAt` | El plan de montaje · Ver el plan de montaje · Aceptado el 18 de septiembre |
+| `.rsc/automation-gaps.md` (lo que `skill-scout` apunta tras trabajar) | ideas de automatización (un consejo en Sugerencias) |
+| `spec-miner` | Extractor de especificación |
+| `<lenguaje>-reviewer` / `<lenguaje>-build-resolver` | Revisor de C++ · Arreglador de compilación de PyTorch (el lenguaje por su nombre, en `patrones.lenguajes`) |
+| las 273 habilidades del catálogo | cada una por su nombre en `capacidades.json`; el catálogo entero, no una selección |
+| el sello de revisión (`.rsc/sello*`), `eval-sandbox/`, `.base-versions.json` | (no se nombran: fontanería sin cara; el sello aquí no está activado) |
 | `danger-guard` | Freno ante órdenes peligrosas |
 | `gitmoji-guard` | Formato al guardar en git |
 | `ship-guard` | Aviso de trabajo a medias |

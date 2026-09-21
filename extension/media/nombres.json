@@ -246,13 +246,18 @@
     "refuter-tests": {
       "nombre": "Revisor de pruebas",
       "queHace": "Intenta que las pruebas pasen sin merecerlo, para ver si de verdad valen."
+    },
+    "spec-miner": {
+      "nombre": "Extractor de especificación",
+      "queHace": "Lee un código que ya existía y saca de él un borrador de qué hace y por qué, sin tocarlo."
     }
   },
   "_patrones": [
     "Los agentes por lenguaje de RSC (`targets/agent-catalog.js`) son dos familias con",
     "el mismo molde: `<lenguaje>-reviewer` y `<lenguaje>-build-resolver`. Hay más de",
     "veinte y salen nuevos con cada versión, así que en vez de una fila por cada uno",
-    "hay una regla por familia. `{resto}` es el lenguaje, humanizado."
+    "hay una regla por familia. `{resto}` es el lenguaje: si está en `lenguajes`, con su",
+    "nombre de verdad (cpp → C++, mle → ML en producción); si no, humanizado."
   ],
   "patrones": {
     "ayudantes": [
@@ -266,7 +271,28 @@
         "nombre": "Revisor de {resto}",
         "queHace": "Revisa los cambios de código de {resto} y señala fallos, sin tocar nada."
       }
-    ]
+    ],
+    "lenguajes": {
+      "cpp": "C++",
+      "csharp": "C#",
+      "php": "PHP",
+      "typescript": "TypeScript",
+      "fastapi": "FastAPI",
+      "postgres": "PostgreSQL",
+      "rag": "RAG",
+      "mle": "ML en producción",
+      "pytorch": "PyTorch",
+      "django": "Django",
+      "java": "Java",
+      "kotlin": "Kotlin",
+      "flutter": "Flutter",
+      "react": "React",
+      "rust": "Rust",
+      "swift": "Swift",
+      "go": "Go",
+      "vue": "Vue",
+      "python": "Python"
+    }
   },
   "_fontaneria": [
     "Lo que el arnés monta para funcionar por dentro, y que nadie pide por su nombre.",
@@ -329,6 +355,51 @@
     "ship-guard": {
       "nombre": "Aviso de trabajo a medias",
       "queHace": "Avisa si vas a dejar atrás algo sin guardar o sin subir a GitHub."
+    }
+  },
+  "_automatismos": [
+    "Lo que el arnés hace solo SIN parar nada: recuerda, guarda, recoge. Son la otra",
+    "mitad de lo que un alumno ve pasar sin saber qué es —la brújula que aparece al",
+    "abrir, el aviso de apuntar el diario al cerrar— y no se nombraban en ningún sitio.",
+    "Cada uno se lee del disco como los guardianes: su fichero en `.rsc/` y el",
+    "interruptor `.no-*` que mira el propio código de RSC. Decisión 102."
+  ],
+  "automatismos": {
+    "session-start": {
+      "nombre": "La brújula al empezar",
+      "queHace": "Al abrir una conversación le recuerda al asistente cómo se trabaja aquí y qué hay montado."
+    },
+    "worklog-checkpoint": {
+      "nombre": "El aviso del diario",
+      "queHace": "Al cerrar, o cuando la conversación se alarga, le recuerda apuntar en el diario lo hecho."
+    },
+    "userprompt-gate": {
+      "nombre": "La puerta antes de construir",
+      "queHace": "En cada petición le recuerda que, si es algo grande, se acuerda antes de empezar a hacerlo."
+    },
+    "worktree-reaper": {
+      "nombre": "Recogida de copias de trabajo",
+      "queHace": "Recoge las copias de trabajo paralelas cuyo trabajo ya quedó guardado."
+    },
+    "session-memory": {
+      "nombre": "La memoria entre conversaciones",
+      "queHace": "Guarda dónde se quedó cada conversación, para poder seguir donde lo dejaste."
+    },
+    "context7": {
+      "nombre": "Documentación al día (context7)",
+      "queHace": "Una conexión externa para consultar la documentación actual de los programas. Pide permiso aparte."
+    },
+    "audit": {
+      "nombre": "La revisión periódica de habilidades",
+      "queHace": "Cada cierto tiempo le recuerda repasar qué habilidades sobran o se pisan."
+    },
+    "scope-check": {
+      "nombre": "El aviso de arnés duplicado",
+      "queHace": "Avisa si el arnés está montado también en tu carpeta personal y una de las dos copias va atrasada."
+    },
+    "claudemd-check": {
+      "nombre": "El aviso de reglas demasiado largas",
+      "queHace": "Avisa si el fichero de reglas ha crecido tanto que cuesta en cada conversación."
     }
   }
 }

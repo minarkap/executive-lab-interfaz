@@ -220,3 +220,24 @@ Decisión 101 en `docs/decisiones.md`.
   radiografía.
 
 0.22.0. 179 comprobaciones: una nueva que fija el orden de los bloques, y dos ampliadas.
+
+## El mapeo se completa: todo lo que RSC puede montar tiene nombre — 21 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-21-el-mapeo-se-completa.md`.
+Decisión 102 en `docs/decisiones.md`.
+
+- **El catálogo entero, no una selección**: RSC trae 273 habilidades y la barra nombraba 90. Las 183
+  restantes salían con el identificador humanizado y sin frase. Ahora todas tienen fila en
+  `capacidades.json`, y una prueba lee el manifiesto del paquete para que no vuelva a faltar ninguna.
+- **Los agentes por lenguaje, con su nombre**: «Revisor de Cpp» → «Revisor de C++». Tabla
+  `patrones.lenguajes`. Y `spec-miner` → «Extractor de especificación».
+- **Lo que hace solo, sin parar nada**: nueve piezas que el arnés engancha y que no bloquean a nadie
+  (la brújula al empezar, el aviso del diario, la memoria entre conversaciones…) se nombran en el
+  mismo desplegable que los guardianes, con su estado leído del disco.
+- **Lo apagado, junto y en español**: `optOuts` de `.rsc.json` más los interruptores `.rsc/.no-*`,
+  sin repetir y cada uno por su nombre.
+- **El plan de montaje** (`installation-plan.md` + `acceptedAt`) se ve y se abre desde la radiografía.
+- **Las ideas de automatización** que `skill-scout` apunta en `.rsc/automation-gaps.md` se cuentan en
+  Sugerencias.
+
+0.23.0. 181 comprobaciones.

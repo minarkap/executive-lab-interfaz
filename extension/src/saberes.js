@@ -16,7 +16,7 @@
 // de cuatro montones, y una comprobación exige que la suma cuadre:
 //
 //   suyas     las escritas para esta carpeta (`ownSkills` de `.rsc.json`)
-//   sabe      las de nuestro catálogo curado que están puestas
+//   sabe      las del catálogo (entero desde la decisión 102) que están puestas
 //   otras     las instaladas que no están en el catálogo ni son del arnés
 //   deSerie   las que el arnés monta para funcionar por dentro (plegadas)
 //
