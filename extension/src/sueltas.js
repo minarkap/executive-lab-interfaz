@@ -153,6 +153,174 @@ function buscar() {
   return encontradas;
 }
 
+// ── Las credenciales que no son una línea ────────────────────────────────
+//
+// Una cuenta de servicio de Google o un `.pem` no es `CLAVE=valor`: es un
+// fichero entero que hay que mover. Y hasta hoy la barra no los miraba, así
+// que un Drive conectado con cuenta de servicio salía «sin conectar» —su
+// `.env` está vacío— y el fichero que de verdad lo autentica no aparecía en
+// ningún sitio. Es además la credencial más peligrosa de las dos: una cuenta
+// de servicio no caduca y suele abrir un Drive entero.
+//
+// Su sitio en RSC es `01-TOOLS/<HERRAMIENTA>/keys/`, que la plantilla ya
+// excluye de las copias (`gitignore`: `.env`, `keys/`, `out/`).
+//
+// OJO con las dos carpetas que se llaman igual: un `keys/` en la raíz es
+// desorden; el `keys/` de dentro de una herramienta es su casa, y lo que hay
+// ahí NO está fuera de sitio. Es lo único que se puede leer mal de aquí.
+const POR_NOMBRE = /\.(pem|p8|p12|pfx|key|keystore|jks)$/i;
+const SIN_EXTENSION = /^(id_rsa|id_ed25519|id_ecdsa|id_dsa)$/i;
+// Un `.json` que no hace falta abrir: su nombre ya lo dice.
+const JSON_INEQUIVOCO = /^(credentials|client_secret.*|.*service[-_]?account.*|token|serviceAccountKey|firebase-adminsdk.*)\.json$/i;
+// Y lo que hay que ver dentro de cualquier otro `.json` para que cuente.
+const DENTRO_DE_UNA_CREDENCIAL = /"(type"\s*:\s*"service_account|private_key"|client_secret")/;
+const TOPE_JSON = 64 * 1024;
+
+// De un `.json` que cuenta salen DOS campos, los dos públicos: qué es y de
+// qué cuenta. El resto del contenido no cruza esta función — ni `private_key`,
+// ni un trozo, ni al encargo. Es la frontera que hace esto seguro.
+function loQueDeclara(fichero) {
+  let cabeza;
+  try {
+    if (fs.statSync(fichero).size > TOPE_JSON) return null;
+    cabeza = fs.readFileSync(fichero, 'utf8');
+  } catch {
+    // Un fichero que no se puede leer no se puede clasificar, y afirmar que es
+    // una credencial sería peor que callarse. No es un fallo de la barra.
+    return null;
+  }
+  if (!DENTRO_DE_UNA_CREDENCIAL.test(cabeza)) return null;
+  const correo = (cabeza.match(/"client_email"\s*:\s*"([^"@]+@[^"]+)"/) || [])[1] || '';
+  const tipo = (cabeza.match(/"type"\s*:\s*"([a-z_]+)"/) || [])[1] || '';
+  return { tipo, correo };
+}
+
+// ¿Este fichero es una credencial? Devuelve qué es, o null.
+function queEs(nombre, completa) {
+  if (POR_NOMBRE.test(nombre) || SIN_EXTENSION.test(nombre)) {
+    return { clase: 'certificado', queEs: 'Un certificado digital' };
+  }
+  if (!/\.json$/i.test(nombre)) return null;
+
+  const declarado = JSON_INEQUIVOCO.test(nombre) ? (loQueDeclara(completa) || { tipo: '', correo: '' }) : loQueDeclara(completa);
+  if (!declarado) return null;
+  if (declarado.tipo === 'service_account' || /service[-_]?account/i.test(nombre)) {
+    return { clase: 'cuenta de servicio', queEs: 'Una cuenta de servicio de Google', correo: declarado.correo };
+  }
+  return { clase: 'fichero de acceso', queEs: 'Un fichero con credenciales dentro', correo: declarado.correo };
+}
+
+// El proyecto que nombra una cuenta de servicio: de
+// `robot@mi-proyecto.iam.gserviceaccount.com` sale `mi-proyecto`. Sirve para
+// casarlo con una herramienta montada, y para nada más.
+const proyectoDe = (correo) => (String(correo || '').split('@')[1] || '').split('.')[0] || '';
+
+// ¿Este texto nombra a esta herramienta? Por **trozos**, no por `includes`.
+//
+// Con `includes` bastaba que el identificador apareciera dentro: el proyecto
+// `mi-drive-de-pruebas` casaba con DRIVE, y una herramienta llamada `API`
+// casaba con casi cualquier cosa. Un falso positivo aquí manda al asistente a
+// mover la credencial de otro, así que se parte por guiones, puntos y guiones
+// bajos y se exige que un trozo entero sea el identificador.
+function nombraA(texto, id) {
+  const trozos = String(texto || '').split(/[^A-Za-z0-9]+/).filter(Boolean).map(normal);
+  const suyo = normal(id);
+  return trozos.includes(suyo);
+}
+
+// Los ficheros de acceso que hay fuera de su sitio, con de quién parece cada
+// uno. Lo que no se deduce se pregunta: no se inventa una herramienta a partir
+// del nombre de un proyecto de Google.
+// Topes. Esto se pide en cada repintado, y a diferencia del inventario de
+// claves —que solo mira ficheros `.env*`, que son cuatro— aquí hay que abrir
+// los `.json` que no se resuelven por el nombre. Una carpeta `datos/` con
+// cinco mil ficheros no puede costar un repintado, así que se acota: tantas
+// entradas por carpeta, y tantas lecturas en total.
+const TOPE_POR_CARPETA = 300;
+const TOPE_DE_LECTURAS = 60;
+
+function ficherosDeAcceso(lasHerramientas = herramientas()) {
+  const raiz = proyecto.raiz();
+  if (!raiz) return [];
+
+  const encontrados = [];
+  let leidos = 0;
+  const mirarCarpeta = (relativa, dentroDe = null) => {
+    const completa = relativa ? proyecto.ruta(relativa) : raiz;
+    if (!completa || !fs.existsSync(completa)) return;
+    let entradas;
+    try {
+      entradas = fs.readdirSync(completa, { withFileTypes: true });
+    } catch { return; }
+    for (const entrada of entradas.slice(0, TOPE_POR_CARPETA)) {
+      if (!entrada.isFile()) continue;
+      // Abrir un `.json` cuesta; los demás se resuelven por el nombre y son
+      // gratis. Solo los que hay que abrir gastan del tope.
+      const hayQueAbrirlo = /\.json$/i.test(entrada.name);
+      if (hayQueAbrirlo && leidos >= TOPE_DE_LECTURAS) continue;
+      if (hayQueAbrirlo) leidos += 1;
+
+      const suyo = queEs(entrada.name, path.join(completa, entrada.name));
+      if (!suyo) continue;
+      const donde = relativa ? path.join(relativa, entrada.name) : entrada.name;
+      if (encontrados.some((f) => f.donde === donde)) continue;
+
+      // De quién es, por el orden de la aclaración C3 de la spec.
+      let herramienta = dentroDe;
+      let por = dentroDe ? 'está en su carpeta' : null;
+      if (!herramienta) {
+        const porNombre = lasHerramientas.find((h) => nombraA(entrada.name, h.id));
+        if (porNombre) { herramienta = porNombre.id; por = 'lo dice su nombre'; }
+      }
+      if (!herramienta && suyo.correo) {
+        const proyectoSuyo = proyectoDe(suyo.correo);
+        const porProyecto = lasHerramientas.find((h) => nombraA(proyectoSuyo, h.id));
+        if (porProyecto) { herramienta = porProyecto.id; por = 'lo dice la cuenta'; }
+      }
+
+      encontrados.push({
+        donde,
+        nombre: entrada.name,
+        clase: suyo.clase,
+        queEs: suyo.queEs,
+        herramienta: herramienta || null,
+        existe: Boolean(herramienta && lasHerramientas.some((h) => h.id === herramienta)),
+        por: por || 'sin dueño',
+      });
+    }
+  };
+
+  mirarCarpeta('');
+  let primerNivel = [];
+  try {
+    primerNivel = fs.readdirSync(raiz, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !e.name.startsWith('.') && !NO_SE_MIRA.has(e.name))
+      .map((e) => e.name);
+  } catch { /* sin permiso: se mira lo demás */ }
+  // Un `keys/` en la raíz es desorden; el de dentro de una herramienta no.
+  for (const carpeta of [...new Set([...primerNivel, ...CARPETAS, 'keys'])]) mirarCarpeta(carpeta);
+
+  // Dentro de cada herramienta, lo que esté FUERA de su `keys/`. Lo que hay en
+  // `keys/` está en su casa y no se cuenta como desorden.
+  for (const h of lasHerramientas) mirarCarpeta(path.join(HERRAMIENTAS, h.id), h.id);
+
+  return encontrados;
+}
+
+// Si una herramienta tiene ya su fichero de acceso puesto donde toca. Es lo
+// que hace que deje de decir «sin conectar» algo que funciona.
+function tieneSuFichero(herramientaId) {
+  const carpeta = proyecto.ruta(HERRAMIENTAS, herramientaId, 'keys');
+  if (!carpeta || !fs.existsSync(carpeta)) return 0;
+  try {
+    return fs.readdirSync(carpeta, { withFileTypes: true })
+      .filter((e) => e.isFile() && !e.name.startsWith('.') && queEs(e.name, path.join(carpeta, e.name)))
+      .length;
+  } catch {
+    return 0;
+  }
+}
+
 // ── A quién pertenece cada clave ─────────────────────────────────────────
 
 const normal = (t) => String(t || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -237,8 +405,11 @@ function estanSubidas(sitios) {
 
 // El encargo al asistente, con el plan hecho. Las rutas y los nombres de las
 // claves van aquí porque esto se lo lee él; los valores, nunca.
-function encargo(sitios, { grupos, sinDueno }, subidas) {
-  const lineas = [
+function encargo(sitios, { grupos, sinDueno }, subidas, ficheros = []) {
+  // Puede no haber ni una clave suelta y sí un fichero de acceso tirado. Abrir
+  // con «hay 0 claves guardadas fuera de su sitio, en: .» era exactamente eso,
+  // y se lo estaba mandando al asistente (lo pilló `review`).
+  const lineas = sitios.length ? [
     `En esta carpeta hay ${sitios.reduce((t, s) => t + s.cuantas, 0)} claves guardadas fuera de su sitio, en: ${sitios.map((s) => s.donde).join(', ')}. `
       + `El sitio de una clave es 01-TOOLS/<HERRAMIENTA>/.env, por el protocolo de harness: una carpeta por proveedor, con su .env, su .env.example, su CREDENTIALS.md y su prueba de conexión.`,
     '',
@@ -249,13 +420,28 @@ function encargo(sitios, { grupos, sinDueno }, subidas) {
     ...(sinDueno.length
       ? [`- Sin dueño claro: ${sinDueno.map((x) => `${x.nombre} (${x.donde})`).join(', ')}. Pregúntame de qué herramienta son antes de moverlas.`]
       : []),
+  ] : [
+    'En esta carpeta hay credenciales guardadas fuera de su sitio. El sitio lo define el protocolo de harness: una carpeta por proveedor en 01-TOOLS, con su .env, su .env.example, su CREDENTIALS.md y su prueba de conexión.',
+  ];
+  lineas.push(...[
+    // Los ficheros de acceso: otra clase de credencial y otro destino. Van en
+    // el mismo encargo porque es la misma mudanza, y porque partirla en dos
+    // deja media casa ordenada.
+    ...(ficheros.length ? [
+      '',
+      'Y hay credenciales que no son una línea sino un fichero entero. Su sitio es 01-TOOLS/<HERRAMIENTA>/keys/, que el .gitignore de la plantilla ya excluye:',
+      ...ficheros.map((f) => (f.herramienta
+        ? `- ${f.donde} — ${f.queEs.toLowerCase()} → 01-TOOLS/${f.herramienta}/keys/ (${f.por}).${f.existe ? '' : ' Esa herramienta no existe: créala desde 01-TOOLS/_TEMPLATE.'}`
+        : `- ${f.donde} — ${f.queEs.toLowerCase()}. No sé de qué herramienta es: pregúntamelo antes de moverlo.`)),
+      'No abras ni me pegues el contenido de ninguno: con saber cuál es y a dónde va, basta.',
+    ] : []),
     '',
     'Qué tiene que quedar: cada clave en el .env de su herramienta y solo ahí, los .env.example con los nombres, y cada herramienta con su prueba de conexión pasando.',
     '',
     'Qué no se toca: no imprimas ni me pegues ningún valor de clave. No borres el fichero viejo si algo del proyecto lo lee todavía: mira primero qué lo carga (scripts, dotenv, docker-compose) y adapta eso, o deja el fichero viejo cargando desde el nuevo. No reescribas el historial de git.',
     '',
     'Antes de mover nada, enséñame el reparto en una línea por herramienta y espera mi OK.',
-  ];
+  ]);
   if (subidas.length) {
     lineas.push('', `AVISO IMPORTANTE: estos ficheros ya están guardados en el historial de git (${subidas.join(', ')}), `
       + 'así que moverlos NO saca esas claves de ahí: siguen en el historial y viajarían con cualquier copia que se suba. '
@@ -267,15 +453,22 @@ function encargo(sitios, { grupos, sinDueno }, subidas) {
 
 // Un resumen para la pantalla, sin nombrar ficheros ni valores.
 function resumen() {
+  const lasHerramientas = herramientas();
   const sitios = buscar();
-  if (!sitios.length) return null;
+  const deAcceso = ficherosDeAcceso(lasHerramientas);
+  if (!sitios.length && !deAcceso.length) return null;
 
-  const subidas = estanSubidas(sitios);
-  const { grupos, sinDueno } = reparto(sitios);
+  // Los ficheros de acceso entran en la misma pregunta a git: un
+  // `credentials.json` en el historial es la credencial que más daño hace ahí,
+  // porque una cuenta de servicio no caduca (A6, hueco que encontró `analyze`).
+  const subidas = estanSubidas([...sitios, ...deAcceso.map((f) => ({ donde: f.donde }))]);
+  const { grupos, sinDueno } = reparto(sitios, lasHerramientas);
   return {
     sitios: sitios.length,
     ficheros: sitios.map((s) => s.donde),
     claves: sitios.reduce((total, s) => total + s.cuantas, 0),
+    // Las credenciales que son un fichero entero, con de quién parece cada una.
+    ficherosDeAcceso: deAcceso,
     // Cuántos de esos ficheros están ya guardados en el historial. Cero es el
     // caso normal; más de cero cambia lo que hay que hacer.
     subidas: subidas.length,
@@ -283,12 +476,19 @@ function resumen() {
     // cristiano y el asistente lo tenga hecho.
     reparto: grupos,
     sinDueno,
-    // Proveedores que existen por sus claves y todavía no tienen carpeta.
-    porMontar: grupos.filter((g) => !g.existe).map((g) => ({ herramienta: g.herramienta, claves: g.claves.length })),
-    prompt: encargo(sitios, { grupos, sinDueno }, subidas),
+    // Proveedores que existen por sus claves —o por un fichero de acceso— y
+    // todavía no tienen carpeta.
+    porMontar: [
+      ...grupos.filter((g) => !g.existe).map((g) => ({ herramienta: g.herramienta, claves: g.claves.length })),
+      ...deAcceso
+        .filter((f) => f.herramienta && !f.existe && !grupos.some((g) => g.herramienta === f.herramienta))
+        .map((f) => ({ herramienta: f.herramienta, claves: 0, conFichero: true })),
+    ],
+    prompt: encargo(sitios, { grupos, sinDueno }, subidas, deAcceso),
   };
 }
 
 module.exports = {
   buscar, resumen, reparto, aQuien, prefijoDe, herramientas, enCristiano, enElOrdenador, nombresDeClaves, nombresEsperados,
+  ficherosDeAcceso, tieneSuFichero, queEs,
 };

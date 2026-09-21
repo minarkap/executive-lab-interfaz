@@ -125,8 +125,16 @@ verás tú—:
 5. **Si ya estaban guardadas en git**, moverlas no las saca del historial: díselo y explícale que lo
    único que las inutiliza es cambiarlas en el proveedor.
 
-Las credenciales que no son variables —una cuenta de servicio `.json`, un `.pem`— van a
-`01-TOOLS/<HERRAMIENTA>/keys/`, que la plantilla ya excluye de las copias.
+**Las credenciales que no son variables** —una cuenta de servicio de Google, un `.pem`, un `.p12`—
+son ficheros enteros, no líneas, y van a **`01-TOOLS/<HERRAMIENTA>/keys/`**, que la plantilla ya
+excluye de las copias. Tres cosas al moverlas:
+
+- **No abras ni pegues el contenido.** Con saber cuál es y a dónde va, basta. Una cuenta de
+  servicio en una conversación es una filtración.
+- **Una cuenta de servicio no caduca.** Si además estaba guardada en git, decirlo es más urgente
+  que con una clave normal: lo único que la inutiliza es revocarla en Google.
+- **Una herramienta puede autenticarse solo con el fichero**, con el `.env` vacío. Eso no es estar
+  a medias: no le inventes claves que no pide.
 
 Sigue el protocolo de `harness`: `cp -r 01-TOOLS/_TEMPLATE 01-TOOLS/<NOMBRE>` y completa
 `.env.example` y `test_connection.sh`. Y además **tres cosas que el panel enseña tal cual**, así que

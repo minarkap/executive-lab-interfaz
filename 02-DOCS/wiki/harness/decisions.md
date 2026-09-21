@@ -276,3 +276,22 @@ Decisión 104 en `docs/decisiones.md`.
 - Pendiente apuntado: las credenciales que no son variables (`.json` de cuenta de servicio, `.pem`).
 
 0.25.0. 185 comprobaciones.
+
+## Una credencial que es un fichero entero también tiene sitio — 22 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-22-una-credencial-que-es-un-fichero.md`.
+Decisión 105 en `docs/decisiones.md`. Cadena SDD completa: spec, plan, `analyze` y verificación en
+`02-DOCS/wiki/sdd/`.
+
+- **La mitad que faltaba de la 104**: una cuenta de servicio de Google o un certificado es un
+  fichero entero, no una línea `CLAVE=valor`. Un Drive conectado así salía «sin conectar».
+- **Se reconocen** por extensión, por nombre inequívoco o por lo que declaran dentro; de dentro
+  solo salen `type` y `client_email`, que no son secretos.
+- **Su sitio es `01-TOOLS/<X>/keys/`**, y lo que ya está ahí no es desorden. Una conexión con su
+  fichero dice «con su fichero de acceso».
+- **Vocabulario**: «fichero de acceso» y «cuenta de servicio de Google» entran; «certificado
+  digital» se queda y «clave privada» se prohíbe.
+- **Primera vez con la cadena entera en este repositorio**, y `config.yaml` no existía: ahora sí.
+  Los gates encontraron cinco defectos que la lectura a ojo no vio.
+
+0.26.0. 186 comprobaciones.

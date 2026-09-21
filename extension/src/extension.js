@@ -754,11 +754,17 @@ ${cabecera}
       }
       const desordenadas = sueltas.resumen();
       if (desordenadas) {
-        visto.push(`Hay ${desordenadas.claves} clave(s) fuera de sitio en: ${desordenadas.ficheros.join(', ')}.`);
-        for (const g of desordenadas.reparto) {
-          visto.push(`  · ${g.claves.join(', ')} parecen de ${g.herramienta}${g.existe ? '' : ', que no tiene carpeta en 01-TOOLS'}.`);
+        if (desordenadas.claves) {
+          visto.push(`Hay ${desordenadas.claves} clave(s) fuera de sitio en: ${desordenadas.ficheros.join(', ')}.`);
+          for (const g of desordenadas.reparto) {
+            visto.push(`  · ${g.claves.join(', ')} parecen de ${g.herramienta}${g.existe ? '' : ', que no tiene carpeta en 01-TOOLS'}.`);
+          }
+          if (desordenadas.sinDueno.length) visto.push(`  · Sin dueño claro: ${desordenadas.sinDueno.map((x) => x.nombre).join(', ')}.`);
         }
-        if (desordenadas.sinDueno.length) visto.push(`  · Sin dueño claro: ${desordenadas.sinDueno.map((x) => x.nombre).join(', ')}.`);
+        // Y las credenciales que son un fichero entero, que van a otro sitio.
+        for (const f of desordenadas.ficherosDeAcceso) {
+          visto.push(`${f.donde} es ${f.queEs.toLowerCase()} y está fuera de su sitio${f.herramienta ? `; parece de ${f.herramienta}` : ', y no se sabe de quién'}.`);
+        }
       }
       for (const g of reglas.losGuardianes()) {
         if (g.estado === 'apagado') visto.push(`El freno "${g.nombre}" está apagado.`);

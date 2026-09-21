@@ -35,6 +35,11 @@ jerga por goteo.
 | log / diagnóstico | Informe para tu tutor |
 | una carpeta de `01-TOOLS/` | Una conexión |
 | una clave que existe pero no en `01-TOOLS/<X>/.env` | Puesta, pero fuera de su sitio · «Ya la tienes, en la carpeta principal» |
+| una credencial que es un fichero entero y no una línea (`.json` de cuenta de servicio, `.pem`, `.p12`, `.key`) | Un fichero de acceso |
+| un `*-service-account.json` / `credentials.json` de Google | Una cuenta de servicio de Google (en la (i); el rótulo dice «fichero de acceso») |
+| un `.pem`, `.p12`, `.key` | Un certificado digital (nunca «clave privada»: es jerga y choca con «clave de acceso») |
+| `01-TOOLS/<X>/keys/` | (no se nombra la carpeta: se dice «en su sitio» o «fuera de sitio») |
+| una herramienta que se autentica con un fichero y no con claves | Con su fichero de acceso |
 | una clave exportada en el entorno del ordenador | Puesta en tu ordenador, fuera de esta carpeta |
 | un proveedor que se deduce de las claves sueltas y no tiene carpeta | Por montar |
 | pedirle al asistente que audite la carpeta por un problema concreto | Resolver una incidencia |

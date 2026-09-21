@@ -2948,3 +2948,66 @@ Las credenciales que no son variables: cuentas de servicio `.json`, `.pem`, `.p1
 contenido sin abrirlo del todo. Apuntado en el documento de feature a petición de Jose. Y lo que
 está fuera de la carpeta (`~/.aws/credentials`) solo se nombra: la regla de no salir del directorio
 de trabajo manda.
+
+## 105. Una credencial que es un fichero entero también tiene sitio
+
+**Fecha:** 22 de septiembre de 2026 · **Estado:** decidido · **Cadena SDD completa**
+
+Jose: *«apunta como pendiente para luego hacer los otros ficheros de credenciales […] cuentas de
+servicio, `.json` y `.pem` y tal»*, y después *«implementa todo en autopilot por fases en SDD»*.
+Es la mitad que faltaba de la 104: aquella enseñó a la barra a inventariar claves, pero solo las
+que son una línea `CLAVE=valor`.
+
+### Qué pasaba
+
+Una cuenta de servicio de Google o un certificado no tiene esa forma: es un fichero entero. Así
+que un Drive conectado con cuenta de servicio salía **«sin conectar»** —su `.env` está vacío— y el
+fichero que de verdad lo autentica no aparecía en ningún sitio. Y es la credencial más peligrosa
+de las dos: una cuenta de servicio no caduca y suele abrir un Drive entero.
+
+### Qué se hace
+
+`sueltas.js` gana un inventario hermano del de claves, con las mismas reglas —leer del disco, no
+adivinar, no sacar el contenido—:
+
+- **Se reconocen por tres vías** (aclaración C2 de la spec): por extensión sin abrirlos (`.pem`,
+  `.p8`, `.p12`, `.key`, `id_rsa`…); por nombre inequívoco siendo `.json` (`credentials.json`,
+  `*service-account*.json`); o **por lo que declaran dentro** (`"type": "service_account"`,
+  `private_key`, `client_secret`). Un `package.json` no cuenta, y hay prueba.
+- **De quién es cada uno**: está dentro de `01-TOOLS/<X>/` → es de X; su nombre lleva el
+  identificador de una herramienta; o su `client_email` nombra un proyecto que casa con una. Todo
+  por **trozos enteros**, no por `includes` — si no, `API` casaría con cualquier cosa. Lo que no
+  sale, se pregunta.
+- **De dentro salen dos campos y ninguno es secreto**: `type` y `client_email`. Ni `private_key`,
+  ni un trozo, ni al encargo, ni al registro. Hay una aserción que lo comprueba.
+- **Su sitio es `01-TOOLS/<HERRAMIENTA>/keys/`**, que la plantilla de RSC ya excluye de las copias.
+  Lo que está ahí **no** es desorden: está en su casa. Ojo con las dos carpetas que se llaman
+  igual — un `keys/` en la raíz sí es desorden.
+- **Una conexión con su fichero deja de estar «sin conectar»**: dice *«con su fichero de acceso»*.
+  Si además le falta una clave de verdad, manda lo que falta: es lo que bloquea.
+- **Si están en el historial de git, el mismo aviso.** Con una cuenta de servicio es más urgente:
+  lo único que la inutiliza es revocarla.
+
+### Las palabras
+
+Dos filas nuevas en el diccionario: **fichero de acceso** (la clase) y **cuenta de servicio de
+Google** (en la (i)). Y una decisión de vocabulario: **«certificado digital» se queda, «clave
+privada» se va**. *Clave privada* es jerga y choca con *clave de acceso*, que ya significa otra
+cosa. *Certificado digital* no es jerga para este público: un gestor español tiene el de la FNMT y
+lo usa para Hacienda cada trimestre — es vocabulario de gestoría, como «archivo» o «carpeta».
+
+### Lo que encontraron los gates, y no yo
+
+Esto se hizo con la cadena entera (`sdd-init → specify → clarify → plan → tasks → analyze →
+implement → verify → review`), y cada gate pagó su coste:
+
+- **`analyze`**: ninguna tarea cubría el criterio del historial de git. Sin ese cruce, una cuenta
+  de servicio habría viajado a GitHub sin aviso.
+- **`verify`**: el emparejamiento por `includes` era demasiado laxo, y el rótulo llevaba jerga.
+- **`review`**: sin ninguna clave suelta, el encargo abría con «hay 0 claves guardadas fuera de su
+  sitio, en: .». Y el recorrido de `.json` no tenía tope, en algo que se pide en cada repintado.
+
+Los artefactos están en `02-DOCS/wiki/sdd/`: spec, plan, el informe de `analyze` y la verificación
+con la prueba de mutación. Y el runtime quedó calibrado en `config.yaml`, que no existía.
+
+0.26.0. 186 comprobaciones.

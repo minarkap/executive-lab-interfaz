@@ -1,0 +1,55 @@
+# Cómo se comprueba este proyecto. Lo lee la cadena SDD: `implement` para saber
+# con qué probar, `verify` para la batería entera.
+#
+# Escrito el 22-09-2026 leyendo el repositorio, no de memoria: no hay
+# dependencias ni framework de pruebas, las comprobaciones son guiones de Node
+# que se ejecutan a mano y `extension/package.json` solo declara `engines.vscode`.
+
+stack:
+  lenguaje: javascript
+  entorno: node            # sin transpilar, CommonJS
+  gestor: npm              # solo para empaquetar; 0 dependencias y 0 de desarrollo
+  producto: extension      # complemento de VS Code, en extension/
+  pruebas: propias         # sin jest ni mocha: guiones con node:assert
+
+# La batería entera, en el orden en que se corre. Es la del comando
+# `/revisar-la-barra`, que es lo que Jose ejecuta.
+verificar:
+  - node extension/prueba/humo.js
+  - node extension/prueba/empresas-distintas.js
+  - node docs/comprobar-diccionario.js
+  - node herramientas/revisar-powershell.js
+
+# Las de andar por casa, mientras se escribe.
+rapida:
+  - node extension/prueba/humo.js
+
+# En VS Code de verdad. Tarda minutos y baja un Electron: no entra en la
+# batería normal (P8: lo que se descarga no entra en el proyecto).
+manual:
+  - cd extension && npm run probar-en-vscode
+
+empaquetar: ./publicar.sh --rapido
+
+# Dónde va cada cosa. La cadena escribe aquí y no en otro sitio.
+artefactos:
+  specs: 02-DOCS/wiki/sdd/specs
+  planes: 02-DOCS/wiki/sdd/plans
+  decisiones: 02-DOCS/wiki/sdd/decisions.md
+  verificaciones: 02-DOCS/wiki/sdd/verifications
+
+# Las no-negociables que gobiernan cualquier plan de este repositorio.
+constitucion: 02-DOCS/wiki/sdd/constitution.md
+
+# El registro largo de por qué está construido así, numerado. Una decisión
+# nueva se añade al final con su número.
+decisiones_largas: docs/decisiones.md
+
+# El diccionario manda sobre todo texto de pantalla (P2). Se comprueba solo.
+diccionario: docs/diccionario.md
+
+sdd:
+  autopilot: true          # Jose, 22-09-2026: «implementa todo en autopilot por fases en SDD»
+
+models:
+  enabled: false           # sin enrutado por fases: una sola sesión

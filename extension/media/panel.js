@@ -1773,11 +1773,20 @@ function pantallaConexiones({ proveedores, sueltas }) {
   // sin carpeta —Pexels, Drive— como conexiones por montar. Así nada queda
   // invisible: lo que existe por sus claves sale aunque no tenga carpeta.
   const reparto = (sueltas && sueltas.reparto) || [];
+  const deAcceso = (sueltas && sueltas.ficherosDeAcceso) || [];
+  // Dos clases de credencial y una sola frase: las claves son líneas, los
+  // ficheros de acceso son ficheros enteros (una cuenta de servicio, un
+  // certificado). Se cuentan aparte porque se mueven distinto (decisión 105).
+  const cuantoHay = [
+    sueltas && sueltas.claves ? plural(sueltas.claves, '1 clave', '{n} claves') : '',
+    deAcceso.length ? plural(deAcceso.length, '1 fichero de acceso', '{n} ficheros de acceso') : '',
+  ].filter(Boolean).join(' y ');
   const desordenadas = sueltas ? `
     <div class="conexion">
-      <p class="nombre">${texto(plural(sueltas.claves, 'Hay 1 clave guardada fuera de sitio', 'Hay {n} claves guardadas fuera de sitio'))}</p>
+      <p class="nombre">${texto(`Hay ${cuantoHay} fuera de sitio`)}</p>
       <p class="pista">De cuando este trabajo se llevaba sin esto. Por el nombre de cada una sé de quién es:</p>
       ${reparto.map((g) => `<p class="pista">· ${texto(g.herramienta)}${g.existe ? '' : ' — sin conexión todavía, por montar'}: ${texto(plural(g.claves.length, '1 clave', '{n} claves'))}</p>`).join('')}
+      ${deAcceso.map((f) => `<p class="pista">· ${texto(f.herramienta ? `${f.herramienta}${f.existe ? '' : ' — sin conexión todavía, por montar'}: ${f.queEs.toLowerCase()}` : `${f.queEs}, y no sé de quién: se lo pregunto al asistente`)}</p>`).join('')}
       ${sueltas.sinDueno && sueltas.sinDueno.length ? `<p class="pista">· ${texto(plural(sueltas.sinDueno.length, '1 clave sin dueño claro', '{n} claves sin dueño claro'))}: se lo pregunto al asistente.</p>` : ''}
       ${sueltas.subidas ? `<p class="pista malo">Y están dentro de tus copias de seguridad, así que ponerlas en su sitio no las saca de ahí. Si alguna es importante, lo seguro es cambiarla donde la sacaste. Pídeselo y te lo explica.</p>` : ''}
       ${boton({ etiqueta: 'Que las ordene', icono: '🧹', principal: true, accion: { tipo: 'pedir', prompt: sueltas.prompt } })}
@@ -1791,7 +1800,9 @@ function pantallaConexiones({ proveedores, sueltas }) {
     <h2>Por montar</h2>
     <p class="detalle">Por tus claves veo que ya usas esto, pero todavía no tiene su sitio aquí.</p>
     ${sueltas.porMontar.map((p) => boton({
-    etiqueta: `${p.herramienta} — ${plural(p.claves, '1 clave suelta', '{n} claves sueltas')}`,
+    etiqueta: p.conFichero
+      ? `${p.herramienta} — con un fichero de acceso suelto`
+      : `${p.herramienta} — ${plural(p.claves, '1 clave suelta', '{n} claves sueltas')}`,
     icono: '◌',
     accion: {
       tipo: 'pedir',
@@ -1828,7 +1839,9 @@ function pantallaConexiones({ proveedores, sueltas }) {
           ? `${p.etiqueta} — ${plural(p.faltan, 'falta una clave', 'faltan {n} claves')}`
           : (p.fueraDeSitio
             ? `${p.etiqueta} — puesta, pero fuera de su sitio`
-            : p.etiqueta)),
+            // Se autentica con un fichero y no con claves: decir su nombre a
+            // secas dejaría pensando que no tiene nada puesto (decisión 105).
+            : (p.conFichero ? `${p.etiqueta} — con su fichero de acceso` : p.etiqueta))),
       icono: p.aMedioHacer ? '◌' : (p.faltan ? '○' : (p.fueraDeSitio ? '◐' : '●')),
       accion: { tipo: 'verConexion', proveedor: p.id },
     })).join('')}

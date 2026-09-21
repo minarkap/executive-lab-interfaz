@@ -3569,6 +3569,122 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'raíz, carpeta y herramienta · 4 por montar · 1 puesta fuera de su sitio';
   });
 
+  await comprobar('una credencial que es un fichero entero también tiene sitio', async () => {
+    // La otra mitad de la 104: una cuenta de servicio de Google o un .pem no
+    // es una línea `CLAVE=valor`, es un fichero. Sin esto, un Drive conectado
+    // con cuenta de servicio salía «sin conectar» y el fichero que lo
+    // autentica no aparecía en ningún sitio (decisión 105, spec
+    // 02-DOCS/wiki/sdd/specs/credenciales-que-no-son-variables.md).
+    const fs2 = require('node:fs');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'ficheros-'));
+    const escribir = (relativa, texto) => {
+      fs2.mkdirSync(path.dirname(path.join(carpeta, relativa)), { recursive: true });
+      fs2.writeFileSync(path.join(carpeta, relativa), texto);
+    };
+    const SECRETO = '-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADANB_esto_es_secreto\\n-----END PRIVATE KEY-----\\n';
+    escribir('.rsc.json', JSON.stringify({ version: 1, targets: ['claude'] }));
+    // A1: una cuenta de servicio en la raíz.
+    escribir('credentials.json', JSON.stringify({
+      type: 'service_account', project_id: 'mi-drive', private_key: SECRETO,
+      client_email: 'robot@mi-drive.iam.gserviceaccount.com',
+    }, null, 2));
+    // Y una cuenta de un proyecto que no es de nadie de aquí: se pregunta.
+    escribir('ajena.json', JSON.stringify({
+      type: 'service_account', private_key: SECRETO,
+      client_email: 'bot@contabilidad-nube.iam.gserviceaccount.com',
+    }));
+    // A2: un .pem en una carpeta de primer nivel, y dos .json que NO cuentan.
+    escribir('auto/publicar.pem', '-----BEGIN RSA PRIVATE KEY-----\nabc\n-----END RSA PRIVATE KEY-----\n');
+    escribir('package.json', JSON.stringify({ name: 'lo-mio', version: '1.0.0', private: true }));
+    escribir('auto/tsconfig.json', JSON.stringify({ compilerOptions: { strict: true } }));
+    // Uno suelto dentro de una herramienta, y otro ya en su sitio.
+    escribir('01-TOOLS/DRIVE/.env.example', 'DRIVE_FOLDER_ID=\n');
+    escribir('01-TOOLS/DRIVE/serviceAccountKey.json', JSON.stringify({ type: 'service_account', private_key: SECRETO, client_email: 'x@otro.iam.gserviceaccount.com' }));
+    // El caso puro de A5: se autentica SOLO con el fichero, su .env no pide nada.
+    escribir('01-TOOLS/SHEETS/.env.example', '# SHEETS se autentica con la cuenta de servicio de keys/\n');
+    escribir('01-TOOLS/SHEETS/keys/cuenta.json', JSON.stringify({ type: 'service_account', private_key: SECRETO, client_email: 'y@sheets.iam.gserviceaccount.com' }));
+    // Y el caso mixto: tiene su fichero y además le falta una clave de verdad.
+    escribir('01-TOOLS/MAGNIFIC/.env.example', 'MAGNIFIC_API_KEY=\n');
+    escribir('01-TOOLS/MAGNIFIC/keys/cuenta.json', JSON.stringify({ type: 'service_account', private_key: SECRETO, client_email: 'y@magnific.iam.gserviceaccount.com' }));
+
+    vscode.guion.raiz = carpeta;
+    try {
+      const sueltasM = cargar('sueltas');
+      const encontrados = sueltasM.ficherosDeAcceso();
+      const porDonde = Object.fromEntries(encontrados.map((f) => [f.donde, f]));
+
+      // A1 · dicha por lo que es, no por su extensión.
+      assert.ok(porDonde['credentials.json'], 'la cuenta de servicio de la raíz se encuentra');
+      assert.equal(porDonde['credentials.json'].queEs, 'Una cuenta de servicio de Google');
+      // A2 · el .pem sí; package.json y tsconfig.json no.
+      assert.ok(porDonde['auto/publicar.pem'], 'un .pem cuenta por su nombre');
+      assert.ok(!porDonde['package.json'] && !porDonde['auto/tsconfig.json'], 'un .json cualquiera no es una credencial');
+      // A3 · de quién es cada uno, y el emparejamiento es por trozos enteros:
+      // `mi-drive` casa con DRIVE, `mi-drive-viejo` también (lleva el trozo),
+      // pero `midrive` no, porque entonces `API` casaría con cualquier cosa.
+      assert.equal(porDonde['01-TOOLS/DRIVE/serviceAccountKey.json'].herramienta, 'DRIVE', 'está en su carpeta, pero fuera de keys/');
+      assert.equal(porDonde['credentials.json'].herramienta, 'DRIVE', 'la cuenta dice el proyecto: mi-drive');
+      assert.equal(porDonde['credentials.json'].por, 'lo dice la cuenta');
+      assert.equal(porDonde['ajena.json'].herramienta, null, 'una cuenta de otro proyecto no se le cuelga a nadie: se pregunta');
+      // A5 · lo que ya está en su sitio no se cuenta como desorden.
+      assert.ok(!porDonde['01-TOOLS/SHEETS/keys/cuenta.json'] && !porDonde['01-TOOLS/MAGNIFIC/keys/cuenta.json'],
+        'lo que está en keys/ está en su casa, no es desorden');
+      assert.equal(sueltasM.tieneSuFichero('SHEETS'), 1);
+      assert.equal(sueltasM.tieneSuFichero('DRIVE'), 0);
+
+      // C4 · lo que se lee de dentro no sale de la función.
+      const hay = sueltasM.resumen();
+      assert.ok(hay, 'con ficheros de acceso fuera de sitio hay resumen aunque no haya claves sueltas');
+      assert.ok(!hay.prompt.includes('esto_es_secreto') && !hay.prompt.includes('BEGIN'), 'ningún contenido viaja al asistente');
+      assert.ok(!JSON.stringify(encontrados).includes('esto_es_secreto'), 'ni sale del inventario');
+      // A4 · el encargo dice el destino.
+      assert.match(hay.prompt, /01-TOOLS\/DRIVE\/keys\//);
+      assert.match(hay.prompt, /No abras ni me pegues el contenido/);
+      assert.match(hay.prompt, /pregúntamelo antes de moverlo/, 'y pregunta por el que no sabe de quién es');
+      // Sin ni una clave suelta, el encargo no puede abrir con «hay 0 claves
+      // guardadas fuera de su sitio, en: .» — lo pilló `review`.
+      assert.ok(!/hay 0 claves/i.test(hay.prompt) && !/en: \./.test(hay.prompt), 'y no abre con una frase vacía');
+      assert.equal(hay.claves, 0, 'aquí no hay ninguna clave suelta: solo ficheros');
+
+      // A5 · la conexión con su fichero no está «sin conectar». Y si además le
+      // falta una clave de verdad, manda lo que falta: es lo que bloquea (C5).
+      const conexionesM = cargar('conexiones');
+      const deProveedor = Object.fromEntries(conexionesM.proveedores().map((x) => [x.id, x]));
+      assert.equal(deProveedor.SHEETS.conFichero, 1, 'SHEETS se autentica con su fichero');
+      assert.equal(deProveedor.SHEETS.faltan, 0, 'y no le falta ninguna clave');
+      assert.equal(deProveedor.MAGNIFIC.conFichero, 1);
+      assert.equal(deProveedor.MAGNIFIC.faltan, 1, 'a MAGNIFIC le falta una de verdad');
+      const p = require('./panel-falso').montarPanel();
+      const pintado = p.mandar({ tipo: 'conexiones', proveedores: conexionesM.proveedores(), sueltas: hay });
+      // El rótulo lleva el nombre humanizado de la herramienta («Sheets»), no
+      // su identificador: es lo que ya hacía `etiquetaDeProveedor`.
+      assert.match(pintado, /Sheets — con su fichero de acceso/i);
+      assert.match(pintado, /Magnific — falta una clave/i, 'lo que bloquea manda sobre lo que ya está');
+      assert.match(pintado, /ficheros de acceso fuera de sitio/);
+      assert.match(pintado, /cuenta de servicio de Google/i);
+      // A7 · nada de jerga en lo que se ve.
+      // A7 · nada de jerga a la vista. «Certificado digital» sí: un gestor
+      // español tiene uno de la FNMT y lo usa para Hacienda (C6). «Clave
+      // privada» no, que además choca con «clave de acceso».
+      const aLaVista = pintado.replace(/data-accion="[^"]*"/g, '');
+      assert.ok(!/\.json|\.pem|clave privada|keys\//i.test(aLaVista), 'sin extensiones, carpetas ni jerga en pantalla');
+      assert.match(aLaVista, /certificado digital/i, 'y el .pem se dice como lo que es');
+
+      // A6 · si están en el historial, el mismo aviso (hueco que encontró `analyze`).
+      const cp = require('node:child_process');
+      const git = (...args) => cp.spawnSync('git', args, { cwd: carpeta, encoding: 'utf8' });
+      if (git('init', '-q').status === 0) {
+        git('add', '-f', 'credentials.json');
+        const guardadas = cargar('sueltas').resumen();
+        assert.equal(guardadas.subidas, 1, 'una cuenta de servicio en el historial se ve');
+        assert.match(guardadas.prompt, /AVISO IMPORTANTE/);
+      }
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return 'cuenta de servicio · .pem · lo que está en su sitio no molesta · nada del contenido sale';
+  });
+
   await comprobar('una incidencia se resuelve con el diagnóstico de la barra delante', () => {
     // Jose: «debería haber un botón donde ponga resolver incidencias […] y el
     // asistente audita todo». El síntoma lo pone el alumno, el diagnóstico la

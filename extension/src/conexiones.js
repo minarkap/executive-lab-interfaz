@@ -278,6 +278,16 @@ function dondeMasEstan(proveedorId, nombres) {
   return donde;
 }
 
+// Cuántos ficheros de acceso tiene puestos en su sitio (`keys/`). Se pregunta
+// a `sueltas.js`, que es quien sabe reconocer uno.
+function conFicheroDeAcceso(proveedorId) {
+  try {
+    return require('./sueltas').tieneSuFichero(proveedorId);
+  } catch {
+    return 0;
+  }
+}
+
 function proveedores() {
   const base = proyecto.ruta(CARPETA);
   if (!base || !fs.existsSync(base)) return [];
@@ -299,6 +309,11 @@ function proveedores() {
         // Las que no están en ningún sitio. Las que están fuera se cuentan aparte.
         faltan: sinPoner.filter((k) => !enOtroSitio.has(k)).length,
         fueraDeSitio: enOtroSitio.size,
+        // Hay credenciales que no son una línea: una cuenta de servicio, un
+        // certificado. Viven en `keys/` y autentican igual, así que una
+        // herramienta con eso puesto no está «sin conectar» aunque su `.env`
+        // esté vacío (decisión 105).
+        conFichero: conFicheroDeAcceso(e.name),
         // Sigue siendo la plantilla: el asistente la creó y no la ha terminado.
         aMedioHacer: [...esperadas.keys()].some(ES_MARCADOR),
         tienePrueba: fs.readdirSync(carpeta).some((f) => f.startsWith('test_connection')),
@@ -331,6 +346,7 @@ function claves(proveedorId) {
       ayuda: dondeSeConsigue(carpeta),
       pasos: comoSeConecta(carpeta),
       aMedioHacer: [...esperadas.keys()].some(ES_MARCADOR),
+      conFichero: conFicheroDeAcceso(proveedorId),
     },
     claves: nombres.map((clave) => ({
       clave,
