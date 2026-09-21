@@ -2421,3 +2421,89 @@ montado**. O sea: en el momento en que se avisaba, no había nada que pulsar.
   preguntan, y uno de ellos —`wrong-target`— **mueve el arnés a otro
   asistente**. Regla: `--dry-run` primero, separar `[fix]` de `[ask]`, y
   arreglar solo lo que no pregunta nada.
+
+## 91. El arnés sube a la 2.0.5, y lo que eso cambia
+
+Leída la 2.0.5 contra la 1.4.1, fichero a fichero. Lo primero, lo que **no**
+cambia, que es lo que más importa: las tres tablas que copia `sitios.js`
+—`targets/index.js`, `commands.js`, `agents.js`— son **idénticas byte a byte**,
+el esquema de `.rsc.json` también, y ninguno de los marcadores que la barra lee
+(`Plan id:`, `Accept exactly this plan`, `RSC_ONBOARDING_READY`,
+`RSC_PLAN_CHANGED`, `Nothing to repair`, `[fix]`/`[ask]`) ha cambiado. Un salto
+de versión mayor que no tocó ni una fila de lo que la barra depende.
+
+Lo que sí cambia y hubo que adaptar:
+
+- **Un solo arnés para todos.** La 2.0 instala `core` siempre: **32 habilidades
+  en vez de 8**, con la cadena de trabajo entera. Sin hacer nada, la pantalla de
+  habilidades pasaba de cuatro líneas a veintisiete, en inglés. Qué es
+  fontanería pasa a ser un **dato** en `nombres.json`: eran cuatro y son
+  veintisiete. Lo que no esté en esa lista y no esté en el catálogo **sigue
+  saliendo** — una habilidad útil instalada más tarde no desaparece en silencio.
+- **`--profile` ya no existe.** No lo usábamos.
+- **RSC escribe un `CLAUDE.md` propio** desde la 2.0, para que Claude Code no se
+  lea su capa siempre-activa dos veces. Sin restarlo, nuestro detector de «aquí
+  ya había otro asistente» le pediría permiso a alguien para respetar un fichero
+  que hemos escrito nosotros. Se resta, igual que hace RSC en su `scanProject`.
+
+## 92. Una carpeta montada con un arnés viejo se pone al día sola
+
+La barra lleva un arnés dentro y lo ejecuta **sea cual sea** el que declare la
+carpeta. Al subir de versión mayor, todas las carpetas montadas antes pasan a
+correr un arnés nuevo contra una instalación vieja.
+
+Rama nueva, `ponerAlDia`: `sync` reconstruye desde el plan que esa persona ya
+aceptó, así que **no hay nada que preguntar ni ninguna decisión que tomar por
+ella**. Y una pieza que lo dice, con su botón.
+
+De paso, el fixture de pruebas pasa a **leer** la versión que la barra lleva
+dentro en vez de escribirla a mano: si no, el día de un salto de versión la
+empresa de mentira se clasificaría como «montada con un arnés viejo» y media
+suite tomaría la rama equivocada. Es el mismo fallo que ya mordió con el fichero
+de estado, y por eso ahora se lee.
+
+## 93. El plan de este repositorio estaba construido sobre un editor descargado
+
+Al correr `reassess` recomendaba las cuatro cosas que RSC aplazó al montar, con
+la explicación «the project added **authentication, external-integrations,
+persistence** evidence». Este proyecto no tiene nada de eso.
+
+La causa: **1,6 GB de editores descargados dentro de la carpeta** —el VS Code de
+`extension/.vscode-test/` y el de `.demo/`—. `scanProject` **no lee el
+`.gitignore`**: tiene su propia lista de ignorados, y `.vscode-test` no está en
+ella. Así que contaba como evidencia de este proyecto todo un VS Code con sus
+extensiones, y entre las dependencias de la de Copilot hay `react`. De ahí
+salían `skill/react`, dos ayudantes de React y tres comandos de React en el plan
+de una barra lateral escrita en JavaScript plano.
+
+Los dos se van fuera de la carpeta —`cachePath` en las pruebas,
+`$HOME/.cache` en la demo—. La evidencia pasa de un invento a **81 ficheros y
+`node`, sin señales de complejidad**, que es lo que hay. Y sobre eso se acepta
+el plan nuevo.
+
+**La regla que sale de aquí, y que está en la constitución (P8): lo que se
+descarga no entra en el proyecto.** El arnés mira lo que hay dentro para decidir
+qué eres.
+
+## 94. Del guardián de commits nos salimos, y se dice por qué
+
+El plan de la 2.0.5 trae `guard/gitmoji-guard`, que **bloquea cualquier
+`git commit -m`** que no lleve emoji y gramática de Conventional Commits. Los
+commits de este repositorio se escriben en español y en frase: es estilo de la
+casa y una decisión de Jose, no un descuido.
+
+Se acepta el plan y se pone el interruptor que el propio RSC deja para esto,
+`.rsc/.no-gitmoji`, con el motivo escrito dentro. Aceptar un plan no es aceptar
+que un instalador decida cómo se escribe aquí.
+
+## 95. `reassess` se lee, y no se aplica solo
+
+Estaba cableado desde la fase 3 y no lo llamaba nadie. Ahora el parte a fondo lo
+corre —solo cuando alguien ha pulsado para ver «Qué falta por montar», nunca en
+la pantalla principal, que se repinta sola— y sale como una pieza más.
+
+Su arreglo **no aplica nada**: explica en cristiano qué cambiaría, corre
+`reassess`, enseña el plan y pide que se acepte por su identificador. El encargo
+lo prohíbe explícitamente: *«no aceptes ningún plan por tu cuenta, ni siquiera si
+te parece obvio: aceptar un plan es una firma mía»*. Es la línea de la decisión
+84 llevada hasta el final — la cuenta es determinista, el criterio no.

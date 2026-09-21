@@ -117,6 +117,22 @@ function queHayQueArreglar({ codigo, salida }) {
   };
 }
 
+// Lo que `reassess` recomienda, leído. Es de solo lectura, así que esto no
+// puede cambiar nada: solo saber si hay algo que contar.
+//
+//   RSC_REASSESSMENT_NO_CHANGE      el plan sigue encajando
+//   RSC_REASSESSMENT_RECOMMENDED    y detrás, una línea `tipo/id: por qué`
+function queRecomienda({ codigo, salida }) {
+  const texto = String(salida || '');
+  if (codigo !== 0 || /RSC_REASSESSMENT_NO_CHANGE/.test(texto)) return [];
+
+  return texto.split('\n')
+    .map((l) => l.trim())
+    .map((l) => l.match(/^(agent|guard|hook|workflow|skill|route|capability)\/([a-z0-9-]+):\s*(.+)$/))
+    .filter(Boolean)
+    .map(([, tipo, id, porQue]) => ({ tipo, id, porQue }));
+}
+
 const revisar = () => correr(['doctor'], { tiempoMaximo: 120000 });
 
 // El mismo doctor, pero para máquina. Sin `--json` la salida lleva delante el
@@ -143,6 +159,6 @@ const arreglarSolo = () => correr(['repair', '--yes'], { tiempoMaximo: 180000 })
 
 module.exports = {
   correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar, arreglarSolo,
-  comoEstaDeSalud, queHayQueArreglar,
-  paquete, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
+  comoEstaDeSalud, queHayQueArreglar, queRecomienda,
+  paquete, VERSION_DE_RESPALDO, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
 };

@@ -60,6 +60,7 @@ const LO_QUE_SE_HIZO = {
   completar: 'He terminado de prepararlo. Ya está entero.',
   sinRecibo: 'Lo he puesto al día con lo que este proyecto declaraba.',
   adoptar: 'Le he puesto lo que le faltaba de la barra.',
+  ponerAlDia: 'Lo he puesto al día con la versión que trae la barra.',
 };
 
 const CLAVE_PETICIONES = 'executiveLab.peticiones';
@@ -894,7 +895,11 @@ ${cabecera}
     // Ojo con esparcir aquí dentro: `tipo` es el nombre del mensaje y quien
     // lo pise deja al panel sin saber qué pintar. Pasó, y la pantalla se
     // quedaba en "Mirando qué hay aquí…" para siempre.
-    const radio = await terreno.radiografia();
+    // A fondo: aquí sí se puede pagar. Alguien acaba de pulsar para ver esto y
+    // hay una pantalla de espera delante; la principal, que se repinta sola, no
+    // puede permitirse tres subprocesos del arnés cada vez.
+    const aFondo = (await terreno.reconocer({ profundo: true })).arnes;
+    const radio = await terreno.radiografia({ aFondo });
     this.enviar({ tipo: 'radiografia', queEs: radio.queEs, piezas: radio.piezas });
   }
 
@@ -1101,7 +1106,7 @@ ${cabecera}
     // estaba no son "montar tu empresa": esa persona ya tenía esto. Preguntarle
     // por la vista sencilla y por GitHub otra vez, y decirle «acabo de montar
     // aquí un arnés», sería contarle una película que no ha pasado.
-    const reciénMontado = hecho.rama === 'desdeCero' || hecho.rama === 'encimaDeLoQueHay' || hecho.rama === 'otroArnes';
+    const reciénMontado = ['desdeCero', 'encimaDeLoQueHay', 'otroArnes'].includes(hecho.rama);
 
     if (!reciénMontado) {
       this.enviar({ tipo: 'aviso', texto: LO_QUE_SE_HIZO[hecho.rama] || hecho.mensaje });

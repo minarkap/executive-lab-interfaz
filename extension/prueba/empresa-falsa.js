@@ -27,9 +27,17 @@ function montar(raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-falsa-')))
   // Con el recibo del onboarding, como lo deja RSC al aceptar el plan: de ahí
   // sale PARA QUÉ se montó esta carpeta, y de eso depende qué se le ofrece
   // aprender. Sin él, la barra no podía distinguir una gestoría de un repo.
+  // La versión que declara es la que la barra lleva dentro, leída y no escrita
+  // a mano: si no, el día que se suba de versión la empresa de mentira se
+  // clasificaría como «montada con un arnés viejo» y media suite tomaría la
+  // rama de ponerla al día. Pasó al subir a la 2.0.5.
+  const laQueTraemos = JSON.parse(
+    fs.readFileSync(path.join(__dirname, '..', 'media', 'harness', 'package.json'), 'utf8'),
+  ).dependencies['@ericrisco/rsc'];
+
   escribirSiFalta(raiz, '.rsc.json', JSON.stringify({
     version: 1,
-    catalogVersion: '1.4.1',
+    catalogVersion: laQueTraemos,
     targets: ['claude'],
     skills: [],
     ownSkills: ['executive-lab'],

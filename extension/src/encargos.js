@@ -128,6 +128,33 @@ function conectarUnaHerramienta(proveedor) {
   });
 }
 
+// ── 5. Lo que el arnés aplazó y hoy ya encajaría ─────────────────────────
+//
+// `reassess` es determinista y de solo lectura: mira lo que hay hoy contra la
+// foto que se congeló al montar, y dice qué de lo aplazado ya tiene sentido. Lo
+// que NO puede hacer es aceptarlo: aceptar un plan es una firma, y la firma la
+// pone una persona.
+//
+// Así que el encargo es explicarlo y proponerlo, no aplicarlo. Es la línea de
+// la decisión 84 llevada hasta el final: la recomendación sale de una cuenta
+// determinista, y lo que hace falta entender —qué significa eso para esta
+// empresa, y si le conviene— se delega.
+function reajustar(recomendaciones = []) {
+  if (!recomendaciones.length) return null;
+
+  return armar({
+    etiqueta: 'Explícame qué cambiaría',
+    queHay: `Cuando se montó esto, el arnés dejó ${recomendaciones.length} cosa(s) para más adelante porque el proyecto era más pequeño. `
+      + `Hoy ya encajan: ${recomendaciones.map((r) => `${r.tipo}/${r.id}`).join(', ')}.`, // diccionario: interno
+    queTieneQueQuedar: 'Explícame en cristiano qué es cada una y qué cambiaría en mi día a día si la pongo. '
+      + 'Después corre `reassess`, enséñame el plan nuevo que propone y pídeme que lo acepte por su identificador. '
+      + 'Ni uno solo se aplica sin que yo diga que sí.',
+    queNoSeToca: 'No aceptes ningún plan por tu cuenta, ni siquiera si te parece obvio: aceptar un plan es una firma mía.',
+    queHayQueAvisar: 'Si alguna de esas cosas cambia cómo se escriben los commits o añade comprobaciones que puedan bloquearme, dímelo antes.',
+    comprobar: () => false,
+  });
+}
+
 // Por identificador, que es como los nombra `rumbo.js`.
 const POR_NOMBRE = {
   levantarElSuelo: (parte) => levantarElSuelo(parte.suelo.faltan),
@@ -138,5 +165,6 @@ const POR_NOMBRE = {
 const traer = (nombre, parte) => (POR_NOMBRE[nombre] ? POR_NOMBRE[nombre](parte) : null);
 
 module.exports = {
-  traer, levantarElSuelo, ordenarLasClaves, ordenarLaCarpeta, conectarUnaHerramienta, LOS_QUE_HAY: Object.keys(POR_NOMBRE),
+  traer, levantarElSuelo, ordenarLasClaves, ordenarLaCarpeta, conectarUnaHerramienta, reajustar,
+  LOS_QUE_HAY: Object.keys(POR_NOMBRE),
 };

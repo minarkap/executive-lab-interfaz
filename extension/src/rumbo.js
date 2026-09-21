@@ -134,6 +134,17 @@ function elegirRama(parte) {
   // falte»*. Adaptar es exactamente esto: poner lo nuestro encima, sin tocar
   // una línea de lo suyo.
   if (parte.estado === 'conArnes') {
+    // Montado con un arnés más viejo que el que trae la barra. `sync`
+    // reconstruye desde el plan que esa persona ya aceptó, así que no hay nada
+    // que volver a preguntar ni ninguna decisión que tomar por ella.
+    if (parte.versionAtrasada) {
+      return {
+        rama: 'ponerAlDia',
+        preguntar: [],
+        pasos: pasos('traerLasHabilidades', 'arreglarLoRoto', ...loNuestro),
+        porQue: 'la carpeta declara un catálogo más viejo que el que trae la barra',
+      };
+    }
     if (faltanLosRailes(parte)) {
       return {
         rama: 'adoptar',

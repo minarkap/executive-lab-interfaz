@@ -199,6 +199,7 @@ function mirar() {
       suelo: { declaracion: false, conexiones: false, conocimiento: false, faltan: [] },
       habilidades: { declaradas: [], enDisco: [], colgando: [] },
       conEstadoDeRsc: false,
+      versionAtrasada: false,
       otroMontaje: { asistentes: [], ficheros: [] },
       railes: { habilidadPropia: false, perfil: false, nombres: null },
       claves: null,
@@ -230,6 +231,9 @@ function mirar() {
       colgando: declaradas.filter((id) => !enDisco.includes(id)),
     },
     conEstadoDeRsc: fs.existsSync(donde.ficheroDeEstado() || ''),
+    // Montada con un catálogo más viejo que el que trae la barra dentro.
+    versionAtrasada: Boolean(declaracion && declaracion.catalogVersion
+      && declaracion.catalogVersion !== rsc.VERSION_DE_RESPALDO),
     otroMontaje: otroMontaje(),
     railes: comoEstanLosRailes(),
     claves: sueltas.resumen(),
@@ -295,12 +299,17 @@ async function reconocer({ profundo = false } = {}) {
   if (!profundo) return Object.freeze(parte);
 
   // Lo caro, y solo cuando alguien está esperando delante de una barra.
-  const [salud, reparaciones] = await Promise.all([rsc.salud(), rsc.arreglarEnSeco()]);
+  const [salud, reparaciones, recomendaciones] = await Promise.all([
+    rsc.salud(), rsc.arreglarEnSeco(), rsc.reevaluar(),
+  ]);
   return Object.freeze({
     ...parte,
     arnes: {
       salud: rsc.comoEstaDeSalud(salud),
       reparaciones: rsc.queHayQueArreglar(reparaciones),
+      // Lo que el arnés aplazó al montarse y hoy ya encajaría. Solo lectura:
+      // aceptar un plan nuevo lo hace una persona, por su huella.
+      recomendaciones: rsc.queRecomienda(recomendaciones),
     },
   });
 }
@@ -398,7 +407,7 @@ const podemosGuardarElPuntoDePartida = async () => !(await historialAjeno(proyec
 // medias, claves que están pero fuera de sitio, una wiki vacía. Quien mira la
 // barra y no ve conexiones no sabe si es que no hay o es que no las encuentra.
 // Esto lo dice.
-async function radiografia() {
+async function radiografia({ aFondo = null } = {}) {
   const conexiones = require('./conexiones');
   const cerebro = require('./cerebro');
   // Tarde a propósito: `encargos` lee `cerebro` y `sueltas`, y cargarlo arriba
@@ -545,6 +554,46 @@ async function radiografia() {
       estado: 'no',
       detalle: 'El asistente todavía no lo ha mirado',
       arreglo: comoEncargo(encargos.ordenarLaCarpeta(parte)),
+    });
+  }
+
+  // ── La versión del arnés de esta carpeta ──────────────────────────────
+  //
+  // No es una curiosidad: la barra lleva un arnés dentro y lo ejecuta **sea
+  // cual sea** el que diga la carpeta. Cuando la barra sube de versión mayor,
+  // todas las carpetas montadas antes se quedan con su declaración vieja y
+  // pasan a correr un arnés más nuevo contra una instalación más vieja.
+  //
+  // RSC sabe reconciliarlo —`sync` reconstruye desde el plan aceptado— pero no
+  // lo hace solo, y mientras tanto lo declarado y lo instalado no cuadran. Así
+  // que se dice, con el botón que lo arregla.
+  if (conArnes) {
+    const suya = proyecto.versionDelCatalogo();
+    const nuestra = require('./rsc').VERSION_DE_RESPALDO;
+    const alDia = !suya || suya === nuestra;
+    piezas.push({
+      nombre: 'La versión del arnés',
+      estado: alDia ? 'si' : 'aMedias',
+      detalle: alDia ? (suya || 'la que trae la barra') : `${suya}, y la barra ya trae la ${nuestra}`,
+      ...(alDia ? {} : { arreglo: { como: 'solo', etiqueta: 'Ponerlo al día', accion: { tipo: 'arrancar' } } }),
+    });
+  }
+
+  // ── Lo que el arnés aplazó y hoy ya encajaría ─────────────────────────
+  //
+  // Cuando se monta, RSC decide qué instala y qué aplaza mirando lo que hay en
+  // la carpeta **ese día**, y congela esa foto. Un proyecto que crece deja esa
+  // foto atrás: el de aquí se decidió sobre 14 ficheros.
+  //
+  // `reassess` compara y recomienda, y no escribe nada — aceptar un plan nuevo
+  // lo hace una persona, por su huella. Así que esto no ofrece un botón que
+  // aplique: ofrece uno que lo cuente en cristiano y lo proponga.
+  if (aFondo && aFondo.recomendaciones && aFondo.recomendaciones.length) {
+    piezas.push({
+      nombre: 'Lo que el arnés dejó para más adelante',
+      estado: 'aMedias',
+      detalle: `${aFondo.recomendaciones.length} cosa(s) que se aplazaron al montarlo y hoy ya encajan`,
+      arreglo: comoEncargo(encargos.reajustar(aFondo.recomendaciones)),
     });
   }
 

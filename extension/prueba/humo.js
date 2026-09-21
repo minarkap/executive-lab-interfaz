@@ -3208,6 +3208,54 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${Object.keys(ESPERADAS).length} estados, ${new Set(Object.values(ESPERADAS)).size} ramas`;
   });
 
+  await comprobar('una carpeta montada con un arnés viejo se pone al día sola', () => {
+    // La barra lleva un arnés dentro y lo ejecuta sea cual sea el que diga la
+    // carpeta. Al subir de versión mayor, TODAS las carpetas montadas antes
+    // pasan a correr un arnés nuevo contra una instalación vieja. RSC sabe
+    // reconciliarlo con `sync`, pero no lo hace solo.
+    const rumbo = cargar('rumbo');
+    const base = {
+      estado: 'conArnes', git: { hay: true },
+      carpeta: { vacia: false, cuantos: 9, parece: null },
+      suelo: { faltan: [] }, habilidades: { declaradas: [], enDisco: [], colgando: [] },
+      recibo: { record: { projectKind: 'software', goal: 'x', softwareScope: 'small', technicalLevel: 'mixed', accompaniment: 'L2', targets: ['claude'] } },
+      railes: { habilidadPropia: true, perfil: true, nombres: { arnes: 'X' } },
+      claves: null,
+    };
+
+    const atrasada = rumbo.elegirRama({ ...base, versionAtrasada: true });
+    assert.equal(atrasada.rama, 'ponerAlDia');
+    assert.ok(atrasada.pasos.some((p) => p.id === 'traerLasHabilidades'), 'se reconstruye con sync');
+    assert.ok(!atrasada.pasos.some((p) => p.id === 'montarElArnes'), 'y no se vuelve a montar');
+    assert.deepEqual(atrasada.preguntar, [], 'ni se pregunta nada: el plan ya estaba aceptado');
+
+    assert.equal(rumbo.elegirRama({ ...base, versionAtrasada: false }).rama, 'yaEstaba');
+    return 'sync, sin preguntar';
+  });
+
+  await comprobar('lo que reassess recomienda se lee, y no se aplica solo', () => {
+    // `reassess` es de solo lectura a propósito: aceptar un plan es una firma.
+    // Así que el arreglo que se ofrece explica y propone — no aplica.
+    const rscM = cargar('rsc');
+    const encargos = cargar('encargos');
+
+    assert.deepEqual(rscM.queRecomienda({ codigo: 0, salida: 'RSC_REASSESSMENT_NO_CHANGE' }), []);
+
+    const leidas = rscM.queRecomienda({
+      codigo: 0,
+      salida: 'RSC_REASSESSMENT_RECOMMENDED\n  agent/base-agents: El proyecto ha crecido.\n  workflow/sdd: Y tiene persistencia.\nReview a new plan; nothing has been installed:',
+    });
+    assert.equal(leidas.length, 2);
+    assert.deepEqual(leidas[0], { tipo: 'agent', id: 'base-agents', porQue: 'El proyecto ha crecido.' });
+
+    const encargo = encargos.reajustar(leidas);
+    assert.match(encargo.prompt, /agent\/base-agents/, 'no dice cuáles son');
+    assert.match(encargo.prompt, /pídeme que lo acepte/, 'no deja claro quién firma');
+    assert.match(encargo.prompt, /No aceptes ningún plan por tu cuenta/, 'no prohíbe aplicarlo solo');
+    assert.equal(encargos.reajustar([]), null, 'sin recomendaciones no se pide nada');
+    return '2 leídas, ninguna aplicada';
+  });
+
   await comprobar('lo que ya está en el recibo no se vuelve a preguntar', () => {
     // Cinco de las siete preguntas viven en `.rsc.json` desde que alguien
     // aceptó el plan. Se preguntaban igual, las siete, cada vez.
