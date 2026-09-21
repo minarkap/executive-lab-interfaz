@@ -189,3 +189,14 @@ Worklog: `02-DOCS/raw/worklog/2026-09-21-el-diagnostico-se-lee-y-los-guardianes-
 
 0.21.0. 177 comprobaciones, y las tres nuevas comprobadas reinsertando el fallo.
 
+## Un recuerdo por ritmo de cambio — 21 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-21-el-diagnostico-se-lee-y-los-guardianes-se-ven.md`.
+
+`rsc.retomar()` cuesta un proceso de Node y se pedía en cada repintado: el caché de 20 s de la
+brújula no lo cubría, porque el vigía repinta con `fresco` y se lo salta. Y hace bien, pero el
+registro de continuación no cambia porque alguien toque un fichero. Ahora tiene su propio recuerdo
+de un minuto, un fallo nunca se recuerda, y `brujula.olvidar()` lo tira al cambiar de carpeta.
+
+Regla: **un recuerdo por ritmo de cambio, no uno por pantalla.**
+

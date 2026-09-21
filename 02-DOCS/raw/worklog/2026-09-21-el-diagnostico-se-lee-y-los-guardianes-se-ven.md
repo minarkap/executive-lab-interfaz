@@ -1,7 +1,7 @@
 ---
 type: worklog
 title: El diagnóstico del arnés se lee, y los guardianes se ven
-description: «Qué falta por montar» pedía tres diagnósticos a RSC y leía uno, así que podía decir que no faltaba nada con el arnés roto. Y los guardianes, lo único que puede bloquear a un alumno, no se nombraban en ningún sitio. 0.21.0.
+description: «Qué falta por montar» pedía tres diagnósticos a RSC y leía uno, así que podía decir que no faltaba nada con el arnés roto. Los guardianes, lo único que puede bloquear a un alumno, no se nombraban. Y la continuación se releía en cada repintado. 0.21.1.
 timestamp: 2026-09-21T23:59:00Z
 topic: interfaz
 status: unprocessed
@@ -75,9 +75,27 @@ Conté como cuarto hallazgo que `guardar.md` era un raíl muerto por no llevar `
 el propio fichero ya explicaba por qué: la barra tiene un botón fijo de guardar y saldría dos veces.
 Estaba decidido y escrito donde tocaba. Solo le ajusté el vocabulario a «Guardar en git».
 
+## 4 · Un proceso de Node por cada tanda de cambios
+
+Lo dejé señalado y luego lo cerré. `rsc.retomar()` arranca el arnés entero para leer su registro de
+continuación, y se pedía en cada repintado.
+
+La brújula guarda su estado veinte segundos, así que parecía cubierto. No lo estaba: el camino del
+vigía acaba en `refrescar(true)` y **se salta ese recuerdo**. Y hace bien, porque si el asistente
+acaba de escribir un concepto el número tiene que subir ya. El error era meter en ese saco un dato
+que solo cambia cuando se guarda un punto de sesión. Mientras el asistente trabajaba, con tandas de
+600 ms, era un proceso por tanda para releer lo mismo.
+
+Recuerdo propio de un minuto, en `rsc.js`. Un fallo no se recuerda, que si no un tropiezo de una vez
+deja la barra sin continuación un minuto entero. Y `brujula.olvidar()` lo tira, porque cambiar de
+carpeta es otro registro.
+
+**Un recuerdo por ritmo de cambio, no uno por pantalla.** Decisión 100.
+
 ## Ficheros tocados
 
-- `extension/src/rsc.js` — `queGuardianes`, `queCopiasDelArnes`, `queFaltaEnDisco`.
+- `extension/src/rsc.js` — `queGuardianes`, `queCopiasDelArnes`, `queFaltaEnDisco`, y el recuerdo de la continuación.
+- `extension/src/brujula.js` — `olvidar()` tira también ese recuerdo.
 - `extension/src/terreno.js` — tres piezas nuevas en la radiografía.
 - `extension/src/reglas.js` — `losGuardianes()`, leído del disco.
 - `extension/src/nombres.js` + `media/nombres.json` — el montón `guardianes`.
@@ -87,10 +105,10 @@ Estaba decidido y escrito donde tocaba. Solo le ajusté el vocabulario a «Guard
 
 ## Cómo quedó
 
-177 comprobaciones y las tres empresas enteras, diccionario limpio. Las tres pruebas nuevas se
+178 comprobaciones y las tres empresas enteras, diccionario limpio. Las cuatro pruebas nuevas se
 comprobaron **reinsertando el fallo** una por una: tirar lo que dice `repair`, pintar un guardián
-apagado como armado, y devolver el raíl a la prosa. Las tres rompieron. 0.21.0 empaquetada e
-instalada.
+apagado como armado, devolver el raíl a la prosa, quitar el recuerdo de la continuación y recordar
+además sus fallos. Todas rompieron. 0.21.1 empaquetada e instalada.
 
 ## Siguiente
 

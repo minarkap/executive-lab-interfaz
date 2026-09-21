@@ -1768,6 +1768,55 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${consejos.capacidades(RAIZ).length} capacidades`;
   });
 
+  await comprobar('la continuación no se relee en cada repintado, y se olvida al cambiar de carpeta', async () => {
+    // Cuesta un proceso de Node y se pedía en cada repintado. La brújula
+    // guarda su estado 20 segundos, pero el camino del vigía se salta ese
+    // recuerdo: repinta con `fresco`, y hace bien. Lo que no puede es
+    // arrastrar a esto, que solo cambia cuando se guarda un punto de sesión.
+    const rsc = cargar('rsc');
+    const procesos = cargar('procesos');
+
+    let veces = 0;
+    const deVerdad = procesos.node;
+    procesos.node = async (args) => {
+      if (args.some((a) => a === 'resume')) { veces += 1; return { codigo: 0, salida: 'Seguíamos con 02-DOCS/wiki', error: '' }; }
+      return { codigo: 0, salida: '', error: '' };
+    };
+
+    try {
+      rsc.olvidarLaContinuacion();
+      const primera = await rsc.retomar();
+      assert.equal(primera, 'Seguíamos con 02-DOCS/wiki');
+      assert.equal(veces, 1, 'la primera vez sí se pregunta');
+
+      for (let i = 0; i < 5; i += 1) await rsc.retomar();
+      assert.equal(veces, 1, 'cinco repintados seguidos no son cinco procesos');
+
+      // Cambiar de carpeta es otro registro: ahí no vale el de antes.
+      cargar('brujula').olvidar();
+      await rsc.retomar();
+      assert.equal(veces, 2, 'al olvidar, se vuelve a preguntar');
+
+      // Y un fallo no se recuerda: recordarlo dejaría la barra sin
+      // continuación un minuto entero por un tropiezo de una vez. Es la
+      // trampa que ya mordió con el catálogo de capacidades.
+      rsc.olvidarLaContinuacion();
+      procesos.node = async () => ({ codigo: 1, salida: '', error: 'reventó' });
+      assert.equal(await rsc.retomar(), null, 'un fallo devuelve null');
+      procesos.node = async (args) => {
+        if (args.some((a) => a === 'resume')) { veces += 1; return { codigo: 0, salida: 'ya va', error: '' }; }
+        return { codigo: 0, salida: '', error: '' };
+      };
+      assert.equal(await rsc.retomar(), 'ya va', 'y el siguiente intento sí pregunta');
+      assert.equal(veces, 3, 'porque el fallo no se guardó');
+    } finally {
+      procesos.node = deVerdad;
+      rsc.olvidarLaContinuacion();
+      cargar('brujula').olvidar();
+    }
+    return `${veces} procesos para 8 llamadas`;
+  });
+
   await comprobar('lo que el arnés dice de sí mismo llega a la pantalla, no se tira', async () => {
     // `reconocer({profundo:true})` lanza TRES procesos —doctor, repair y
     // reassess— y la radiografía leía UNO. Los otros dos se calculaban y no los

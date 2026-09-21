@@ -125,7 +125,13 @@ async function estado({ fresco = false } = {}) {
   return calculado;
 }
 
-const olvidar = () => { ultimo = { cuando: 0, estado: null }; };
+// Olvidar es olvidar del todo: la continuación se recuerda aparte —cuesta un
+// proceso y cambia mucho más despacio— y si no cayera aquí, cambiar de carpeta
+// dejaría en pantalla el rótulo de la anterior hasta un minuto.
+const olvidar = () => {
+  ultimo = { cuando: 0, estado: null };
+  rsc.olvidarLaContinuacion();
+};
 
 async function calcular() {
   if (!proyecto.raiz()) {

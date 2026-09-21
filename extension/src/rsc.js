@@ -39,12 +39,45 @@ async function correr(args, opciones) {
 
 // Dónde se quedó la última sesión, según el checkpoint local de RSC. Devuelve
 // null cuando no hay nada: RSC responde con éxito y un aviso entre paréntesis.
+//
+// ── Por qué esto tiene su propio recuerdo ────────────────────────────────
+//
+// Cuesta un proceso de Node entero, y se pedía en cada repintado. La brújula
+// guarda su estado veinte segundos, pero **el camino del vigía se salta ese
+// recuerdo**: repinta con `fresco`, y hace bien —si el asistente acaba de
+// escribir un concepto, el número de conceptos tiene que subir ya—.
+//
+// El problema es meter esto en el mismo saco. Lo que sabe la brújula cambia
+// cuando se toca un fichero; el registro de continuación **no**: solo cambia
+// cuando se guarda un punto de sesión. Así que mientras el asistente trabaja
+// —una tanda de cambios cada 600 ms— se arrancaba un proceso por tanda para
+// releer algo que no se había movido.
+//
+// Un minuto, entonces, y aparte: el dato se usa para un rótulo de zona, no
+// para nada que necesite estar al segundo. Y `olvidar()` para cuando se cambia
+// de carpeta, que ahí sí es otro registro.
+const CUANTO_DURA = 60000;
+let recordado = { cuando: 0, texto: null, raiz: null };
+
+const olvidarLaContinuacion = () => { recordado = { cuando: 0, texto: null, raiz: null }; };
+
 async function retomar() {
+  const aqui = proyecto.raiz();
+  const vale = recordado.cuando
+    && recordado.raiz === aqui
+    && Date.now() - recordado.cuando < CUANTO_DURA;
+  if (vale) return recordado.texto;
+
   const { codigo, salida } = await correr(['memory', 'resume'], { tiempoMaximo: 20000 });
+  // Un fallo no se recuerda: recordar un intento que no salió deja la barra
+  // sin continuación durante un minuto por un tropiezo de una vez. Es la misma
+  // trampa que ya mordió en el catálogo de capacidades.
   if (codigo !== 0) return null;
+
   const texto = salida.trim();
-  if (!texto || /^\(no local continuation/i.test(texto)) return null;
-  return texto;
+  const limpio = !texto || /^\(no local continuation/i.test(texto) ? null : texto;
+  recordado = { cuando: Date.now(), texto: limpio, raiz: aqui };
+  return limpio;
 }
 
 // Enseñarle algo nuevo del catálogo. El catálogo viaja dentro del paquete,
@@ -220,5 +253,6 @@ module.exports = {
   correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar, arreglarSolo,
   comoEstaDeSalud, queHayQueArreglar, queRecomienda,
   queGuardianes, queCopiasDelArnes, queFaltaEnDisco, LOS_GUARDIANES,
+  olvidarLaContinuacion,
   paquete, VERSION_DE_RESPALDO, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
 };

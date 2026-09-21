@@ -2642,3 +2642,34 @@ con lo único nuestro, que es el idioma y la forma.
 El rótulo **no cambia**. «Seguir donde lo dejé» es una acción, y el diccionario pide verbo primero;
 no es el caso de «Lo que sabe hacer», que nombraba una cosa con una frase sobre el asistente.
 
+---
+
+## 100. La continuación se recuerda aparte, porque cambia más despacio que todo lo demás
+
+**Fecha:** 21 de septiembre de 2026 · **Estado:** decidido
+
+`rsc.retomar()` cuesta **un proceso de Node entero** —arrancar el arnés y leer su registro— y se
+pedía en cada repintado de la pantalla principal.
+
+La brújula guarda su estado veinte segundos, así que parecía cubierto. No lo estaba: **el camino del
+vigía se salta ese recuerdo**. `repintarLoQueHaya()` acaba en `refrescar(true)`, y hace bien — si el
+asistente acaba de escribir un concepto, el número de conceptos tiene que subir ya, no dentro de
+veinte segundos.
+
+El fallo era meter esto en el mismo saco. Lo que sabe la brújula cambia cuando se toca un fichero;
+el registro de continuación **no**: solo cambia cuando se guarda un punto de sesión. Así que
+mientras el asistente trabajaba —y el vigía agrupa en tandas de 600 ms— se arrancaba un proceso por
+tanda para releer algo que no se había movido.
+
+Ahora tiene su propio recuerdo, de un minuto, en `rsc.js`, que es quien sabe lo que cuesta. Dos
+condiciones que no son adorno:
+
+- **Un fallo no se recuerda.** Guardar un intento que no salió dejaría la barra sin continuación
+  durante un minuto entero por un tropiezo de una vez. Es exactamente la trampa que ya mordió con el
+  catálogo de capacidades, y la prueba la comprueba por separado.
+- **`brujula.olvidar()` lo tira también.** Cambiar de carpeta es otro registro, y sin esto el rótulo
+  de la carpeta anterior se quedaría en pantalla hasta un minuto.
+
+La regla que queda: **un recuerdo por ritmo de cambio, no uno por pantalla.** Dos datos que cambian
+a velocidades distintas no comparten caché, aunque se pinten juntos.
+
