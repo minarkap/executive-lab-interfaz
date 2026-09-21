@@ -113,3 +113,18 @@ hace `onboard`), y `repair --yes` a ciegas puede mover el arnés a otro asistent
 - Accepted plan `e7a924dd80dd5d0199f76da6c571384d664c5899e6f941477c789c3817182dfb`.
 - Project kind: software.
 - SDD: selected.
+
+## El arnés sube a la 2.0.5 — 21 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-21-el-arnes-sube-a-la-2-y-el-plan-deja-de-mentir.md`.
+
+- **Lo que no cambió, que es lo que importa**: las tres tablas de `targets/` son idénticas byte a
+  byte entre 1.4.1 y 2.0.5, el esquema del manifiesto también, y ningún marcador que la barra lee.
+- **La 2.0 instala un solo arnés para todos**: 32 habilidades en vez de 8. Qué es fontanería pasa a
+  ser un dato en `nombres.json`.
+- **El plan de este repositorio estaba construido sobre 1,6 GB de editores descargados** que viven
+  dentro de la carpeta. `scanProject` no lee el `.gitignore`. Fuera, y la evidencia pasa a ser real.
+  Regla nueva en la constitución (P8): lo que se descarga no entra en el proyecto.
+- **Del guardián de commits nos salimos** con `.rsc/.no-gitmoji`: aceptar un plan no es aceptar que
+  un instalador decida cómo se escribe aquí.
+- **Se escribe la constitución**: ocho reglas, todas comprobables.
