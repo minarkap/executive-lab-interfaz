@@ -5,6 +5,12 @@ contra la **2.0.5** y comprobadas leyendo el paquete publicado, no deducidas.
 
 Ninguna nos bloquea: las dos tienen rodeo y lo hemos puesto. Van por si sirven.
 
+> **La primera está abierta como issue**:
+> [ericrisco/rsc-harness#258](https://github.com/ericrisco/rsc-harness/issues/258),
+> el 21 de septiembre de 2026. La segunda no: es más discutible —respetar el
+> `.gitignore` cambiaría la identidad del plan de todo el mundo— y el rodeo de
+> no descargar nada dentro de la carpeta es bueno de todas formas.
+
 ---
 
 ## 1. `optOuts` se escribe en `.rsc.json` y no lo lee nadie
