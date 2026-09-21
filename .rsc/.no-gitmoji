@@ -1,0 +1,3 @@
+Los commits de este repositorio se escriben en español y en frase, no en gitmoji.
+Es estilo de la casa y una decisión de Jose, no un descuido: el guardián bloquea
+cualquier `git commit -m` que no lleve emoji y gramática de Conventional Commits.

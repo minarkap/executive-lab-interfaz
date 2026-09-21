@@ -65,14 +65,14 @@ el arnés con esas respuestas.
 Si prefiere que lo hagas tú, las respuestas son suyas, no tuyas: pregúntaselas una a una y luego
 
 ```bash
-npx @ericrisco/rsc@1.4.1 onboard \
+npx @ericrisco/rsc@2.0.5 onboard \
   --technical-level <non-technical|mixed|technical> \
   --accompaniment <L0|L1|L2|L3> \
   --project-kind <software|operations|research|content|mixed> \
   --goal "<lo que quiera conseguir>" \
   --target <claude|codex>
 # imprime un plan y su huella; solo después de que ACEPTE ese plan exacto:
-npx @ericrisco/rsc@1.4.1 onboard ...mismos flags... --accept-plan <huella>
+npx @ericrisco/rsc@2.0.5 onboard ...mismos flags... --accept-plan <huella>
 ```
 
 Y por último, los raíles de Executive Lab (idioma y vocabulario), que van dentro de la extensión:

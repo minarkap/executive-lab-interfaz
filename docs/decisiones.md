@@ -2507,3 +2507,25 @@ Su arreglo **no aplica nada**: explica en cristiano qué cambiaría, corre
 lo prohíbe explícitamente: *«no aceptes ningún plan por tu cuenta, ni siquiera si
 te parece obvio: aceptar un plan es una firma mía»*. Es la línea de la decisión
 84 llevada hasta el final — la cuenta es determinista, el criterio no.
+
+## 96. La decisión de no usar gitmoji tiene que viajar, y RSC no la deja
+
+RSC guarda los interruptores de sus guardianes en ficheros locales bajo `.rsc/`,
+y `.rsc/` es justo lo que él mismo añade al `.gitignore`
+(`install-apply.js:301`). Así que la decisión de un equipo —«aquí los commits se
+escriben en español y en frase»— no viaja: en cada clon vuelve el guardián, y al
+recién llegado le deniegan el primer `git commit -m`.
+
+Lo raro es que **el campo para eso ya existe y ya se rellena solo**:
+`install-apply.js:135` recorre los `.rsc/.no-*` y los escribe en
+`.rsc.json → optOuts`, que sí se comitea. Lo que falta es que alguien lo lea:
+`optOuts` aparece nueve veces en el paquete y las nueve son escrituras.
+
+Rodeo nuestro, en el `.gitignore`:
+
+    .rsc/*
+    !.rsc/.no-gitmoji
+
+Y contado para Eric en `docs/para-rsc.md`, junto con lo del `.gitignore` que
+`scanProject` no lee (decisión 93). Las dos son de RSC, ninguna nos bloquea, y
+las dos tienen rodeo puesto.

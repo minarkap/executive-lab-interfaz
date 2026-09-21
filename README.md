@@ -171,7 +171,7 @@ respuesta— y luego:
 ```bash
 cd "<su carpeta de trabajo>"
 
-npx @ericrisco/rsc@1.4.1 onboard \
+npx @ericrisco/rsc@2.0.5 onboard \
   --technical-level <non-technical|mixed|technical> \
   --accompaniment <L0|L1|L2|L3> \
   --project-kind <software|operations|research|content|mixed> \
@@ -183,7 +183,7 @@ Ese comando **imprime un plan y una huella, y no monta nada todavía**. Enséña
 lo acepte, repite el mismo comando con los mismos flags y añade la huella **tal cual la imprimió**:
 
 ```bash
-npx @ericrisco/rsc@1.4.1 onboard ...los mismos flags... --accept-plan <huella>
+npx @ericrisco/rsc@2.0.5 onboard ...los mismos flags... --accept-plan <huella>
 ```
 
 Por último, los raíles de Executive Lab (idioma y vocabulario), que viajan dentro de la extensión:
@@ -205,9 +205,9 @@ ls .claude/skills/executive-lab/SKILL.md              # los raíles
 - **No enciendas la vista sencilla por tu cuenta.** Es un ajuste **por carpeta**
   (`executiveLab.vistaSencilla`) que reconfigura todo el editor. Lo decide esa persona, desde el
   botón de la barra o cuando el asistente se lo pregunte al terminar. Su editor es suyo.
-- **No uses `@latest` para RSC.** Va fijada la **1.4.1** a propósito: toda una cohorte tiene que
-  correr el mismo catálogo o dejan de servir las instrucciones de clase. RSC 2.x está publicado y
-  todavía no se ha probado aquí.
+- **No uses `@latest` para RSC.** Va fijada la **2.0.5** a propósito: toda una cohorte tiene que
+  correr el mismo catálogo o dejan de servir las instrucciones de clase. Subir de versión es una
+  decisión que se toma, se contrasta y se escribe — nunca un efecto secundario de un `npm install`.
 - **No inventes las respuestas del onboarding.** Definen el tono, el idioma y cuánto le explica el
   asistente a esa persona durante meses.
 - **No toques sus ajustes de usuario de VS Code.** La extensión escribe en `.vscode/settings.json`
@@ -238,7 +238,7 @@ Las tres llevan lo mismo, porque el arnés viaja en un solo sitio: dentro del `.
 |---|---|---|---|
 | Versión del panel | **0.9.1** | **0.9.1** | **0.9.1** |
 | Tamaño | 6 MB | **6,8 MB** | **29 MB** |
-| Arnés RSC 1.4.1 | ✅ dentro del paquete | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
+| Arnés RSC 2.0.5 | ✅ dentro del paquete | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Raíles | ✅ `media/railes/` | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Módulos compartidos | ✅ `media/comun/` | ✅ | ✅ |
 | Disfraz (`disfraz.json`) | ✅ | ✅ | ✅ |
@@ -289,7 +289,7 @@ git clone git@github.com:minarkap/executive-lab-interfaz.git
 cd executive-lab-interfaz
 
 # El arnés que viaja dentro de la extensión NO está versionado. Antes de empaquetar:
-npm install --prefix extension/media/harness @ericrisco/rsc@1.4.1
+npm install --prefix extension/media/harness @ericrisco/rsc@2.0.5
 ```
 
 ### Probarlo
@@ -360,11 +360,13 @@ Está equipado con RSC en modo desarrollador. Se versionan `.rsc.json`, `.claude
 `.claude/rsc-bootstrap.mjs`; el resto está en `.gitignore`. Para retomarlo en otra máquina:
 
 ```bash
-npx @ericrisco/rsc@1.4.1 sync
+npx @ericrisco/rsc@2.0.5 sync
 ```
 
-> RSC 2.x está publicado y aquí va fijada la 1.4.1 a propósito. Un salto de versión mayor puede
-> cambiar el arnés, y hay que probarlo antes de que llegue a nadie.
+> La versión va fijada exacta a propósito, y está escrita en cinco sitios que una prueba obliga a
+> decir lo mismo. Se subió de la 1.4.1 a la 2.0.5 el 21 de septiembre de 2026, después de leer las
+> dos enteras: las tres tablas de `targets/` que copiamos estaban idénticas byte a byte y ningún
+> marcador que la barra lee había cambiado. Lo que sí cambió está en la decisión 91.
 
 ---
 

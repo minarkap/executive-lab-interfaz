@@ -128,3 +128,15 @@ Worklog: `02-DOCS/raw/worklog/2026-09-21-el-arnes-sube-a-la-2-y-el-plan-deja-de-
 - **Del guardián de commits nos salimos** con `.rsc/.no-gitmoji`: aceptar un plan no es aceptar que
   un instalador decida cómo se escribe aquí.
 - **Se escribe la constitución**: ocho reglas, todas comprobables.
+
+## Cierre: la excepción del guardián tiene que viajar — 21 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-21-cierre-lo-que-queda-escrito.md`.
+
+RSC guarda los interruptores de sus guardianes bajo `.rsc/`, que él mismo añade al `.gitignore`: la
+decisión de un equipo no viaja y el guardián vuelve en cada clon. El campo `optOuts` de `.rsc.json`
+ya existe, ya se rellena solo y sí se comitea — pero **nadie lo lee**: nueve apariciones en el
+paquete, las nueve escrituras.
+
+Rodeo en el `.gitignore` (`.rsc/*` + `!.rsc/.no-gitmoji`), y las dos cosas contadas para Eric en
+`docs/para-rsc.md` con fichero y línea.

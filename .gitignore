@@ -14,7 +14,15 @@ node_modules/
 # Lo que RSC pide no versionar. Lo habría añadido él, pero esta carpeta no era
 # un repo git cuando se instaló. Se versionan .rsc.json, .claude/settings.json
 # y .claude/rsc-bootstrap.mjs; el resto es estado de máquina.
-.rsc/
+# `.rsc/*` y no `.rsc/`, para poder salvar una línea de dentro: git no deja
+# recuperar un fichero de un directorio excluido entero.
+.rsc/*
+# Y la excepción: la decisión de no usar gitmoji aquí es del equipo, no de esta
+# máquina. RSC la guarda en `.rsc/.no-gitmoji` y el guardián solo mira ese
+# fichero — nunca el `optOuts` de `.rsc.json`, que sí viaja. Sin esta línea, el
+# guardián vuelve en cada clon y le deniega el primer commit a quien llegue.
+# Está contado en `docs/para-rsc.md`.
+!.rsc/.no-gitmoji
 .claude/skills/
 .claude/settings.local.json
 02-DOCS/raw/worklog/.rsc-memory/

@@ -80,7 +80,7 @@ por el IT de su empresa — que en pyme es más gente de la que parece.
 
 **Cómo se comprueba:** con una cuenta **sin** privilegios, descomprimir en
 `%LOCALAPPDATA%\ExecutiveLab\` el zip de Node en `runtime\`, MinGit en `git\` y hacer
-`npm install --prefix harness @ericrisco/rsc@1.4.1`. Después:
+`npm install --prefix harness @ericrisco/rsc@2.0.5`. Después:
 
 - `runtime\node.exe -v`
 - `git\cmd\git.exe --version`
