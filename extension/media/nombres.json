@@ -307,5 +307,28 @@
     "debug",
     "ui-engineering",
     "fable-operator"
-  ]
+  ],
+  "_guardianes": [
+    "Los guardianes son lo único del arnés que puede DECIRLE QUE NO a alguien: se",
+    "enganchan antes de cada orden y la paran si no cumple. Que estén armados es",
+    "lo normal y es bueno; lo que no puede ser es que nadie los nombre hasta que",
+    "uno bloquea algo, que es justo el peor momento para enterarse.",
+    "",
+    "`danger-guard` importa más que ninguno aquí: RSC lo activa SOLO con usuarios",
+    "no técnicos, o sea con todos los alumnos de esta barra, y con nadie más."
+  ],
+  "guardianes": {
+    "danger-guard": {
+      "nombre": "Freno ante órdenes peligrosas",
+      "queHace": "Para una orden que podría borrar algo sin vuelta atrás, y pide otra más segura. Está puesto porque no eres técnico."
+    },
+    "gitmoji-guard": {
+      "nombre": "Formato al guardar en git",
+      "queHace": "Exige que cada copia que guardes lleve delante su etiqueta y su dibujo."
+    },
+    "ship-guard": {
+      "nombre": "Aviso de trabajo a medias",
+      "queHace": "Avisa si vas a dejar atrás algo sin guardar o sin subir a GitHub."
+    }
+  }
 }

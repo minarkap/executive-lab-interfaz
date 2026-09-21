@@ -22,10 +22,68 @@
 const fs = require('node:fs');
 const proyecto = require('./proyecto');
 const asistentes = require('./asistentes');
+const nombres = require('./nombres');
+const trato = require('./trato');
 
 const CONSTITUCION = ['02-DOCS', 'wiki', 'sdd', 'constitution.md'];
 const DE_CLAUDE = ['CLAUDE.md'];
 const DE_LOS_DEMAS = ['AGENTS.md'];
+
+// ── Las reglas que no se piden por favor: se aplican solas ───────────────
+//
+// Los guardianes son lo único del arnés que puede **decirle que no** a
+// alguien: se enganchan antes de cada orden y la paran si no cumple. Y no se
+// nombraban en ningún sitio de la barra, así que quien recibía un bloqueo veía
+// un mensaje en inglés que empieza por `BLOCKED` y no tenía dónde mirar.
+//
+// Se leen **del disco y gratis**, sin lanzar el arnés: cada uno mira su propio
+// fichero para saber si está apagado (lo comprobé en su código,
+// `targets/*-guard.mjs`), así que mirar ese mismo fichero es leer exactamente
+// lo que él va a leer. El informe del doctor también lo sabe, pero cuesta un
+// proceso, y esta pantalla se abre para leer, no para esperar.
+//
+// El sufijo del interruptor NO es uniforme —el de gitmoji es `.no-gitmoji`, no
+// `.no-gitmoji-guard`— así que va escrito uno por uno y no calculado.
+const GUARDIANES = [
+  { id: 'danger-guard', fichero: 'danger-guard.mjs', interruptor: '.no-danger-guard', soloSiNoEsTecnico: true },
+  { id: 'gitmoji-guard', fichero: 'gitmoji-guard.mjs', interruptor: '.no-gitmoji' },
+  { id: 'ship-guard', fichero: 'ship-guard.mjs', interruptor: '.no-ship-guard' },
+];
+
+const hayEnRsc = (nombre) => {
+  const ruta = proyecto.ruta('.rsc', nombre);
+  return Boolean(ruta && fs.existsSync(ruta));
+};
+
+// Qué guardianes hay montados y cuáles están actuando ahora mismo.
+//
+// Tres estados, y los tres significan cosas distintas para quien mira:
+//   'armado'   está y te puede parar
+//   'apagado'  está, y alguien decidió aquí que no actúe
+//   'noAplica' está, pero contigo no actúa (el de órdenes peligrosas solo
+//              actúa con quien no es técnico, y eso lo dice tu perfil)
+function losGuardianes() {
+  const eresTecnico = trato.comoEstamos().palabras === 'technical';
+
+  return GUARDIANES
+    .filter((g) => hayEnRsc(g.fichero))
+    .map((g) => {
+      const dicho = nombres.comoSeLlama('guardianes', g.id, {});
+      const apagado = hayEnRsc(g.interruptor);
+      const contigoNo = Boolean(g.soloSiNoEsTecnico && eresTecnico);
+      return {
+        id: g.id,
+        nombre: dicho.nombre,
+        queHace: dicho.queHace,
+        estado: apagado ? 'apagado' : (contigoNo ? 'noAplica' : 'armado'),
+        // Por qué no actúa, cuando no actúa. Sin esto, «no actúa» parece una
+        // avería y es una decisión.
+        porQue: apagado
+          ? 'Apagado aquí, a propósito'
+          : (contigoNo ? 'Contigo no actúa: tu perfil dice que eres técnico' : ''),
+      };
+    });
+}
 
 // Una regla ocupa una línea. Un fichero entero no cabe en la barra, y para
 // leerlo entero está el botón que lo abre al lado.
@@ -98,6 +156,10 @@ function queHay() {
 
   return {
     innegociables: principios(constitucion),
+    // Lo que se comprueba solo, sin que nadie lo pida. Va aquí y no en otra
+    // pantalla porque es lo mismo que lo de arriba —reglas de esta carpeta—
+    // con la diferencia de que estas las aplica una máquina.
+    guardianes: losGuardianes(),
     deLaCasa: puntosDe(primero, 'Working rules').length
       ? puntosDe(primero, 'Working rules')
       : puntosDe(segundo, 'Working rules'),
@@ -120,4 +182,4 @@ function dondeVive(cual) {
   return ruta && fs.existsSync(ruta) ? ruta : null;
 }
 
-module.exports = { queHay, dondeVive };
+module.exports = { queHay, dondeVive, losGuardianes, GUARDIANES };

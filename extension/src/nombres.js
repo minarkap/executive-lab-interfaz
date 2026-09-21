@@ -61,13 +61,16 @@ function tabla() {
       comandos: leida.comandos || {},
       habilidades: leida.habilidades || {},
       ayudantes: leida.ayudantes || {},
+      guardianes: leida.guardianes || {},
       patrones: leida.patrones || {},
       fontaneria: leida.fontaneria || [],
     };
   } catch {
     // Sin tabla la barra sigue funcionando: se cae al nombre humanizado. Un
     // fichero de datos roto no puede dejar sin comandos a nadie.
-    tablaEnMemoria = { comandos: {}, habilidades: {}, ayudantes: {}, patrones: {}, fontaneria: [] };
+    tablaEnMemoria = {
+      comandos: {}, habilidades: {}, ayudantes: {}, guardianes: {}, patrones: {}, fontaneria: [],
+    };
   }
   return tablaEnMemoria;
 }

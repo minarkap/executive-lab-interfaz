@@ -532,7 +532,14 @@ function pantallaSaberes(datos) {
 // ninguno se veía: la constitución (los innegociables, que el arnés pone en su
 // mapa bajo "léete esto siempre"), y las reglas de la casa del CLAUDE.md y del
 // AGENTS.md.
-function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'claude' }) {
+// Lo que se comprueba solo. Tres estados y tres marcas, porque significan
+// cosas distintas: armado te puede parar, apagado es una decisión de aquí, y
+// «contigo no actúa» es una tercera cosa que sin decirla parece una avería.
+const MARCA_GUARDIAN = { armado: '●', apagado: '○', noAplica: '·' };
+
+function pantallaReglas({
+  innegociables = [], deLaCasa = [], guardianes = [], hay = {}, cual = 'claude',
+}) {
   const lista = (reglas, vacio, comoQuitar) => (reglas.length
     ? reglas.map((r) => `<div class="entrada"><p class="nombre">${enLinea(r)}</p></div>`).join('')
     : nada(vacio));
@@ -550,6 +557,28 @@ function pantallaReglas({ innegociables = [], deLaCasa = [], hay = {}, cual = 'c
     <h2>Innegociables</h2>
     ${lista(innegociables, 'Todavía no hay ninguno. Son las cosas que no se saltan nunca, pase lo que pase.')}
     ${hay.constitucion ? boton({ etiqueta: 'Verlas enteras', icono: '▸', pequeno: true, discreto: true, accion: { tipo: 'abrirReglas', cual: 'constitucion' } }) : ''}
+
+    ${/* Lo único del arnés que puede decir que NO. No se nombraba en ningún
+          sitio, así que quien recibía un bloqueo veía un mensaje en inglés y no
+          tenía dónde mirar qué había pasado. */''}
+    ${guardianes.length ? `
+      <hr class="separador">
+      <h2>Lo que se comprueba solo</h2>
+      <p class="detalle">Esto no se lo pides: se aplica antes de cada cosa que hace, y puede pararla.</p>
+      ${guardianes.map((g) => `
+        <div class="pieza ${g.estado === 'armado' ? 'si' : 'noAplica'}">
+          <span class="pieza-marca" aria-hidden="true">${MARCA_GUARDIAN[g.estado] || '·'}</span>
+          <span class="pieza-nombre">${texto(g.nombre)}</span>
+          <span class="pieza-detalle">${texto(g.porQue || 'Puesto')}</span>
+        </div>
+        ${g.queHace ? `<p class="detalle">${texto(g.queHace)}</p>` : ''}`).join('')}
+      ${boton({
+    etiqueta: 'Cambiar lo que se comprueba',
+    icono: '🔧',
+    pequeno: true,
+    discreto: true,
+    accion: { tipo: 'pedir', prompt: 'Quiero repasar las comprobaciones que se aplican solas en esta carpeta. Explícame una por una qué me para cada una y qué pasa si la quito, y pregúntame cuál quiero cambiar antes de tocar nada.' },
+  })}` : ''}
 
     <hr class="separador">
     <h2>Cómo se trabaja aquí</h2>

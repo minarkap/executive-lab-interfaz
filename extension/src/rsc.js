@@ -117,6 +117,65 @@ function queHayQueArreglar({ codigo, salida }) {
   };
 }
 
+// ── Lo que el doctor sabe y la barra no contaba ─────────────────────────
+//
+// `doctor --json` trae mucho más que «sano o no», y hasta hoy se pedía entero
+// para no mirar dentro: la radiografía lanzaba tres procesos y leía uno. Lo
+// que sigue son lectores de los campos que sí le importan a quien usa la
+// barra. Cada uno devuelve `null` cuando el informe no se pudo leer, para que
+// la pantalla pueda callar en vez de inventarse un «todo bien».
+
+// Los guardianes: lo único del arnés que puede **decirle que no** a alguien.
+//
+// Son tres, se enganchan antes de cada orden y RSC los apunta en el recuento
+// de enganches del informe (`contextBudget.scopes[].hookCounts.PreToolUse`).
+// Que estén armados es lo normal y es bueno; lo que no puede ser es que nadie
+// los nombre hasta que uno bloquea algo, que es justo cuando peor sienta.
+//
+// `gitmoji` tiene además su propio campo, porque se puede apagar y el informe
+// dice si lo está. Los otros dos se apagan igual, con su fichero en `.rsc/`.
+const LOS_GUARDIANES = ['danger-guard', 'gitmoji-guard', 'ship-guard'];
+
+function queGuardianes(informe) {
+  if (!informe) return null;
+
+  const ambitos = (informe.contextBudget && informe.contextBudget.scopes) || [];
+  const enganchados = new Set();
+  for (const ambito of ambitos) {
+    const antes = (ambito.hookCounts && ambito.hookCounts.PreToolUse) || {};
+    for (const nombre of Object.keys(antes)) enganchados.add(nombre);
+  }
+
+  return LOS_GUARDIANES.map((id) => ({
+    id,
+    // El informe nombra el de gitmoji aparte, y ahí es donde dice si se apagó.
+    apagado: id === 'gitmoji-guard' ? informe.gitmojiGuard === 'opted-out' : false,
+    armado: enganchados.has(id),
+  }));
+}
+
+// Las copias que guarda el propio arnés antes de tocar nada. No son las de
+// git: RSC copia lo suyo antes de aplicar un plan, y eso es una red de
+// seguridad que existe y que no se veía por ningún lado.
+function queCopiasDelArnes(informe) {
+  if (!informe || !informe.backups) return null;
+  const { exists, count, latest } = informe.backups;
+  return { hay: Boolean(exists), cuantas: count || 0, ultima: latest || null };
+}
+
+// Lo que el arnés declara y no está en disco. Con esto en rojo, la barra pinta
+// botones que no responden — y era el caso que no se podía distinguir sin
+// mirar aquí.
+function queFaltaEnDisco(informe) {
+  if (!informe) return null;
+  const falta = [
+    ...(informe.missing || []).map((id) => ({ id, que: 'habilidad' })),
+    ...(informe.missingAgents || []).map((id) => ({ id, que: 'agente' })),
+    ...(informe.missingCommands || []).map((id) => ({ id, que: 'comando' })),
+  ];
+  return falta;
+}
+
 // Lo que `reassess` recomienda, leído. Es de solo lectura, así que esto no
 // puede cambiar nada: solo saber si hay algo que contar.
 //
@@ -160,5 +219,6 @@ const arreglarSolo = () => correr(['repair', '--yes'], { tiempoMaximo: 180000 })
 module.exports = {
   correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar, arreglarSolo,
   comoEstaDeSalud, queHayQueArreglar, queRecomienda,
+  queGuardianes, queCopiasDelArnes, queFaltaEnDisco, LOS_GUARDIANES,
   paquete, VERSION_DE_RESPALDO, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
 };

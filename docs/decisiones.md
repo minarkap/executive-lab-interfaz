@@ -2600,3 +2600,45 @@ por pedidas a mano. `react` entró en el plan por el editor descargado (decisió
 fijado para siempre por esa regla, con sus dos agentes y sus tres comandos. Se quita de la
 declaración y se vuelve a aceptar el plan.
 
+---
+
+## 99. Lo que el arnés dice de sí mismo se lee, y los guardianes se ven
+
+**Fecha:** 21 de septiembre de 2026 · **Estado:** decidido
+
+Revisando el mapeo salió esto, y es peor que un rótulo mal puesto.
+
+**«Qué falta por montar» podía decir que no faltaba nada con el arnés roto.** Esa pantalla lanza tres
+procesos —`doctor --json`, `repair --dry-run` y `reassess`— y **leía uno**. Los otros dos se
+calculaban, se guardaban en el objeto congelado y no los miraba nadie. O sea: se pagaba el coste de
+preguntar y se tiraba la respuesta, y la única fuente que sabía si el arnés estaba roto era una de
+las tiradas. Una pantalla que se llama «Qué falta por montar» y que no mira lo que el propio arnés
+dice que le falta no está diagnosticando.
+
+Ahora salen tres piezas más: **lo que está declarado y no está en disco** (con eso en rojo, la barra
+pinta botones que no responden), **lo que `repair` encuentra**, y **las copias que guarda el arnés**,
+que son ocho en esta carpeta y no se veían por ningún lado. Lo que `repair` sabe arreglar solo lleva
+botón de un clic; lo que trae un `[ask]` no, porque uno de ellos mueve el arnés a otro asistente.
+
+**Y los guardianes no se nombraban en ningún sitio.** Son lo único del arnés que puede decirle que
+no a alguien: se enganchan antes de cada orden y la paran. Quien recibía un bloqueo veía un mensaje
+en inglés que empieza por `BLOCKED` y no tenía dónde mirar qué había pasado. El que más importa aquí
+es `danger-guard`, porque **RSC lo activa solo con usuarios no técnicos**, o sea con todos los
+alumnos de esta barra y con nadie más.
+
+Van en «Las reglas», que es donde ya están las que el asistente respeta: son lo mismo, con la
+diferencia de que estas las aplica una máquina. Y se leen **del disco, sin lanzar el arnés**: cada
+guardián mira su propio fichero `.rsc/.no-X` para saber si está apagado, así que mirar ese mismo
+fichero es leer exactamente lo que él va a leer. Tres estados, porque significan cosas distintas:
+armado, apagado a propósito, y «contigo no actúa» para el caso del perfil técnico. Sin decir el
+tercero, un guardián que no actúa parece una avería y es una decisión.
+
+**El raíl de «Seguir donde lo dejé» describía el mecanismo de RSC en vez de invocarlo.** Decía «mira
+el checkpoint local del arnés» en prosa y, dos líneas después, que una vuelta inventada es peor que
+una corta, sin darle la herramienta para no inventársela. RSC ya tiene resuelto el patrón: sus
+comandos delegan y no reproducen el método del otro. Ahora delega en `/resume-session` y se queda
+con lo único nuestro, que es el idioma y la forma.
+
+El rótulo **no cambia**. «Seguir donde lo dejé» es una acción, y el diccionario pide verbo primero;
+no es el caso de «Lo que sabe hacer», que nombraba una cosa con una frase sobre el asistente.
+

@@ -175,3 +175,17 @@ fijada. Fuera de la declaración y plan reaceptado.
 - Accepted plan `a552da0e4feb441e5467371100801fad5bf508dbef767c6c1e7a925844254203`.
 - Project kind: software.
 - SDD: selected.
+
+## El diagnóstico del arnés se lee, y los guardianes se ven — 21 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-21-el-diagnostico-se-lee-y-los-guardianes-se-ven.md`.
+
+- **«Qué falta por montar» podía mentir**: lanzaba `doctor`, `repair` y `reassess` y leía solo el
+  último. Podía decir «no falta nada» con el arnés roto. Ahora lee los tres, y añade lo declarado
+  que no está en disco, lo que `repair` encuentra y las copias del propio arnés.
+- **Los guardianes se ven en «Las reglas»**, leídos del disco sin lanzar nada. `danger-guard` importa
+  más que ninguno: RSC lo activa solo con usuarios no técnicos, o sea con todos los alumnos.
+- **El raíl de seguir delega** en `/resume-session` en vez de describir su mecanismo en prosa.
+
+0.21.0. 177 comprobaciones, y las tres nuevas comprobadas reinsertando el fallo.
+

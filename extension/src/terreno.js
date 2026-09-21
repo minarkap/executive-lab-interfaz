@@ -579,6 +579,62 @@ async function radiografia({ aFondo = null } = {}) {
     });
   }
 
+  // ── Lo que el arnés dice de sí mismo, y que se pedía para tirarlo ─────
+  //
+  // `reconocer({profundo:true})` lanza TRES procesos —`doctor --json`,
+  // `repair --dry-run` y `reassess`— y hasta hoy esta pantalla leía uno. Los
+  // otros dos se calculaban, se guardaban y no los miraba nadie.
+  //
+  // No era solo gasto. Era que esta pantalla podía decir **«no falta nada»**
+  // teniendo el arnés roto, porque la única fuente que lo sabía —`repair`— se
+  // estaba tirando. Una pantalla que se llama «Qué falta por montar» y que no
+  // mira lo que el propio arnés dice que le falta no está diagnosticando.
+  if (conArnes && aFondo) {
+    // 1. Lo que el arnés declara y no está en disco. Con esto en rojo, la
+    //    barra pinta botones que no responden.
+    const falta = rsc.queFaltaEnDisco(aFondo.salud);
+    if (falta && falta.length) {
+      piezas.push({
+        nombre: 'Lo que debería estar puesto',
+        estado: 'no',
+        detalle: `${falta.length} cosa(s) declaradas que no están: ${falta.slice(0, 3).map((f) => f.id).join(', ')}`, // diccionario: interno
+        arreglo: { como: 'solo', etiqueta: 'Traerlas ahora', accion: { tipo: 'arreglar' } },
+      });
+    }
+
+    // 2. Lo que `repair` encuentra. Se separa lo que sabe arreglar solo de lo
+    //    que hace falta decidir: `repair --yes` a ciegas aplicaría también los
+    //    `[ask]`, y uno de ellos mueve el arnés a otro asistente.
+    const roto = aFondo.reparaciones;
+    if (roto && roto.sabemos && !roto.sano) {
+      const soloFix = roto.solas.length && !roto.aDecidir.length;
+      piezas.push({
+        nombre: 'Cosas del arnés fuera de sitio',
+        estado: 'aMedias',
+        detalle: roto.aDecidir.length
+          ? `${roto.solas.length + roto.aDecidir.length} cosa(s), y ${roto.aDecidir.length} necesita(n) que alguien decida`
+          : `${roto.solas.length} cosa(s), y se arreglan solas`,
+        arreglo: soloFix
+          ? { como: 'solo', etiqueta: 'Arreglarlo ahora', accion: { tipo: 'arreglar' } }
+          : { como: 'persona', etiqueta: 'Ver qué pasa', accion: { tipo: 'algoVaMal' } },
+      });
+    }
+
+    // 3. Las copias que guarda el propio arnés antes de tocar nada. No son las
+    //    de git, y son la vuelta atrás de un montaje que salió mal: existían
+    //    desde siempre y no se veían por ningún lado.
+    const suyas = rsc.queCopiasDelArnes(aFondo.salud);
+    if (suyas) {
+      piezas.push({
+        nombre: 'Copias que guarda el arnés',
+        estado: suyas.hay && suyas.cuantas ? 'si' : 'noAplica',
+        detalle: suyas.hay && suyas.cuantas
+          ? `${suyas.cuantas}, la última antes del montaje de ahora`
+          : 'Todavía ninguna. Se guarda una antes de cada cambio del arnés',
+      });
+    }
+  }
+
   // ── Lo que el arnés aplazó y hoy ya encajaría ─────────────────────────
   //
   // Cuando se monta, RSC decide qué instala y qué aplaza mirando lo que hay en

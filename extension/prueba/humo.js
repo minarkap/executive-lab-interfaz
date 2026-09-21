@@ -1768,6 +1768,145 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${consejos.capacidades(RAIZ).length} capacidades`;
   });
 
+  await comprobar('lo que el arnés dice de sí mismo llega a la pantalla, no se tira', async () => {
+    // `reconocer({profundo:true})` lanza TRES procesos —doctor, repair y
+    // reassess— y la radiografía leía UNO. Los otros dos se calculaban y no los
+    // miraba nadie, así que esta pantalla podía decir «no falta nada» teniendo
+    // el arnés roto: la única fuente que lo sabía se estaba tirando.
+    const terreno = cargar('terreno');
+
+    const sano = await terreno.radiografia({
+      aFondo: {
+        salud: { missing: [], missingAgents: [], missingCommands: [], backups: { exists: true, count: 8, latest: '20260921-111921-onboard-claude' } },
+        reparaciones: { sabemos: true, sano: true, solas: [], aDecidir: [] },
+        recomendaciones: [],
+      },
+    });
+    const nombresSanos = sano.piezas.map((p) => p.nombre);
+    assert.ok(nombresSanos.includes('Copias que guarda el arnés'), 'las copias del arnés se ven');
+    assert.ok(!nombresSanos.includes('Cosas del arnés fuera de sitio'), 'y con el arnés sano no se inventa un problema');
+
+    const roto = await terreno.radiografia({
+      aFondo: {
+        salud: { missing: ['bro'], missingAgents: ['developer'], missingCommands: [], backups: { exists: false, count: 0 } },
+        reparaciones: { sabemos: true, sano: false, solas: ['[fix] dangling link'], aDecidir: [] },
+        recomendaciones: [],
+      },
+    });
+    const porNombre = Object.fromEntries(roto.piezas.map((p) => [p.nombre, p]));
+    assert.ok(porNombre['Lo que debería estar puesto'], 'lo declarado que no está en disco se dice');
+    assert.equal(porNombre['Lo que debería estar puesto'].estado, 'no');
+    assert.match(porNombre['Lo que debería estar puesto'].detalle, /2 cosa/);
+    assert.ok(porNombre['Cosas del arnés fuera de sitio'], 'y lo que repair encuentra, también');
+
+    // Lo que solo sabe arreglar `repair` se arregla de un clic; lo que necesita
+    // que alguien decida, NO — `repair --yes` a ciegas movería el arnés de
+    // asistente, que es de lo que avisa el plan.
+    assert.equal(porNombre['Cosas del arnés fuera de sitio'].arreglo.como, 'solo');
+    const aDecidir = await terreno.radiografia({
+      aFondo: {
+        salud: { missing: [], missingAgents: [], missingCommands: [], backups: { exists: true, count: 1 } },
+        reparaciones: { sabemos: true, sano: false, solas: [], aDecidir: ['[ask] wrong-target'] },
+        recomendaciones: [],
+      },
+    });
+    const suya = aDecidir.piezas.find((p) => p.nombre === 'Cosas del arnés fuera de sitio');
+    assert.equal(suya.arreglo.como, 'persona', 'lo que hay que decidir no se aplica de un clic');
+
+    // Y sin informe no se inventa nada: callar es correcto, mentir no.
+    const aCiegas = await terreno.radiografia();
+    assert.ok(!aCiegas.piezas.some((p) => p.nombre === 'Cosas del arnés fuera de sitio'));
+    return `${roto.piezas.length} piezas con el arnés roto`;
+  });
+
+  await comprobar('los guardianes se ven, y se leen del disco sin lanzar el arnés', () => {
+    // Son lo único del arnés que puede decir que NO, y no se nombraban en
+    // ningún sitio: quien recibía un bloqueo veía un «BLOCKED» en inglés y no
+    // tenía dónde mirar. Se leen del mismo fichero que mira cada guardián,
+    // así que lo que dice la barra es lo que va a pasar de verdad.
+    const reglas = cargar('reglas');
+    const fs2 = require('node:fs');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'guardianes-'));
+    fs2.mkdirSync(path.join(carpeta, '.rsc'), { recursive: true });
+    fs2.mkdirSync(path.join(carpeta, '02-DOCS', 'wiki', 'harness'), { recursive: true });
+    fs2.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'] }));
+    for (const g of ['danger-guard.mjs', 'gitmoji-guard.mjs', 'ship-guard.mjs']) {
+      fs2.writeFileSync(path.join(carpeta, '.rsc', g), '// guardián');
+    }
+    // Apagado a propósito, como está el de gitmoji en este mismo repositorio.
+    fs2.writeFileSync(path.join(carpeta, '.rsc', '.no-gitmoji'), '');
+
+    vscode.guion.raiz = carpeta;
+    try {
+      fs2.writeFileSync(path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'user-profile.md'),
+        '---\ntechnical_level: non-technical\naccompaniment: L3\n---\n\n# Perfil\n');
+      const paraUnAlumno = Object.fromEntries(reglas.losGuardianes().map((g) => [g.id, g]));
+      assert.equal(Object.keys(paraUnAlumno).length, 3, 'los tres que hay montados');
+      assert.equal(paraUnAlumno['danger-guard'].nombre, 'Freno ante órdenes peligrosas', 'con su nombre en español');
+      assert.equal(paraUnAlumno['danger-guard'].estado, 'armado', 'a un alumno sí le frena');
+      assert.equal(paraUnAlumno['gitmoji-guard'].estado, 'apagado', 'y el que se apagó, apagado');
+      assert.match(paraUnAlumno['gitmoji-guard'].porQue, /a propósito/, 'apagado no es lo mismo que roto');
+      assert.equal(paraUnAlumno['ship-guard'].estado, 'armado');
+
+      // Y el de órdenes peligrosas NO actúa con quien es técnico: lo decide el
+      // perfil, no nosotros (`danger-guard.mjs`, línea 36).
+      fs2.writeFileSync(path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'user-profile.md'),
+        '---\ntechnical_level: technical\naccompaniment: L1\n---\n\n# Perfil\n');
+      delete require.cache[require.resolve(path.join(RAIZ, 'src', 'trato.js'))];
+      const paraUnTecnico = Object.fromEntries(cargar('reglas').losGuardianes().map((g) => [g.id, g]));
+      assert.equal(paraUnTecnico['danger-guard'].estado, 'noAplica', 'a un técnico no le frena');
+      assert.match(paraUnTecnico['danger-guard'].porQue, /técnico/, 'y se dice por qué, que si no parece una avería');
+      assert.equal(paraUnTecnico['ship-guard'].estado, 'armado', 'los otros dos no dependen del perfil');
+
+      // Sin guardianes montados no se nombra ninguno: un rótulo con nada
+      // detrás es peor que no tenerlo.
+      fs2.rmSync(path.join(carpeta, '.rsc', 'danger-guard.mjs'));
+      fs2.rmSync(path.join(carpeta, '.rsc', 'gitmoji-guard.mjs'));
+      fs2.rmSync(path.join(carpeta, '.rsc', 'ship-guard.mjs'));
+      assert.deepEqual(cargar('reglas').losGuardianes(), [], 'sin ninguno montado, ninguno se nombra');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return 'tres guardianes, y el perfil decide si el primero actúa';
+  });
+
+  await comprobar('los tres guardianes de RSC tienen nombre, y su interruptor es el de verdad', () => {
+    // Si RSC añade un guardián, esto lo dice antes que la pantalla de nadie. Y
+    // el sufijo del interruptor NO es uniforme: el de gitmoji es `.no-gitmoji`,
+    // no `.no-gitmoji-guard`. Se comprueba contra el código del guardián, que
+    // es quien lo mira de verdad.
+    const reglas = cargar('reglas');
+    const nombres = cargar('nombres');
+    const targets = path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'targets');
+    if (!fs.existsSync(targets)) return 'SALTADA';
+
+    const suyos = fs.readdirSync(targets).filter((f) => /-guard\.mjs$/.test(f)).map((f) => f.replace(/\.mjs$/, ''));
+    assert.deepEqual(suyos.sort(), reglas.GUARDIANES.map((g) => g.id).sort(), 'los que hay en RSC son los que nombramos');
+
+    for (const g of reglas.GUARDIANES) {
+      assert.ok(nombres.comoSeLlama('guardianes', g.id).deFuera, `${g.id} sin nombre en español`);
+      const suyo = fs.readFileSync(path.join(targets, g.fichero), 'utf8');
+      assert.ok(suyo.includes(`'${g.interruptor}'`), `${g.id}: su interruptor real no es ${g.interruptor}`);
+    }
+    return `${suyos.length} guardianes, cada uno con su interruptor comprobado`;
+  });
+
+  await comprobar('el raíl de seguir delega en el mecanismo del arnés, no lo describe', () => {
+    // Decía «mira el checkpoint local del arnés» en prosa y, en la línea
+    // siguiente, que una vuelta inventada es peor que una corta — sin darle el
+    // mecanismo para no inventársela. RSC ya tiene el patrón: sus comandos
+    // delegan y no reproducen el método del otro.
+    const suyo = fs.readFileSync(path.join(RAIZ, '..', 'skills', 'comandos', 'seguir.md'), 'utf8');
+    assert.match(suyo, /\/resume-session/, 'nombra el comando del arnés que saca el dato');
+    assert.match(suyo, /memory resume/, 'y el mecanismo por si ese comando no está puesto');
+
+    // Y las dos copias no se separan: la de `skills/` es la fuente y la de
+    // `media/railes/` es la que viaja dentro del .vsix.
+    const viaja = fs.readFileSync(path.join(RAIZ, 'media', 'railes', 'comandos', 'seguir.md'), 'utf8');
+    assert.equal(viaja, suyo, 'la copia que viaja dentro es la misma');
+    return 'delega en /resume-session';
+  });
+
   await comprobar('cada habilidad instalada cae en un montón, y ninguna se esconde', () => {
     // Jose, 21-09-2026: «que haya un mapeo correcto entre RSC y la extensión».
     // Hasta hoy, 27 de las 32 habilidades que monta la 2.0 no salían por ningún
@@ -3165,6 +3304,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['comandos', { tipo: 'comandos', comandos: cargar('acciones').todos() }, /<h2>Comandos<\/h2>/],
       ['ayuda', { tipo: 'ayuda', github: { conectado: false } }, /Estoy atascado|por dónde seguir/],
       ['reglas', { tipo: 'reglas', ...cargar('reglas').queHay() }, /albarán firmado/],
+      ['reglas con guardianes', { tipo: 'reglas', ...cargar('reglas').queHay(), guardianes: [{ id: 'danger-guard', nombre: 'Freno ante órdenes peligrosas', queHace: 'Para una orden peligrosa.', estado: 'armado', porQue: '' }] }, /Lo que se comprueba solo/],
       ['asistente', { tipo: 'asistente', ...cargar('asistentes').comoEstamos(), aviso: null }, /Claude|Codex/],
       ['comoTrabaja', { tipo: 'comoTrabaja', ...cargar('ajustes').comoEstamos(), aviso: null }, /Cada cuánto guarda solo/],
       ['laCara', { tipo: 'laCara', ...cargar('tema').comoEstamos(), aviso: null }, /Dale material/],

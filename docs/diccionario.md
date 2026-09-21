@@ -43,6 +43,11 @@ jerga por goteo.
 | un agente (subagente con encargo fijo) | Un agente |
 | lo que el consejero y el asistente proponen | Sugerencias · Qué le vendría bien a esto |
 | `02-DOCS/wiki/sdd/constitution.md` | Innegociables |
+| los guardianes de RSC (`danger-guard`, `gitmoji-guard`, `ship-guard`) | Lo que se comprueba solo |
+| `danger-guard` | Freno ante órdenes peligrosas |
+| `gitmoji-guard` | Formato al guardar en git |
+| `ship-guard` | Aviso de trabajo a medias |
+| `.rsc/backups/` | Copias que guarda el arnés |
 | `CLAUDE.md` / `AGENTS.md`, sección Working rules | Cómo se trabaja aquí |
 | los dos juntos | Las reglas |
 | `targets` de `.rsc.json` (Claude o Codex) | Tu asistente |
