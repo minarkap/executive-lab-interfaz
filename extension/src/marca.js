@@ -180,6 +180,9 @@ function leer() {
   return {
     nombre: nombre || null,
     web: typeof campos.resource === 'string' ? campos.resource : null,
+    // Un primer intento sacado de la web por la propia barra (`web.js`), que
+    // el asistente todavía no ha mirado. Se dice, para no venderlo como final.
+    provisional: String(campos.provisional || '').trim().toLowerCase() === 'si',
     logo,
     // Solo tiene sentido preguntárselo si hay logotipo y hay nombre que poner.
     logoSinNombre: Boolean(logo && nombre && !llevaElNombre(campos, logo)),
@@ -291,11 +294,15 @@ function tipografiaDe(marca) {
 // cuando no acertaba **no fallaba nada**: el récord quedaba escrito, el panel no
 // encontraba los campos que sabe leer y la barra se quedaba con los colores de
 // Executive Lab. Nadie se enteraba de que había pasado algo.
-function queLePedimos(web) {
+// `yaHayPrimerIntento`: la barra ya sacó una cara provisional de la web
+// (`web.js`), así que no se le pide hacerla desde cero sino revisarla.
+function queLePedimos(web, yaHayPrimerIntento = false) {
   return [
-    web
-      ? `Mira ${web} y ponle a esto la cara de mi empresa.`
-      : 'Ponle a esto la cara de mi empresa, con el material que te he dejado.',
+    yaHayPrimerIntento && web
+      ? `Ya he sacado un primer intento de la cara de mi empresa desde ${web} y lo he dejado en \`${CARPETA.join('/')}/${FICHERO}\` marcado como provisional. Mira la web con calma y corrige lo que no sea de verdad —colores, logotipo, nombre—; al reescribirlo, quita la línea \`provisional\`.`
+      : web
+        ? `Mira ${web} y ponle a esto la cara de mi empresa.`
+        : 'Ponle a esto la cara de mi empresa, con el material que te he dejado.',
     '',
     `Déjalo en \`${CARPETA.join('/')}/${FICHERO}\`, con estos campos en la cabecera y escritos así:`,
     '',

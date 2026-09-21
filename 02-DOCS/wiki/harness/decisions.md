@@ -241,3 +241,18 @@ Decisión 102 en `docs/decisiones.md`.
   Sugerencias.
 
 0.23.0. 181 comprobaciones.
+
+## La cara sale de la web al montar — 21 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-21-la-cara-sale-de-la-web-al-montar.md`.
+Decisión 103 en `docs/decisiones.md`.
+
+- **La barra saca un primer intento de la cara de la empresa desde su web**, al momento, en
+  `web.js`: nombre, acento, fondo, texto y logotipo, con `provisional: si` en `marca.md`. El
+  asistente lo afina después. Sin red o sin color de marca no se escribe nada; una cara puesta a
+  mano no se pisa.
+- **El botón «Algo va mal» que faltaba en la captura** está en el código desde el 19-09: la barra
+  instalada era anterior. Queda una prueba en esa pantalla exacta, y su botón de radiografía deja
+  de ser un cuarto nombre.
+
+0.24.0. 183 comprobaciones.

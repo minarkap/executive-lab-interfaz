@@ -846,12 +846,14 @@ function pantallaProyectos({ montones = [] }) {
 // material: la web, el logotipo, su manual de marca, una captura de su página,
 // o nada de eso y contárselo con palabras.
 function pantallaLaCara({
-  puesta, descartada, nombre, web, hayLogo, material = [], aviso: avisoLocal,
+  puesta, descartada, nombre, web, hayLogo, provisional = false, material = [], aviso: avisoLocal,
 }) {
+  // Si la cara la sacó la barra sola de la web, se dice: es un primer intento
+  // que el asistente todavía no ha mirado, y venderlo como final sería mentir.
   const estadoAhora = descartada
     ? `<div class="aviso malo"><p>No he podido usar lo que hay: ${texto(descartada)}.</p></div>`
     : (puesta
-      ? `<p class="hiciste">Ahora mismo lleva la cara de ${texto(nombre || 'tu empresa')}${hayLogo ? ', con su logotipo' : ''}.</p>`
+      ? `<p class="hiciste">Ahora mismo lleva la cara de ${texto(nombre || 'tu empresa')}${hayLogo ? ', con su logotipo' : ''}${provisional ? ', sacada de su web de forma automática; el asistente la afina' : ''}.</p>`
       : '<p class="hiciste">Ahora mismo lleva la de Executive Lab.</p>');
 
   return `
@@ -1496,7 +1498,7 @@ function pantallaSinArnes() {
     ${/* La lista de piezas solo se alcanzaba desde pantallas que exigen tener
           el arnés montado — o sea, nunca cuando hace falta. Aquí es donde
           alguien se pregunta qué pasa. */''}
-    ${boton({ etiqueta: 'Ver qué hay aquí', icono: '🔎', pequeno: true, discreto: true, accion: { tipo: 'verRadiografia' } })}
+    ${boton({ etiqueta: 'Qué falta por montar', icono: '🔎', pequeno: true, discreto: true, accion: { tipo: 'verRadiografia' } })}
     ${boton({ etiqueta: 'Elegir otra carpeta', icono: '📂', discreto: true, accion: { tipo: 'elegirCarpeta' } })}
   `;
 }

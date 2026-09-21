@@ -123,6 +123,7 @@ jerga por goteo.
 | `rsc add <skill>` desde la barra | Añadir · Añadirla |
 | crear un `.claude/commands/` nuevo por repetición | Que se quede como botón |
 | la web de la empresa del alumno | Tu web |
+| la cara que la barra saca sola de la web al montar (`marca.md` con `provisional: si`) | Ya lleva la cara de <empresa> · «sacada de su web de forma automática; el asistente la afina» |
 | escribir el récord de marca | El tema de mi empresa |
 | el material que se le da para la marca | Dale material · Subirle el logotipo o lo que tengas |
 | borrar el récord de marca | Volver a la cara de siempre |

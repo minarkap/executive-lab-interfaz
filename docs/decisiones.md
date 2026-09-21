@@ -2834,3 +2834,51 @@ en el diccionario como «no se nombran», que es distinto de olvidarlos.
 
 Con esto, cada cosa que RSC 2.0.5 puede montar o escribir tiene un nombre en español y un sitio en la
 barra, y una prueba lo vigila.
+
+## 103. La cara de la empresa la saca la barra de la web, al montar; el asistente la afina
+
+**Fecha:** 21 de septiembre de 2026 · **Estado:** decidido
+
+Jose, con una captura: *«cuando dices la web […] en el init […] no te adapta la interfaz a los
+colores y el logo de la empresa. Y eso debería ejecutarse en el init porque ya tienes la web»*.
+
+### Qué pasaba
+
+La web que el alumno da al montar solo viajaba dentro del primer mensaje al asistente, junto al
+contrato de campos de `marca.queLePedimos`. Para que la barra cambiara de cara tenían que pasar
+cuatro cosas seguidas: que el alumno le diera a enviar, que el asistente mirara la web, que
+escribiera `02-DOCS/wiki/brand/marca.md` con los campos bien, y que el vigía repintara. Cualquiera
+que fallara dejaba la cara de Executive Lab sin decir por qué. Y el dato estaba en la mano de la
+barra desde el principio.
+
+### Qué se hace
+
+`web.js` saca un **primer intento** de forma determinista y al momento: descarga la portada (con
+tope de tamaño y tiempo, siguiendo redirecciones), lee lo que la web declara de sí misma —el
+nombre por `og:site_name` o el `<title>` sin coletilla; el acento por `theme-color` si es un color
+de verdad y, si no, por una variable CSS de marca en la portada o en su primera hoja de estilos, o
+por el color saturado más repetido; el fondo y el texto del `body` o de sus variables; el icono
+grande (`apple-touch-icon`, luego `icon` en svg/png; los `.ico` no sirven)— y escribe `marca.md`
+marcado con `provisional: si`, con el logotipo al lado. Se llama al terminar de montar y al pulsar
+«Decirle cuál es tu web».
+
+Después se le pide al asistente que **revise** ese intento, no que lo haga desde cero; al reescribir
+el fichero quita `provisional`. La pantalla del tema dice mientras tanto «sacada de su web de forma
+automática; el asistente la afina», porque venderlo como final sería mentir.
+
+### Tres cosas que no hace
+
+- **No pisa una cara puesta a mano.** Solo reescribe un `marca.md` que él mismo dejó provisional.
+- **No inventa.** Sin red, con la web caída o sin ningún color de marca declarado, no escribe nada y
+  lo apunta en el registro interno: la cara de siempre y el encargo de siempre al asistente.
+- **No toma un gris por acento.** Blanco, negro y grises son el fondo de todo, no una marca; un
+  `theme-color: #ffffff` —que es lo que ponen muchas webs— se descarta.
+
+### Lo del botón que faltaba
+
+La misma captura mostraba «Pulsa "Algo va mal"» sin el botón. Ese botón está en el código desde el
+19 de septiembre (`99dfa57`); la captura viene de una barra instalada anterior —también le falta el
+botón de la radiografía, del 20—. No se reescribe: se publica. Queda una prueba que pinta esa
+pantalla exacta —sin arnés, carpeta empezada, aviso malo— y exige el botón. Y de paso ese botón
+decía «Ver qué hay aquí»: el cuarto nombre de la radiografía, contra la decisión 101. Ahora dice
+«Qué falta por montar».

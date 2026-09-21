@@ -133,6 +133,8 @@ function comoEstamos() {
     nombre: suya ? suya.nombre : null,
     web: suya ? suya.web : null,
     hayLogo: Boolean(suya && suya.logo),
+    // Sacada de la web por la barra y sin revisar todavía (`web.js`).
+    provisional: Boolean(suya && suya.provisional),
     material: material(),
   };
 }

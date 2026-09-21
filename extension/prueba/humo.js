@@ -48,7 +48,7 @@ async function main() {
 
   // ---------------------------------------------------- los módulos cargan
   const modulos = ['entorno', 'proyecto', 'frontmatter', 'procesos', 'rsc', 'guardar',
-    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'rastro', 'nombres', 'rumbo', 'encargos', 'extension'];
+    'conexiones', 'acciones', 'cerebro', 'brujula', 'puente', 'soporte', 'disfraz', 'arrancar', 'git', 'terreno', 'github', 'saberes', 'salidas', 'papeles', 'reglas', 'asistentes', 'ajustes', 'tema', 'fijadas', 'proyectos', 'lecciones', 'agentes', 'rastro', 'nombres', 'rumbo', 'encargos', 'web', 'extension'];
   await comprobar('todos los módulos cargan', () => {
     modulos.forEach(cargar);
     return `${modulos.length} módulos`;
@@ -3386,6 +3386,93 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.match(idea.texto, /2 ideas de automatización/);
     assert.ok(!consejos.consejos({ huecosDeAutomatizacion: 0 }).some((c) => c.id === 'huecos-de-automatizacion'), 'y sin ellas, nada');
     return 'nueve automatismos con nombre, cuatro apagados dichos en español';
+  });
+
+  await comprobar('la cara sale de la web al momento, y no pisa la puesta a mano', async () => {
+    // Jose, 21-09-2026: «cuando dices la web en el init no te adapta la
+    // interfaz […] debería ejecutarse en el init porque ya tienes la web». La
+    // barra saca un primer intento ella misma; el asistente lo afina después.
+    const web = cargar('web');
+    const html = `<!doctype html><html><head>
+      <title>Inicio | Ferretería Soler</title>
+      <meta property="og:site_name" content="Ferretería Soler">
+      <meta name="theme-color" content="#ffffff">
+      <link rel="stylesheet" href="/css/main.css">
+      <link rel="icon" href="/favicon.ico">
+      <link rel="apple-touch-icon" sizes="180x180" href="/icons/logo-180.png">
+      <style>:root{--color-primary:#d84315;--background:#fff} body{color:#222}</style>
+      </head><body></body></html>`;
+    const leido = web.extraer(html, 'https://ferreteriasoler.es/');
+    assert.equal(leido.nombre, 'Ferretería Soler', 'og:site_name manda');
+    assert.equal(leido.acento, '#d84315', 'el theme-color blanco no vale; manda la variable de marca');
+    assert.equal(leido.fondo, '#ffffff', '#fff se expande');
+    assert.equal(leido.texto, '#222222');
+    assert.equal(leido.logo && leido.logo.url, 'https://ferreteriasoler.es/icons/logo-180.png', 'el icono grande, no el .ico');
+    assert.deepEqual(leido.hojas, ['https://ferreteriasoler.es/css/main.css']);
+    assert.equal(web.nombreDelTitulo('Inicio | Ferretería Soler'), 'Ferretería Soler', 'la coletilla de menú se cae');
+    assert.equal(web.normalizar('rgb(216, 67, 21)'), '#d84315');
+    assert.ok(web.esGris('#777777') && web.esGris('#000') && !web.esGris('#d84315'));
+
+    // Escribirla en una carpeta de mentira, con una red de mentira.
+    const fs2 = require('node:fs');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'cara-'));
+    fs2.mkdirSync(path.join(carpeta, '02-DOCS', 'wiki'), { recursive: true });
+    const png = Buffer.from('89504e470d0a1a0a', 'hex');
+    const bajar = async (url) => {
+      if (url.endsWith('.png')) return { cuerpo: png, tipo: 'image/png', url };
+      if (url.endsWith('.css')) return { cuerpo: Buffer.from(''), tipo: 'text/css', url };
+      return { cuerpo: Buffer.from(html), tipo: 'text/html; charset=utf-8', url };
+    };
+    const registro = path.join(carpeta, '02-DOCS', 'wiki', 'brand', 'marca.md');
+    vscode.guion.raiz = carpeta;
+    try {
+      const cara = await web.sacarLaCara('https://ferreteriasoler.es', { bajar });
+      assert.ok(cara.ok, cara.motivo);
+      assert.equal(cara.nombre, 'Ferretería Soler');
+      const suya = cargar('marca').leer();
+      assert.ok(suya && suya.tokens, 'marca.leer la entiende y saca paleta');
+      assert.equal(suya.nombre, 'Ferretería Soler');
+      assert.equal(suya.web, 'https://ferreteriasoler.es');
+      assert.ok(suya.provisional, 'y sabe que es un primer intento');
+      assert.ok(fs2.existsSync(path.join(carpeta, '02-DOCS', 'wiki', 'brand', 'logo.png')), 'el logotipo se guarda al lado');
+
+      // Un segundo intento reescribe el provisional; una cara a mano, no.
+      assert.ok((await web.sacarLaCara('https://ferreteriasoler.es', { bajar })).ok, 'lo provisional se puede rehacer');
+      fs2.writeFileSync(registro, fs2.readFileSync(registro, 'utf8').replace('provisional: si\n', ''));
+      const otra = await web.sacarLaCara('https://ferreteriasoler.es', { bajar });
+      assert.ok(!otra.ok && /a mano/.test(otra.motivo), 'la puesta a mano no se pisa');
+
+      // Sin red no pasa nada, y una web sin color de marca tampoco escribe.
+      fs2.rmSync(path.join(carpeta, '02-DOCS', 'wiki', 'brand'), { recursive: true });
+      const sinRed = await web.sacarLaCara('https://ferreteriasoler.es', { bajar: async () => { throw new Error('sin red'); } });
+      assert.ok(!sinRed.ok && /sin red/.test(sinRed.motivo));
+      const gris = '<html><head><meta name="theme-color" content="#777"><title>Gris</title></head><body></body></html>';
+      const sinColor = await web.sacarLaCara('https://gris.es', { bajar: async (url) => ({ cuerpo: Buffer.from(gris), tipo: 'text/html', url }) });
+      assert.ok(!sinColor.ok, 'un gris no es un color de marca');
+      assert.ok(!fs2.existsSync(registro), 'y no se escribió nada');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return 'colores, nombre y logotipo de la portada; sin pisar lo puesto a mano';
+  });
+
+  await comprobar('el socorro sale también en la pantalla sin arnés', () => {
+    // La captura de Jose: «No he podido montar el arnés. Pulsa "Algo va mal"»
+    // y sin el botón. Venía de una barra anterior al 19-09 (99dfa57); esto lo
+    // deja vigilado en la pantalla exacta donde pasó. Y esa pantalla llama a la
+    // radiografía por su único nombre, no por un cuarto.
+    const p = require('./panel-falso').montarPanel();
+    p.mandar({
+      tipo: 'estado',
+      estado: { sinArnes: true, donde: 'Aquí ya hay trabajo tuyo', aviso: 'Puedo añadir el asistente', yaEmpezada: { cuantos: 13, claves: 12 } },
+      acciones: [], modo: 'sencillo', marcaPuesta: true, comoSeLlama: 'tu trabajo', pulso: [],
+    });
+    const pintado = p.mandar({ tipo: 'aviso', texto: 'No he podido montar el arnés. Pulsa "Algo va mal" y pásale el código a tu tutor.', malo: true });
+    assert.match(pintado, /aviso malo/, 'el aviso se pinta como malo');
+    assert.ok((pintado.match(/Algo va mal/g) || []).length >= 2, 'y trae el botón que nombra, no solo el texto');
+    assert.ok(!/Ver qué hay aquí/.test(pintado), 'la radiografía ya no tiene un cuarto nombre');
+    assert.match(pintado, /Qué falta por montar/);
+    return 'botón donde se le nombra';
   });
 
   await comprobar('ningún botón manda un texto vacío', () => {

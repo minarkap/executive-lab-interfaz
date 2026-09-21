@@ -48,6 +48,7 @@ const asistentes = require('./asistentes');
 const trato = require('./trato');
 const lecciones = require('./lecciones');
 const marca = require('./marca');
+const web = require('./web');
 const rastro = require('./rastro');
 
 // Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
@@ -1162,9 +1163,12 @@ ${cabecera}
       if (ahora === 'Sí, ahora') await this.verCopiaFuera();
     }
 
-    // Lo mismo que pide el botón de la cara, para que el récord salga legible
-    // también cuando la web se da al montar la carpeta.
-    const conWeb = hecho.web ? `\n\n${marca.queLePedimos(hecho.web)}\n\n` : '';
+    // La cara, al momento y por la barra: ya tenemos la web, así que no hay
+    // que esperar a que el asistente la mire —ni a que el alumno le dé a
+    // enviar—. Lo que salga es un primer intento; al asistente se le pide que
+    // lo afine, no que lo haga desde cero (decisión 103).
+    const cara = hecho.web ? await this.sacarLaCara(hecho.web) : null;
+    const conWeb = hecho.web ? `\n\n${marca.queLePedimos(hecho.web, Boolean(cara && cara.ok))}\n\n` : '';
     const deQuien = hecho.nombres.empresa ? ` Es para ${hecho.nombres.empresa}.` : '';
     const comoSeLlama = hecho.nombres.arnes || identidad.deQuien();
     await puente.enviar(`Acabo de montar aquí un arnés que he llamado "${comoSeLlama}".${deQuien} Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb}Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
@@ -1199,8 +1203,26 @@ ${cabecera}
     const limpio = (escrito || '').trim();
     if (!limpio) return;
 
-    const web = /^https?:\/\//i.test(limpio) ? limpio : `https://${limpio}`;
-    await this.pedir(marca.queLePedimos(web));
+    const direccion = /^https?:\/\//i.test(limpio) ? limpio : `https://${limpio}`;
+    const cara = await this.sacarLaCara(direccion);
+    await this.pedir(marca.queLePedimos(direccion, cara.ok));
+  }
+
+  // La barra mira la web y deja un primer intento de cara; si lo consigue, se
+  // ve al momento. Si no —sin red, web caída, una web sin color de marca— no
+  // pasa nada: no se escribe nada y el asistente lo hará con calma.
+  async sacarLaCara(direccion) {
+    this.enviar({ tipo: 'esperando', que: 'Mirando tu web…' });
+    const cara = await web.sacarLaCara(direccion);
+    if (!cara.ok) this.salida.appendLine(`[cara] ${direccion}: ${cara.motivo}`); // diccionario: interno
+    await this.refrescar(true);
+    if (cara.ok) {
+      this.enviar({
+        tipo: 'aviso',
+        texto: `Ya lleva la cara de ${cara.nombre}${cara.logo ? ', con su logotipo' : ''}. Le he pedido al asistente que la afine.`,
+      });
+    }
+    return cara;
   }
 
   // Elegir sobre qué carpeta se trabaja. Hace falta al arrancar —quien abre
