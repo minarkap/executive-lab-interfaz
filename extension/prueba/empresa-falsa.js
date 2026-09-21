@@ -41,6 +41,9 @@ function montar(raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-falsa-')))
     targets: ['claude'],
     skills: [],
     ownSkills: ['executive-lab'],
+    // Algo apagado a propósito, como el guardián de gitmoji en este mismo
+    // repositorio: la radiografía tiene que decirlo (decisión 101).
+    optOuts: ['gitmoji'],
     onboarding: {
       schemaVersion: 1,
       acceptedPlanId: 'f'.repeat(64),

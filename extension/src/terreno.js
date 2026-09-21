@@ -507,7 +507,7 @@ async function radiografia({ aFondo = null } = {}) {
       nombre: 'Conocimiento',
       estado: !conArnes ? 'noAplica' : (temas ? 'si' : 'no'),
       detalle: !conArnes ? 'Cuando esté montado' : (temas ? `${temas} tema(s)` : 'Todavía no ha aprendido nada'),
-    }, { como: 'solo', etiqueta: 'Darle documentos', accion: { tipo: 'verPapeles' } }),
+    }, { como: 'solo', etiqueta: 'Darle documentos (inbox)', accion: { tipo: 'verPapeles' } }),
     // Los botones solo son una pieza que falta si ese asistente llega a
     // tenerlos. Con Codex no los hay nunca —RSC no le escribe comandos— así que
     // una cruz permanente ahí no es información: es un reproche por algo que no
@@ -577,6 +577,23 @@ async function radiografia({ aFondo = null } = {}) {
       detalle: alDia ? (suya || 'la que trae la barra') : `${suya}, y la barra ya trae la ${nuestra}`,
       ...(alDia ? {} : { arreglo: { como: 'solo', etiqueta: 'Ponerlo al día', accion: { tipo: 'arrancar' } } }),
     });
+  }
+
+  // ── Lo que aquí se decidió no usar ────────────────────────────────────
+  //
+  // `optOuts` de `.rsc.json`: lo que quien montó esto apagó a propósito. No
+  // salía en ningún sitio, y es justo lo que explica que un guardián figure
+  // como apagado en Las reglas: la barra lo deducía de su interruptor sin
+  // decir de dónde venía la decisión. No es un fallo, así que no pide arreglo.
+  if (conArnes) {
+    const apagado = (proyecto.declaracion() || {}).optOuts;
+    if (Array.isArray(apagado) && apagado.length) {
+      piezas.push({
+        nombre: 'Lo que tiene apagado',
+        estado: 'noAplica',
+        detalle: `${apagado.length} cosa(s) del arnés que aquí se decidió no usar: ${apagado.join(', ')}`, // diccionario: interno
+      });
+    }
   }
 
   // ── Lo que el arnés dice de sí mismo, y que se pedía para tirarlo ─────

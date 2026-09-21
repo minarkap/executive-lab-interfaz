@@ -20,7 +20,7 @@ jerga por goteo.
 | `rsc doctor` / `rsc repair` | Revisar y arreglar |
 | el consejero y el «¿y ahora qué?» | Estoy atascado · Dime por dónde seguir |
 | pedirle ideas | Pensemos ideas juntos |
-| la radiografía de la carpeta | Qué falta por montar |
+| la radiografía de la carpeta (botón, título y miga: los tres iguales; nunca «Qué hay aquí») | Qué falta por montar |
 | los datos de hoy, en una línea | 2 copias hoy · cambios sin guardar · 1 documento sin leer |
 | la tipografía de la marca | La de siempre · La de tu ordenador · Clásica · Fácil de leer |
 | `rsc add <skill>` | Añadir (una habilidad del catálogo) |
@@ -34,16 +34,19 @@ jerga por goteo.
 | error / excepción / stack trace | Algo va mal |
 | log / diagnóstico | Informe para tu tutor |
 | una carpeta de `01-TOOLS/` | Una conexión |
-| el catálogo de habilidades de RSC | Habilidades (skills) · Del catálogo |
+| el catálogo de habilidades de RSC | Habilidades (skills) · Sugerencias del catálogo (las que pegan con esta carpeta) · Resto del catálogo (plegado) |
 | una habilidad, por su nombre | El nombre de la cosa: Facturación, Contratos, Tono humano. Nunca una frase sobre lo que sabe hacer |
-| una habilidad instalada / `rsc list` | Instaladas |
-| las que el arnés monta para funcionar (`orient`, `suggest`, la cadena SDD…) | Las del arnés |
-| `ownSkills` de `.rsc.json` | Las tuyas |
+| una habilidad instalada / `rsc list` | Instaladas (las propias, las del catálogo y las de fuera, juntas; el origen va en la (i)) |
+| las que el arnés monta para funcionar (`orient`, `suggest`, la cadena SDD…) | Las del arnés (plegadas, al final) |
+| `ownSkills` de `.rsc.json` | Tuya: escrita para esta carpeta (en la (i), dentro de Instaladas) |
+| una del catálogo que está puesta | Del catálogo (en la (i), dentro de Instaladas) |
 | `.claude/agents/` (y su equivalente en cada asistente) | Agentes |
 | un agente (subagente con encargo fijo) | Un agente |
 | lo que el consejero y el asistente proponen | Sugerencias · Qué le vendría bien a esto |
+| pedirle que mire si hace falta un agente (cuando no hay ninguno) | Ver si te vendría bien un agente |
 | `02-DOCS/wiki/sdd/constitution.md` | Innegociables |
-| los guardianes de RSC (`danger-guard`, `gitmoji-guard`, `ship-guard`) | Lo que se comprueba solo |
+| los guardianes de RSC (`danger-guard`, `gitmoji-guard`, `ship-guard`) | Lo que se comprueba solo (plegado, al final de Las reglas) |
+| `optOuts` de `.rsc.json` (lo que aquí se decidió no usar) | Lo que tiene apagado (en Qué falta por montar) |
 | `danger-guard` | Freno ante órdenes peligrosas |
 | `gitmoji-guard` | Formato al guardar en git |
 | `ship-guard` | Aviso de trabajo a medias |
@@ -66,14 +69,14 @@ jerga por goteo.
 | un artículo de la wiki | Un concepto |
 | `02-DOCS/wiki/log.md` | Lo último que ha anotado (dentro de El diario) |
 | `02-DOCS/wiki/gaps.md` | Preguntas sin contestar |
-| `02-DOCS/inbox/` | Darle documentos · Sin leer todavía |
+| `02-DOCS/inbox/` | Darle documentos (inbox) · Sin leer todavía |
 | `02-DOCS/raw/` | Originales guardados |
-| `01-TOOLS/<lo que sea>/out/` | Resultados |
+| `01-TOOLS/<lo que sea>/out/` | Resultados (out) |
 | sacar uno de ahí | Llevarte un archivo |
 | los tres montones juntos (inbox, procesados, raw) | Documentos entregados |
 | un documento tirado en la carpeta, sin colocar | Sin colocar todavía |
 | `.claude/commands/` entero | Comandos |
-| una habilidad instalada fuera del catálogo curado | (se nombra con lo que diga su propia cabecera, y solo si está en español) |
+| una habilidad instalada fuera del catálogo curado | Instalada aquí, fuera del catálogo (en la (i), dentro de Instaladas); se nombra con lo que diga su propia cabecera, y solo si está en español |
 | `bro` | Escribirlo como lo diría una persona |
 | `eli5` | Explicártelo desde cero |
 | `show-me` | Enseñártelo con un dibujo |
@@ -81,6 +84,7 @@ jerga por goteo.
 | `resume-session` | Seguir donde lo dejé |
 | `save-session` | Guardar dónde vamos |
 | `learn` | Que aprenda algo de ti |
+| la memoria de RSC: las lecciones aprobadas una a una con `learn` | Lo que ha aprendido de ti (dentro de Cómo te habla) |
 | `checkpoint` | Congelar esto para revisarlo |
 | escribir una habilidad nueva a medida | Proponme habilidades para lo mío · Quiero enseñarle algo concreto |
 | `02-DOCS/inbox/_processed/` | Documentos que ya ha leído |
@@ -93,6 +97,7 @@ jerga por goteo.
 | buscar entre los ficheros | Buscar un documento |
 | buscar en la wiki, los comandos y `01-TOOLS/` | Buscar un concepto |
 | los resultados, por dónde salen | Cosas que sabe · Cosas que puedes hacer · Conexiones |
+| cuántas cosas ha encontrado la búsqueda | 3 coincidencias (nunca «resultados»: Resultados (out) es otra pantalla) |
 | un `.md` de la wiki que no está en `index.md` | Sin ordenar todavía |
 | pedirle que actualice `index.md` | Que los ordene |
 | el rastro de navegación (migas) | Conocimiento › Tema › Título |

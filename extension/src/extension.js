@@ -46,6 +46,7 @@ const proyectos = require('./proyectos');
 const agentes = require('./agentes');
 const asistentes = require('./asistentes');
 const trato = require('./trato');
+const lecciones = require('./lecciones');
 const marca = require('./marca');
 const rastro = require('./rastro');
 
@@ -869,6 +870,11 @@ ${cabecera}
   // barra: cambia cómo habla el asistente en la conversación.
   // El aviso viaja dentro del mensaje, no aparte: un `aviso` suelto repinta la
   // pantalla principal, y elegir una opción aquí te echaría de la pantalla.
+  //
+  // Y con lo que ha aprendido de ti: las lecciones de la memoria de RSC, que
+  // son de la misma clase —cómo trabajar contigo— y no se enseñaban en ningún
+  // sitio. El botón de aprender manda lo que se escribiría a mano: con Claude,
+  // el comando `learn` tal cual; con los demás, la petición con palabras.
   async verTrato(avisoLocal = null) {
     this.donde = { tipo: 'quieto' };
     const como = trato.comoEstamos();
@@ -879,6 +885,10 @@ ${cabecera}
       trato: como.trato,
       palabras: como.palabras,
       elegido: como.elegido,
+      aprendido: lecciones.queHaAprendido(10),
+      comoAprende: donde.paraQuien() === 'claude'
+        ? '/learn'
+        : 'Quiero que aprendas algo de cómo trabajo contigo. Pregúntame qué es y guárdalo como una lección tuya, con tu comando de aprender.',
       aviso: avisoLocal,
     });
   }

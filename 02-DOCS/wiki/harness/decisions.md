@@ -200,3 +200,23 @@ de un minuto, un fallo nunca se recuerda, y `brujula.olvidar()` lo tira al cambi
 
 Regla: **un recuerdo por ritmo de cambio, no uno por pantalla.**
 
+
+## Los apartados se ordenan por lo que pesa, y el mapeo se cierra — 21 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-21-los-apartados-se-ordenan-y-el-mapeo-se-cierra.md`.
+Decisión 101 en `docs/decisiones.md`.
+
+- **Habilidades en cuatro bloques, por peso**: Instaladas (propias, del catálogo y de fuera, juntas;
+  el origen va en la (i)) · Sugerencias del catálogo · Resto del catálogo (plegado) · Las del arnés
+  (plegado, al final). Los datos de `saberes.js` no cambian; la pantalla junta los montones. Los
+  comandos del arnés, plegados igual. Esconderlos, no: decisión 98.
+- **Los guardianes bajan al final de «Las reglas», plegados, y no se quitan**: el `BLOCKED` sale en
+  la conversación y la barra no puede interceptarlo; este es el único sitio donde pone qué es.
+- **Sugerencias abre la puerta a un agente** cuando no hay ninguno. Decidir aquí si «la carpeta
+  merece uno», no: no se lee del disco.
+- **`(inbox)` y `(out)`**, que existen en disco; `outbox` no. Y «coincidencias» en la búsqueda, porque
+  «Resultados» ya era otra pantalla. La radiografía se queda con un nombre.
+- **Los dos huecos del mapeo cerrados**: las lecciones de RSC en «Cómo te habla», y `optOuts` en la
+  radiografía.
+
+0.22.0. 179 comprobaciones: una nueva que fija el orden de los bloques, y dos ampliadas.

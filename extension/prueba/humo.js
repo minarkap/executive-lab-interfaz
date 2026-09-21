@@ -1835,6 +1835,15 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.ok(nombresSanos.includes('Copias que guarda el arnés'), 'las copias del arnés se ven');
     assert.ok(!nombresSanos.includes('Cosas del arnés fuera de sitio'), 'y con el arnés sano no se inventa un problema');
 
+    // Y lo que aquí se decidió no usar (`optOuts` de `.rsc.json`) se dice: es
+    // lo que explica que un guardián figure como apagado en Las reglas. No es
+    // un fallo, así que no pide arreglo (decisión 101).
+    const apagado = sano.piezas.find((p) => p.nombre === 'Lo que tiene apagado');
+    assert.ok(apagado, 'lo apagado a propósito se ve en la radiografía');
+    assert.equal(apagado.estado, 'noAplica', 'sin marcarlo como un fallo');
+    assert.match(apagado.detalle, /gitmoji/, 'y nombrando qué es');
+    assert.ok(!apagado.arreglo, 'ni ofrecer arreglar una decisión');
+
     const roto = await terreno.radiografia({
       aFondo: {
         salud: { missing: ['bro'], missingAgents: ['developer'], missingCommands: [], backups: { exists: false, count: 0 } },
@@ -3204,6 +3213,73 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'dentro de Acciones, y solo si hay';
   });
 
+  await comprobar('los apartados de habilidades, comandos y reglas van en el orden acordado', () => {
+    // Jose, 21-09-2026 (decisión 101): lo instalado junto bajo un titular, con
+    // el origen en la (i); las sugerencias del catálogo; y al final, plegado,
+    // lo que pesa poco. Los guardianes bajan al final de Las reglas, plegados;
+    // Sugerencias abre la puerta a un agente cuando no hay ninguno; y la
+    // radiografía tiene un solo nombre. Los datos son de mentira y con todos
+    // los montones llenos, para que cada bloque tenga que salir.
+    const p = require('./panel-falso').montarPanel();
+    const puesta = (id, nombre) => ({ id, nombre, frase: 'Sirve para algo.', prompt: `/${id}` });
+    const delCatalogo = (id, nombre) => ({ id, nombre, frase: 'Sirve para algo.', porQue: [] });
+
+    const habilidades = p.mandar({
+      tipo: 'saberes',
+      suyas: [puesta('mi-proceso', 'Mi proceso')],
+      sabe: [puesta('invoicing', 'Facturación')],
+      otras: [puesta('react', 'React')],
+      deSerie: [puesta('orient', 'Brújula')],
+      puedeAprender: [delCatalogo('a', 'Aaa'), delCatalogo('b', 'Bbb')],
+      encajan: 1,
+      lasDemas: [delCatalogo('c', 'Ccc')],
+      deQueVa: 'software',
+      instaladas: 4,
+    });
+    const bloques = ['<h2>Instaladas</h2>', '<h2>Sugerencias del catálogo</h2>', '<summary>Resto del catálogo', '<summary>Las del arnés'];
+    const posiciones = bloques.map((b) => habilidades.indexOf(b));
+    assert.ok(posiciones.every((i) => i >= 0), `falta un bloque: ${bloques.filter((b, i) => posiciones[i] < 0).join(', ')}`);
+    assert.deepEqual(posiciones, [...posiciones].sort((a, b) => a - b), 'y en ese orden');
+    assert.ok(!/Propias de esta carpeta|Instaladas fuera del catálogo|Para otra clase de carpeta|Ver las demás|<h2>Del catálogo<\/h2>/.test(habilidades), 'sin los titulares viejos');
+    const instaladas = habilidades.split('<h2>Instaladas</h2>')[1].split('<h2>Sugerencias del catálogo</h2>')[0];
+    for (const nombre of ['Mi proceso', 'Facturación', 'React']) assert.ok(instaladas.includes(nombre), `${nombre} está bajo Instaladas`);
+    assert.match(instaladas, /Tuya: escrita para esta carpeta/, 'el origen va en la (i)');
+    assert.match(instaladas, /Del catálogo\./);
+    assert.match(instaladas, /Instalada aquí, fuera del catálogo/);
+    assert.ok(!instaladas.includes('Brújula'), 'y las del arnés no están ahí: van abajo');
+    const resto = habilidades.split('<summary>Resto del catálogo')[1];
+    assert.ok(resto.includes('Ccc'), 'lo que no pega con esta carpeta cae en el resto');
+    assert.ok(!habilidades.split('<summary>Resto del catálogo')[0].includes('Ccc'), 'y solo ahí');
+
+    const comandos = p.mandar({ tipo: 'comandos', comandos: [
+      { etiqueta: 'Revisar la barra', queHace: '', icono: '▸', esBoton: true, delArnes: false, prompt: '/revisar-la-barra' },
+      { etiqueta: 'Guardar dónde vamos', queHace: '', icono: '▸', esBoton: false, delArnes: true, prompt: '/save-session' },
+    ] });
+    assert.match(comandos, /<details[^>]*>\s*<summary>Los del arnés/, 'los comandos del arnés, plegados');
+    assert.ok(comandos.indexOf('Revisar la barra') < comandos.indexOf('<summary>Los del arnés'), 'y después de los tuyos');
+
+    const guardian = { id: 'danger-guard', nombre: 'Freno ante órdenes peligrosas', queHace: 'Para una orden peligrosa.', estado: 'armado', porQue: '' };
+    const reglas = p.mandar({ tipo: 'reglas', innegociables: ['Nada de precios sin preguntar'], deLaCasa: ['Se habla en español'], guardianes: [guardian], hay: {}, cual: 'claude' });
+    const donde = reglas.indexOf('Lo que se comprueba solo');
+    assert.ok(donde > reglas.indexOf('Cómo se trabaja aquí'), 'los guardianes, después de las reglas de la casa');
+    assert.ok(donde > reglas.indexOf('Decirle qué NO quiero que haga'), 'y después de los botones: al final');
+    assert.match(reglas, /<details[^>]*>\s*<summary>Lo que se comprueba solo/, 'plegados');
+    assert.match(reglas, /aviso en inglés que no te deja seguir/, 'y con la frase que ata el bloqueo con esta pantalla');
+    assert.ok(reglas.includes('Freno ante órdenes peligrosas'), 'sin dejar de nombrarlos: lo instalado se ve');
+
+    const sinAgentes = p.mandar({ tipo: 'sugerencias', ahora: [], hayAgentes: false, hayProyectos: false });
+    assert.match(sinAgentes, /Ver si te vendría bien un agente/, 'sin agentes, la puerta a uno');
+    assert.ok(!/aparecen solos/.test(sinAgentes), 'y no el cartel de antes');
+    const conAgentes = p.mandar({ tipo: 'sugerencias', ahora: [], hayAgentes: true, hayProyectos: false });
+    assert.ok(!/Ver si te vendría bien un agente/.test(conAgentes), 'con agentes, no hace falta');
+
+    const radio = p.mandar({ tipo: 'radiografia', queEs: 'conArnes', piezas: [] });
+    assert.ok(!/Qué hay aquí/.test(radio), 'la radiografía ya no tiene un tercer nombre');
+    assert.ok((radio.match(/Qué falta por montar/g) || []).length >= 2, 'miga y título dicen lo mismo');
+
+    return 'instaladas · sugerencias · resto · arnés, y los guardianes al final';
+  });
+
   await comprobar('ningún botón manda un texto vacío', () => {
     // El fallo que tuvo a Jose tres versiones viendo conversaciones vacías, y
     // que las tres veces se buscó en el sitio equivocado. Lo que pasaba era
@@ -3361,6 +3437,15 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['agentes', { tipo: 'agentes', agentes: cargar('agentes').queHay() }, /cobros atrasados/i],
       ['sugerencias', { tipo: 'sugerencias', ahora: [], hayAgentes: true, hayProyectos: true }, /Pedirle que revise la carpeta/],
       ['trato', { tipo: 'trato', ...tratoM.comoEstamos(), aviso: null }, /Cuánto te explica/],
+      // Con una lección de la memoria de RSC: lo que ha aprendido de ti vive
+      // en esta pantalla, y era el último hueco del mapeo (decisión 101).
+      ['trato con lecciones', {
+        tipo: 'trato',
+        ...tratoM.comoEstamos(),
+        aprendido: [{ id: '1', texto: 'Prefiere que le pregunte antes de tocar precios', porque: 'lo pidió tres veces', cuando: '2026-09-20', donde: 'aqui' }],
+        comoAprende: '/learn',
+        aviso: null,
+      }, /Lo que ha aprendido de ti[\s\S]*tocar precios[\s\S]*lo pidió tres veces · 2026-09-20 · Solo aquí[\s\S]*Que aprenda algo de ti/],
       ['aviso', { tipo: 'aviso', texto: 'algo' }, /./],
     ];
 

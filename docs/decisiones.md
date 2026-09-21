@@ -2673,3 +2673,88 @@ condiciones que no son adorno:
 La regla que queda: **un recuerdo por ritmo de cambio, no uno por pantalla.** Dos datos que cambian
 a velocidades distintas no comparten caché, aunque se pinten juntos.
 
+
+## 101. Los apartados se ordenan por lo que pesa, y el mapeo se cierra
+
+**Fecha:** 21 de septiembre de 2026 · **Estado:** decidido
+
+Jose, tras el repaso del mapeo arnés → barra: *«Las del catálogo y fuera del catálogo y creadas ad
+hoc las metería como "Instaladas" y ya. Luego, metería las que no están instaladas del catálogo pero
+son interesantes para el proyecto en "Sugerencias del catálogo" y luego otro apartado de "Resto del
+catálogo" al final junto al de "Las del arnés" (porque es poco importante). Con los comandos lo mismo
+básicamente»*.
+
+### Habilidades y comandos: cuatro bloques, por peso
+
+Lo instalado se partía en tres cabeceras —*Propias de esta carpeta*, *Instaladas*, *Instaladas fuera
+del catálogo*— por una frontera que **no cambia nada al usarlas** y que además es frágil: «propia»
+solo quiere decir declarada en `ownSkills` de `.rsc.json`. Una habilidad escrita a mano y sin
+declarar caía en «fuera del catálogo» sin que nada hubiera cambiado. Y la barra nunca mira la
+carpeta personal del usuario: todo lo instalado es de esta carpeta.
+
+Queda así, y en este orden:
+
+1. **Instaladas** — propias, del catálogo y de fuera, juntas. El origen no se pierde: va en la (i)
+   de cada fila (*Tuya: escrita para esta carpeta* · *Del catálogo* · *Instalada aquí, fuera del
+   catálogo*), junto al identificador.
+2. **Sugerencias del catálogo** — las que pegan con lo escrito y, si son pocas, hasta seis de las que
+   pegan con esta clase de carpeta.
+3. **Resto del catálogo** (plegado) — lo que no cupo arriba y lo que no pega con para lo que se montó
+   esto. Antes eran dos desplegables, *Ver las demás* y *Para otra clase de carpeta*.
+4. **Las del arnés** (plegado, al final) — las que RSC monta para funcionar.
+
+Los datos no cambian: `saberes.js` sigue devolviendo sus montones y la suma sigue teniendo que
+cuadrar con `rsc list`. Es la pantalla la que los junta. En **Comandos**, *Los del arnés* pasan a
+plegados, igual que sus hermanas.
+
+**Esconderlas, no.** Jose lo dio como opción; va contra la decisión 98 (*«esconder no es simplificar:
+es mentir sobre lo que hay»*). Plegadas al final cumple las dos cosas: están, y no pesan.
+
+### Los guardianes bajan, pero no se van
+
+Jose: *«Sigo sin entender qué son. Si es algo de dentro del arnés y automático, mejor dejarlo estar
+no?»*. Son tres frenos que se enganchan antes de cada orden y pueden pararla (`danger-guard`,
+`gitmoji-guard`, `ship-guard`). Automáticos y de dentro, sí. Pero **cuando el freno actúa, al alumno
+le sale en la conversación un aviso en inglés que empieza por `BLOCKED`, y la barra no puede
+interceptarlo.** Si en ningún sitio pone qué es eso, parece una avería y acaba en llamada al tutor.
+
+Así que *Lo que se comprueba solo* se queda, plegado y al final de *Las reglas*, con una frase que
+ata el aviso con la pantalla: *«Si alguna vez te sale un aviso en inglés que no te deja seguir, es
+esto»*. Tres líneas para el único caso en que importa.
+
+### Sugerencias abre la puerta a un agente
+
+Sin agentes no hay apartado de Agentes, y con él se iba el botón *Crear un agente*: la única puerta
+era una línea en Sugerencias que decía «aparecen solos». Un cartel no es una puerta. Ahora, sin
+agentes, Sugerencias enseña **Ver si te vendría bien un agente**, con un encargo solo de agentes y
+la definición en la propia frase.
+
+Lo que **no** se hace es decidir aquí si «esta carpeta merece un agente»: eso no se lee del disco, y
+lo que no se puede calcular se delega (decisión de siempre en `encargos.js`).
+
+### `inbox` sí, `outbox` no
+
+Jose pidió acompañar los rótulos con el nombre técnico, como *(tools)* y *(skills)*. Se hace con lo
+que **existe en disco**: `02-DOCS/inbox/` → *Darle documentos (inbox)*; `01-TOOLS/<x>/out/` →
+*Resultados (out)*. «Outbox» no está en ningún sitio —la convención de RSC es `out/`, una por
+herramienta— y ponerlo entre paréntesis sería inventarse una carpeta. El paréntesis es para la
+palabra que va a ver u oír fuera, no para una que no dice nadie.
+
+De paso se arregla una colisión: «Resultados» se usaba para la pantalla de `out/` **y** para el
+contador de la búsqueda («3 resultados»). La búsqueda pasa a decir **coincidencias**.
+
+### Un nombre por pantalla
+
+La radiografía tenía tres: *Qué falta por montar* (botón y título), *Esto es lo que ha quedado
+montado* (título recién montado) y *Qué hay aquí* (la miga). La miga pasa a decir lo mismo que el
+botón. El título recién montado se queda: es un estado, no otro nombre.
+
+### Y los dos huecos del mapeo
+
+- **Las lecciones** de la memoria de RSC (lo aprobado una a una con `learn`) se leían en
+  `lecciones.js` y no las enseñaba nadie. Van dentro de *Cómo te habla*, como *Lo que ha aprendido de
+  ti*: son de la misma clase —cómo trabajar contigo—, no de la wiki.
+- **`optOuts`** de `.rsc.json` (lo que quien montó esto apagó a propósito) sale en la radiografía como
+  *Lo que tiene apagado*. Es lo que explica que un guardián figure como apagado.
+
+Con esto, todo lo que RSC monta o escribe tiene un sitio en la barra.

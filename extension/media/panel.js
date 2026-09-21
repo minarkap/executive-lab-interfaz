@@ -364,12 +364,12 @@ function pantallaSalidas(datos) {
     </div>`;
 
   return `
-    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Resultados' }])}
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Resultados (out)' }])}
     ${bloqueAviso()}
     ${volver()}
 
     <div class="brujula">
-      <h2>Resultados</h2>
+      <h2>Resultados (out)</h2>
       <p class="hiciste">Lo que ha producido con cada conexión. Ábrelo para verlo, o guárdatelo donde quieras.</p>
     </div>
 
@@ -398,6 +398,15 @@ const DE_QUE_VA = {
 // `/su-identificador`, que es exactamente lo que se escribiría a mano —RSC lo
 // dice: para Claude las habilidades son comandos—, y la (i) lo enseña como
 // «Se escribe /unslop» para que se pueda atar con lo que se oye en clase.
+//
+// Y de dónde viene va también en la (i), no en un titular: antes lo instalado
+// se partía en tres cabeceras —propias, del catálogo, fuera del catálogo— por
+// una frontera que no cambia nada al usarlas (decisión 101).
+const ORIGEN = {
+  tuya: 'Tuya: escrita para esta carpeta.',
+  catalogo: 'Del catálogo.',
+  aqui: 'Instalada aquí, fuera del catálogo.',
+};
 const filaDeHabilidad = (c) => filaDeAccion({
   etiqueta: c.nombre.charAt(0).toUpperCase() + c.nombre.slice(1),
   icono: '✨',
@@ -405,6 +414,7 @@ const filaDeHabilidad = (c) => filaDeAccion({
   accion: { tipo: 'pedir', prompt: c.prompt },
   nombreReal: c.prompt && c.prompt.startsWith('/') ? c.prompt : c.id,
   seEscribe: Boolean(c.prompt && c.prompt.startsWith('/')),
+  dentro: ORIGEN[c.origen] ? `<p>${ORIGEN[c.origen]}</p>` : '',
 });
 
 // Una del catálogo que todavía no está: se pulsa y se añade (`rsc add`).
@@ -419,11 +429,21 @@ const filaDelCatalogo = (c) => filaDeAccion({
     : ''}Al pulsar se añade a esta carpeta.</p>`,
 });
 
-// Las habilidades (skills). Cuatro montones de lo instalado —las propias, las
-// del catálogo, las de fuera del catálogo y las del arnés— y debajo lo que se
-// puede añadir. Todo lo instalado se ve: el mapeo entre el arnés y la barra
-// tiene que ser completo, y una habilidad puesta que no sale en ningún sitio es
-// un agujero, no una simplificación.
+// Las habilidades (skills). Cuatro bloques y en este orden: lo instalado, junto
+// y bajo un solo titular, con el origen de cada una en la (i); lo que el
+// catálogo ofrece para esta carpeta; y al final, plegado, lo que pesa poco —el
+// resto del catálogo y las que el arnés monta para funcionar—. Todo lo
+// instalado se ve: el mapeo entre el arnés y la barra tiene que ser completo,
+// y una habilidad puesta que no sale en ningún sitio es un agujero, no una
+// simplificación.
+//
+// Jose, 21-09-2026 (decisión 101): las tres cabeceras de lo instalado
+// —propias, del catálogo, fuera del catálogo— partían una misma lista por una
+// frontera que no importa al usarlas y que además es frágil: «propia» solo
+// quiere decir declarada en `ownSkills`, así que una escrita a mano y sin
+// declarar caía en «fuera del catálogo» sin que nada hubiera cambiado. Los
+// datos siguen llegando en sus montones (`saberes.js` no cambia, y su suma
+// sigue teniendo que cuadrar); es la pantalla la que los junta.
 function pantallaSaberes(datos) {
   const suyas = datos.suyas || [];
   const sabe = datos.sabe || [];
@@ -432,12 +452,22 @@ function pantallaSaberes(datos) {
   const puede = datos.puedeAprender || [];
   const demas = datos.lasDemas || [];
 
-  // Del catálogo: las que pegan con lo escrito, desplegadas; el resto de las
-  // que pegan con esta clase de carpeta, plegadas si son muchas. Con 59 en el
-  // catálogo, una lista plana era una pantalla entera de scroll.
+  const conOrigen = (lista, origen) => lista.map((c) => ({ ...c, origen }));
+  const instaladas = [
+    ...conOrigen(suyas, 'tuya'),
+    ...conOrigen(sabe, 'catalogo'),
+    ...conOrigen(otras, 'aqui'),
+  ];
+
+  // Sugerencias: las que pegan con lo escrito y, si son pocas, hasta seis de
+  // las que pegan con esta clase de carpeta. Lo demás del catálogo —lo que no
+  // cupo y lo que no pega con para lo que se montó esto— va plegado en un solo
+  // montón. No se tira, por si alguien monta una carpeta para una cosa y acaba
+  // haciendo otra; pero con 59 en el catálogo, desplegado era una pantalla
+  // entera de scroll.
   const aLaVista = Math.max(datos.encajan || 0, Math.min(puede.length, 6));
-  const delante = puede.slice(0, aLaVista);
-  const detras = puede.slice(aLaVista);
+  const sugeridas = puede.slice(0, aLaVista);
+  const resto = [...puede.slice(aLaVista), ...demas];
 
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Habilidades (skills)' }])}
@@ -449,51 +479,33 @@ function pantallaSaberes(datos) {
       <p class="hiciste">Las que están puestas se piden con un clic, o escribiendo su nombre en la conversación. Las del catálogo se añaden desde aquí.</p>
     </div>
 
-    ${suyas.length ? `
-      <h2>Propias de esta carpeta</h2>
-      <p class="detalle">Escritas aquí. No vienen de ningún catálogo.</p>
-      ${suyas.map(filaDeHabilidad).join('')}` : ''}
+    <h2>Instaladas</h2>
+    ${instaladas.length
+      ? instaladas.map(filaDeHabilidad).join('')
+      : nada(deSerie.length ? 'Solo las del arnés, que van abajo.' : 'Todavía no hay ninguna puesta.')}
 
-    ${sabe.length ? `<h2>Instaladas</h2>${sabe.map(filaDeHabilidad).join('')}` : ''}
+    <hr class="separador">
 
-    ${otras.length ? `
-      <h2>Instaladas fuera del catálogo</h2>
-      ${otras.map(filaDeHabilidad).join('')}` : ''}
+    <h2>Sugerencias del catálogo</h2>
+    <p class="detalle">${datos.deQueVa && DE_QUE_VA[datos.deQueVa]
+      ? `Las que pegan con una carpeta para ${texto(DE_QUE_VA[datos.deQueVa])}. Pulsa una y se añade.`
+      : 'Pulsa una y se añade. La (i) dice para qué sirve.'}</p>
+    ${sugeridas.length
+      ? sugeridas.map(filaDelCatalogo).join('')
+      : nada('Ya están puestas todas las que pegan con esto.')}
+
+    ${resto.length ? `
+      <details class="acordeon grupo">
+        <summary>Resto del catálogo<span class="cuantos">${resto.length}</span></summary>
+        <p class="detalle">Las que no pegan con para lo que montaste esto, o no cupieron arriba. Si te hacen falta, ahí están.</p>
+        ${resto.map(filaDelCatalogo).join('')}
+      </details>` : ''}
 
     ${deSerie.length ? `
       <details class="acordeon grupo">
         <summary>Las del arnés<span class="cuantos">${deSerie.length}</span></summary>
         <p class="detalle">Las monta el arnés para funcionar. Están puestas como las demás; van plegadas porque no se piden a menudo.</p>
         ${deSerie.map(filaDeHabilidad).join('')}
-      </details>` : ''}
-
-    ${!suyas.length && !sabe.length && !otras.length && !deSerie.length ? nada('Todavía no hay ninguna puesta.') : ''}
-
-    <hr class="separador">
-
-    ${/* Lo que se ofrece va con ESTE arnés. Antes se pegaba el catálogo entero
-          detrás de las que encajaban, así que en una carpeta de código salían
-          facturas, gestoría y proveedores. Lo que no pega no se tira: se
-          pliega, por si alguien monta una carpeta para una cosa y acaba
-          haciendo otra. */''}
-    <h2>Del catálogo</h2>
-    <p class="detalle">${datos.deQueVa && DE_QUE_VA[datos.deQueVa]
-      ? `Las que pegan con una carpeta para ${texto(DE_QUE_VA[datos.deQueVa])}. Pulsa una y se añade.`
-      : 'Pulsa una y se añade. La (i) dice para qué sirve.'}</p>
-    ${puede.length
-      ? delante.map(filaDelCatalogo).join('')
-      : nada('Ya están puestas todas las que pegan con esto.')}
-    ${detras.length ? `
-      <details class="acordeon grupo">
-        <summary>Ver las demás<span class="cuantos">${detras.length}</span></summary>
-        ${detras.map(filaDelCatalogo).join('')}
-      </details>` : ''}
-
-    ${demas.length ? `
-      <details class="acordeon grupo">
-        <summary>Para otra clase de carpeta<span class="cuantos">${demas.length}</span></summary>
-        <p class="detalle">No pegan con para lo que montaste esto, pero si te hacen falta, ahí están.</p>
-        ${demas.map(filaDelCatalogo).join('')}
       </details>` : ''}
 
     <hr class="separador">
@@ -558,28 +570,6 @@ function pantallaReglas({
     ${lista(innegociables, 'Todavía no hay ninguno. Son las cosas que no se saltan nunca, pase lo que pase.')}
     ${hay.constitucion ? boton({ etiqueta: 'Verlas enteras', icono: '▸', pequeno: true, discreto: true, accion: { tipo: 'abrirReglas', cual: 'constitucion' } }) : ''}
 
-    ${/* Lo único del arnés que puede decir que NO. No se nombraba en ningún
-          sitio, así que quien recibía un bloqueo veía un mensaje en inglés y no
-          tenía dónde mirar qué había pasado. */''}
-    ${guardianes.length ? `
-      <hr class="separador">
-      <h2>Lo que se comprueba solo</h2>
-      <p class="detalle">Esto no se lo pides: se aplica antes de cada cosa que hace, y puede pararla.</p>
-      ${guardianes.map((g) => `
-        <div class="pieza ${g.estado === 'armado' ? 'si' : 'noAplica'}">
-          <span class="pieza-marca" aria-hidden="true">${MARCA_GUARDIAN[g.estado] || '·'}</span>
-          <span class="pieza-nombre">${texto(g.nombre)}</span>
-          <span class="pieza-detalle">${texto(g.porQue || 'Puesto')}</span>
-        </div>
-        ${g.queHace ? `<p class="detalle">${texto(g.queHace)}</p>` : ''}`).join('')}
-      ${boton({
-    etiqueta: 'Cambiar lo que se comprueba',
-    icono: '🔧',
-    pequeno: true,
-    discreto: true,
-    accion: { tipo: 'pedir', prompt: 'Quiero repasar las comprobaciones que se aplican solas en esta carpeta. Explícame una por una qué me para cada una y qué pasa si la quito, y pregúntame cuál quiero cambiar antes de tocar nada.' },
-  })}` : ''}
-
     <hr class="separador">
     <h2>Cómo se trabaja aquí</h2>
     ${lista(deLaCasa, 'Todavía no hay ninguna.')}
@@ -597,6 +587,32 @@ function pantallaReglas({
       icono: '🚫',
       accion: { tipo: 'pedir', prompt: 'Hay cosas que no quiero que hagas nunca en esta carpeta. Pregúntame cuáles son, una a una, y déjalas escritas donde te las leas siempre.' },
     })}
+
+    ${/* Lo único del arnés que puede decir que NO. Va al final y plegado
+          (decisión 101): es automático y de dentro, así que casi nunca se abre.
+          Pero no se quita, porque cuando el freno actúa al alumno le sale en la
+          conversación un aviso en inglés que empieza por BLOCKED y la barra no
+          puede interceptarlo: este es el único sitio donde pone qué es eso. */''}
+    ${guardianes.length ? `
+      <hr class="separador">
+      <details class="acordeon grupo">
+        <summary>Lo que se comprueba solo<span class="cuantos">${guardianes.length}</span></summary>
+        <p class="detalle">Frenos que se aplican antes de cada cosa que hace y pueden pararla. Si alguna vez te sale un aviso en inglés que no te deja seguir, es esto.</p>
+        ${guardianes.map((g) => `
+          <div class="pieza ${g.estado === 'armado' ? 'si' : 'noAplica'}">
+            <span class="pieza-marca" aria-hidden="true">${MARCA_GUARDIAN[g.estado] || '·'}</span>
+            <span class="pieza-nombre">${texto(g.nombre)}</span>
+            <span class="pieza-detalle">${texto(g.porQue || 'Puesto')}</span>
+          </div>
+          ${g.queHace ? `<p class="detalle">${texto(g.queHace)}</p>` : ''}`).join('')}
+        ${boton({
+    etiqueta: 'Cambiar lo que se comprueba',
+    icono: '🔧',
+    pequeno: true,
+    discreto: true,
+    accion: { tipo: 'pedir', prompt: 'Quiero repasar las comprobaciones que se aplican solas en esta carpeta. Explícame una por una qué me para cada una y qué pasa si la quito, y pregúntame cuál quiero cambiar antes de tocar nada.' },
+  })}
+      </details>` : ''}
 
   `;
 }
@@ -641,11 +657,15 @@ function pantallaComandos({ comandos = [] }) {
       accion: { tipo: 'pedir', prompt: 'Quiero un comando nuevo para algo que hago a menudo. Pregúntame cuál es, qué tiene que hacer exactamente y cómo quiero que se llame, y déjalo escrito con su botón en la barra.' },
     })}
 
+    ${/* Plegados, como las habilidades del arnés: están y se ven, pero no se
+          piden a menudo y no los escribió nadie de aquí (decisión 101). */''}
     ${delArnes.length ? `
       <hr class="separador">
-      <h2>Los del arnés</h2>
-      <p class="detalle">No los ha escrito nadie de aquí: vienen con el arnés.</p>
-      ${delArnes.map(fila).join('')}` : ''}
+      <details class="acordeon grupo">
+        <summary>Los del arnés<span class="cuantos">${delArnes.length}</span></summary>
+        <p class="detalle">No los ha escrito nadie de aquí: vienen con el arnés. Van plegados porque no se piden a menudo.</p>
+        ${delArnes.map(fila).join('')}
+      </details>` : ''}
 
     <hr class="separador">
     ${boton({ etiqueta: 'Fijar alguno arriba', icono: '☆', pequeno: true, discreto: true, accion: { tipo: 'verFijadas' } })}
@@ -665,7 +685,7 @@ function pantallaComandos({ comandos = [] }) {
 // habilidad que no tienes, si algo que haces cada semana lo podría llevar un
 // ayudante, si lo que quieres construir merece acordarse antes de empezar. Eso
 // se le pregunta, porque es quien lee lo que hay escrito y lo que le pides.
-function pantallaSugerencias({ ahora = [], hayAgentes, hayProyectos }) {
+function pantallaSugerencias({ ahora = [], hayAgentes }) {
   const delDisco = ahora.length
     ? ahora.map((c) => `
       <div class="entrada">
@@ -712,9 +732,28 @@ function pantallaSugerencias({ ahora = [], hayAgentes, hayProyectos }) {
       },
     })}
 
-    ${hayAgentes || hayProyectos ? '' : `
+    ${/* Sin agentes no hay apartado de Agentes, y con él se va el botón de
+          crear uno: la única puerta era una línea que decía «aparecen solos».
+          Un cartel no es una puerta. Aquí se le pide al asistente que mire si
+          hace falta alguno, y qué es un agente se dice en la propia frase.
+          Decidir solos si «esta carpeta merece un agente» no: eso no se lee
+          del disco, y lo que no se puede calcular se delega (decisión 101). */''}
+    ${hayAgentes ? '' : `
       <hr class="separador">
-      <p class="detalle">Todavía no hay agentes ni nada acordado para construir. En cuanto los haya, aparecen solos en la pantalla principal.</p>`}
+      <h2>Agentes</h2>
+      <p class="detalle">Todavía no hay ninguno. Un agente es un encargo fijo que se hace solo cuando se lanza, sin que estés delante.</p>
+      ${boton({
+    etiqueta: 'Ver si te vendría bien un agente',
+    icono: '🤖',
+    accion: {
+      tipo: 'pedir',
+      prompt: [
+        'Mira si en esta carpeta hay algo que debería llevar un agente por su cuenta: un encargo fijo que se hace solo cuando se lanza, sin que yo esté delante.',
+        'Repasa lo que te vengo pidiendo, los comandos que ya hay y el diario, y dime como mucho tres cosas que se repiten y que podría llevar un agente: qué haría cada uno, cada cuánto y qué me ahorra.',
+        'Si no ves ninguna, dímelo claro y no montes nada. Si ves alguna, pregúntame cuál quiero antes de escribirla.',
+      ].join('\n'),
+    },
+  })}`}
   `;
 }
 
@@ -1057,12 +1096,12 @@ function pantallaPapeles({
 
     <div class="brujula">
       <h2>Documentos entregados</h2>
-      <p class="hiciste">Los documentos que han entrado aquí. Lo que ha entendido de ellos está en Conocimiento, y lo que ha producido él, en Resultados.</p>
+      <p class="hiciste">Los documentos que han entrado aquí. Lo que ha entendido de ellos está en Conocimiento, y lo que ha producido él, en Resultados (out).</p>
     </div>
 
     ${cajaDeBusqueda('papeles')}
 
-    ${boton({ etiqueta: 'Darle documentos', icono: '📎', principal: true, accion: { tipo: 'anadirDocumentos' } })}
+    ${boton({ etiqueta: 'Darle documentos (inbox)', icono: '📎', principal: true, accion: { tipo: 'anadirDocumentos' } })}
 
     ${sueltos.length ? `
       <h2>Sin colocar todavía</h2>
@@ -1189,7 +1228,9 @@ function pantallaDiario({ sesiones = [], decisiones = [], aprendido = [] }) {
 // El ajuste que más cambia el día a día y que solo se podía tocar escribiéndolo
 // en la conversación, cosa que no hace quien no sabe que existe. Lo guarda el
 // arnés en su perfil y lo lee **todo** lo demás antes de contestar.
-function pantallaTrato({ escalones = [], vocabularios = [], trato, palabras, elegido, aviso: avisoLocal }) {
+function pantallaTrato({
+  escalones = [], vocabularios = [], trato, palabras, elegido, aprendido = [], comoAprende = '', aviso: avisoLocal,
+}) {
   const fila = (opcion, puesta, accion) => `
     <div class="capacidad${opcion.id === puesta ? ' puesta' : ''}">
       <p class="nombre">${texto(opcion.nombre)}${opcion.id === puesta ? ' <span class="cuantos">ahora mismo</span>' : ''}</p>
@@ -1215,6 +1256,22 @@ function pantallaTrato({ escalones = [], vocabularios = [], trato, palabras, ele
     <h2>Con qué palabras</h2>
     ${vocabularios.map((v) => fila(v, palabras, { tipo: 'ponerPalabras' })).join('')}
 
+    <hr class="separador">
+    ${/* La memoria de RSC: lecciones aprobadas una a una con `learn`. No es la
+          wiki —eso es lo que sabe de tu negocio—, es cómo trabajar contigo, y
+          por eso vive en esta pantalla. `lecciones.js` las leía desde hace
+          tiempo y ninguna pantalla las enseñaba: era el último hueco del mapeo
+          entre el arnés y la barra (decisión 101). */''}
+    <h2>Lo que ha aprendido de ti</h2>
+    ${aprendido.length
+      ? aprendido.map((l) => `
+        <div class="entrada">
+          <p class="nombre">${texto(l.texto)}</p>
+          <p class="pista">${texto([l.porque, l.cuando, l.donde === 'todo' ? 'Vale para todo' : 'Solo aquí'].filter(Boolean).join(' · '))}</p>
+        </div>`).join('')
+      : nada('Todavía nada. Cada cosa que aprende de ti la apruebas tú, una a una.')}
+    ${comoAprende ? boton({ etiqueta: 'Que aprenda algo de ti', icono: '💡', pequeno: true, accion: { tipo: 'pedir', prompt: comoAprende } }) : ''}
+
   `;
 }
 
@@ -1236,7 +1293,9 @@ function pantallaRadiografia(datos) {
   const reciénMontado = datos.origen === 'init';
 
   return `
-    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Qué hay aquí' }])}
+    ${/* La miga dice lo mismo que el botón que trae aquí. Decía «Qué hay aquí»,
+          y era el tercer nombre de la misma pantalla. */''}
+    ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Qué falta por montar' }])}
     ${bloqueAviso()}
     ${volver()}
 
@@ -1576,9 +1635,9 @@ function pantallaPrincipal() {
               que guarda y lo que produce. Nombradas por el verbo —"ver los
               documentos", "llevarte un archivo"— no se distinguían. Nombradas
               por de quién son, sí. */''}
-        ${boton({ etiqueta: 'Darle documentos', icono: '📎', pequeno: true, accion: { tipo: 'anadirDocumentos' } })}
+        ${boton({ etiqueta: 'Darle documentos (inbox)', icono: '📎', pequeno: true, accion: { tipo: 'anadirDocumentos' } })}
         ${boton({ etiqueta: 'Documentos entregados', icono: '📁', pequeno: true, accion: { tipo: 'verPapeles' } })}
-        ${boton({ etiqueta: 'Resultados', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
+        ${boton({ etiqueta: 'Resultados (out)', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
     })}
 
     ${grupo({
@@ -1821,7 +1880,7 @@ function pantallaCerebro({ temas, sinOrdenar = [], esperando, yaLeidos, hayPanel
     ${porTemas}
 
     <hr class="separador">
-    ${boton({ etiqueta: 'Darle documentos', icono: '📎', principal: true, accion: { tipo: 'anadirDocumentos' } })}
+    ${boton({ etiqueta: 'Darle documentos (inbox)', icono: '📎', principal: true, accion: { tipo: 'anadirDocumentos' } })}
     ${esperando ? `<p class="detalle">${texto(plural(esperando, 'Hay 1 documento esperando a que lo lea.', 'Hay {n} documentos esperando a que los lea.'))}</p>` : ''}
     ${yaLeidos ? `<p class="detalle">${texto(plural(yaLeidos, 'Ya ha leído 1 documento.', 'Ya ha leído {n} documentos.'))}</p>` : ''}
     ${hayPanel ? boton({ etiqueta: 'Ver el panel completo', icono: '🗂️', accion: { tipo: 'abrirPanelCompleto' } }) : ''}
@@ -1855,7 +1914,10 @@ function pantallaResultados({ texto: consulta, cuantos, grupos }) {
     <p class="titulo">Conocimiento de ${texto(comoSeLlama)}</p>
     ${volver({ tipo: 'verCerebro' })}
     ${cajaDeBusqueda(ultimoBuscado, consulta)}
-    <p class="detalle">${texto(cuantos ? plural(cuantos, '1 resultado', '{n} resultados') : '')}</p>
+    ${/* «Coincidencias», no «resultados»: Resultados (out) es otra pantalla, la
+          de lo que producen las conexiones, y la misma palabra para dos cosas
+          es el fallo que este diccionario existe para evitar. */''}
+    <p class="detalle">${texto(cuantos ? plural(cuantos, '1 coincidencia', '{n} coincidencias') : '')}</p>
     ${cuantos ? listas : vacio}
   `;
 }
