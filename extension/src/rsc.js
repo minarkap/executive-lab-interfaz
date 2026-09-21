@@ -12,7 +12,7 @@ const entorno = require('./entorno');
 
 // Último recurso si .rsc.json no dice versión. Se actualiza a mano, a
 // propósito: subir de versión es una decisión, no un efecto secundario.
-const VERSION_DE_RESPALDO = '1.4.1';
+const VERSION_DE_RESPALDO = '2.0.5';
 
 function paquete() {
   return `@ericrisco/rsc@${proyecto.versionDelCatalogo() || VERSION_DE_RESPALDO}`;

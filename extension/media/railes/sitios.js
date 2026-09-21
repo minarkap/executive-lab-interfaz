@@ -22,10 +22,15 @@
 // ── De dónde sale ────────────────────────────────────────────────────────
 //
 // Es copia de la de RSC (`targets/index.js`, `targets/commands.js` y
-// `targets/agents.js`, versión 1.4.1, leída con permiso de Jose el 18 de
-// septiembre de 2026). Se copia y no se importa a propósito: ni la barra ni
+// `targets/agents.js`). Se copia y no se importa a propósito: ni la barra ni
 // los raíles pueden depender de los interiores de un paquete que se instala
 // aparte y que puede no estar.
+//
+// Copiada de la 1.4.1 el 18 de septiembre de 2026 y **contrastada contra la
+// 2.0.5 el 21**: los tres ficheros son idénticos byte a byte, así que el salto
+// de versión mayor no tocó ni una fila de esta tabla. La prueba de humo compara
+// las dos tablas contra el arnés que viaja dentro, así que si algún día cambian
+// se sabrá aquí antes que en la barra de nadie.
 
 // `habilidades` es la carpeta donde quedan las habilidades; `comandos` la de
 // los botones, o null si ese asistente no tiene; `ajustes` el fichero de
