@@ -19,6 +19,7 @@ const rsc = require('./rsc');
 const guardar = require('./guardar');
 const git = require('./git');
 const terreno = require('./terreno');
+const rumbo = require('./rumbo');
 const conexiones = require('./conexiones');
 const cerebro = require('./cerebro');
 const asistentes = require('./asistentes');
@@ -218,8 +219,27 @@ async function calcular() {
   const faltaElAsistente = !asistentes.estaInstalado(quien);
   const conGit = await guardar.hayGit();
 
+  // ── Montado, pero sin ajustar ─────────────────────────────────────────
+  //
+  // Un arnés puede estar entero para RSC y no tener nada de la barra: le falta
+  // la habilidad que fija el español y el vocabulario, o los nombres del
+  // perfil, o se montó con una versión anterior a la que la barra lleva dentro.
+  // Pasa en cuanto alguien monta el arnés por su cuenta con `npx rsc`, o cuando
+  // el repositorio viene de otro sitio, o —esto le va a pasar a todo el
+  // mundo— cuando la barra sube de versión mayor.
+  //
+  // Hasta ahora esto solo se veía entrando en «Qué falta por montar», que es
+  // justo donde no entra quien no sabe que le falta algo. La pantalla decía
+  // «listo» y los botones hablaban con un arnés a medio ajustar.
+  //
+  // Quién decide es `rumbo`, el mismo que decide el arranque: una sola verdad.
+  // Y sale gratis, porque `mirarYClasificar()` no lanza ni un proceso.
+  const rama = rumbo.elegirRama({ ...terreno.mirarYClasificar(), git: { hay: conGit } }).rama;
+  const sinAjustar = rama === 'adoptar' || rama === 'ponerAlDia' ? rama : null;
+
   return {
     listo: true,
+    sinAjustar,
     donde: interpretar(continuacion) || (conectados === 0 && sabe === 0 ? 'Acabas de empezar' : 'Tu trabajo'),
     hiciste,
     sabe,

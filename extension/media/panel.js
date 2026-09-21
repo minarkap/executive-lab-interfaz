@@ -1430,6 +1430,22 @@ function pantallaPrincipal() {
       <p>Díselo a tu tutor: es lo único que falta.</p>
     </div>` : '';
 
+  // ── Montado, pero sin ajustar a esta barra ────────────────────────────
+  //
+  // Dos casos y un solo botón, porque para quien lo lee es lo mismo: esto
+  // funciona, pero le falta algo de lo nuestro y no hace falta saber qué.
+  // Lo que cambia es la frase, porque el motivo sí es distinto.
+  const SIN_AJUSTAR = {
+    adoptar: 'Esto ya está montado, pero todavía no está ajustado a esta barra.',
+    ponerAlDia: 'Esto se montó con una versión anterior a la que trae esta barra.',
+  };
+  const sinAjustar = estado.sinAjustar ? `
+    <div class="aviso">
+      <p>${texto(SIN_AJUSTAR[estado.sinAjustar])}</p>
+      <p>Puedo dejarlo al día sin tocar nada de lo que ya tienes.</p>
+    </div>
+    ${boton({ etiqueta: 'Ajustarlo ahora', icono: '✳', principal: true, accion: { tipo: 'arrancar' } })}` : '';
+
   const primerPaso = estado.primerPaso ? `
     <h2>Empieza por aquí</h2>
     <div class="conexion">
@@ -1473,6 +1489,7 @@ function pantallaPrincipal() {
     ${pulso.length ? `<p class="pulso">${texto(pulso.join(' · '))}</p>` : ''}
 
     ${sinAsistente}
+    ${sinAjustar}
     ${primerPaso}
     ${elConsejo}
     ${documentos}

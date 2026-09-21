@@ -3208,6 +3208,47 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${Object.keys(ESPERADAS).length} estados, ${new Set(Object.values(ESPERADAS)).size} ramas`;
   });
 
+  await comprobar('un arnés montado y sin ajustar lo dice en la pantalla principal', async () => {
+    // Se llegaba a esto solo entrando en «Qué falta por montar», que es justo
+    // donde no entra quien no sabe que le falta algo. La pantalla decía «listo»
+    // y los botones hablaban con un arnés a medio ajustar.
+    const poner = (raiz, rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(raiz, rel)), { recursive: true });
+      fs.writeFileSync(path.join(raiz, rel), txt);
+    };
+    const laQueTraemos = JSON.parse(fs.readFileSync(path.join(RAIZ, 'media', 'harness', 'package.json'), 'utf8')).dependencies['@ericrisco/rsc'];
+    const RECORD = { projectKind: 'operations', goal: 'x', technicalLevel: 'non-technical', accompaniment: 'L3', targets: ['claude'] };
+
+    // Un arnés entero de RSC, montado por otra vía: sin nuestra habilidad y sin
+    // los nombres en el perfil.
+    const ajeno = fs.mkdtempSync(path.join(os.tmpdir(), 'sin-ajustar-'));
+    poner(ajeno, '.rsc.json', JSON.stringify({ version: 1, catalogVersion: laQueTraemos, targets: ['claude'], skills: ['bro'], ownSkills: [], onboarding: { plan: { record: RECORD } } }));
+    poner(ajeno, '01-TOOLS/_TEMPLATE/README.md', '#');
+    poner(ajeno, '02-DOCS/wiki/harness/user-profile.md', '---\ntechnical_level: mixed\n---\n');
+    poner(ajeno, '.claude/skills/bro/SKILL.md', '#');
+
+    vscode.guion.raiz = ajeno;
+    cargar('brujula').olvidar();
+    const estado = await cargar('brujula').estado({ fresco: true });
+    assert.equal(estado.listo, true, 'el arnés está entero: no es una carpeta rota');
+    assert.equal(estado.sinAjustar, 'adoptar', 'y aun así le falta lo nuestro');
+
+    const p = require('./panel-falso').montarPanel();
+    const pintada = p.mandar({
+      tipo: 'estado', estado, acciones: [], modo: 'sencillo', marcaPuesta: true, comoSeLlama: 'tu trabajo', pulso: [],
+    });
+    assert.match(pintada, /no está ajustado a esta barra/, 'y no se dice en la pantalla');
+    assert.match(pintada, /Ajustarlo ahora/, 'ni se puede pulsar nada');
+    assert.match(pintada, /arrancar/, 'el botón tiene que llevar al arranque');
+
+    // Y la empresa de mentira, que sí está ajustada, no lo enseña.
+    vscode.guion.raiz = empresa;
+    cargar('brujula').olvidar();
+    const sano = await cargar('brujula').estado({ fresco: true });
+    assert.equal(sano.sinAjustar, null, 'un arnés ajustado no pide que lo ajusten');
+    return 'lo dice arriba, no escondido';
+  });
+
   await comprobar('una carpeta montada con un arnés viejo se pone al día sola', () => {
     // La barra lleva un arnés dentro y lo ejecuta sea cual sea el que diga la
     // carpeta. Al subir de versión mayor, TODAS las carpetas montadas antes

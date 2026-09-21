@@ -2529,3 +2529,25 @@ Rodeo nuestro, en el `.gitignore`:
 Y contado para Eric en `docs/para-rsc.md`, junto con lo del `.gitignore` que
 `scanProject` no lee (decisión 93). Las dos son de RSC, ninguna nos bloquea, y
 las dos tienen rodeo puesto.
+
+## 97. Un arnés montado y sin ajustar lo dice en la pantalla, no escondido
+
+La rama `adoptar` existía desde la 0.18 y **solo se llegaba a ella entrando en
+«Qué falta por montar»** — que es justo donde no entra quien no sabe que le
+falta algo. La pantalla principal decía «listo» y los botones hablaban con un
+arnés a medio ajustar.
+
+Un arnés puede estar entero para RSC y no tener nada de la barra: sin la
+habilidad que fija el español y el vocabulario, sin los nombres del perfil, o
+montado con una versión anterior a la que la barra lleva dentro. Pasa cuando
+alguien lo monta por su cuenta con `npx rsc`, cuando el repositorio viene de
+otro sitio, y —esto le va a pasar a todo el mundo— cuando la barra sube de
+versión mayor.
+
+Ahora sale arriba, con su botón. Quién lo decide es `rumbo`, el mismo que decide
+el arranque: una sola verdad, y sale gratis porque `mirarYClasificar()` no lanza
+ni un proceso.
+
+Los dos casos —`adoptar` y `ponerAlDia`— comparten botón y cambian la frase:
+para quien lo lee es lo mismo —esto funciona pero le falta algo de lo nuestro—
+y no hace falta saber cuál de los dos es.
