@@ -105,3 +105,11 @@ pieza que falta trae su salida.
 
 Dos cosas de RSC que cambian cómo se le habla: `repair` **no** levanta un suelo ausente (eso solo lo
 hace `onboard`), y `repair --yes` a ciegas puede mover el arnés a otro asistente.
+
+- Accepted plan `e44b265806af20e835ac620ad14c4f291696db61373776ef6bb894a3d5fc1d9b`.
+- Project kind: software.
+- SDD: selected.
+
+- Accepted plan `e7a924dd80dd5d0199f76da6c571384d664c5899e6f941477c789c3817182dfb`.
+- Project kind: software.
+- SDD: selected.

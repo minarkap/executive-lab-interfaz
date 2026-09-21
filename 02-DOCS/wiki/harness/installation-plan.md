@@ -1,21 +1,50 @@
 # Accepted harness plan
 
-Plan id: `434ebdda2d12e72195a3b0a9ba0e57e6171e56ae1f19bc4f89d93223d9ae36a3`
+Plan id: `e7a924dd80dd5d0199f76da6c571384d664c5899e6f941477c789c3817182dfb`
 
 | Kind | Component | Decision | Reason | Reevaluate when |
 | --- | --- | --- | --- | --- |
-| agent | base-agents | deferred | No substantial software implementation is planned. | substantial software implementation is introduced |
+| agent | developer | selected | The accepted substantial software workflow requires this implementation or review role. | — |
+| agent | react-build-resolver | selected | The accepted substantial software workflow requires this implementation or review role. | — |
+| agent | react-reviewer | selected | The accepted substantial software workflow requires this implementation or review role. | — |
+| agent | refuter-correctness | selected | The accepted substantial software workflow requires this implementation or review role. | — |
+| agent | refuter-security | selected | The accepted substantial software workflow requires this implementation or review role. | — |
+| agent | refuter-tests | selected | The accepted substantial software workflow requires this implementation or review role. | — |
 | capability | memory | selected | Local bounded project memory supports continuity without an external account. | — |
-| guard | gitmoji-guard | deferred | No selected target and project policy justify this Claude-only commit guard. | Claude Code is selected and a governed software workflow adopts the convention |
-| hook | code-hooks | deferred | Code-only gates would add unrelated behavior to this project. | a substantial software workflow is accepted |
+| guard | gitmoji-guard | selected | Claude Code supports the commit guard and the accepted code policy includes it. | — |
+| hook | code-hooks | selected | The accepted software workflow needs its deterministic code gates. | — |
 | integration | context7 | excluded | External MCP connections require a separate, provider-specific consent flow and are outside this local harness plan. | — |
 | route | harness-documents | selected | The accepted profile and plan are persisted under 02-DOCS/wiki/harness/. | — |
-| skill | bro | selected | Included in the lightweight foundation for this software project. | — |
-| skill | eli5 | selected | Included in the lightweight foundation for this software project. | — |
-| skill | harness | selected | Included in the lightweight foundation for this software project. | — |
-| skill | init | selected | Included in the lightweight foundation for this software project. | — |
-| skill | orient | selected | Included in the lightweight foundation for this software project. | — |
-| skill | show-me | selected | Included in the lightweight foundation for this software project. | — |
-| skill | suggest | selected | Included in the lightweight foundation for this software project. | — |
-| skill | unslop | selected | Included in the lightweight foundation for this software project. | — |
-| workflow | sdd | deferred | The software scope is small, so specification overhead is not justified yet. | multiple related features; authentication or persistence; external integrations; cross-cutting changes |
+| skill | analyze | selected | Included in the development workflow for growing software. | — |
+| skill | automation-strategy | selected | Included in the development workflow for growing software. | — |
+| skill | bro | selected | Included in the development workflow for growing software. | — |
+| skill | clarify | selected | Included in the development workflow for growing software. | — |
+| skill | constitution | selected | Included in the development workflow for growing software. | — |
+| skill | debug | selected | Included in the development workflow for growing software. | — |
+| skill | decision-challenge | selected | Included in the development workflow for growing software. | — |
+| skill | deprecation | selected | Included in the development workflow for growing software. | — |
+| skill | eli5 | selected | Included in the development workflow for growing software. | — |
+| skill | fable-operator | selected | Included in the development workflow for growing software. | — |
+| skill | ftd | selected | Included in the development workflow for growing software. | — |
+| skill | harness | selected | Included in the development workflow for growing software. | — |
+| skill | idea-refinement | selected | Included in the development workflow for growing software. | — |
+| skill | implement | selected | Included in the development workflow for growing software. | — |
+| skill | init | selected | Included in the development workflow for growing software. | — |
+| skill | orient | selected | Included in the development workflow for growing software. | — |
+| skill | parallel | selected | Included in the development workflow for growing software. | — |
+| skill | plan | selected | Included in the development workflow for growing software. | — |
+| skill | react | selected | Included in the development workflow for growing software. | — |
+| skill | review | selected | Included in the development workflow for growing software. | — |
+| skill | sdd | selected | Included in the development workflow for growing software. | — |
+| skill | sdd-init | selected | Included in the development workflow for growing software. | — |
+| skill | ship | selected | Included in the development workflow for growing software. | — |
+| skill | show-me | selected | Included in the development workflow for growing software. | — |
+| skill | simplify-code | selected | Included in the development workflow for growing software. | — |
+| skill | source-grounded-development | selected | Included in the development workflow for growing software. | — |
+| skill | specify | selected | Included in the development workflow for growing software. | — |
+| skill | suggest | selected | Included in the development workflow for growing software. | — |
+| skill | tasks | selected | Included in the development workflow for growing software. | — |
+| skill | ui-engineering | selected | Included in the development workflow for growing software. | — |
+| skill | unslop | selected | Included in the development workflow for growing software. | — |
+| skill | verify | selected | Included in the development workflow for growing software. | — |
+| skill | worktrees | selected | Included in the development workflow for growing software. | — |

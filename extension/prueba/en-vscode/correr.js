@@ -23,8 +23,25 @@ async function main() {
 
   const datos = fs.mkdtempSync(path.join(os.tmpdir(), 'vsc-'));
 
+  // ── El editor descargado NO vive dentro del proyecto ──────────────────
+  //
+  // Por defecto `@vscode/test-electron` lo deja en `.vscode-test/` al lado del
+  // código: 900 MB de un VS Code entero, dentro de la carpeta que el arnés
+  // escanea para decidir qué es este proyecto. `scanProject` de RSC no lee el
+  // `.gitignore` —tiene su propia lista— así que se leía todo: y entre las
+  // dependencias de la extensión de Copilot que viene dentro hay `react`.
+  //
+  // Resultado, comprobado el 21-09-2026: el plan que RSC propuso para este
+  // repositorio traía `skill/react`, dos ayudantes de React y tres comandos de
+  // React, y las señales de complejidad «authentication, external-integrations,
+  // persistence» salían de las rutas del propio editor. Un plan construido
+  // sobre evidencia que no es de este proyecto.
+  const cacheFueraDelProyecto = path.join(os.homedir(), '.cache', 'executive-lab-vscode-test');
+  fs.mkdirSync(cacheFueraDelProyecto, { recursive: true });
+
   try {
     await runTests({
+      cachePath: cacheFueraDelProyecto,
       extensionDevelopmentPath: extension,
       extensionTestsPath: path.resolve(__dirname, 'suite.js'),
       // La carpeta de mentira, como URI y no como ruta suelta: pasada a pelo,

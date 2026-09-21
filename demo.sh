@@ -24,7 +24,12 @@ set -euo pipefail
 for v in $(env | grep -oE '^(ELECTRON|VSCODE)_[A-Z0-9_]+'); do unset "$v"; done
 
 R="$(cd "$(dirname "$0")" && pwd)"
-D="$R/.demo"
+# Fuera del proyecto, y no en `.demo/` al lado del código: son 700 MB de un VS
+# Code entero con sus extensiones, y el arnés escanea esta carpeta para decidir
+# qué clase de proyecto es. `scanProject` no lee el `.gitignore`, así que lo que
+# haya dentro cuenta como evidencia: de ahí salió un plan con React en un
+# proyecto que no tiene React. Ver `extension/prueba/en-vscode/correr.js`.
+D="${EXECUTIVE_LAB_DEMO:-$HOME/.cache/executive-lab-demo}"
 CODE="/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
 [ -x "$CODE" ] || { echo "No encuentro VS Code en /Applications." >&2; exit 1; }
 
@@ -67,7 +72,7 @@ if [ ! -f "$D/empresa/.rsc.json" ]; then
   if [ -d "$R/instalador/windows/carga/harness" ]; then
     rm -rf "$D/app/harness" && cp -R "$R/instalador/windows/carga/harness" "$D/app/harness"
   else
-    npm install --prefix "$D/app/harness" @ericrisco/rsc@1.4.1 --silent --no-audit --no-fund
+    npm install --prefix "$D/app/harness" @ericrisco/rsc@2.0.5 --silent --no-audit --no-fund
   fi
   node "$D/app/preparar.js" --destino "$D/empresa" --objetivo "organizar mis facturas" --asistente claude --sin-editor \
     || { echo "preparar.js ha fallado; mira $D/empresa/instalacion.log" >&2; exit 1; }
