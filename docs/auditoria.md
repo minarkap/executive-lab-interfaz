@@ -205,11 +205,18 @@ código**. Tarda unos segundos y por eso no va en la pasada normal.
 ## Lo que sigue sin probar
 
 **El interruptor por ventana no se ha visto con dos ventanas abiertas a la vez** — la prueba confirma
-que escribe en el ámbito de carpeta y no en el de usuario, pero verlo es cosa de mirar. Y queda una
-pregunta concreta para esa mirada: si VS Code fusiona también `workbench.colorCustomizations`, los
-colores de la marca se quedarían puestos en modo avanzado. Se ve a simple vista —barra lateral color
-crema con el editor completo— y se arregla igual que las listas de exclusión (F9). Y sigue
-pendiente el `.exe` en un Windows limpio, que es lo que de verdad bloquea sentar alumnos.
+que escribe en el ámbito de carpeta y no en el de usuario, pero verlo es cosa de mirar.
+
+La pregunta que quedaba para esa mirada **ya está contestada** (24-09-2026), leyendo el código en vez
+de mirando: los colores de la marca **no** se quedan puestos en modo avanzado. `workbench.colorCustomizations`
+se escribe solo en el ámbito de la carpeta —`aplicar()` usa `ConfigurationTarget.Workspace` y nada
+más—, el instalador nunca lo toca (`SOLO_DEL_EDITOR` son cinco claves y ninguna es visual), y
+`verEditorCompleto` limpia exactamente ese ámbito. La fusión entre ámbitos que mordió en F9 no
+aplica aquí porque no hay valor global que fusionar. Y está vigilado: la prueba del interruptor
+exige que la carpeta se quede **solo** con el interruptor apagado, así que si alguien escribiera
+esos colores en otro sitio, se pondría roja.
+
+Sigue pendiente el `.exe` en un Windows limpio, que es lo que de verdad bloquea sentar alumnos.
 
 ---
 
