@@ -415,3 +415,17 @@ Worklog: `02-DOCS/raw/worklog/2026-09-24-codex-de-verdad.md`. Decisión 111 en `
 - Sigue sin verse que Codex **lea** ese bloque al arrancar: eso pide tenerlo delante hablando.
 
 0.30.0. 195 comprobaciones.
+
+## Un git que no sabe quién eres no es un callejón — 24 de septiembre de 2026
+
+Decisión 112 en `docs/decisiones.md`.
+
+- Un ordenador recién estrenado trae git **sin nombre ni correo**. En una carpeta que ya tenía git,
+  nadie se los ponía, y el primer «Guardar en git» acababa en «No puedo guardar copias en este
+  ordenador. Pulsa Algo va mal»: un callejón por algo que se arregla con una orden.
+- Ahora se pone la identidad del arnés y se reintenta, **solo en esa carpeta**. Quien tenga su git
+  configurado no se entera y el suyo no se toca (P4).
+- Misma regla que se aplicó a git en la decisión 26: quien está solo delante de la pantalla necesita
+  una salida, no un «díselo a tu tutor».
+
+0.31.0. 194 comprobaciones.

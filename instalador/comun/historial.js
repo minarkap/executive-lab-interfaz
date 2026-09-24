@@ -30,6 +30,11 @@ const path = require('node:path');
 const { execFile } = require('node:child_process');
 
 const QUIEN = { name: 'Executive Lab', email: 'alumno@executivelab.local' };
+
+// Cómo se queja git cuando no sabe quién eres. Lo dice en el idioma del
+// sistema, así que se reconoce por lo que no se traduce: los nombres de las
+// dos claves de configuración que pide, y su plantilla de ejemplo.
+const SIN_IDENTIDAD = /user\.email|user\.name|unable to auto-detect email|tell me who you are/i;
 const RAMA = 'main';
 
 // ───────────────────────────── el motor de JavaScript ─────────────────────────
@@ -206,7 +211,26 @@ function motorBinario(ejecutable) {
       const cuantos = await contarCambios(dir);
       if (!cuantos) return { ok: true, sinCambios: true, cuantos: 0 };
       await exigir(dir, ['add', '-A']);
-      await exigir(dir, ['commit', '-q', '-m', mensaje]);
+
+      // ── Un git recién instalado no sabe quién eres ────────────────────
+      //
+      // `iniciar()` pone el nombre y el correo, pero solo cuando somos
+      // nosotros los que creamos el historial. En una carpeta que ya tenía
+      // git —o en un ordenador recién estrenado, donde nadie ha configurado
+      // nada— el `commit` se cae con «Please tell me who you are», y el
+      // alumno recibía «No puedo guardar copias en este ordenador. Pulsa
+      // Algo va mal»: un callejón por algo que se arregla con una orden.
+      //
+      // Se pone **solo en esta carpeta**, nunca en todo el ordenador: lo de
+      // esa persona no se toca, y un git suyo con su nombre sigue igual.
+      try {
+        await exigir(dir, ['commit', '-q', '-m', mensaje]);
+      } catch (error) {
+        if (!SIN_IDENTIDAD.test(String(error && error.message))) throw error;
+        await exigir(dir, ['config', '--local', 'user.name', QUIEN.name]);
+        await exigir(dir, ['config', '--local', 'user.email', QUIEN.email]);
+        await exigir(dir, ['commit', '-q', '-m', mensaje]);
+      }
       return { ok: true, cuantos };
     },
 

@@ -3299,3 +3299,36 @@ pasada— pero la prueba decía «Codex» mientras miraba otra cosa. Ahora se fi
 que el `.rsc.json` caiga donde toca.
 
 0.30.0. 195 comprobaciones.
+
+## 112. Un git que no sabe quién eres no es un callejón
+
+**Fecha:** 24 de septiembre de 2026 · **Estado:** decidido
+
+Buscando fallos en lo que un alumno usa a diario. Un Mac recién estrenado trae git, pero **sin
+nombre ni correo configurados** — eso lo hace cada uno la primera vez que usa git, y alguien que no
+es técnico no lo ha hecho nunca.
+
+`historial.iniciar()` los pone, pero solo cuando el historial lo creamos nosotros. En una carpeta
+que **ya tenía git** —el caso brownfield, que es medio proyecto— nadie los ponía. Así que el primer
+«Guardar en git» se caía con *«Please tell me who you are»* y el alumno recibía:
+
+> No puedo guardar copias en este ordenador. Pulsa "Algo va mal".
+
+Un callejón, por algo que se arregla con una orden. Es exactamente lo que ya se decidió con git en
+la decisión 26: *«Antes decía "díselo a tu tutor", que no es una salida para quien está solo delante
+de la pantalla»*.
+
+### Qué se hace
+
+Si el guardado se cae por falta de identidad, se pone la del arnés —`Executive Lab` /
+`alumno@executivelab.local`, la misma que ya usa el instalador, para que haya una sola verdad— y se
+reintenta. Sale transparente: el alumno ve «Copia guardada».
+
+**Solo en esa carpeta** (`--local`), nunca en todo el ordenador. Quien sí tenga su git configurado
+no se entera de nada, y el suyo se queda como estaba: P4, lo de esa persona no se toca. Hay una
+comprobación que lo exige.
+
+Se reconoce el fallo por lo que git no traduce —los nombres de las dos claves que pide— porque el
+mensaje sale en el idioma del sistema.
+
+0.31.0. 194 comprobaciones.

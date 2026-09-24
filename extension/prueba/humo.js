@@ -3813,6 +3813,46 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${suyos.length} ficheros comunes, y la copia probada es la de ahora`;
   });
 
+  await comprobar('un git que no sabe quién eres no es un callejón', async () => {
+    // Un Mac recién estrenado trae git pero sin nombre ni correo puestos, y
+    // `iniciar()` solo los pone cuando el historial lo creamos nosotros. En una
+    // carpeta que ya tenía git, el primer «Guardar en git» se caía con «Please
+    // tell me who you are» y el alumno recibía «No puedo guardar copias en este
+    // ordenador. Pulsa Algo va mal»: un callejón por algo que se arregla con
+    // una orden (decisión 112, y la misma regla que git en la decisión 26).
+    const fs2 = require('node:fs');
+    const cp = require('node:child_process');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'sin-identidad-'));
+    const git = (...args) => cp.spawnSync('git', args, { cwd: carpeta, encoding: 'utf8' });
+    if (git('init', '-q', '.').status !== 0) return 'SALTADA';
+    // Vaciarlas es lo más parecido a no tenerlas que se puede montar aquí sin
+    // tocar el git de quien corre esto.
+    git('config', 'user.email', '');
+    git('config', 'user.name', '');
+    fs2.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'] }));
+    fs2.writeFileSync(path.join(carpeta, 'algo.md'), 'hola');
+
+    const globalAntes = cp.spawnSync('git', ['config', '--global', 'user.name'], { encoding: 'utf8' }).stdout;
+    vscode.guion.raiz = carpeta;
+    try {
+      const hecho = await cargar('guardar').guardar('mi primera copia');
+      assert.equal(hecho.ok, true, `se queda en un callejón: ${hecho.mensaje}`);
+      assert.ok(!/Algo va mal/.test(hecho.mensaje || ''), 'y no manda al tutor por esto');
+
+      const log = git('log', '--pretty=%an <%ae> — %s').stdout.trim();
+      assert.match(log, /Executive Lab <alumno@executivelab\.local>/, 'firma con la identidad del arnés');
+      assert.match(log, /mi primera copia/);
+
+      // Y solo en esta carpeta: el git de quien esté delante no se toca (P4).
+      const globalDespues = cp.spawnSync('git', ['config', '--global', 'user.name'], { encoding: 'utf8' }).stdout;
+      assert.equal(globalDespues, globalAntes, 'el nombre de git de esa persona se queda como estaba');
+      assert.equal(git('config', '--local', 'user.name').stdout.trim(), 'Executive Lab', 'se puso solo aquí');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return 'guarda, firma con el arnés y no toca el git de nadie';
+  });
+
   await comprobar('un enganche que apunta al ordenador de otro se arregla', () => {
     // `.claude/settings.json` viaja en git —es la costura del arnés— y dentro
     // van los enganches, que en cuanto se arreglan una vez llevan una ruta
