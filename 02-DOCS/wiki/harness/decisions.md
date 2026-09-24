@@ -389,3 +389,14 @@ Decisión 109 en `docs/decisiones.md`.
   existe. Ahora se comprueba que la copia esté al día.
 
 0.29.0. 193 comprobaciones.
+
+## Un atajo que no se nota es un atajo que se toma sin querer — 24 de septiembre de 2026
+
+Decisión 110 en `docs/decisiones.md`.
+
+`./publicar.sh --rapido` se salta el wizard con un arnés de verdad, y el `.vsix` que sale era
+**idéntico** a uno comprobado entero: mismo nombre, misma carpeta y las mismas instrucciones para
+publicarlo. Tres versiones salieron así en un día. Ahora el guion se acuerda de qué comprobó: si fue
+entero lo dice, y si no, avisa y da la orden para hacerlo bien en vez de las de publicar.
+
+0.29.1.

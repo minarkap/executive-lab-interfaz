@@ -3232,3 +3232,26 @@ mientras que el `.vsix` sí llevaría el nuevo. Un verde que no prueba lo que se
 un rojo, así que ahora hay una comprobación que exige que la copia esté al día.
 
 0.29.0. 193 comprobaciones.
+
+## 110. Un atajo que no se nota es un atajo que se toma sin querer
+
+**Fecha:** 24 de septiembre de 2026 · **Estado:** decidido
+
+`./publicar.sh --rapido` se salta montar un arnés de verdad —el wizard de punta a punta, que tarda
+minutos— y está documentado como «para cuando solo quieres el .vsix a mano». Todo correcto.
+
+Lo que no estaba bien: **el resultado es idéntico mire quien lo mire**. Mismo nombre, mismo tamaño,
+misma carpeta, y la misma lista de «Qué hacer con esto: subirlo como release». En un solo día se
+publicaron tres versiones con `--rapido` creyendo que estaban comprobadas enteras.
+
+Y ese camino es justo el que importa: es lo que hace un alumno el primer día, y **estuvo roto tres
+semanas sin que nadie lo viera** (auditoría, F26).
+
+Ahora el guion se acuerda de qué comprobó. Si fue entero, lo dice y recomienda publicar. Si no,
+avisa con todas las letras de que no está comprobado, explica qué se ha saltado y por qué importa,
+y en vez de las instrucciones para publicar da la orden para comprobarlo bien.
+
+No se le quita el atajo a nadie: sigue valiendo para probar en local. Lo que deja de poder pasar es
+tomarlo sin enterarse.
+
+0.29.1.

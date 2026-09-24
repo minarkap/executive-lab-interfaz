@@ -45,7 +45,14 @@ echo "Comprobando antes de empaquetar…"
 # esos minutos salen baratos.
 #
 # `--rapido` se los salta, para cuando solo quieres el .vsix a mano.
+#
+# Y eso se recuerda al final, porque el .vsix que sale es idéntico mire quien lo
+# mire: mismo nombre, mismo tamaño, misma carpeta. En un solo día se publicaron
+# tres versiones con `--rapido` creyendo que estaban verificadas. Un atajo que no
+# se nota es un atajo que se toma sin querer.
+COMPLETO=1
 if [ "${1:-}" = "--rapido" ]; then
+  COMPLETO=0
   echo "  (con --rapido: sin montar un arnés de verdad)"
   npm run probar --silent | grep -E 'comprobaciones|empresas'
 else
@@ -90,7 +97,20 @@ echo
 echo "Listo en publicacion/:"
 ls -la "$DESTINO" | tail -n +2 | awk '{printf "  %-34s %s\n", $9, int($5/1048576)" MB"}'
 echo
-echo "Qué hacer con esto:"
-echo "  1. Subirlo como release en GitHub, con NOTAS.md de descripción."
-echo "  2. Para el Marketplace: npx @vscode/vsce publish  (hace falta cuenta de editor)."
-echo "  3. Para Open VSX:      npx ovsx publish executive-lab-$VERSION.vsix -p <token>"
+if [ "$COMPLETO" = "1" ]; then
+  echo "Comprobado entero, incluido el wizard con un arnés de verdad."
+  echo
+  echo "Qué hacer con esto:"
+  echo "  1. Subirlo como release en GitHub, con NOTAS.md de descripción."
+  echo "  2. Para el Marketplace: npx @vscode/vsce publish  (hace falta cuenta de editor)."
+  echo "  3. Para Open VSX:      npx ovsx publish executive-lab-$VERSION.vsix -p <token>"
+else
+  echo "⚠️  ESTE NO ESTÁ COMPROBADO ENTERO."
+  echo
+  echo "Con --rapido no se ha montado un arnés de verdad, así que el camino que"
+  echo "usa un alumno el primer día —el wizard, de punta a punta— no se ha tocado."
+  echo "Estuvo roto tres semanas sin que nadie lo viera (auditoría, F26)."
+  echo
+  echo "Vale para probarlo tú en local. Antes de publicarlo para alguien más:"
+  echo "  ./publicar.sh        (sin --rapido: tarda unos minutos y lo comprueba entero)"
+fi
