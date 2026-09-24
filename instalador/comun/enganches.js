@@ -6,6 +6,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 // Los enganches del arnés llaman a `node` por su nombre, y en el ordenador de
 // un alumno no hay ningún node en el PATH: el nuestro vive dentro de la carpeta
@@ -49,10 +50,72 @@ function elNodeDeLaOrden(orden) {
   return null;
 }
 
+// ── Y que git deje de contar como cambio lo que es de esta máquina ───────
+//
+// Arreglar la ruta deja el fichero distinto del que hay en el repositorio, y
+// `.claude/settings.json` está versionado. Así que en cada ordenador sale
+// **siempre como modificado**, para siempre, y el botón de guardar de la barra
+// hace `add -A`: tarde o temprano alguien sube la ruta de su casa y se la lleva
+// el siguiente.
+//
+// No se arregla eligiendo una ruta mejor: no la hay. El node bueno está en un
+// sitio distinto en cada ordenador, y por eso este módulo existe. Lo que se
+// puede es decirle a git, **en cada clon y solo ahí**, que ese fichero ya está
+// como tiene que estar: `--skip-worktree`. El repositorio conserva la forma
+// portable (`node` a secas), cada máquina conserva la suya, y nadie pisa a
+// nadie.
+//
+// Es una marca local: no viaja, no se hereda al clonar, y la pone aquí cada
+// instalación por su cuenta — que es justo lo que pedía el problema.
+//
+// Tres cosas que NO se hacen a propósito:
+//
+//   · Si no hay git, o la carpeta no es un repositorio, o el fichero no está
+//     versionado (el caso de casi todos los alumnos): no hay nada que esconder.
+//   · Si el fichero **no difiere** del repositorio, tampoco se marca. Esconder
+//     por adelantado un fichero que está bien es esconder el próximo cambio de
+//     verdad.
+//   · No se toca `.gitignore` ni se saca el fichero del repositorio: RSC lo
+//     quiere versionado, y un clon sin él se queda sin enganches.
+//
+// El precio, dicho: mientras la marca está puesta, un `git pull` que traiga un
+// cambio de ese fichero se para y hay que quitarla a mano
+// (`git update-index --no-skip-worktree .claude/settings.json`). Se para
+// ruidosamente, que es como este proyecto prefiere fallar.
+function queGitNoLoVea(destino, fichero, anotar = () => {}) {
+  const rel = path.relative(destino, fichero).split(path.sep).join('/');
+  const git = (...args) => execFileSync('git', ['-C', destino, ...args], {
+    stdio: ['ignore', 'pipe', 'ignore'],
+    encoding: 'utf8',
+  });
+
+  try {
+    git('rev-parse', '--is-inside-work-tree');
+    git('ls-files', '--error-unmatch', '--', rel);
+  } catch {
+    return false;
+  }
+
+  try {
+    // Sale bien = no difiere del repositorio. Nada que esconder.
+    git('diff', '--quiet', 'HEAD', '--', rel);
+    return false;
+  } catch { /* difiere: lleva la ruta de este ordenador */ }
+
+  try {
+    git('update-index', '--skip-worktree', '--', rel);
+  } catch {
+    return false;
+  }
+  anotar(`git deja de contar ${rel} como un cambio tuyo: lleva la ruta de este ordenador.`);
+  return true;
+}
+
 function fijarElNodeDeLosEnganches(destino, node = process.execPath, anotar = () => {}) {
   const citado = /\s/.test(node) ? `"${node}"` : node;
   let tocados = 0;
   let heredados = 0;
+  let escondidos = 0;
 
   for (const nombre of ['settings.json', 'settings.local.json']) {
     const fichero = path.join(destino, '.claude', nombre);
@@ -90,11 +153,15 @@ function fijarElNodeDeLosEnganches(destino, node = process.execPath, anotar = ()
       fs.writeFileSync(fichero, `${JSON.stringify(datos, null, 2)}\n`);
       tocados += 1;
     }
+
+    // Arreglado el fichero, queda que git no lo cuente como un cambio de nadie.
+    if (queGitNoLoVea(destino, fichero, anotar)) escondidos += 1;
   }
 
   anotar(`Enganches apuntando a ${node}: ${tocados} fichero(s)`
-    + (heredados ? `; ${heredados} venían de otro ordenador y no habrían funcionado aquí` : ''));
+    + (heredados ? `; ${heredados} venían de otro ordenador y no habrían funcionado aquí` : '')
+    + (escondidos ? `; ${escondidos} ya no lo cuenta git como cambio tuyo` : ''));
   return tocados;
 }
 
-module.exports = { fijarElNodeDeLosEnganches };
+module.exports = { fijarElNodeDeLosEnganches, queGitNoLoVea };

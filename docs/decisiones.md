@@ -3383,3 +3383,35 @@ una carpeta con muchas claves y mirar si llega entero. Si no llega, la salida ya
 que inventarla — el portapapeles no tiene límite.
 
 0.32.0. 195 comprobaciones.
+
+## 115. Cada máquina la suya, y git en silencio
+
+Lo que la 111 dejó abierto. `.claude/settings.json` está versionado —RSC lo quiere así— y dentro
+van los enganches, que empiezan llamando a `node`. En el ordenador de un alumno no hay ninguno en
+el PATH, así que `enganches.js` los reescribe con la ruta completa del nuestro. Un fichero que
+viaja a todas las máquinas queda entonces con una ruta que solo existe en una: **sale siempre como
+modificado, en todas**.
+
+Lo peligroso lo arregló la 111 —quien clona se lo repara su propia instalación—. Lo que quedaba
+muerde de otra manera: el botón de guardar de la barra hace `add -A`, así que tarde o temprano
+alguien sube la ruta de su casa.
+
+No se arregla eligiendo una ruta mejor: **no la hay**. El node bueno está en un sitio distinto en
+cada ordenador, y esa es la razón de que este módulo exista. Lo que sí se puede es decirle a git,
+en cada clon y solo ahí, que ese fichero ya está como tiene que estar: `--skip-worktree`. El
+repositorio conserva la forma portable, cada máquina conserva la suya, y nadie pisa a nadie. La
+marca es local, no viaja al clonar, y **la pone cada instalación por su cuenta** — que era justo lo
+que pedía el problema: cada uno en la suya.
+
+Tres cosas que no hace, a propósito: no toca nada si no hay git, si la carpeta no es un repositorio
+o si el fichero no está versionado (el caso de casi todos los alumnos); no marca un fichero que no
+difiere del repositorio, porque esconder por adelantado algo que está bien es esconder el próximo
+cambio de verdad; y no saca el fichero de git ni parte los enganches en dos ficheros, que es lo que
+la 111 ya descartó con su motivo.
+
+El precio, dicho: mientras la marca está puesta, un `git pull` que traiga un cambio de ese fichero
+se para y hay que quitarla a mano (`git update-index --no-skip-worktree`). Se para ruidosamente,
+que es como este proyecto prefiere fallar.
+
+0.32.0. 196 comprobaciones, la nueva verificada por mutación y aplicada a esta carpeta: `git status`
+deja de sacar `settings.json` sin que Jose pierda su ruta.

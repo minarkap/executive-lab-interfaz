@@ -452,3 +452,19 @@ Decisión 114 en `docs/decisiones.md`.
   cuando aparezca esa máquina, en vez de poner un tope adivinado que empeoraría macOS.
 
 0.32.0. 195 comprobaciones.
+
+## Cada máquina la suya, y git en silencio — 24 de septiembre de 2026
+
+Decisión 115 en `docs/decisiones.md`.
+
+- `.claude/settings.json` está versionado y cada máquina le mete la ruta de su propio node, así que
+  salía **siempre como modificado, en todas**. Y el botón de guardar hace `add -A`: tarde o temprano
+  alguien sube la ruta de su casa.
+- No hay una ruta mejor que elegir. Lo que se hace es marcarlo como visto **en cada clon**
+  (`--skip-worktree`), y lo hace cada instalación por su cuenta: el repositorio conserva la forma
+  portable y cada máquina la suya.
+- No se toca nada sin git, sin repositorio, sin versionar, ni cuando el fichero no difiere.
+- Aplicado a esta carpeta: `git status` deja de sacarlo, y los siete enganches de Jose siguen
+  apuntando a su node.
+
+0.32.0. 196 comprobaciones.

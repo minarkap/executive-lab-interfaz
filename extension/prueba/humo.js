@@ -3930,6 +3930,66 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'node a secas · ruta heredada · sin comillas · la que vale se respeta';
   });
 
+  await comprobar('el arreglo de cada máquina deja de contar como un cambio suyo', () => {
+    // Arreglar la ruta deja `.claude/settings.json` distinto del que hay en el
+    // repositorio, y ese fichero está versionado. Así que salía SIEMPRE como
+    // modificado, en todas las máquinas y para siempre — y el botón de guardar
+    // de la barra hace `add -A`: tarde o temprano alguien sube la ruta de su
+    // casa y se la lleva el siguiente al clonar.
+    //
+    // No hay una ruta mejor que elegir: el node bueno está en un sitio distinto
+    // en cada ordenador, que es la razón de que este módulo exista. Lo que se
+    // hace es marcarlo como visto en ESE clon, que es una marca local y no viaja.
+    const fs2 = require('node:fs');
+    const cp = require('node:child_process');
+    const { fijarElNodeDeLosEnganches } = require(path.join(RAIZ, 'media', 'comun', 'enganches.js'));
+
+    const casa = fs2.mkdtempSync(path.join(os.tmpdir(), 'enganches-git-'));
+    const git = (...args) => cp.execFileSync('git', ['-C', casa, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    git('init', '-q');
+    git('config', 'user.email', 'prueba@executivelab.ai');
+    git('config', 'user.name', 'Prueba');
+
+    const fichero = path.join(casa, '.claude', 'settings.json');
+    fs2.mkdirSync(path.dirname(fichero), { recursive: true });
+    const conOrden = (orden) => JSON.stringify({
+      hooks: { SessionStart: [{ hooks: [{ type: 'command', command: orden }] }] },
+    }, null, 2);
+
+    // El repositorio guarda la forma portable, que es la que escribe RSC.
+    fs2.writeFileSync(fichero, conOrden('node "${CLAUDE_PROJECT_DIR}/.rsc/session-start.mjs"'));
+    git('add', '-A');
+    git('commit', '-q', '-m', 'la costura del arnés, como la deja RSC');
+    assert.equal(git('status', '--porcelain').trim(), '', 'se parte de un árbol limpio');
+
+    // Y esta máquina se arregla la suya.
+    const elNuestro = process.execPath;
+    fijarElNodeDeLosEnganches(casa, elNuestro);
+
+    const enDisco = JSON.parse(fs2.readFileSync(fichero, 'utf8')).hooks.SessionStart[0].hooks[0].command;
+    assert.ok(enDisco.includes(elNuestro), 'en el disco queda el node de esta máquina');
+    assert.equal(git('status', '--porcelain').trim(), '', 'y git ya no lo cuenta como un cambio tuyo');
+    assert.match(git('ls-files', '-v', '.claude/settings.json'), /^S/, 'está marcado, no borrado ni ignorado');
+
+    // Lo que ve quien clone sigue siendo la forma portable: la marca es de
+    // este clon y no viaja.
+    assert.match(git('show', 'HEAD:.claude/settings.json'), /"command": "node /, 'el repositorio conserva lo portable');
+
+    // Y un fichero que no está en git no se toca: es el caso de casi todos los
+    // alumnos, cuya carpeta todavía no es un repositorio.
+    const suelta = fs2.mkdtempSync(path.join(os.tmpdir(), 'enganches-sin-git-'));
+    fs2.mkdirSync(path.join(suelta, '.claude'), { recursive: true });
+    fs2.writeFileSync(path.join(suelta, '.claude', 'settings.json'), conOrden('node "${CLAUDE_PROJECT_DIR}/.rsc/session-start.mjs"'));
+    assert.doesNotThrow(() => fijarElNodeDeLosEnganches(suelta, elNuestro), 'sin repositorio no se cae');
+    assert.ok(
+      JSON.parse(fs2.readFileSync(path.join(suelta, '.claude', 'settings.json'), 'utf8'))
+        .hooks.SessionStart[0].hooks[0].command.includes(elNuestro),
+      'y el enganche se arregla igual',
+    );
+
+    return 'el disco con su ruta, git en silencio, y el repositorio portable';
+  });
+
   await comprobar('unos raíles de la semana pasada se ven, y se reponen', async () => {
     // F13 de la auditoría, y hoy muerde de verdad: los raíles los copia el
     // wizard al montar, con los que llevara la barra ese día. Al subir de
