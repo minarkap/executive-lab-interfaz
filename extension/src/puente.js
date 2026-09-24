@@ -76,6 +76,18 @@ const abrirConversacion = () => ejecutarSiExiste(asistentes.elDeAhora().abrir);
 // Y nada de enfocar después. Ver `darFoco`: eso abría una conversación nueva
 // vacía encima de la que acababa de recibir el texto.
 async function enviar(texto, salida) {
+  // ── Nada de abrir una conversación con la caja vacía ────────────────────
+  //
+  // Ya pasó una vez y costó tres versiones: un botón mandaba `undefined` y esa
+  // palabra acabó escrita en la caja de Claude. Hay una prueba que vigila que
+  // ningún botón mande texto vacío, pero eso cuida el lado de quien llama.
+  // Aquí es donde se sabe de verdad, y donde no cuesta nada negarse: abrir una
+  // conversación en blanco deja a alguien mirando un cursor sin saber por qué.
+  if (!String(texto || '').trim()) {
+    if (salida) salida.appendLine('[puente] no mando nada: el texto venía vacío'); // diccionario: interno
+    return 'vacio';
+  }
+
   const quien = asistentes.elDeAhora();
 
   // openExternal dice que sí en cuanto entrega la URI, sin mirar si alguien la

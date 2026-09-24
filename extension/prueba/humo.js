@@ -3825,6 +3825,19 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${suyos.length} ficheros comunes, y la copia probada es la de ahora`;
   });
 
+  await comprobar('el puente no abre una conversación en blanco', async () => {
+    // Ya pasó y costó tres versiones: un botón mandaba `undefined` y esa
+    // palabra acabó escrita en la caja de Claude. Hay una prueba que vigila el
+    // lado de quien llama; esta vigila el otro, que es donde se sabe de verdad.
+    const puente = cargar('puente');
+    const callar = { appendLine() {} };
+    for (const nada of ['', '   ', '\n\t ', undefined, null]) {
+      assert.equal(await puente.enviar(nada, callar), 'vacio', `manda ${JSON.stringify(nada)} a la conversación`);
+    }
+    assert.notEqual(await puente.enviar('esto sí', callar), 'vacio', 'y lo que tiene texto sí va');
+    return 'cinco formas de no decir nada, y ninguna abre el chat';
+  });
+
   await comprobar('un git que no sabe quién eres no es un callejón', async () => {
     // Un Mac recién estrenado trae git pero sin nombre ni correo puestos, y
     // `iniciar()` solo los pone cuando el historial lo creamos nosotros. En una

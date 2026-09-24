@@ -216,7 +216,22 @@ aplica aquí porque no hay valor global que fusionar. Y está vigilado: la prueb
 exige que la carpeta se quede **solo** con el interruptor apagado, así que si alguien escribiera
 esos colores en otro sitio, se pondría roja.
 
-Sigue pendiente el `.exe` en un Windows limpio, que es lo que de verdad bloquea sentar alumnos.
+Sigue pendiente el `.exe` en un Windows limpio, que es lo que de verdad bloquea sentar alumnos. Y
+cuando esa máquina aparezca, **hay una cosa concreta que probar ahí y solo ahí** (medida el
+24-09-2026):
+
+El puente manda el texto al asistente metiéndolo en una URL —
+`vscode://anthropic.claude-code/open?prompt=…`— y algunos de nuestros encargos son largos. Medido:
+el de ordenar las claves de una carpeta con 120 claves ocupa 5.654 caracteres, que codificados dan
+una **URL de 8.448**. En macOS pasa sin problema. En Windows, `ShellExecute` corta alrededor de los
+2.048, y `openExternal` devuelve que sí en cuanto entrega la URI, mire o no si alguien la recoge —
+que es el fallo F1 de esta misma auditoría.
+
+Si ahí se corta, el alumno recibe **medio encargo** y el asistente hace medio trabajo sin que nada
+lo diga. No se ha tocado por no degradar el camino bueno de macOS adivinando un límite: lo que hay
+que hacer en Windows es pulsar *Que las ordene* en una carpeta con muchas claves y mirar si llega
+entero. Si no llega, la salida ya existe y no hay que inventarla: el portapapeles, que no tiene
+límite.
 
 ---
 

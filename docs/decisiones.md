@@ -3354,3 +3354,32 @@ puestos, `Casa\n Pepe\nlogo: /etc/passwd` queda como un nombre largo y feo —«
 Comprobado quitando los dos: la comprobación se pone roja.
 
 0.31.1. 194 comprobaciones.
+
+## 114. El puente no abre una conversación en blanco
+
+**Fecha:** 24 de septiembre de 2026 · **Estado:** decidido
+
+Barriendo el puente con el asistente con textos hostiles —vacío, solo espacios, con saltos, con
+comillas, de 20.000 caracteres, con emoji—. Todo pasa bien menos lo primero: **un texto vacío se
+mandaba igual**, y abría una conversación con la caja en blanco.
+
+Ya hay una prueba que vigila que ningún botón mande texto vacío, y viene del fallo que costó tres
+versiones: un botón mandaba `undefined` y esa palabra acabó escrita en la caja de Claude. Pero eso
+cuida el lado de **quien llama**. Aquí es donde se sabe de verdad, y donde negarse no cuesta nada:
+se devuelve `vacio`, se apunta por dentro, y no se abre nada.
+
+### Y una cosa que NO se ha tocado, con sus números
+
+El puente manda el texto metiéndolo en una URL. Medido: el encargo de ordenar las claves de una
+carpeta con 120 ocupa 5.654 caracteres, que codificados dan una **URL de 8.448**. En macOS pasa. En
+Windows, `ShellExecute` corta alrededor de los 2.048 — y `openExternal` devuelve que sí en cuanto
+entrega la URI, mire o no si alguien la recoge, que es el fallo F1 de la auditoría.
+
+Si ahí se corta, el alumno recibe medio encargo y el asistente hace medio trabajo sin que nada lo
+diga. **No se arregla hoy a ciegas**: poner un tope adivinado mandaría al portapapeles casos que en
+macOS funcionan, y eso es empeorar el camino bueno por un límite que no hemos medido. Queda escrito
+en la auditoría y en lo pendiente de Windows como una prueba concreta: pulsar *Que las ordene* en
+una carpeta con muchas claves y mirar si llega entero. Si no llega, la salida ya existe y no hay
+que inventarla — el portapapeles no tiene límite.
+
+0.32.0. 195 comprobaciones.

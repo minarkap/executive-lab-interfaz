@@ -440,3 +440,15 @@ nombre en la primera palabra y colaba el resto como si fuera otro campo. Ahora l
 aplastan al leer y otra vez al escribir.
 
 0.31.1. 194 comprobaciones.
+
+## El puente no abre una conversación en blanco — 24 de septiembre de 2026
+
+Decisión 114 en `docs/decisiones.md`.
+
+- Un texto vacío se mandaba igual y abría el chat con la caja en blanco. La prueba que ya existía
+  cuida el lado de quien llama; ahora se comprueba también donde se sabe de verdad.
+- Sin tocar, con números: el encargo de ordenar 120 claves da una **URL de 8.448 caracteres**. En
+  macOS pasa; en Windows `ShellExecute` corta sobre los 2.048. Anotado como prueba concreta para
+  cuando aparezca esa máquina, en vez de poner un tope adivinado que empeoraría macOS.
+
+0.32.0. 195 comprobaciones.
