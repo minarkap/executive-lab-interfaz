@@ -3785,6 +3785,86 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'cuenta de servicio · .pem · lo que está en su sitio no molesta · nada del contenido sale';
   });
 
+  await comprobar('las pruebas no corren contra una copia vieja de lo común', () => {
+    // `instalador/comun/` es la fuente; `extension/media/comun/` la genera
+    // `preparar-paquete.js` al empaquetar, y está ignorada a propósito para no
+    // tener dos copias en el repositorio. Eso ya está bien pensado.
+    //
+    // Lo que no cubría nadie: **las pruebas importan la copia generada**, no la
+    // fuente. Si alguien toca `instalador/comun/` y no vuelve a empaquetar, la
+    // suite da por bueno código que ya no existe — y el empaquetado sí llevaría
+    // el nuevo. Un verde que no prueba lo que se publica es peor que un rojo.
+    const fs2 = require('node:fs');
+    const fuente = path.join(RAIZ, '..', 'instalador', 'comun');
+    const copia = path.join(RAIZ, 'media', 'comun');
+    if (!fs2.existsSync(fuente) || !fs2.existsSync(copia)) return 'SALTADA';
+
+    const suyos = fs2.readdirSync(copia).filter((f) => f.endsWith('.js'));
+    assert.ok(suyos.length, 'la barra lleva alguno');
+    for (const fichero of suyos) {
+      const alla = path.join(fuente, fichero);
+      assert.ok(fs2.existsSync(alla), `${fichero} está en la copia y ya no en instalador/comun/`);
+      assert.equal(
+        fs2.readFileSync(path.join(copia, fichero), 'utf8'),
+        fs2.readFileSync(alla, 'utf8'),
+        `${fichero}: la copia que prueban las pruebas está vieja. Vuelve a empaquetar.`,
+      );
+    }
+    return `${suyos.length} ficheros comunes, y la copia probada es la de ahora`;
+  });
+
+  await comprobar('un enganche que apunta al ordenador de otro se arregla', () => {
+    // `.claude/settings.json` viaja en git —es la costura del arnés— y dentro
+    // van los enganches, que en cuanto se arreglan una vez llevan una ruta
+    // absoluta. Quien clonaba el proyecto de un compañero se llevaba los
+    // enganches apuntando al Mac de ese compañero, y esto no volvía a tocarlos
+    // porque solo miraba los que empiezan por `node` a secas. El arnés se
+    // quedaba sin cuerpo siempre-activo, sin brújula y sin frenos, callado.
+    const fs2 = require('node:fs');
+    const { fijarElNodeDeLosEnganches } = require(path.join(RAIZ, 'media', 'comun', 'enganches.js'));
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'enganches-'));
+    fs2.mkdirSync(path.join(carpeta, '.claude'), { recursive: true });
+    const fichero = path.join(carpeta, '.claude', 'settings.json');
+    const elNuestro = process.execPath;
+    const deOtroMac = '/Users/otra-persona/Library/Application Support/ExecutiveLab/runtime/bin/node';
+
+    const escribir = (ordenes) => fs2.writeFileSync(fichero, JSON.stringify({
+      hooks: { SessionStart: [{ hooks: ordenes.map((command) => ({ type: 'command', command })) }] },
+    }, null, 2));
+    const leer = () => JSON.parse(fs2.readFileSync(fichero, 'utf8')).hooks.SessionStart[0].hooks.map((h) => h.command);
+
+    // 1. `node` a secas: se fija, como siempre.
+    escribir(['node "${CLAUDE_PROJECT_DIR}/.rsc/session-start.mjs"']);
+    fijarElNodeDeLosEnganches(carpeta, elNuestro);
+    assert.ok(leer()[0].startsWith(`"${elNuestro}"`) || leer()[0].startsWith(elNuestro), 'node a secas se fija');
+    assert.match(leer()[0], /session-start\.mjs/, 'y el resto de la orden no se toca');
+
+    // 2. La ruta de otro ordenador, que antes se quedaba para siempre.
+    escribir([`"${deOtroMac}" "\${CLAUDE_PROJECT_DIR}/.rsc/session-start.mjs"`]);
+    fijarElNodeDeLosEnganches(carpeta, elNuestro);
+    assert.ok(!leer()[0].includes('otra-persona'), 'la ruta heredada se sustituye');
+    assert.match(leer()[0], /session-start\.mjs/);
+
+    // 3. Sin comillas, que también se escribe así.
+    escribir([`/opt/nodejs/bin/node "\${CLAUDE_PROJECT_DIR}/.rsc/worklog-checkpoint.mjs"`]);
+    fijarElNodeDeLosEnganches(carpeta, elNuestro);
+    assert.ok(!leer()[0].includes('/opt/nodejs'), 'sin comillas también');
+
+    // 4. Una ruta que SÍ existe en este ordenador no se toca: puede ser el
+    //    node bueno de esa máquina, puesto a mano.
+    escribir([`"${elNuestro}" "\${CLAUDE_PROJECT_DIR}/.rsc/session-start.mjs"`]);
+    const antes = leer()[0];
+    fijarElNodeDeLosEnganches(carpeta, '/otro/node/cualquiera');
+    assert.equal(leer()[0], antes, 'lo que funciona aquí se respeta');
+
+    // 5. Y lo que no es un enganche de node no se toca jamás.
+    escribir(['npm run algo', 'python3 loquesea.py']);
+    fijarElNodeDeLosEnganches(carpeta, elNuestro);
+    assert.deepEqual(leer(), ['npm run algo', 'python3 loquesea.py'], 'lo que no es node se deja en paz');
+
+    return 'node a secas · ruta heredada · sin comillas · la que vale se respeta';
+  });
+
   await comprobar('unos raíles de la semana pasada se ven, y se reponen', async () => {
     // F13 de la auditoría, y hoy muerde de verdad: los raíles los copia el
     // wizard al montar, con los que llevara la barra ese día. Al subir de

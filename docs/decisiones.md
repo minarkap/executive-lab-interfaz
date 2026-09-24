@@ -3189,3 +3189,46 @@ los enganches con la ruta absoluta del Node de esta máquina. Correcto en el ord
 incorrecto en un repositorio compartido. Se ha dejado fuera de esta copia.
 
 0.28.0. 191 comprobaciones.
+
+## 109. Un enganche que apunta al ordenador de otro se arregla
+
+**Fecha:** 24 de septiembre de 2026 · **Estado:** decidido
+
+Salió mirando por qué `.claude/settings.json` aparece siempre como modificado en esta carpeta.
+
+### Lo que pasaba
+
+Los enganches del arnés llaman a `node` por su nombre, y en el ordenador de un alumno puede no
+haber ninguno en el PATH: el nuestro vive dentro de la carpeta de la aplicación. Por eso
+`enganches.js` reescribe esas órdenes con la ruta completa del node que traemos.
+
+Pero **`.claude/settings.json` viaja en git** — es la costura del arnés y RSC la quiere versionada —
+así que en cuanto se arregla una vez, el fichero queda con **una ruta absoluta de esa máquina**. Y
+esto solo reescribía las órdenes que empiezan por `node` a secas.
+
+Consecuencia: quien clonaba el proyecto de un compañero se llevaba los enganches apuntando al Mac
+de ese compañero, a una ruta que en su ordenador no existe. Y ya no volvían a tocarse nunca, porque
+ya no empezaban por `node`. **El arnés se quedaba sin su cuerpo siempre-activo, sin brújula y sin
+frenos, y nada lo decía**: exactamente la forma de fallar que P3 prohíbe.
+
+### Qué se hace
+
+Se mira qué hay delante de la orden y se arregla en dos casos: `node` a secas, y una ruta a un node
+**que no existe en este ordenador**. Se reconocen las tres formas de escribirla: a secas, entre
+comillas y sin comillas con separadores.
+
+Y lo que **no** se toca: una ruta que sí existe aquí. Puede ser el node bueno de esa máquina,
+puesto a mano por alguien que sabe lo que hace, y pisarlo sería decidir por él. Tampoco se toca lo
+que no es node (`npm run algo`, `python3 …`).
+
+### De paso, un verde que podía no probar nada
+
+`extension/media/comun/` la genera `preparar-paquete.js` desde `instalador/comun/` al empaquetar, y
+está ignorada a propósito para no tener dos copias en el repositorio. Eso ya estaba bien pensado.
+
+Lo que no cubría nadie: **las pruebas importan la copia generada**, no la fuente. Si alguien toca
+`instalador/comun/` y no vuelve a empaquetar, la suite da por bueno código que ya no existe,
+mientras que el `.vsix` sí llevaría el nuevo. Un verde que no prueba lo que se publica es peor que
+un rojo, así que ahora hay una comprobación que exige que la copia esté al día.
+
+0.29.0. 193 comprobaciones.

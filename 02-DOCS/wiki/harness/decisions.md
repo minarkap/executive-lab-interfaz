@@ -373,3 +373,19 @@ Decisión 110 en `docs/decisiones.md`.
   Node de esta máquina. Se ha dejado fuera de la copia.
 
 0.28.0. 191 comprobaciones.
+
+## Un enganche que apunta al ordenador de otro se arregla — 24 de septiembre de 2026
+
+Decisión 109 en `docs/decisiones.md`.
+
+- `.claude/settings.json` viaja en git y lleva dentro los enganches del arnés. En cuanto se
+  arreglan una vez, quedan con **una ruta absoluta de esa máquina**, y quien clonaba el proyecto de
+  un compañero se llevaba los enganches apuntando al ordenador de otro — en silencio, sin brújula y
+  sin frenos (P3).
+- Ahora se arregla también la ruta heredada, no solo `node` a secas. Lo que sí existe en este
+  ordenador se respeta: puede ser el node bueno de esa máquina.
+- Y las pruebas importan `extension/media/comun/`, que es una copia **generada** al empaquetar: si
+  alguien toca la fuente y no vuelve a empaquetar, la suite da verde probando código que ya no
+  existe. Ahora se comprueba que la copia esté al día.
+
+0.29.0. 193 comprobaciones.
