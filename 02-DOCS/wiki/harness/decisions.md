@@ -429,3 +429,14 @@ Decisión 112 en `docs/decisiones.md`.
   una salida, no un «díselo a tu tutor».
 
 0.31.0. 194 comprobaciones.
+
+## Un nombre sacado de una web ajena entra en una línea o no entra — 24 de septiembre de 2026
+
+Decisión 113 en `docs/decisiones.md`.
+
+El nombre de la empresa sale del `<title>` de su web y acaba en la cabecera de `marca.md`, donde
+cada línea es un campo. Un título partido en varias líneas —HTML de todos los días— dejaba el
+nombre en la primera palabra y colaba el resto como si fuera otro campo. Ahora los espacios se
+aplastan al leer y otra vez al escribir.
+
+0.31.1. 194 comprobaciones.

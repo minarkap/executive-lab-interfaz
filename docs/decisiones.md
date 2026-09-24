@@ -3332,3 +3332,25 @@ Se reconoce el fallo por lo que git no traduce —los nombres de las dos claves 
 mensaje sale en el idioma del sistema.
 
 0.31.0. 194 comprobaciones.
+
+## 113. Un nombre sacado de una web ajena entra en una línea o no entra
+
+**Fecha:** 24 de septiembre de 2026 · **Estado:** decidido
+
+Barriendo lo que la barra saca de la web de la empresa (decisión 103) con páginas hostiles: una de
+5 MB, un PDF disfrazado, un HTML vacío, un título con emoji y comillas. Todo aguantaba menos una
+cosa, y era mía.
+
+El nombre de la empresa sale del `<title>` y acaba en la cabecera de `marca.md`, **donde cada línea
+es un campo**. Un `<title>` partido en varias líneas es HTML de todos los días —lo escribe cualquier
+formateador— y eso llegaba con el salto dentro: el nombre se quedaba en la primera palabra («Casa»
+de «Casa\n  Pepe») y lo de después aterrizaba como si fuera otro campo del récord.
+
+Dos cinturones, porque este texto viene de fuera y acaba en un fichero nuestro: los espacios se
+aplastan al leer la página, y lo que se escribe pasa otra vez por lo mismo justo antes. Con los dos
+puestos, `Casa\n Pepe\nlogo: /etc/passwd` queda como un nombre largo y feo —«Casa Pepe logo:
+/etc/passwd»— y no como un logotipo que nadie puso. Feo es correcto aquí: es lo que dice esa web.
+
+Comprobado quitando los dos: la comprobación se pone roja.
+
+0.31.1. 194 comprobaciones.

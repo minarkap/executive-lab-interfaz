@@ -106,9 +106,16 @@ const atributo = (etiqueta, nombre) => {
 
 const etiquetas = (html, nombre) => html.match(new RegExp(`<${nombre}\\b[^>]*>`, 'gi')) || [];
 
+// Y los espacios se aplastan a uno. Un `<title>` partido en varias líneas es
+// HTML normal y corriente —lo escribe cualquier formateador— y eso llegaba a
+// la cabecera del récord de marca con su salto dentro: el nombre se quedaba en
+// la primera palabra («Casa» de «Casa\n  Pepe») y la segunda línea se colaba
+// como si fuera otro campo. Aquí no entra nada con un salto de línea.
 const sinEntidades = (t) => String(t || '')
   .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
-  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').trim();
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
 
 function meta(html, clave) {
   for (const et of etiquetas(html, 'meta')) {
@@ -313,7 +320,12 @@ async function sacarLaCara(web, { bajar = descargar } = {}) {
     } catch { /* sin logotipo se escribe el nombre: `marca.js` ya lo hace */ }
   }
 
-  const nombre = leido.nombre || new URL(portada.url).hostname.replace(/^www\./, '');
+  // Un cinturón más, porque este nombre sale de una web ajena y acaba en una
+  // cabecera donde cada línea es un campo: lo que llegue con un salto dentro
+  // se queda en una línea o no entra. Lo de arriba ya lo aplasta; esto lo
+  // garantiza aunque mañana el nombre venga por otro camino.
+  const enUnaLinea = (t) => String(t || '').replace(/\s+/g, ' ').trim();
+  const nombre = enUnaLinea(leido.nombre) || new URL(portada.url).hostname.replace(/^www\./, '');
   const registro = [
     '---',
     `empresa: ${nombre}`,

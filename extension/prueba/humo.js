@@ -3534,6 +3534,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       assert.equal(suya.nombre, 'Ferretería Soler');
       assert.equal(suya.web, 'https://ferreteriasoler.es');
       assert.ok(suya.provisional, 'y sabe que es un primer intento');
+
       assert.ok(fs2.existsSync(path.join(carpeta, '02-DOCS', 'wiki', 'brand', 'logo.png')), 'el logotipo se guarda al lado');
 
       // Un segundo intento reescribe el provisional; una cara a mano, no.
@@ -3550,6 +3551,17 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       const sinColor = await web.sacarLaCara('https://gris.es', { bajar: async (url) => ({ cuerpo: Buffer.from(gris), tipo: 'text/html', url }) });
       assert.ok(!sinColor.ok, 'un gris no es un color de marca');
       assert.ok(!fs2.existsSync(registro), 'y no se escribió nada');
+
+      // Y el nombre sale de una web ajena, que acaba en una cabecera donde
+      // cada línea es un campo: un `<title>` partido —HTML normal, lo escribe
+      // cualquier formateador— dejaba el nombre en la primera palabra y lo de
+      // después se colaba como si fuera otro campo.
+      const conSalto = '<!doctype html><html><head><title>Casa\n  Pepe\nlogo: /etc/passwd</title>'
+        + '<meta name="theme-color" content="#d84315"></head><body></body></html>';
+      await web.sacarLaCara('https://otra.es', { bajar: async (url) => ({ cuerpo: Buffer.from(conSalto), tipo: 'text/html', url }) });
+      const rara = cargar('marca').leer();
+      assert.equal(rara.nombre, 'Casa Pepe logo: /etc/passwd', 'todo en una línea, y como nombre, no como campo');
+      assert.equal(rara.logo, null, 'lo que parecía otro campo no se ha colado');
     } finally {
       vscode.guion.raiz = empresa;
     }
