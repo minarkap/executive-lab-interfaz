@@ -3255,3 +3255,47 @@ No se le quita el atajo a nadie: sigue valiendo para probar en local. Lo que dej
 tomarlo sin enterarse.
 
 0.29.1.
+
+## 111. Codex de verdad, montado y probado
+
+**Fecha:** 24 de septiembre de 2026 · **Estado:** decidido
+
+«Ver Codex de verdad» llevaba semanas pendiente. Lo de Codex estaba probado **simulado** —cambiando
+`targets` en un `.rsc.json` a mano— y nunca contra un arnés montado por RSC con `--target codex`.
+Que la tabla de `sitios.js` diga la verdad solo se sabe montándolo. Codex está instalado en esta
+máquina (0.137.0), así que se montó.
+
+### Lo que se confirmó
+
+La tabla acierta en todo: las habilidades caen en `.codex/rsc/`, lo que se lee siempre es
+`AGENTS.md`, y **no hay comandos** —RSC no le escribe ninguno a Codex, no es que estén en otro
+sitio—. La barra lo lee entero: 32 habilidades del arnés, ninguna con barra al invocarla («Usa la
+habilidad "bro"», que es como se le pide a Codex).
+
+Y los **raíles sobre un Codex de verdad**, que no se habían probado nunca: la habilidad propia cae
+en `.codex/rsc/executive-lab/` y queda nombrada entre marcas en `AGENTS.md`, porque Codex no las
+encuentra solo como Claude. Correcto.
+
+### Lo que se aprendió, y ya estaba arreglado
+
+En un arnés de Codex **no hay ni un guardián**: RSC los engancha solo para Claude
+(`targets/claude.js` y ningún otro). Un alumno con Codex no tiene el freno de órdenes peligrosas.
+
+La sesión paralela ya lo había resuelto el mismo día, y mejor de lo que yo iba a hacerlo: además de
+decirlo en pantalla («Tu asistente no trae frenos: solo se le enganchan a Claude»), corrige que una
+carpeta de Codex dijera tener **apagada** una pieza que ahí ni existe — nuestros propios raíles
+dejan `.no-audit` y compañía en `.rsc/` sea cual sea el asistente. Se comprobó contra el Codex real
+y funciona.
+
+Lo que aporta esto: que deje de depender de que alguien monte un Codex a mano. La comprobación lo
+monta con RSC, le pone los raíles y lo exige, dentro de `--con-arnes`.
+
+### Un fallo de la propia prueba, de camino
+
+La primera versión hacía `process.chdir()` para montar el arnés en la carpeta de Codex. Pero
+`procesos.js` usa `proyecto.raiz()` como cwd, no el directorio del proceso: montó un arnés de Codex
+**encima de la empresa de mentira**. No hizo daño —esa carpeta es temporal y se rehace en cada
+pasada— pero la prueba decía «Codex» mientras miraba otra cosa. Ahora se fija la raíz y se exige
+que el `.rsc.json` caiga donde toca.
+
+0.30.0. 195 comprobaciones.

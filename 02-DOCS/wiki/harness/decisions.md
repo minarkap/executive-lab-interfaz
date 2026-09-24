@@ -400,3 +400,18 @@ publicarlo. Tres versiones salieron así en un día. Ahora el guion se acuerda d
 entero lo dice, y si no, avisa y da la orden para hacerlo bien en vez de las de publicar.
 
 0.29.1.
+
+## Codex de verdad, montado y probado — 24 de septiembre de 2026
+
+Worklog: `02-DOCS/raw/worklog/2026-09-24-codex-de-verdad.md`. Decisión 111 en `docs/decisiones.md`.
+
+- Codex estaba instalado en el Mac (0.137.0) y nadie lo había usado: lo de Codex se probaba
+  **simulado**, cambiando `targets` a mano. Ahora se monta uno de verdad con `--target codex`.
+- La tabla de `sitios.js` acierta: `.codex/rsc/` para las habilidades, `AGENTS.md` como lo que se
+  lee siempre, y ningún comando (RSC no le escribe). Los raíles, puestos y nombrados en `AGENTS.md`.
+- **En Codex no hay ni un guardián**: RSC los engancha solo para Claude. Lo que arregló la sesión
+  paralela el mismo día —decirlo, y no contar como «apagado» lo que ahí ni existe— queda verificado
+  contra un Codex real.
+- Sigue sin verse que Codex **lea** ese bloque al arrancar: eso pide tenerlo delante hablando.
+
+0.30.0. 195 comprobaciones.

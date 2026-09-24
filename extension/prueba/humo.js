@@ -5091,6 +5091,78 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       vscode.guion.respuestas = null;
       return `${botones.length} botones desde cero`;
     });
+
+    await comprobar('un arnés de Codex de verdad se lee entero, y se dice lo que ahí no hay', async () => {
+      // «Ver Codex de verdad» llevaba semanas pendiente: lo de Codex estaba
+      // probado **simulado** —cambiando `targets` en un `.rsc.json` a mano— y
+      // nunca contra un arnés montado por RSC con `--target codex`. Que la
+      // tabla de `sitios.js` diga la verdad solo se sabe montándolo.
+      const rscM = cargar('rsc');
+      const codex = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-real-'));
+      const cp = require('node:child_process');
+      cp.spawnSync('git', ['init', '-q', '.'], { cwd: codex });
+
+      const flags = ['--technical-level', 'non-technical', '--accompaniment', 'L3',
+        '--project-kind', 'operations', '--goal', 'Organizar el papeleo', '--target', 'codex'];
+      // El arnés se monta donde diga la raíz, no donde esté el proceso:
+      // `procesos.js` usa `proyecto.raiz()` como cwd. Con un `chdir` esto
+      // montaba un Codex encima de la empresa de mentira sin decir nada.
+      let montado = false;
+      vscode.guion.raiz = codex;
+      try {
+        const plan = await rscM.correr(['onboard', ...flags], { tiempoMaximo: 600000 });
+        const linea = (plan.salida.match(/^Accept exactly this plan: npx @ericrisco\/rsc@\S+ onboard (.+)$/m) || [])[1];
+        if (linea) {
+          const hecho = await rscM.correr(['onboard', ...linea.trim().split(/\s+/)], { tiempoMaximo: 900000 });
+          montado = /RSC_ONBOARDING_READY/.test(hecho.salida);
+        }
+      } finally {
+        vscode.guion.raiz = empresa;
+      }
+      assert.ok(fs.existsSync(path.join(codex, '.rsc.json')), 'el arnés tiene que caer en la carpeta de Codex, no en otra');
+      if (!montado) return 'SALTADA';
+
+      // Los raíles, sobre un Codex de verdad: es el camino que nunca se probó.
+      cp.spawnSync(process.execPath, [path.join(RAIZ, 'media', 'railes', 'aplicar.js'), codex], { encoding: 'utf8' });
+
+      vscode.guion.raiz = codex;
+      try {
+        const dondeM = cargar('donde');
+        assert.equal(dondeM.paraQuien(), 'codex');
+        // Lo que RSC escribe de verdad para Codex, y que `sitios.js` promete.
+        assert.ok(fs.existsSync(path.join(codex, '.codex', 'rsc')), 'sus habilidades van en .codex/rsc');
+        assert.ok(fs.existsSync(path.join(codex, 'AGENTS.md')), 'y lo que lee siempre es AGENTS.md');
+        assert.equal(dondeM.puedeTenerBotones(), false, 'a Codex RSC no le escribe comandos');
+
+        // El raíl, en su sitio y nombrado donde Codex lo lee: no los encuentra
+        // solo, como Claude.
+        assert.ok(fs.existsSync(path.join(codex, '.codex', 'rsc', 'executive-lab', 'SKILL.md')), 'falta la habilidad propia');
+        assert.match(fs.readFileSync(path.join(codex, 'AGENTS.md'), 'utf8'), /executive-lab\/SKILL\.md/, 'y AGENTS.md la nombra');
+
+        // Y las habilidades se leen: 32 del arnés más la nuestra.
+        const s = cargar('saberes').queSabe(RAIZ);
+        assert.ok(s.instaladas > 30, `se leen sus habilidades: ${s.instaladas}`);
+        assert.equal(cargar('saberes').comoSePide('bro').startsWith('/'), false, 'con Codex se pide con palabras, no con barra');
+
+        // Lo que ahí NO hay, dicho y no callado: RSC engancha los frenos solo
+        // para Claude (`targets/claude.js` y ningún otro), así que un alumno
+        // con Codex no tiene ninguno — y tiene que enterarse.
+        assert.equal(dondeM.puedeTenerFrenos(), false);
+        const q = cargar('reglas').queHay();
+        assert.equal(q.guardianes.length, 0, 'no hay ni uno, y es verdad');
+        const pintado = require('./panel-falso').montarPanel().mandar({ tipo: 'reglas', ...q });
+        assert.match(pintado, /no trae frenos/, 'y la pantalla lo dice en vez de omitir la sección');
+
+        // Y no se le cuenta como «apagado» algo que ahí ni existe, aunque
+        // nuestros raíles dejen su interruptor puesto.
+        const apagado = cargar('reglas').loApagado().map((a) => a.nombre);
+        assert.ok(!apagado.includes('La revisión periódica de habilidades'),
+          `en Codex esa revisión no existe, así que no está «apagada»: ${apagado.join(', ')}`);
+      } finally {
+        vscode.guion.raiz = empresa;
+      }
+      return 'montado con RSC, raíles puestos, y lo que no hay se dice';
+    });
   } else {
     console.log('  · el wizard no se ha probado (añade --con-arnes: tarda minutos)');
   }
