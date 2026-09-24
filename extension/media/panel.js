@@ -551,6 +551,7 @@ const MARCA_GUARDIAN = { armado: '●', apagado: '○', noAplica: '·' };
 
 function pantallaReglas({
   innegociables = [], deLaCasa = [], guardianes = [], automatismos = [], hay = {}, cual = 'claude',
+  puedeTenerFrenos = true,
 }) {
   const lista = (reglas, vacio, comoQuitar) => (reglas.length
     ? reglas.map((r) => `<div class="entrada"><p class="nombre">${enLinea(r)}</p></div>`).join('')
@@ -593,11 +594,18 @@ function pantallaReglas({
           Pero no se quita, porque cuando el freno actúa al alumno le sale en la
           conversación un aviso en inglés que empieza por BLOCKED y la barra no
           puede interceptarlo: este es el único sitio donde pone qué es eso. */''}
-    ${guardianes.length || automatismos.length ? `
+    ${/* Y con un asistente al que no se le engancha ninguno, la sección salía
+          con un cero al lado y la memoria dentro, como si a esta carpeta le
+          faltara algo. No le falta: con Codex no hay frenos, y el que se pierde
+          es el que para una orden peligrosa — el que protege justo a quien no es
+          técnico. Eso se dice, que es lo único que podemos hacer desde aquí. */''}
+    ${guardianes.length || automatismos.length || !puedeTenerFrenos ? `
       <hr class="separador">
       <details class="acordeon grupo">
-        <summary>Lo que se comprueba solo<span class="cuantos">${guardianes.length}</span></summary>
-        <p class="detalle">Frenos que se aplican antes de cada cosa que hace y pueden pararla. Si alguna vez te sale un aviso en inglés que no te deja seguir, es esto.</p>
+        <summary>Lo que se comprueba solo<span class="cuantos">${guardianes.length + automatismos.length}</span></summary>
+        <p class="detalle">${puedeTenerFrenos
+    ? 'Frenos que se aplican antes de cada cosa que hace y pueden pararla. Si alguna vez te sale un aviso en inglés que no te deja seguir, es esto.'
+    : 'Tu asistente no trae frenos: solo se le enganchan a Claude. Aquí nada te va a parar antes de hacer algo.'}</p>
         ${guardianes.map((g) => `
           <div class="pieza ${g.estado === 'armado' ? 'si' : 'noAplica'}">
             <span class="pieza-marca" aria-hidden="true">${MARCA_GUARDIAN[g.estado] || '·'}</span>
@@ -619,13 +627,13 @@ function pantallaReglas({
               <span class="pieza-detalle">${texto(a.porQue || 'Activo')}</span>
             </div>
             ${a.queHace ? `<p class="detalle">${texto(a.queHace)}</p>` : ''}`).join('')}` : ''}
-        ${boton({
+        ${guardianes.length || automatismos.length ? boton({
     etiqueta: 'Cambiar lo que se comprueba',
     icono: '🔧',
     pequeno: true,
     discreto: true,
     accion: { tipo: 'pedir', prompt: 'Quiero repasar las comprobaciones que se aplican solas en esta carpeta. Explícame una por una qué me para cada una y qué pasa si la quito, y pregúntame cuál quiero cambiar antes de tocar nada.' },
-  })}
+  }) : ''}
       </details>` : ''}
 
   `;
@@ -664,12 +672,18 @@ function pantallaComandos({ comandos = [] }) {
       <p class="hiciste">Peticiones guardadas con nombre. Se lanzan con un clic, o escribiendo su nombre en la conversación.</p>
     </div>
 
-    ${mios.length ? mios.map(fila).join('') : nada('Todavía no hay ninguno. Se van creando conforme repites tareas.')}
-    ${boton({
+    ${/* Un asistente que no tiene dónde guardarlos no va a tener ninguno nunca,
+          y aquí ponía «se van creando conforme repites tareas» y ofrecía crear
+          uno. La principal ya lo explicaba —«no trabaja con botones»— y esta
+          pantalla, que es a la que se llega desde ella, no se enteraba. */''}
+    ${mios.length ? mios.map(fila).join('') : nada(puedeTenerBotones
+      ? 'Todavía no hay ninguno. Se van creando conforme repites tareas.'
+      : 'Tu asistente no trabaja con comandos. Pídele las cosas escribiéndolas en la conversación.')}
+    ${puedeTenerBotones ? boton({
       etiqueta: 'Crear un comando',
       icono: '➕',
       accion: { tipo: 'pedir', prompt: 'Quiero un comando nuevo para algo que hago a menudo. Pregúntame cuál es, qué tiene que hacer exactamente y cómo quiero que se llame, y déjalo escrito con su botón en la barra.' },
-    })}
+    }) : ''}
 
     ${/* Plegados, como las habilidades del arnés: están y se ven, pero no se
           piden a menudo y no los escribió nadie de aquí (decisión 101). */''}
@@ -2339,7 +2353,11 @@ function atender(data) {
     case 'asistente': return pintar(pantallaAsistente(data));
     case 'comoTrabaja': return pintar(pantallaComoTrabaja(data));
     case 'proyectos': return pintar(pantallaProyectos(data));
-    case 'comandos': return pintar(pantallaComandos(data));
+    case 'comandos':
+      // Se puede llegar aquí sin pasar por la principal (desde la paleta del
+      // editor), y es la principal la que fija esto. Si el mensaje lo trae, manda.
+      if (data.puedeTenerBotones !== undefined) puedeTenerBotones = data.puedeTenerBotones;
+      return pintar(pantallaComandos(data));
     case 'sugerencias': return pintar(pantallaSugerencias(data));
     case 'agentes': return pintar(pantallaAgentes(data));
     case 'laCara':

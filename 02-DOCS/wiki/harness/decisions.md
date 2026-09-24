@@ -339,3 +339,37 @@ Decisión 108 en `docs/decisiones.md`.
   ya declaró tener. Si falla, la lista de piezas lo dice.
 
 0.28.0. 189 comprobaciones.
+
+## Lo que no puede haber se dice, y cuatro habilidades vuelven a su sitio — 22 de septiembre de 2026
+
+Decisión 109 en `docs/decisiones.md`.
+
+- Revisión del mapeo entero contra una carpeta de Codex montada de verdad: bien el mapa de sitios,
+  las habilidades, los ayudantes en TOML, `AGENTS.md`, los permisos, la radiografía y el tema.
+- Tres agujeros, todos de la misma clase: **un cero donde no puede haber otra cosa**. La pantalla
+  de Comandos prometía comandos a un asistente que no puede tenerlos; Las reglas enseñaban la
+  sección de frenos vacía sin decir que **con Codex no hay ninguno** —ni el que para una orden
+  peligrosa, que es el que protege a quien no es técnico—; y «Lo que tiene apagado» nombraba piezas
+  que ahí ni se instalan.
+- Al cambiar de asistente ahora se dice que se queda sin frenos: es el momento en que alguien lo
+  decide, y el único en que decirlo sirve de algo.
+- `bro`, `eli5`, `show-me` y `unslop` las trae **todo** arnés y no estaban en ningún montón: salían
+  como «instalada aquí, fuera del catálogo». Tener nombre no bastaba, y ahora hay una prueba que
+  exige que ninguna del catálogo quede sin sitio.
+
+0.28.0. 190 comprobaciones.
+
+## Ningún raíl manda correr npx sin versión — 24 de septiembre de 2026
+
+Decisión 110 en `docs/decisiones.md`.
+
+- `/save-session` manda correr el paquete del arnés **sin versión**: hoy eso baja la 2.0.13 y esta
+  clase corre la 2.0.5 fijada. Cuatro de los cinco sitios son comandos de RSC, que se reescriben
+  solos, así que la regla vive en la habilidad `executive-lab` (regla 7), que él no toca.
+- El quinto era nuestro —el raíl `seguir`— y ahora lee la vuelta con lo que ya está instalado:
+  `node .rsc/session-memory.mjs resume`, local y sin red.
+- Prueba nueva que barre todos los raíles. Cazó el nuestro antes de arreglarlo.
+- Queda vivo: `.claude/settings.json` está versionado y el instalador le mete la ruta absoluta del
+  Node de esta máquina. Se ha dejado fuera de la copia.
+
+0.28.0. 191 comprobaciones.

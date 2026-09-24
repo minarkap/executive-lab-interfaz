@@ -22,6 +22,7 @@
 const fs = require('node:fs');
 const proyecto = require('./proyecto');
 const asistentes = require('./asistentes');
+const donde = require('./donde');
 const nombres = require('./nombres');
 const trato = require('./trato');
 
@@ -107,20 +108,43 @@ function losAutomatismos() {
 // uno se nombra por su fila de guardián o de automatismo.
 const OPT_OUT_A_PIEZA = { gitmoji: 'gitmoji-guard' };
 
+// ── Y lo que aquí no puede estar puesto tampoco está apagado ─────────────
+//
+// Apagado es una decisión sobre algo que podría estar. Con Codex, RSC no
+// engancha ninguna de estas piezas —lo dice su instalador en una línea, y
+// `sitios.js` lo copia en la columna `frenos`—, así que nombrarlas aquí es
+// contar una decisión que nadie tomó.
+//
+// Y pasaba: nuestros propios raíles dejan `.no-audit`, `.no-worktree-cleanup` y
+// `.no-scope-check` en `.rsc/` sea cual sea el asistente, así que una carpeta de
+// Codex decía tener apagada «La revisión periódica de habilidades» cuando ahí esa
+// revisión no existe. La memoria entre conversaciones no se ve afectada: esa sí
+// la monta RSC para Codex, y no tiene interruptor.
+//
+// Se mira por la clase de pieza y no por si está su fichero en `.rsc/`, porque
+// `.rsc/` es de esta máquina y no viaja: en un clon no habría ni un interruptor,
+// y lo que la declaración dice que se apagó sí tiene que seguir contándose.
+const puedeEstarAqui = (pieza) => donde.puedeTenerFrenos() || !pieza || !pieza.fichero;
+
 function loApagado() {
   const nombrar = (monton, id) => nombres.comoSeLlama(monton, id, {}).nombre;
   const lista = [];
   const meter = (id, nombre) => {
     if (!lista.some((x) => x.nombre === nombre)) lista.push({ id, nombre });
   };
-  for (const g of GUARDIANES) if (hayEnRsc(g.interruptor)) meter(g.id, nombrar('guardianes', g.id));
-  for (const a of AUTOMATISMOS) if (a.interruptor && hayEnRsc(a.interruptor)) meter(a.id, nombrar('automatismos', a.id));
+  for (const g of GUARDIANES) if (hayEnRsc(g.interruptor) && puedeEstarAqui(g)) meter(g.id, nombrar('guardianes', g.id));
+  for (const a of AUTOMATISMOS) {
+    if (a.interruptor && hayEnRsc(a.interruptor) && puedeEstarAqui(a)) meter(a.id, nombrar('automatismos', a.id));
+  }
 
   const declarados = (proyecto.declaracion() || {}).optOuts;
   for (const id of Array.isArray(declarados) ? declarados : []) {
     const pieza = OPT_OUT_A_PIEZA[id] || id;
-    const monton = GUARDIANES.some((g) => g.id === pieza) ? 'guardianes' : 'automatismos';
-    meter(pieza, nombrar(monton, pieza));
+    const esGuardian = GUARDIANES.find((g) => g.id === pieza);
+    // Uno que no conocemos se nombra igual: no saber qué es no da derecho a
+    // tragárselo. Lo que sí se calla es lo que sabemos que ahí no se monta.
+    if (!puedeEstarAqui(esGuardian || AUTOMATISMOS.find((a) => a.id === pieza))) continue;
+    meter(pieza, nombrar(esGuardian ? 'guardianes' : 'automatismos', pieza));
   }
   return lista;
 }
@@ -233,6 +257,10 @@ function queHay() {
     // Y lo que hace solo sin parar nada: va en el mismo desplegable, porque
     // es la misma pregunta —«¿qué hace esto por su cuenta?»— con otra respuesta.
     automatismos: losAutomatismos(),
+    // Si este asistente llega a tener frenos. Con Codex no: RSC no le engancha
+    // ninguno, así que la lista vacía no es un descuido de quien montó esto y la
+    // pantalla lo tiene que decir en vez de enseñar un cero.
+    puedeTenerFrenos: donde.puedeTenerFrenos(),
     deLaCasa: puntosDe(primero, 'Working rules').length
       ? puntosDe(primero, 'Working rules')
       : puntosDe(segundo, 'Working rules'),

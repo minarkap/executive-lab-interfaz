@@ -71,7 +71,14 @@ const ficheroDeAjustes = () => carpetaDe('ajustes');
 const puedeTenerBotones = () => Boolean(susSitios().comandos);
 const puedeTenerAjustes = () => Boolean(susSitios().ajustes);
 
+// ¿Y este asistente llega a tener frenos? RSC solo se los engancha a Claude, así
+// que en un arnés de Codex no hay guardianes ni brújula al empezar: no es que
+// estén apagados, es que no se montan. Sirve para poder decirlo en Las reglas en
+// vez de enseñar la sección con un cero dentro.
+const puedeTenerFrenos = () => Boolean(susSitios().frenos);
+
 module.exports = {
   SITIOS, paraQuien, carpetaDeHabilidades, carpetaDeComandos, carpetaDeAgentes, ficheroDeAjustes,
   carpetaDeOtro, ficheroDeEstado, ficheroDeEstadoDe, puedeTenerBotones, puedeTenerAjustes,
+  puedeTenerFrenos,
 };

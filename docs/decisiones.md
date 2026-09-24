@@ -3121,3 +3121,71 @@ sale mal la lista de piezas lo dice con su botón. Queda apuntado en el registro
 en el informe de «Algo va mal» (P3).
 
 0.28.0. 189 comprobaciones.
+
+## 109. Lo que en esa carpeta no puede haber, se dice — y tener nombre no es caer en un montón
+
+Jose pidió revisar el mapeo entero contra Codex. Salió bien en casi todo —las habilidades de
+`.codex/rsc`, los ayudantes en TOML, `AGENTS.md` mandando sobre `CLAUDE.md`, los permisos, la
+radiografía, el tema— y dejó tres agujeros de la misma clase: **la barra enseñaba un cero donde no
+podía haber otra cosa, y no lo decía**.
+
+### Un cero no es lo mismo que un «aquí no puede haber»
+
+La pantalla de Comandos decía «Todavía no hay ninguno. Se van creando conforme repites tareas» y
+ofrecía **Crear un comando**. Con Codex no puede haber ninguno nunca: RSC no le escribe comandos.
+La barra lo sabía (`donde.puedeTenerBotones()`) y la pantalla principal ya lo explicaba; la pantalla
+a la que se llega desde ella, no. Ahora lo dice, y no ofrece crear uno que no tendría dónde vivir.
+
+### Con Codex no hay frenos, y eso hay que decirlo
+
+RSC solo engancha sus piezas automáticas a Claude — su instalador lo resuelve en una línea:
+`if (target !== 'claude') return []`. O sea que en un arnés de Codex **no existe el freno ante
+órdenes peligrosas**, que es justo el que protege a quien no es técnico. La única excepción es la
+memoria entre conversaciones, que sí monta por otro camino.
+
+Eso no se arregla desde aquí, pero se dice en los dos sitios donde sirve de algo: en Las reglas, en
+vez de enseñar la sección con un cero dentro, y **en el momento de cambiar de asistente**, que es
+cuando alguien decide quedarse sin ellos. Y «Lo que tiene apagado» deja de nombrar piezas que ahí
+ni se instalan: apagado es una decisión sobre algo que podría estar, y nuestros propios raíles
+dejan tres interruptores en `.rsc/` sea cual sea el asistente.
+
+La tabla de asistentes gana una columna, `frenos`, copiada de su instalador y no adivinada — como
+todas las demás.
+
+### Tener nombre no era estar colocada
+
+`bro`, `eli5`, `show-me` y `unslop` están en el **perfil mínimo** de RSC: las trae todo arnés.
+Estaban nombradas en `nombres.json` pero no en ningún montón —ni en el catálogo ni en la
+fontanería—, así que la barra las enseñaba como «instalada aquí, fuera del catálogo», que es la
+etiqueta de algo que escribió a mano quien usa esa carpeta. La prueba de la decisión 102 exigía
+nombre y pasaba tan contenta.
+
+La invariante que faltaba, y que ahora tiene su prueba: **toda habilidad del catálogo de RSC cae en
+un montón y en uno solo**. 273 = 246 en el catálogo + 27 de fontanería.
+
+0.28.0. 190 comprobaciones.
+
+## 110. Ningún raíl manda correr `npx` sin versión
+
+`/save-session` le dice al asistente que corra el paquete del arnés con `npx` y sin número de
+versión. Hoy eso se trae la 2.0.13, cuando esta clase corre la **2.0.5 fijada**: basta con pulsar
+ese comando para que una carpeta deje de correr el mismo catálogo que el resto. Y choca con la
+decisión 6, que quitó `npx` a propósito — en Windows es un `.cmd`, tarda y necesita red.
+
+Cuatro de los cinco sitios donde aparece son **comandos de RSC** (`/save-session`,
+`/resume-session`, `/learn`, `/checkpoint`), y esos los reescribe entero en cada actualización:
+editarlos es escribir en agua. Así que la regla va donde él no toca, la habilidad `executive-lab`,
+como regla 7: **nada de `npx` sin versión**, y en su lugar, por este orden, lo que ya está instalado
+en la carpeta (`node .rsc/session-memory.mjs …`, local y sin red) o el paquete con la versión que
+declare `.rsc.json`.
+
+El quinto sí era nuestro —el raíl `seguir`— y se arregla: la vuelta se lee con lo instalado.
+
+Y una prueba barre todos los raíles: si alguno vuelve a mandar correr el paquete sin versión, falla.
+Cazó el propio raíl antes de arreglarlo.
+
+Queda vivo y es de otra clase: `.claude/settings.json` está versionado y el instalador le reescribe
+los enganches con la ruta absoluta del Node de esta máquina. Correcto en el ordenador de un alumno,
+incorrecto en un repositorio compartido. Se ha dejado fuera de esta copia.
+
+0.28.0. 191 comprobaciones.

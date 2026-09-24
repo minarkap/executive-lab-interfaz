@@ -41,6 +41,20 @@
 // mete su trozo entre marcas y deja el resto en paz, y donde nosotros podemos
 // meter el nuestro igual— o un fichero propio de RSC, que reescribe entero en
 // cada `sync` y donde escribir sería escribir en agua.
+//
+// `frenos` dice si RSC le engancha a ese asistente las piezas que se ejecutan
+// solas: los tres guardianes y la familia de `session-start`. **Solo a Claude**
+// — su instalador lo dice en una línea (`scripts/install-apply.js`):
+//
+//     export function generatedHookFiles({ target, cwd, policy }) {
+//       if (target !== 'claude') return [];
+//
+// Importa más de lo que parece: con Codex no existe el freno ante órdenes
+// peligrosas, que es justo el que protege a un alumno que no es técnico. Eso no
+// se puede arreglar desde aquí, pero sí decirlo en vez de enseñar un cero. La
+// memoria entre conversaciones es la excepción y no sale de aquí: esa sí la
+// monta para Codex, por su propio camino (`targets/memory.js`), y la barra la
+// ve como ve las demás — porque su fichero está en `.rsc/`.
 const SITIOS = {
   claude: {
     habilidades: ['.claude', 'skills'],
@@ -50,6 +64,7 @@ const SITIOS = {
     // Claude encuentra sus habilidades solo: lee `.claude/skills/*/SKILL.md`.
     // No hay que apuntarle a ninguna.
     siempre: null,
+    frenos: true,
   },
   codex: {
     habilidades: ['.codex', 'rsc'],

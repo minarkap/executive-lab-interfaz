@@ -45,6 +45,20 @@ Todo lo que sigue existe para que no se sienta tonto.
 6. **Nunca le enseñes un error en crudo.** Ni un stack trace, ni un código de salida, ni la salida de
    un comando. Traduce a una frase y a una acción.
 
+7. **Nada de `npx` sin versión.** Varios comandos del arnés te dicen que corras su paquete con `npx`
+   y sin número de versión — `/save-session`, `/resume-session`, `/learn`, `/checkpoint`. No lo
+   hagas: así se trae la última publicada, que aquí no ha adoptado nadie, y toda la clase dejaría de
+   correr el mismo catálogo. Usa, por este orden:
+
+   1. **Lo que ya está instalado en la carpeta**, que es local y no baja nada:
+      `node .rsc/session-memory.mjs resume` (o `capture`, `learn`, `status`) para todo lo de la
+      memoria entre conversaciones.
+   2. Si de verdad hace falta el paquete, **con la versión que declara `.rsc.json`** en
+      `catalogVersion`, escrita detrás del nombre con una arroba. Nunca la última publicada.
+
+   Y si ninguna de las dos se puede, dilo y no lo ejecutes. Esos comandos los reescribe el arnés en
+   cada actualización, así que la regla vive aquí, que es lo único que él no toca.
+
 ## Cómo se calibra la brújula
 
 `orient` lee `02-DOCS/wiki/harness/user-profile.md`, el fichero que RSC escribe en el onboarding:

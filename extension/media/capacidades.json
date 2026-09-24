@@ -4,9 +4,15 @@
     "",
     "Hasta el 21-09-2026 esto era una selección de 59 «con sentido en una pyme», y las otras 183 del",
     "catálogo salían —si alguien las instalaba— con el identificador humanizado y sin frase. Jose:",
-    "«quiero que revises todo y mapees todo bien». Ahora cada una de las 273 tiene su fila; una prueba",
-    "en prueba/humo.js lee el manifiesto del paquete y exige que no quede ninguna sin nombre. Lo que no",
-    "pega con la clase de carpeta no se ofrece arriba: cae plegado en «Resto del catálogo» (decisión 102).",
+    "«quiero que revises todo y mapees todo bien». Ahora las 273 del catálogo están colocadas: 246 con",
+    "su fila aquí y 27 como fontanería del arnés (nombres.json), y dos pruebas en prueba/humo.js lo",
+    "exigen — que ninguna quede sin nombre, y que ninguna quede sin montón.",
+    "",
+    "La segunda llegó tarde: bro, eli5, show-me y unslop están en el perfil mínimo de RSC —las trae TODO",
+    "arnés— y no estaban ni aquí ni en fontanería, así que la barra las enseñaba como «instalada aquí,",
+    "fuera del catálogo», que es la etiqueta de algo escrito a mano en esa carpeta. Tener nombre no era",
+    "suficiente: había que estar en un montón.",
+    "Lo que no pega con la clase de carpeta no se ofrece arriba: cae plegado en «Resto del catálogo» (decisión 102).",
     "",
     "'nombre' es el NOMBRE de la habilidad, no una frase sobre lo que sabe hacer: «Facturación», no",
     "«llevar tus facturas de principio a fin». El identificador real (invoicing) sale en la (i) de la fila,",
@@ -1340,6 +1346,26 @@
       ]
     },
     {
+      "id": "bro",
+      "nombre": "Tono humano",
+      "frase": "Quita el tono de máquina de un texto sin cambiar lo que dice.",
+      "palabras": [
+        "tono",
+        "humano",
+        "natural",
+        "redaccion",
+        "reescribir",
+        "correo",
+        "mensaje"
+      ],
+      "para": [
+        "operations",
+        "content",
+        "software",
+        "research"
+      ]
+    },
+    {
       "id": "building-agents",
       "nombre": "Construcción de agentes de IA",
       "frase": "Montar un agente que usa herramientas, se evalúa y controla su coste.",
@@ -1862,6 +1888,25 @@
       ],
       "para": [
         "software"
+      ]
+    },
+    {
+      "id": "eli5",
+      "nombre": "Explicación desde cero",
+      "frase": "Una página con dibujos y sin palabras raras, para algo que no conoces de nada.",
+      "palabras": [
+        "explicacion",
+        "entender",
+        "sencillo",
+        "basico",
+        "novato",
+        "formacion"
+      ],
+      "para": [
+        "operations",
+        "content",
+        "software",
+        "research"
       ]
     },
     {
@@ -3260,6 +3305,25 @@
       ]
     },
     {
+      "id": "show-me",
+      "nombre": "Dibujo o esquema",
+      "frase": "Te lo enseña con un esquema cuando es más fácil verlo que leerlo.",
+      "palabras": [
+        "esquema",
+        "dibujo",
+        "diagrama",
+        "grafico",
+        "visual",
+        "proceso"
+      ],
+      "para": [
+        "operations",
+        "content",
+        "software",
+        "research"
+      ]
+    },
+    {
       "id": "skill-scout",
       "nombre": "Búsqueda de la habilidad que falta",
       "frase": "Detectar que hay una habilidad que haría el trabajo mejor y todavía no está puesta.",
@@ -3586,6 +3650,25 @@
       ],
       "para": [
         "software"
+      ]
+    },
+    {
+      "id": "unslop",
+      "nombre": "Repaso de marcas de IA",
+      "frase": "Busca las marcas de que lo ha escrito una máquina, y las quita.",
+      "palabras": [
+        "revisar",
+        "texto",
+        "redaccion",
+        "publicar",
+        "articulo",
+        "nota"
+      ],
+      "para": [
+        "operations",
+        "content",
+        "software",
+        "research"
       ]
     },
     {

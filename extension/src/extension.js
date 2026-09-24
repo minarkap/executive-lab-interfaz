@@ -834,7 +834,7 @@ ${cabecera}
   // Todos los comandos, no solo los que llevan botón.
   async verComandos() {
     this.donde = { tipo: 'quieto' };
-    this.enviar({ tipo: 'comandos', comandos: acciones.todos() });
+    this.enviar({ tipo: 'comandos', comandos: acciones.todos(), puedeTenerBotones: donde.puedeTenerBotones() });
   }
 
   // Qué le vendría bien a esto: lo que ve la barra leyendo el disco, y un botón

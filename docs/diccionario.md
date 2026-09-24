@@ -68,6 +68,7 @@ jerga por goteo.
 | el aviso de `rsc audit` (`.no-audit`) | La revisión periódica de habilidades |
 | el aviso de dos arneses (`.no-scope-check`) | El aviso de arnés duplicado |
 | el aviso de `CLAUDE.md` largo (`.no-claudemd-check`) | El aviso de reglas demasiado largas |
+| un asistente al que RSC no le engancha ninguno (todo lo que no es Claude) | Tu asistente no trae frenos: solo se le enganchan a Claude (en Lo que se comprueba solo, y al cambiar de asistente) |
 | `02-DOCS/wiki/harness/installation-plan.md` y `onboarding.acceptedAt` | El plan de montaje · Ver el plan de montaje · Aceptado el 18 de septiembre |
 | `.rsc/automation-gaps.md` (lo que `skill-scout` apunta tras trabajar) | ideas de automatización (un consejo en Sugerencias) |
 | `spec-miner` | Extractor de especificación |
@@ -90,6 +91,7 @@ jerga por goteo.
 | borrar uno ya leído, con lo que aprendió de él | Quitar algo que ya ha leído |
 | los scripts de una herramienta | Consultas (dentro de cada programa) |
 | `.claude/commands/` con `boton:` | Comandos (los que llevan botón salen arriba) |
+| un asistente sin carpeta de comandos (Codex) | Tu asistente no trabaja con comandos (en Comandos) · Tu asistente no trabaja con botones (en Acciones rápidas) |
 | lo que se fija arriba del todo | Acciones rápidas · Elegir cuáles |
 | `02-DOCS/wiki/` | Conocimiento (wiki) (dentro, «Conocimiento de <nombre>») |
 | un tema de la wiki | Un tema |

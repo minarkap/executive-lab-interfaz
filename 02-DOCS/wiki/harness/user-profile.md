@@ -2,6 +2,10 @@
 technical_level: technical
 accompaniment: L1
 project_kind: software
+language: es
+executive_lab_rails: 1
+arnes: Interfaz Arnes RSC
+empresa: Executive Lab
 ---
 
 # User profile

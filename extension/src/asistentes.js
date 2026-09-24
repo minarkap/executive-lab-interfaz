@@ -155,7 +155,17 @@ function elegir(id) {
   const aviso = seQuedan.length
     ? ` Lo que tenías montado para el otro (${seQuedan.map(([c, q]) => `${c} ${q}`).join(' y ')}) deja de verse: no se ha borrado, pero ${cual.nombre} no mira en esa carpeta. Pídeselo y te lo vuelve a montar.`
     : '';
-  return { ok: true, mensaje: `Hecho. A partir de ahora los botones hablan con ${cual.nombre}.${aviso}` };
+
+  // Y lo que se pierde sin estar en ninguna carpeta: los frenos. RSC solo se los
+  // engancha a Claude, así que al pasar a otro asistente desaparece el que para
+  // una orden peligrosa — y ese es el que protege a quien no es técnico. No se
+  // puede arreglar desde aquí, pero callarlo es peor: esto se pulsa una vez y
+  // nadie vuelve a mirar Las reglas para enterarse.
+  const sinFrenos = (donde.SITIOS[id] || {}).frenos
+    ? ''
+    : ` Y ${cual.nombre} no trae frenos: el que para una orden peligrosa solo se le engancha a Claude.`;
+
+  return { ok: true, mensaje: `Hecho. A partir de ahora los botones hablan con ${cual.nombre}.${aviso}${sinFrenos}` };
 }
 
 module.exports = { ASISTENTES, elDeAhora, losDelArnes, estaInstalado, porId, comoEstamos, elegir };

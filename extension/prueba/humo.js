@@ -1123,6 +1123,10 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.match(mensaje, /habla[n]? con Codex/, 'dice a quién le habla ahora');
     assert.match(mensaje, /deja de verse/, 'y qué deja de verse al cambiar');
     assert.match(mensaje, /no se ha borrado/i, 'sin dar a entender que se pierde');
+    // Y lo que se pierde sin estar en ninguna carpeta: los frenos. Es el único
+    // momento en que alguien decide quedarse sin el que para una orden peligrosa,
+    // así que es el único momento en que se puede decir y que sirva de algo.
+    assert.match(mensaje, /no trae frenos/, 'y que ahí se queda sin frenos');
 
     fs2.writeFileSync(declaracion, antes);
     vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
@@ -1957,13 +1961,44 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     // delegan y no reproducen el método del otro.
     const suyo = fs.readFileSync(path.join(RAIZ, '..', 'skills', 'comandos', 'seguir.md'), 'utf8');
     assert.match(suyo, /\/resume-session/, 'nombra el comando del arnés que saca el dato');
-    assert.match(suyo, /memory resume/, 'y el mecanismo por si ese comando no está puesto');
+    // Y el mecanismo por si ese comando no está puesto: el que ya está instalado
+    // en la carpeta, no `npx` — que sin versión se trae la última publicada.
+    assert.match(suyo, /node \.rsc\/session-memory\.mjs resume/, 'y el mecanismo local por si ese comando no está puesto');
 
     // Y las dos copias no se separan: la de `skills/` es la fuente y la de
     // `media/railes/` es la que viaja dentro del .vsix.
     const viaja = fs.readFileSync(path.join(RAIZ, 'media', 'railes', 'comandos', 'seguir.md'), 'utf8');
     assert.equal(viaja, suyo, 'la copia que viaja dentro es la misma');
     return 'delega en /resume-session';
+  });
+
+  await comprobar('ningún raíl manda correr npx sin versión', () => {
+    // La decisión 6 quitó `npx` a propósito: en Windows es un `.cmd`, tarda, y
+    // sin versión se trae la última publicada — con lo que la clase dejaría de
+    // correr el mismo catálogo. Los comandos que escribe RSC lo dicen igual
+    // (`/save-session`, `/learn`…), y esos no son nuestros: la regla que los
+    // cubre vive en la habilidad `executive-lab`, que RSC no toca.
+    const recorrer = (base, dentro = '') => fs.readdirSync(path.join(base, dentro), { withFileTypes: true })
+      .flatMap((e) => (e.isDirectory() ? recorrer(base, path.join(dentro, e.name)) : [path.join(dentro, e.name)]));
+
+    const raiz = path.join(RAIZ, '..', 'skills');
+    const sueltos = [];
+    for (const fichero of recorrer(raiz).filter((f) => f.endsWith('.md'))) {
+      const texto = fs.readFileSync(path.join(raiz, fichero), 'utf8');
+      // Con versión fijada sí vale: `npx @ericrisco/rsc@2.0.5 …`.
+      for (const linea of texto.split('\n')) {
+        if (/npx\s+@ericrisco\/rsc(?!@)/.test(linea)) sueltos.push(`${fichero}: ${linea.trim().slice(0, 70)}`);
+        if (/npx[^\n]*@latest/.test(linea)) sueltos.push(`${fichero}: @latest — ${linea.trim().slice(0, 60)}`);
+      }
+    }
+    assert.deepEqual(sueltos, [], `un raíl manda correr npx sin versión:\n    ${sueltos.join('\n    ')}`);
+
+    // Y la habilidad lleva la regla escrita, que es lo que cubre los comandos
+    // del arnés, que se reescriben solos en cada actualización.
+    const habilidad = fs.readFileSync(path.join(raiz, 'executive-lab', 'SKILL.md'), 'utf8');
+    assert.match(habilidad, /Nada de `npx` sin versión/, 'la habilidad lo prohíbe');
+    assert.match(habilidad, /node \.rsc\/session-memory\.mjs/, 'y dice qué usar en su lugar');
+    return 'sin npx suelto, y la regla escrita donde el arnés no la pisa';
   });
 
   await comprobar('cada habilidad instalada cae en un montón, y ninguna se esconde', () => {
@@ -1995,8 +2030,13 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       assert.ok(orient, 'orient está instalada y por tanto se ve');
       assert.equal(orient.nombre, 'Brújula', 'con su nombre en español');
       assert.ok(!alli.sabe.some((c) => c.id === 'orient') && !alli.otras.some((c) => c.id === 'orient'), 'y solo en su montón');
-      const bro = alli.otras.find((c) => c.id === 'bro');
-      assert.equal(bro && bro.nombre, 'Tono humano', 'una del arnés que no es fontanería, con el nombre de la tabla');
+      // `bro` la trae TODO arnés (perfil mínimo de RSC) y no es fontanería: se
+      // pide por su nombre. Hasta el 22-09-2026 caía en «otras» —«instalada
+      // aquí, fuera del catálogo»—, que es la etiqueta de algo escrito a mano en
+      // esa carpeta. Ahora tiene su fila en el catálogo, como lo que es.
+      const bro = alli.sabe.find((c) => c.id === 'bro');
+      assert.equal(bro && bro.nombre, 'Tono humano', 'una del catálogo que además viene de serie');
+      assert.ok(!alli.otras.some((c) => c.id === 'bro'), 'y ya no pasa por una de la casa');
       // Desde la decisión 102 el catálogo entero tiene nombre, así que `react`
       // ya no es «una fuera de la tabla»: cae en las del catálogo, con su fila.
       const react = alli.sabe.find((c) => c.id === 'react');
@@ -2792,7 +2832,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       assert.equal(quien.cuales.find((c) => c.id === 'codex').mandaTexto, false, 'y se dice que no admite que le escribamos');
 
       const suyo = cargar('saberes').queSabe(RAIZ, 'contratos');
-      assert.ok(suyo.otras.some((c) => c.id === 'bro'), 'sus habilidades salen de .codex/rsc/');
+      assert.ok(suyo.sabe.some((c) => c.id === 'bro'), 'sus habilidades salen de .codex/rsc/');
       assert.ok(suyo.suyas.some((c) => c.id === 'executive-lab'), 'y el raíl queda declarado como suyo');
 
       const [ayudante] = cargar('agentes').queHay();
@@ -2808,11 +2848,39 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       assert.ok(reglas.deLaCasa.some((x) => /abogado/.test(x)), 'y se enseñan las suyas');
       assert.ok(!reglas.deLaCasa.some((x) => /no debe salir/.test(x)), 'nunca las de CLAUDE.md, que ahí no las lee nadie');
 
+      // ── Y lo que no puede haber aquí, dicho ──────────────────────────
+      //
+      // Con Codex no hay frenos: RSC no le engancha ninguno —su instalador hace
+      // `if (target !== 'claude') return []`— así que el que para una orden
+      // peligrosa, que es el que protege a quien no es técnico, no existe. La
+      // sección salía con un cero al lado, como si a esta carpeta le faltara algo.
+      assert.equal(reglas.puedeTenerFrenos, false, 'con Codex no se engancha ningún freno');
+      assert.deepEqual(reglas.guardianes, [], 'así que no hay ninguno que enseñar');
+
+      // Y nuestros propios raíles dejan tres interruptores en `.rsc/` sea cual
+      // sea el asistente (`aplicar.js`, paso 4). Con Codex apagan piezas que ahí
+      // no se instalan: decirlas apagadas es contar una decisión que nadie tomó.
+      assert.deepEqual(cargar('reglas').loApagado(), [], 'no se da por apagado lo que ahí ni se monta');
+
+      const panel = require('./panel-falso').montarPanel();
+      const enPantalla = panel.mandar({ tipo: 'reglas', ...reglas });
+      assert.match(enPantalla, /no trae frenos/, 'y la pantalla lo dice en vez de enseñar el cero');
+
+      const susComandos = panel.mandar({
+        tipo: 'comandos',
+        comandos: cargar('acciones').todos(),
+        puedeTenerBotones: donde.puedeTenerBotones(),
+      });
+      assert.match(susComandos, /no trabaja con comandos/, 'la pantalla de comandos dice por qué no hay ninguno');
+      assert.ok(!/Se van creando/.test(susComandos), 'y no promete que se vayan creando solos');
+      assert.ok(!/Crear un comando/.test(susComandos), 'ni ofrece crear uno que no tendría dónde vivir');
+
       const radio = await cargar('terreno').radiografia();
       const nombres = radio.piezas.map((p) => p.nombre);
       assert.ok(nombres.includes('Tu asistente'), 'se dice cuál es el asistente');
       assert.ok(!nombres.includes('Comandos'), 'y no se reprocha lo que no puede tener');
-      return `${suyo.otras.length + suyo.suyas.length} habilidades · 1 ayudante · 0 botones, y se sabe por qué`;
+      assert.ok(!nombres.includes('Lo que tiene apagado'), 'ni se cuenta apagado lo que no puede estar');
+      return `${suyo.sabe.length + suyo.suyas.length} habilidades · 1 ayudante · 0 botones y 0 frenos, y se sabe por qué`;
     } finally {
       vscode.guion.raiz = empresa;
       vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
@@ -3332,6 +3400,38 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       assert.ok(!/\b(Cpp|Csharp|Php|Mle|Rag|Fastapi|Postgres|Pytorch)\b/.test(dicho.nombre), `${n} sale con el lenguaje en clave: ${dicho.nombre}`);
     }
     return `${manifiesto.skills.length} habilidades y ${catalogoAgentes.stackAgentNames().length} agentes, todos con nombre`;
+  });
+
+  await comprobar('y además cae en un montón: ninguna del catálogo queda sin sitio', () => {
+    // Tener nombre no bastaba, y eso costó cuatro habilidades. `bro`, `eli5`,
+    // `show-me` y `unslop` están en el perfil mínimo de RSC —las trae TODO
+    // arnés— y estaban nombradas en `nombres.json` pero no en ningún montón: ni
+    // en el catálogo ni en la fontanería. La barra las enseñaba como «instalada
+    // aquí, fuera del catálogo», que es lo que se le dice a algo que escribió a
+    // mano quien usa esa carpeta. La prueba de al lado pasaba tan contenta.
+    //
+    // Los dos montones no se solapan a propósito: la fontanería va plegada bajo
+    // «Las del arnés» y el catálogo se ofrece y se busca.
+    const paquete = path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc');
+    if (!fs.existsSync(path.join(paquete, 'manifest.json'))) return 'SALTADA';
+    const manifiesto = JSON.parse(fs.readFileSync(path.join(paquete, 'manifest.json'), 'utf8'));
+    const tabla = JSON.parse(fs.readFileSync(path.join(RAIZ, 'media', 'nombres.json'), 'utf8'));
+    const catalogo = JSON.parse(fs.readFileSync(path.join(RAIZ, 'media', 'capacidades.json'), 'utf8')).capacidades;
+
+    const enElCatalogo = new Set(catalogo.map((c) => c.id));
+    const fontaneria = new Set(tabla.fontaneria);
+    const sinMonton = manifiesto.skills.map((s) => s.id).filter((id) => !enElCatalogo.has(id) && !fontaneria.has(id));
+    assert.deepEqual(sinMonton, [], `ni en el catálogo ni en la fontanería: ${sinMonton.join(', ')}`);
+
+    const enLosDos = [...fontaneria].filter((id) => enElCatalogo.has(id));
+    assert.deepEqual(enLosDos, [], `en los dos montones a la vez: ${enLosDos.join(', ')}`);
+
+    // Y las cuatro que lo destaparon, cada una donde le toca: se piden por su
+    // nombre, así que van al catálogo y no a la fontanería.
+    for (const id of ['bro', 'eli5', 'show-me', 'unslop']) {
+      assert.ok(enElCatalogo.has(id), `${id} viene con todo arnés y no está en el catálogo`);
+    }
+    return `${manifiesto.skills.length} habilidades: ${catalogo.length} en el catálogo y ${fontaneria.size} de fontanería`;
   });
 
   await comprobar('lo que el arnés hace solo se nombra, y lo apagado se dice en español', () => {
@@ -4005,6 +4105,11 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       ['huecos', { tipo: 'huecos', huecos: cerebroM.loQueAunNoSabe(4) }, /Preguntas sin contestar/],
       ['papeles', { tipo: 'papeles', ...cargar('papeles').queHay() }, /contrato-talleres-ruiz/],
       ['comandos', { tipo: 'comandos', comandos: cargar('acciones').todos() }, /<h2>Comandos<\/h2>/],
+      // Sin ninguno escrito todavía, y con un asistente que sí puede tenerlos.
+      ['comandos sin ninguno', { tipo: 'comandos', comandos: [], puedeTenerBotones: true }, /Se van creando conforme repites tareas/],
+      // Y con uno que no puede tenerlos nunca: se dice, y no se ofrece crear uno
+      // que no tendría dónde vivir.
+      ['comandos con un asistente sin comandos', { tipo: 'comandos', comandos: [], puedeTenerBotones: false }, /no trabaja con comandos/],
       ['ayuda', { tipo: 'ayuda', github: { conectado: false } }, /Estoy atascado|por dónde seguir/],
       ['reglas', { tipo: 'reglas', ...cargar('reglas').queHay() }, /albarán firmado/],
       ['reglas con guardianes', { tipo: 'reglas', ...cargar('reglas').queHay(), guardianes: [{ id: 'danger-guard', nombre: 'Freno ante órdenes peligrosas', queHace: 'Para una orden peligrosa.', estado: 'armado', porQue: '' }] }, /Lo que se comprueba solo/],
