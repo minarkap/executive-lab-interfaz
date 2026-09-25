@@ -171,6 +171,11 @@ La barra decide sola qué hacer con cada uno: si el verbo solo mira (`listar_`, 
 pide datos o cambia algo, te lo pide a ti, y entonces preguntas lo que falte y pides permiso. Así que
 **nombra los scripts con cuidado**: el verbo decide si el alumno puede pulsarlo sin riesgo.
 
+Y **escríbelos en bash o en node**, que están siempre: bash llega con git, y node con la barra. La
+plantilla de RSC dice Python, pero en el ordenador del alumno no suele haberlo (en Windows casi nunca,
+y el de un Mac es viejo). En Python, solo si ya hay aquí uno que funcione. Si un script necesita un
+programa que no está, la barra lo dice en vez de lanzarlo, y te lo pide a ti.
+
 ### 3. Cuando sepas cuál es su web, quédate con su marca
 
 Hay tres puertas a esto y todas acaban aquí: el **wizard** se la pregunta al montar la carpeta, el

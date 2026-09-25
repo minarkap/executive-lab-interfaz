@@ -12,6 +12,7 @@
 // de línea. Un campo de texto y un botón que dice sí o no lo arregla.
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const proyecto = require('./proyecto');
 const procesos = require('./procesos');
@@ -145,8 +146,12 @@ function leerEnv(fichero) {
     const crudo = limpia.slice(corte + 1);
     let valor;
 
+    // Con comillas simples, como las escribe la barra (F3): tramos entre comillas
+    // y comillas escapadas, que bash junta en un solo valor: `'it'\''s'` es it's.
+    const simples = crudo.trim().match(/^((?:'[^']*'|\\')+)(?:\s|$)/);
     const entreComillas = crudo.trim().match(/^(["'])([\s\S]*?)\1/);
-    if (entreComillas) valor = entreComillas[2];
+    if (simples) valor = simples[1].replace(/'([^']*)'|\\'/g, (_, dentro) => (dentro === undefined ? "'" : dentro));
+    else if (entreComillas) valor = entreComillas[2];
     else valor = crudo.replace(/\s#.*$/, '').trim();
 
     valores.set(clave, valor);
@@ -401,6 +406,10 @@ function escribir(proveedorId, clave, valorBruto) {
 
   const valor = sinBordes.replace(/^["']|["']$/g, '');
   const destino = path.join(carpeta, '.env');
+  // Lo que se escribe tiene que llegar igual a la prueba, que hace
+  // `set -a; source .env` (F3): con algo fuera de lo que bash lee tal cual, entre
+  // comillas simples, con la comilla escapada. Sin nada raro, como estaba.
+  const comoSeEscribe = /^[A-Za-z0-9_./:@+=-]*$/.test(valor) ? valor : `'${valor.replace(/'/g, "'\\''")}'`;
   const base = fs.existsSync(destino) ? destino : path.join(carpeta, '.env.example');
 
   // Leer y escribir pueden fallar —un `.env` que quedó de solo lectura, un
@@ -415,11 +424,11 @@ function escribir(proveedorId, clave, valorBruto) {
     const nuevas = lineas.map((linea) => {
       if (linea.trim().startsWith(`${clave}=`)) {
         encontrada = true;
-        return `${clave}=${valor}`;
+        return `${clave}=${comoSeEscribe}`;
       }
       return linea;
     });
-    if (!encontrada) nuevas.push(`${clave}=${valor}`);
+    if (!encontrada) nuevas.push(`${clave}=${comoSeEscribe}`);
 
     fs.writeFileSync(destino, nuevas.join('\n').replace(/\n{3,}/g, '\n\n'));
   } catch (fallo) {
@@ -437,15 +446,56 @@ function escribir(proveedorId, clave, valorBruto) {
 
 // Cada carpeta trae su propia prueba. Se ejecuta la que haya, con el
 // intérprete que le toque, y solo se traduce el resultado.
+// El Python de este ordenador, si hay uno de verdad (F4). La convención de RSC
+// para los guiones de una herramienta es Python, y se lanzaba `python3` o
+// `python` a ciegas: sin él, un «No ha salido bien» que no dice qué falta, y en
+// Windows `python` puede ser el atajo que abre la Tienda. Se pregunta por su
+// versión antes, y se recuerda para cada PATH.
+const pythonPorPath = new Map();
+
+async function quePython() {
+  const clave = process.env.PATH || '';
+  if (pythonPorPath.has(clave)) return pythonPorPath.get(clave);
+  const candidatos = entorno.ES_WINDOWS ? [['py', ['-3']], ['python', []], ['python3', []]] : [['python3', []], ['python', []]];
+  let elegido = null;
+  for (const [programa, antes] of candidatos) {
+    const r = await procesos.ejecutar(programa, [...antes, '--version'], { cwd: os.tmpdir(), tiempoMaximo: 10000 });
+    if (r.codigo === 0 && /Python 3\./.test(`${r.salida}${r.error}`)) {
+      elegido = { programa, antes };
+      break;
+    }
+  }
+  pythonPorPath.set(clave, elegido);
+  return elegido;
+}
+
 // Cada script trae su intérprete. Los .sh de RSC piden bash —usan BASH_SOURCE
 // y pipefail—, no sh.
 async function lanzar(carpeta, fichero) {
   const ruta = path.join(carpeta, fichero);
   const opciones = { cwd: carpeta, tiempoMaximo: 45000 };
   if (fichero.endsWith('.sh')) return procesos.bash(ruta, opciones);
-  if (fichero.endsWith('.py')) return procesos.ejecutar(entorno.ES_WINDOWS ? 'python' : 'python3', [ruta], opciones);
+  if (fichero.endsWith('.py')) {
+    const python = await quePython();
+    if (!python) return { codigo: -1, salida: '', error: '', sinPython: true };
+    return procesos.ejecutar(python.programa, [...python.antes, ruta], opciones);
+  }
   return procesos.node([ruta], opciones);
 }
+
+// Lo que se dice cuando un guion necesita Python y no está, con el botón que se
+// lo pide al asistente: que lo rehaga en bash o en node, que sí están.
+const sinPython = (proveedorId, fichero, queEs) => ({
+  ok: false,
+  mensaje: `${queEs} necesita Python, y en este ordenador no está.`,
+  boton: {
+    etiqueta: 'Pedírselo al asistente',
+    accion: {
+      tipo: 'pedir',
+      prompt: `La consulta 01-TOOLS/${proveedorId}/${fichero} necesita Python, y en este ordenador no está. Rehazla para que funcione con lo que ya hay aquí, como dice la habilidad, y no me pidas que instale nada.`,
+    },
+  },
+});
 
 // ── Por qué no conecta, y no siempre es la clave ─────────────────────────
 //
@@ -459,6 +509,8 @@ async function lanzar(carpeta, fichero) {
 // no decirlo: manda a mirar donde no es.
 //
 // Se mira en el orden en que importa, y lo que no se reconoce no culpa a nadie.
+const ESTA_ROTA = [/traceback|syntaxerror|modulenotfounderror|command not found|no such file or directory|cannot find module|referenceerror/i,
+  'La prueba de esta conexión está rota, y eso no es cosa tuya. Pídeselo al asistente.'];
 const PORQUE_FALLA = [
   [/getaddrinfo|could not resolve|name or service not known|enotfound|network is unreachable|no route to host|econnrefused|connection refused/i,
     'No he podido salir a internet. Mira que tengas conexión y vuelve a probar.'],
@@ -466,9 +518,28 @@ const PORQUE_FALLA = [
     'La clave no vale. Sácala otra vez donde te la dieron y pégala entera.'],
   [/\b(429)\b|rate limit|too many requests/i,
     'La herramienta dice que le has pedido demasiadas cosas seguidas. Espera un rato y prueba otra vez.'],
-  [/traceback|syntaxerror|modulenotfounderror|command not found|no such file or directory|cannot find module|referenceerror/i,
-    'La prueba de esta conexión está rota, y eso no es cosa tuya. Pídeselo al asistente.'],
+  ESTA_ROTA,
 ];
+
+// Una clave escrita sin comillas con algo que bash no lee tal cual: la prueba
+// hace `source .env`, y con un `;`, un espacio o un `$` fuera de comillas se
+// corta o se ejecuta. La barra ya las guarda bien (F3); las de antes, o escritas
+// a mano, se dicen, en vez de culpar al guion.
+function hayUnaClaveQueSeLeeMal(carpeta) {
+  let texto = '';
+  try {
+    texto = fs.readFileSync(path.join(carpeta, '.env'), 'utf8');
+  } catch {
+    return false;
+  }
+  return texto.split('\n').some((linea) => {
+    const limpia = linea.trim();
+    if (!limpia || limpia.startsWith('#') || !limpia.includes('=')) return false;
+    const crudo = limpia.slice(limpia.indexOf('=') + 1).trim();
+    if (!crudo || /^["']/.test(crudo)) return false;
+    return /[\s;&|<>()$`\\'"]/.test(crudo.replace(/\s+#.*$/, ''));
+  });
+}
 
 async function probar(proveedorId) {
   const carpeta = carpetaDe(proveedorId);
@@ -478,6 +549,7 @@ async function probar(proveedorId) {
   if (!prueba) return { ok: false, mensaje: 'Esta conexión no trae forma de comprobarse. Pregúntaselo al asistente.' };
 
   const resultado = await lanzar(carpeta, prueba);
+  if (resultado.sinPython) return sinPython(proveedorId, prueba, 'Esta prueba');
   const error = `${resultado.error || ''}\n${resultado.salida || ''}`;
 
   if (resultado.codigo === 0) return { ok: true, mensaje: 'Conectado. Funciona.' };
@@ -494,6 +566,10 @@ async function probar(proveedorId) {
   if (/tardado demasiado/i.test(error)) return { ok: false, mensaje: 'La herramienta no contesta. Prueba dentro de un rato.' };
 
   const porque = PORQUE_FALLA.find(([senal]) => senal.test(error));
+  // «Está rota» solo si sus claves se leen bien: si no, lo que falla es una clave.
+  if (porque === ESTA_ROTA && hayUnaClaveQueSeLeeMal(carpeta)) {
+    return { ok: false, mensaje: 'Una clave de esta conexión tiene caracteres que la prueba lee mal. Pégala otra vez y guárdala: ahora la guardo bien.' };
+  }
   if (porque) return { ok: false, mensaje: porque[1] };
 
   // Y si no se reconoce, no se señala a la clave: se dice lo que se sabe.
@@ -582,6 +658,41 @@ function scripts(proveedorId) {
   return encontrados;
 }
 
+// ── Tapar las claves en lo que se enseña (F2) ────────────────────────────
+//
+// Lo que imprime un guion se pinta tal cual, y lo que la barra se apunta acaba
+// en el informe de «Algo va mal». Un guion que enseña la clave con la que
+// conecta la dejaba entera en los dos sitios. Se tapan los valores de las claves
+// de la carpeta —el `.env` de cada herramienta y los sueltos que ve el
+// inventario— con sus cuatro últimos caracteres, como en el resto de la barra
+// (C-18). Solo los de seis o más: taparle a alguien un «test» o un «true» de su
+// salida no protege nada y la deja ilegible.
+const LARGO_DE_UNA_CLAVE = 6;
+
+function valoresDeClaves() {
+  const valores = new Set();
+  const deAqui = (fichero) => {
+    for (const valor of leerEnv(fichero).values()) {
+      if (typeof valor === 'string' && valor.length >= LARGO_DE_UNA_CLAVE) valores.add(valor);
+    }
+  };
+  for (const { id } of proveedores()) {
+    const carpeta = carpetaDe(id);
+    if (carpeta) deAqui(path.join(carpeta, '.env'));
+  }
+  try {
+    for (const sitio of require('./sueltas').buscar()) deAqui(proyecto.ruta(sitio.donde));
+  } catch { /* sin inventario, con las de las herramientas basta */ }
+  // Las largas primero: una clave puede llevar dentro otra más corta.
+  return [...valores].sort((a, b) => b.length - a.length);
+}
+
+function taparClaves(texto, valores = valoresDeClaves()) {
+  let tapado = String(texto == null ? '' : texto);
+  for (const valor of valores) tapado = tapado.split(valor).join(enmascarar(valor));
+  return tapado;
+}
+
 // Ejecuta uno de los que solo miran y devuelve su salida, recortada. Los que
 // piden datos o tocan cosas no pasan por aquí: los pide el asistente, que
 // pregunta lo que falte y pide permiso antes de cambiar nada.
@@ -592,14 +703,15 @@ async function ejecutar(proveedorId, fichero) {
   const permitido = scripts(proveedorId).find((s) => s.fichero === fichero && !s.pideDatos);
   if (!permitido) return { ok: false, mensaje: 'Esto se lo tengo que pedir al asistente.' };
 
-  const { codigo, salida, error } = await lanzar(carpeta, fichero);
+  const { codigo, salida, error, sinPython: faltaPython } = await lanzar(carpeta, fichero);
+  if (faltaPython) return sinPython(proveedorId, fichero, 'Esta consulta');
   if (codigo !== 0) {
     if (/missing .*\.env/i.test(error)) return { ok: false, mensaje: 'Primero pon las claves de esta conexión.' };
     if (/not set/i.test(error)) return { ok: false, mensaje: 'Falta alguna clave por rellenar.' };
     return { ok: false, mensaje: 'No ha salido bien. Prueba a comprobar la conexión.' };
   }
 
-  const texto = salida.trim();
+  const texto = taparClaves(salida.trim());
   const lineas = texto.split('\n');
   return {
     ok: true,
@@ -609,4 +721,4 @@ async function ejecutar(proveedorId, fichero) {
   };
 }
 
-module.exports = { proveedores, claves, escribir, probar, scripts, loQueSePuedeMirar, ejecutar, etiquetaDeClave, enmascarar, leerEnv };
+module.exports = { proveedores, claves, escribir, probar, scripts, loQueSePuedeMirar, ejecutar, etiquetaDeClave, enmascarar, leerEnv, taparClaves };

@@ -195,8 +195,27 @@ function loQueDeclara(fichero) {
   return { tipo, correo };
 }
 
+// Una `.key` es una clave si lo dice lo que lleva dentro: en un Mac, las
+// presentaciones de Keynote también acaban así, y quedaban fuera de las copias
+// (T054). Una clave en texto empieza por `-----BEGIN`.
+function esUnaClave(completa) {
+  try {
+    const fd = fs.openSync(completa, 'r');
+    try {
+      const cabeza = Buffer.alloc(64);
+      const leidos = fs.readSync(fd, cabeza, 0, 64, 0);
+      return /^\s*-----BEGIN /.test(cabeza.slice(0, leidos).toString('latin1'));
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch {
+    return false;
+  }
+}
+
 // ¿Este fichero es una credencial? Devuelve qué es, o null.
 function queEs(nombre, completa) {
+  if (/\.key$/i.test(nombre) && completa && !esUnaClave(completa)) return null;
   if (POR_NOMBRE.test(nombre) || SIN_EXTENSION.test(nombre)) {
     return { clase: 'certificado', queEs: 'Un certificado digital' };
   }

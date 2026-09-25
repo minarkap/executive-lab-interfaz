@@ -90,6 +90,33 @@ async function iniciar() {
   return h.iniciar(donde, comoLlamar());
 }
 
+// Lo que no entra en una copia (F1): las credenciales que el inventario reconoce
+// sueltas, ficheros de claves y ficheros de acceso. `historial` deja fuera las que
+// git todavía no seguía; una que ya estaba en git sigue ahí, porque sacarla lo
+// decide la persona, y la barra ya lo avisa aparte. Por aquí pasan el botón y el
+// guardado solo.
+function loQueNoEntra() {
+  const sueltas = require('./sueltas');
+  return [...new Set([...sueltas.buscar(), ...sueltas.ficherosDeAcceso()].map((s) => s.donde.split(path.sep).join('/')))].sort();
+}
+
+// Lo que se ha dejado fuera, dicho como en el diccionario, y el botón que lo
+// pone en su sitio, que es el encargo de ordenar las claves.
+function dichoDeLoQueNoEntro(excluidos) {
+  if (!excluidos.length) return { texto: '', boton: null };
+  const nombres = excluidos.map((d) => `«${path.basename(d)}»`);
+  const lista = nombres.length < 2 ? nombres.join('') : `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`;
+  const deClaves = excluidos.every((d) => /^\.env|(^|\/)\.env/.test(path.basename(d)) || path.basename(d) === '.envrc');
+  const queEs = excluidos.length === 1
+    ? `es un fichero ${deClaves ? 'de claves de acceso' : 'de acceso'} y no debe salir de este ordenador`
+    : `son ficheros ${deClaves ? 'de claves de acceso' : 'de acceso'} y no deben salir de este ordenador`;
+  const encargo = require('./encargos').ordenarLasClaves();
+  return {
+    texto: `No he metido ${lista} en la copia: ${queEs}.`,
+    boton: encargo ? { etiqueta: excluidos.length === 1 ? 'Ponerlo en su sitio' : 'Ponerlos en su sitio', accion: { tipo: 'pedir', prompt: encargo.prompt } } : null,
+  };
+}
+
 async function guardar(mensaje) {
   const h = historial();
   if (!h || !(await hayGit())) return { ok: false, faltaGit: true, mensaje: SIN_PIEZA };
@@ -97,15 +124,24 @@ async function guardar(mensaje) {
   const donde = proyecto.raiz();
   if (!donde) return { ok: false, mensaje: NO_PUEDO };
 
-  const hecho = await h.guardar(donde, mensaje || `Copia de seguridad — ${fechaLarga()}`, comoLlamar());
+  let excluir = [];
+  try {
+    excluir = loQueNoEntra();
+  } catch { /* sin inventario se guarda como siempre: el .gitignore de los raíles sigue ahí */ }
+
+  const hecho = await h.guardar(donde, mensaje || `Copia de seguridad — ${fechaLarga()}`, { ...comoLlamar(), excluir });
   if (!hecho.ok) return { ok: false, mensaje: NO_PUEDO };
+  const fuera = dichoDeLoQueNoEntro(hecho.excluidos || []);
   if (hecho.sinCambios) {
     return { ok: true, sinCambios: true, mensaje: 'No ha cambiado nada desde la última copia. No hace falta guardar.' };
   }
 
+  const guardada = hecho.cuantos === 1 ? 'Copia guardada. Había un cambio.' : `Copia guardada. Había ${hecho.cuantos} cambios.`;
   return {
     ok: true,
-    mensaje: hecho.cuantos === 1 ? 'Copia guardada. Había un cambio.' : `Copia guardada. Había ${hecho.cuantos} cambios.`,
+    mensaje: fuera.texto ? `${guardada} ${fuera.texto}` : guardada,
+    ...(fuera.boton ? { boton: fuera.boton } : {}),
+    excluidos: hecho.excluidos || [],
   };
 }
 
@@ -259,6 +295,8 @@ async function subirCopia() {
   if (subida.ok) return { ok: true, mensaje: 'Copia guardada fuera de este ordenador.' };
   return {
     ok: false,
+    // Lo que dijo git, ya sin el token (`historial` lo limpia), para «Algo va mal» (F2).
+    detalle: subida.error,
     mensaje: credenciales.delEditor
       ? 'No he podido guardarla fuera. Prueba a entrar otra vez en tu cuenta.'
       : 'No he podido guardarla fuera. Revisa la clave en Conexiones.',

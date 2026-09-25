@@ -217,3 +217,13 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
   `--target` y con dos instalados no adivina, y con uno solo el otro se quedaba sin ella.
 - **La elección vale mientras ese asistente esté declarado e instalado** (M1, m1), y sin dónde
   guardarla no se dice «Hecho» (M2).
+
+## 2026-09-25 · todo-cuadra · F6, T053
+
+- **El bloque de lo que no entra en git no lleva `*.key`**, aunque el plan lo nombraba: en un Mac,
+  las presentaciones de Keynote acaban en `.key`, y quedarían fuera de las copias sin que nadie lo
+  supiera. Una `.key` que es una clave de verdad la deja fuera la barra al guardar, mirando lo que
+  lleva dentro (T054).
+- **La lista vive en un módulo de los raíles** (`no-entra-en-git.js`), que usan los raíles y la barra,
+  como `sitios.js`: así los dos miran lo mismo.
+- **Sus marcas son comentarios de `.gitignore`**: una línea con `<!--` sería un patrón más.

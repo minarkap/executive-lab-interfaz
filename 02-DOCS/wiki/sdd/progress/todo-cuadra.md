@@ -721,3 +721,93 @@ Solo se añade.
   - Once pruebas nuevas o ampliadas, en rojo primero; diecinueve mutaciones, y mueren todas.
 
   Verde: `humo` 280, `humo+` 287, `contrato` 12.
+- **T053 ✓** 25-09 · El bloque de lo que no entra en git (F1):
+  - **rojo**: «el bloque se pone una vez y no saca de git lo que ya estaba».
+  - **verde**: un módulo nuevo de los raíles, `no-entra-en-git.js`, con la lista y el bloque, que usan
+    los raíles para ponerlo y la barra para mirarlo. Los raíles lo ponen una vez por carpeta, entre
+    marcas de comentario (`# executive-lab:start`), en el `.gitignore` de la raíz, o lo crean. Lo que
+    ya estaba en git sigue en git. En una carpeta de alguien, su `.gitignore` espera a su sí (C-4):
+    «Lo que pone la barra» lo ofrece, y el botón dice «la lista de lo que no entra en git». Uno de otro
+    día se da por viejo y se pone al día.
+  - Sin `*.key`: en un Mac, las presentaciones de Keynote acaban así (decisión SDD de hoy). La prueba
+    mira que una `presentacion.key` entra en la copia.
+  - Una prueba de antes montaba «los raíles de hoy» a mano: ahora con el bloque también.
+  - Mutación: nueve, y mueren todas.
+
+  Verde: `humo` 281.
+- **T054 ✓** 25-09 · Guardar en git sin credenciales, y decirlo (F1):
+  - **rojo**: «guardar en git deja fuera .env, credentials.json y x.pem de la raíz, y lo dice», con git
+    de verdad en un temporal.
+  - **verde**: `historial.guardar(dir, mensaje, { excluir })` deja fuera, en los dos motores, lo que
+    git todavía no seguía (con un pathspec `:(exclude,literal)` en el binario, y sacándolo del índice
+    en el de JavaScript), cuenta lo que entra y no lo que cambió, y devuelve `excluidos`. La barra le
+    pasa lo que reconoce el inventario (`sueltas.buscar` y `ficherosDeAcceso`), dice qué se ha quedado
+    fuera, con las frases del diccionario, y el aviso trae su botón, «Ponerlo en su sitio», que es el
+    encargo de ordenar las claves. El guardado solo pasa por lo mismo, y lo apunta en el registro. Una
+    que ya estaba en git sigue en git, con sus cambios: sacarla lo decide la persona. El raíl
+    `guardar.md` pide lo mismo al asistente.
+  - Una `.key` es una clave solo si lo dice lo que lleva dentro (`-----BEGIN`): en un Mac, las
+    presentaciones de Keynote acaban así.
+  - El motor de JavaScript solo se prueba donde está su biblioteca, y aquí no: su caso, escrito.
+  - Mutación: nueve (el binario sin dejar fuera, contar cambios en vez de lo que entra, lo que ya
+    sigue git fuera también, una `.key` siempre clave, sin decirlo, sin el botón, el aviso sin su
+    botón, sin los ficheros de acceso), y mueren todas. Una sobrevivía, porque lo que ya seguía git se
+    filtraba en dos sitios: queda en uno, `historial`.
+
+  Verde: `humo` 282.
+- **T076 ✓** 25-09 · Tapar las claves en lo que se enseña (F2):
+  - **rojo**, dos: «una consulta que imprime una clave la enseña tapada» y «el informe no lleva ningún
+    valor de los .env de la carpeta».
+  - **verde**: `conexiones.taparClaves` cambia cada valor de las claves de la carpeta —el `.env` de
+    cada herramienta y los sueltos que ve el inventario— por sus cuatro últimos caracteres, como el
+    resto de la barra (C-18). Solo los de seis o más: un «test» o un «true» no se tapan. Lo usan la
+    salida de una consulta, antes de pintarla, y el informe de «Algo va mal», antes de escribirlo.
+  - La prueba del informe usa la clave que haya en ese momento: otras pruebas la cambian.
+  - Mutación: cinco (la consulta sin tapar, el informe sin tapar, todo tapado, sin las sueltas, sin
+    las de las herramientas), y mueren todas.
+
+  Verde: `humo` 284.
+- **T055 ✓** 25-09 · El token de GitHub, fuera de la orden y de los errores (F2):
+  - **medido**: el git de este Mac (2.46) ya no repite la clave de la URL en «unable to access», pero
+    el token iba en la línea de órdenes, que se ve mientras corre, y uno de antes sí la repite.
+  - **rojo**: «un push fallido no deja el token en el informe», con un git de mentira que apunta con
+    qué se le llamó y repite la URL y sus cabeceras al fallar.
+  - **verde**: el motor binario manda el token en una cabecera por el entorno de esa sola invocación
+    (`GIT_CONFIG_COUNT`, sumado a lo que ya hubiera), y lo que diga git al fallar se limpia del token
+    en sus tres formas. La barra apunta, ya limpio, por qué no subió, para «Algo va mal» (P3).
+  - Pendiente, con Jose: una subida de verdad a GitHub con la cabecera, que aquí no se puede hacer.
+  - Mutación: dos (el token en la URL, el error sin limpiar), y mueren las dos. La primera pasada se
+    cayó entera por un `${…}` de sh sin escapar en la prueba, y el guion de mutaciones lo contó como
+    «sigue verde»: desde ahora, una batería que se cae se dice aparte.
+
+  Verde: `humo` 285.
+- **T056 ✓** 25-09 · Las claves, con comillas que aguantan `source` (F3):
+  - **rojo**: «una clave con # $ espacio ' ` ; llega entera a la prueba y no se ejecuta», con
+    `bash -c 'set -a; source .env; printf %s "$X"'`: «con espacio» le llegaba vacía.
+  - **verde**: con algo fuera de `[A-Za-z0-9_./:@+=-]`, la clave va entre comillas simples y con la
+    comilla escapada (`'it'\''s'`); sin nada raro, como estaba. El lector de la barra junta los tramos
+    igual que bash. Doce valores, entre ellos `$(touch …)` y comillas invertidas: todos llegan enteros,
+    y no se ejecuta nada.
+  - Y una clave de antes, escrita sin comillas, que rompe el `source`: la prueba ya no dice que el
+    guion está roto, sino que se vuelva a pegar la clave (frase nueva, en el diccionario, C-22).
+  - Mutación: cinco (sin comillas, sin escapar la comilla, siempre con comillas, el lector sin los
+    tramos, culpar al guion), y mueren todas.
+
+  Verde: `humo` 286.
+- **T057 ✓** 25-09 · Ver si hay Python antes de lanzar un `.py` (F4):
+  - **rojo**: «sin Python, un .py no se lanza a ciegas y se dice qué falta», con un PATH sin Python.
+  - **verde**: la barra pregunta antes por la versión (`python3`, `python`, y en Windows `py -3`
+    primero) y se acuerda para cada PATH. Sin uno de verdad, la consulta o la prueba dicen «Esta
+    consulta necesita Python, y en este ordenador no está.», con «Pedírselo al asistente», que le
+    pide rehacerla con lo que ya hay. La habilidad pide los guiones de cada herramienta en bash o en
+    node, y en Python solo si ya hay uno que funcione.
+  - El texto para el asistente se ve en su caja: el comprobador del diccionario cazó «node» y
+    «terminal», y se reescribió sin ellas.
+  - Mutación: cuatro (a ciegas, sin el botón, la consulta sin mirar, la habilidad sin pedirlo), y
+    mueren todas.
+
+  Verde: `humo` 287.
+- **T058 ✓** 25-09 · Verificación de F6 ([verificación](../verifications/todo-cuadra-F6-2026-09-25.md)):
+  `humo` 287, `humo+` 294, `contrato` 12, las tres empresas enteras, diccionario limpio y PowerShell
+  sin pegas. Treinta y cuatro mutaciones, y mueren todas. Decisión 122, worklog, 0.38.0 y commit. La
+  revisión con ojos frescos de F6 corre sobre ese commit.

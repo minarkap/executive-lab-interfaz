@@ -537,7 +537,7 @@ ${cabecera}
 
     this.enviar({ tipo: 'esperando', que: `${etiqueta}…` });
     const hecho = await conexiones.ejecutar(proveedor, fichero);
-    if (!hecho.ok) return this.verConexion(proveedor, { texto: hecho.mensaje, malo: true });
+    if (!hecho.ok) return this.verConexion(proveedor, { texto: hecho.mensaje, malo: true, ...(hecho.boton ? { boton: hecho.boton } : {}) });
     if (!hecho.texto) return this.verConexion(proveedor, { texto: hecho.mensaje, malo: false });
     this.donde = { tipo: 'quieto' };
     return this.enviar({ tipo: 'resultado', titulo: hecho.titulo, texto: hecho.texto, proveedor });
@@ -1096,6 +1096,8 @@ ${cabecera}
     const hecho = await copias.subirCopia();
     // Sin cuenta no se enseña un error: se enseña cómo entrar.
     if (hecho.faltaGitHub) return this.verCopiaFuera();
+    // Por qué no subió, para «Algo va mal», sin el token (F2).
+    if (hecho.detalle) this.salida.appendLine(`[subir] ${hecho.detalle}`); // diccionario: interno
 
     await this.refrescar(true);
     this.enviar({ tipo: 'aviso', texto: hecho.mensaje, malo: !hecho.ok });
@@ -1103,8 +1105,8 @@ ${cabecera}
   }
 
   async guardarCopia() {
-    const { ok, mensaje } = await copias.guardar();
-    this.enviar({ tipo: 'aviso', texto: mensaje, malo: !ok });
+    const { ok, mensaje, boton } = await copias.guardar();
+    this.enviar({ tipo: 'aviso', texto: mensaje, malo: !ok, ...(boton ? { boton } : {}) });
     if (ok) brujula.olvidar();
   }
 
@@ -1270,8 +1272,13 @@ ${cabecera}
   // botón, y vale para cualquier asistente (revisión de F4, m5).
   async ponerElBloque() {
     const si = 'Ajustarlo ahora';
+    // Lo que falta, dicho como se dice en el resumen de montar: sus instrucciones,
+    // su `.gitignore` (F1), o los dos.
+    const falta = terreno.loQueFaltaPorPoner();
+    const lista = falta.length ? falta : ['Cómo se trabaja aquí'];
+    const dicha = lista.length < 2 ? lista.join('') : `${lista.slice(0, -1).join(', ')} y ${lista[lista.length - 1]}`;
     const elegido = await vscode.window.showInformationMessage(
-      'Aquí ya hay cosas tuyas. Voy a tocar esto: Cómo se trabaja aquí. No borro nada tuyo.',
+      `Aquí ya hay cosas tuyas. Voy a tocar esto: ${dicha}. No borro nada tuyo.`,
       { modal: true },
       si,
       'No, déjalo',
@@ -1684,6 +1691,9 @@ function guardarSolo(panel, salida) {
       ultima = Date.now();
       if (!hecho.ok) salida.appendLine(`[guardarSolo] ${hecho.mensaje}`);
       else await panel.refrescar(true);
+      // Lo que se quedó fuera por ser una credencial (F1): la pieza de las claves
+      // fuera de sitio ya lo enseña; aquí, para «Algo va mal».
+      if (hecho.excluidos && hecho.excluidos.length) salida.appendLine(`[guardarSolo] fuera de la copia: ${hecho.excluidos.join(', ')}`); // diccionario: interno
     } catch (error) {
       salida.appendLine(`[guardarSolo] ${error.stack || error.message}`);
     }

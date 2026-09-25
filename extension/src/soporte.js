@@ -68,7 +68,9 @@ async function revisar({ lineas = [], carpetaAparte = null } = {}) {
   const conQuien = asistentes.comoEstamos();
   const comoEsta = (a) => `${a.instalado ? 'puesto' : 'NO está puesto'}${a.delArnes ? ', y es para el que se montó' : ''}${a.mandaTexto ? '' : ' · no admite que le escribamos: va por el portapapeles'}`;
 
-  const informe = [
+  // El informe viaja al tutor: ningún valor de las claves de la carpeta, ni en lo
+  // que la barra se apuntó por el camino (F2, T076).
+  const informe = require('./conexiones').taparClaves([
     `Incidencia ${codigo}`,
     `Fecha: ${new Date().toISOString()}`,
     `Sistema: ${process.platform} ${process.arch}`,
@@ -109,7 +111,7 @@ async function revisar({ lineas = [], carpetaAparte = null } = {}) {
     // se quedaba en el panel de salida y no llegaba nunca al tutor.
     '--- lo que fue pasando ---',
     lineas.length ? lineas.join('\n') : '(nada apuntado)',
-  ].join('\n');
+  ].join('\n'));
 
   const carpeta = carpetaDeIncidencias(carpetaAparte);
   const fichero = carpeta ? path.join(carpeta, `${codigo}.txt`) : null;

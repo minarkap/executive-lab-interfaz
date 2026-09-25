@@ -573,3 +573,16 @@ Decisión 121 en `docs/decisiones.md`. Fase F5 de la cadena SDD `todo-cuadra`.
   de Claude.
 
 0.37.0. 267 comprobaciones, 273 con el arnés de verdad, y 12 de contrato.
+
+## Las claves no salen de este ordenador — 25 de septiembre de 2026
+
+Decisión 122 en `docs/decisiones.md`. Fase F6 de la cadena SDD `todo-cuadra`.
+
+- **Una credencial suelta no entra en la copia**: un bloque en el `.gitignore` de la raíz, y guardar
+  la deja fuera y lo dice, con un botón para ponerla en su sitio.
+- **Ningún valor de una clave se enseña**: ni en lo que imprime una consulta, ni en el informe de
+  «Algo va mal», ni el token de GitHub al subir.
+- **Una clave con cualquier carácter llega entera a su prueba**, y una consulta que necesita Python
+  dice que falta en vez de lanzarse a ciegas.
+
+0.38.0. 287 comprobaciones, 294 con el arnés de verdad, y 12 de contrato.

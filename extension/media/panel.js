@@ -197,10 +197,13 @@ function lineaDeVarias() {
   return `<p class="nota">${texto(`Trabajo con «${estado.conVarias}», la primera de las carpetas abiertas.`)}</p>`;
 }
 
+// Un aviso puede traer su propio botón, cuando lo que dice tiene arreglo: el de
+// «Guardar en git» con una credencial suelta lo trae para ponerla en su sitio (F1).
 function bloqueAviso(cual = aviso) {
   if (!cual) return '';
   const manda = cual.malo && /Algo va mal/.test(cual.texto || '');
   return `<div class="aviso ${cual.malo ? 'malo' : ''}">${texto(cual.texto)}</div>`
+    + (cual.boton && cual.boton.etiqueta && cual.boton.accion ? boton({ etiqueta: cual.boton.etiqueta, icono: '▸', pequeno: true, accion: cual.boton.accion }) : '')
     + (manda ? boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } }) : '');
 }
 
@@ -2400,7 +2403,7 @@ function atender(data) {
     case 'trato': return pintar(pantallaTrato(data));
     case 'incidencia': return pintar(pantallaIncidencia(data));
     case 'aviso':
-      aviso = { texto: data.texto, malo: data.malo };
+      aviso = { texto: data.texto, malo: data.malo, boton: data.boton };
       return pintar(pantallaPrincipal());
     default:
       // Un mensaje que no conocemos no puede dejar la pantalla congelada: eso

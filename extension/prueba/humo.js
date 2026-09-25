@@ -220,6 +220,57 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return hecho.mensaje;
   });
 
+  await comprobar('una consulta que imprime una clave la enseña tapada', async () => {
+    // F2 y T076. Lo que imprime una consulta se pinta tal cual, y un guion que
+    // enseña la clave con la que conecta la dejaba entera en la pantalla. Se
+    // tapan los valores de las claves de la carpeta, con sus cuatro últimos
+    // caracteres, como en el resto de la barra (C-18).
+    const fs2 = require('node:fs');
+    const carpeta = path.join(empresa, '01-TOOLS', 'HOLDED');
+    const readme = fs2.readFileSync(path.join(carpeta, 'README.md'), 'utf8');
+    fs2.writeFileSync(path.join(carpeta, 'README.md'), `${readme}| \`ver_cuenta.sh\` | Enseña con qué cuenta conecta | \`./ver_cuenta.sh\` |\n`);
+    fs2.writeFileSync(path.join(carpeta, 'ver_cuenta.sh'), '#!/usr/bin/env bash\nset -a; source "$(dirname "$0")/.env"; set +a\necho "Conecto con la clave $HOLDED_API_KEY, en $HOLDED_ENV"\n', { mode: 0o755 });
+    try {
+      const hecho = await conexiones.ejecutar('HOLDED', 'ver_cuenta.sh');
+      assert.equal(hecho.ok, true, hecho.mensaje);
+      assert.doesNotMatch(hecho.texto, /abcd1234efgh5678/, 'la clave se enseña entera');
+      assert.match(hecho.texto, /••••5678/, 'y no se deja ver cuál es');
+      assert.match(hecho.texto, /en test$/m, 'y se tapa lo que no es una clave');
+      return hecho.texto;
+    } finally {
+      fs2.writeFileSync(path.join(carpeta, 'README.md'), readme);
+      fs2.rmSync(path.join(carpeta, 'ver_cuenta.sh'));
+    }
+  });
+
+  await comprobar('sin Python, un .py no se lanza a ciegas y se dice qué falta', async () => {
+    // F4 y T057. La convención de RSC para los guiones de una herramienta es
+    // Python, y la barra lanzaba `python3` o `python` a ciegas: sin Python, «No ha
+    // salido bien», y en Windows `python` puede abrir la Tienda. Se mira antes, y
+    // si no está se dice cuál falta, con el botón que se lo pide al asistente.
+    const fs2 = require('node:fs');
+    const carpeta = path.join(empresa, '01-TOOLS', 'HOLDED');
+    const readme = fs2.readFileSync(path.join(carpeta, 'README.md'), 'utf8');
+    fs2.writeFileSync(path.join(carpeta, 'README.md'), `${readme}| \`ver_resumen.py\` | Enseña el resumen del mes | \`./ver_resumen.py\` |\n`);
+    fs2.writeFileSync(path.join(carpeta, 'ver_resumen.py'), 'print("resumen")\n');
+    const antesPath = process.env.PATH;
+    process.env.PATH = fs2.mkdtempSync(path.join(os.tmpdir(), 'sin-python-'));
+    try {
+      const hecho = await conexiones.ejecutar('HOLDED', 'ver_resumen.py');
+      assert.equal(hecho.ok, false);
+      assert.equal(hecho.mensaje, 'Esta consulta necesita Python, y en este ordenador no está.', `se lanza a ciegas: ${hecho.mensaje}`);
+      assert.equal(hecho.boton && hecho.boton.etiqueta, 'Pedírselo al asistente', 'y no hay salida');
+      assert.match(hecho.boton.accion.prompt, /ver_resumen\.py/);
+      // Y los raíles piden los guiones en bash o en node, que están siempre.
+      assert.match(fs2.readFileSync(path.join(RAIZ, '..', 'skills', 'executive-lab', 'SKILL.md'), 'utf8'), /\*\*escríbelos en bash o en node\*\*/, 'la habilidad no pide guiones que corran aquí');
+      return hecho.mensaje;
+    } finally {
+      process.env.PATH = antesPath;
+      fs2.writeFileSync(path.join(carpeta, 'README.md'), readme);
+      fs2.rmSync(path.join(carpeta, 'ver_resumen.py'));
+    }
+  });
+
   await comprobar('solo se ejecuta lo que la propia herramienta declara', async () => {
     // Esto corre scripts de verdad, sin pasar por el asistente y sin preguntar,
     // y vive en la carpeta de las credenciales. La lista blanca no sale del
@@ -529,6 +580,49 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'sin casillas imposibles';
   });
 
+  await comprobar("una clave con # $ espacio ' ` ; llega entera a la prueba y no se ejecuta", async () => {
+    // F3 y T056. Las claves se guardaban sin comillas, y el `test_connection.sh` de
+    // RSC hace `set -a; source .env`. Una contraseña con `#`, `$`, un espacio, una
+    // comilla invertida o un `;` llegaba cortada, o se ejecutaba, y la barra le
+    // echaba la culpa al guion. Ahora va entre comillas simples cuando hace falta,
+    // y la barra la lee igual que bash.
+    if (process.platform === 'win32') return 'SALTADA: bash de verdad';
+    const cp = require('node:child_process');
+    const fs2 = require('node:fs');
+    const carpeta = path.join(empresa, '01-TOOLS', 'RARAS');
+    fs2.mkdirSync(carpeta, { recursive: true });
+    fs2.writeFileSync(path.join(carpeta, '.env.example'), 'RARAS_API_KEY=\n');
+    const trampa = path.join(carpeta, 'EJECUTADO');
+    const VALORES = [
+      'p#ss', '#empieza-por-almohadilla', 'con espacio', "it's", 'a`id`b', 'x;y', '$HOME', '${HOME}',
+      `$(touch ${trampa})`, `\`touch ${trampa}\``, "mezcla 'a' \"b\" $c #d ;e", 'normal-sin-nada_1.2:3@4+5=6/7',
+    ];
+    try {
+      for (const valor of VALORES) {
+        const hecho = conexiones.escribir('RARAS', 'RARAS_API_KEY', valor);
+        assert.equal(hecho.ok, true, hecho.mensaje);
+        const llega = cp.execFileSync('bash', ['-c', 'set -a; source .env; printf %s "$RARAS_API_KEY"'], { cwd: carpeta, encoding: 'utf8' });
+        assert.equal(llega, valor, `«${valor}» llega a la prueba como «${llega}»`);
+        assert.equal(conexiones.leerEnv(path.join(carpeta, '.env')).get('RARAS_API_KEY'), valor, `la barra lee «${valor}» de otra forma`);
+        assert.ok(!fs2.existsSync(trampa), `con «${valor}» se ha ejecutado algo`);
+      }
+      // Y la que no lleva nada raro se queda como estaba, sin comillas.
+      assert.match(fs2.readFileSync(path.join(carpeta, '.env'), 'utf8'), /^RARAS_API_KEY=normal-sin-nada_1\.2:3@4\+5=6\/7$/m);
+
+      // Una escrita a mano, sin comillas, que rompe el `source`: la prueba falla
+      // con «command not found», y eso no es que el guion esté roto.
+      fs2.writeFileSync(path.join(carpeta, '.env'), 'RARAS_API_KEY=abc;noexiste123\n');
+      fs2.writeFileSync(path.join(carpeta, 'test_connection.sh'), '#!/usr/bin/env bash\nset -a; source "$(dirname "$0")/.env"; set +a\n[ "$RARAS_API_KEY" = "abc;noexiste123" ] || exit 1\n', { mode: 0o755 });
+      const probado = await conexiones.probar('RARAS');
+      assert.equal(probado.ok, false);
+      assert.doesNotMatch(probado.mensaje, /está rota/, 'se le echa la culpa al guion por una clave mal guardada');
+      assert.match(probado.mensaje, /tiene caracteres que la prueba lee mal/, 'y no se dice qué pasa');
+      return `${VALORES.length} claves, todas enteras · y la de a mano, dicha`;
+    } finally {
+      fs2.rmSync(carpeta, { recursive: true, force: true });
+    }
+  });
+
   await comprobar('una clave se guarda limpia de comillas y espacios', () => {
     conexiones.escribir('HOLDED', 'HOLDED_API_KEY', '  "nueva-clave-9999"  \n');
     const api = conexiones.claves('HOLDED').claves.find((c) => c.clave === 'HOLDED_API_KEY');
@@ -800,6 +894,35 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.match(codigo, /^[A-Z2-9]{6}$/);
     assert.ok(fs.existsSync(fichero), 'y queda escrito para poder leerlo entero');
     return 'el motivo viaja con el código';
+  });
+
+  await comprobar('el informe no lleva ningún valor de los .env de la carpeta', async () => {
+    // F2 y T076. El informe de «Algo va mal» junta lo que la barra se apuntó por
+    // el camino, y ahí puede haber lo que imprimió un guion, con su clave. Se
+    // tapa antes de escribirlo: el informe viaja al tutor.
+    const soporte = cargar('soporte');
+    const aparte = fs.mkdtempSync(path.join(os.tmpdir(), 'incidencias-'));
+    // La clave que tenga ahora: otras pruebas la cambian.
+    const clave = conexiones.leerEnv(path.join(empresa, '01-TOOLS', 'HOLDED', '.env')).get('HOLDED_API_KEY');
+    assert.ok(clave && clave.length >= 6, 'la empresa de mentira no tiene clave con la que probar');
+    // Y una de un .env suelto en la raíz, de las que ve el inventario.
+    const suelto = path.join(empresa, '.env.local');
+    fs.writeFileSync(suelto, 'STRIPE_SECRET_KEY=sk_live_suelta_9876\n');
+    let informe;
+    let fichero;
+    try {
+      ({ informe, fichero } = await soporte.revisar({
+        lineas: [`10:11:12 [conexiones] la prueba dijo: Authorization: Bearer ${clave}`, '10:11:13 [publicar] sk_live_suelta_9876'],
+        carpetaAparte: aparte,
+      }));
+    } finally {
+      fs.rmSync(suelto);
+    }
+    assert.ok(!informe.includes('sk_live_suelta_9876'), 'la del .env suelto va entera');
+    assert.ok(!informe.includes(clave), 'el informe lleva la clave entera');
+    assert.ok(!fs.readFileSync(fichero, 'utf8').includes(clave), 'y el fichero también');
+    assert.ok(informe.includes(`Bearer ••••${clave.slice(-4)}`), 'y no se deja ver cuál es');
+    return 'tapada';
   });
 
   await comprobar('diagnosticar una carpeta sin arnés no le fabrica medio arnés', async () => {
@@ -1463,6 +1586,107 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return `${suyos.length} ficheros · ${copias.length} copias al día`;
   });
 
+  await comprobar('guardar en git deja fuera .env, credentials.json y x.pem de la raíz, y lo dice', async () => {
+    // F1 y T054. «Guardar en git» hacía `git add -A` sin mirar, y en la raíz RSC
+    // solo deja fuera lo suyo: un `.env`, un `credentials.json` o un `.pem` sueltos
+    // entraban en la copia y subían con «Subir a GitHub». La barra los reconocía,
+    // pero avisaba después. Ahora los deja fuera y lo dice, con el botón que los
+    // pone en su sitio. Una presentación de Keynote (`.key`) no es una clave: entra.
+    const guardar = cargar('guardar');
+    if (!(await guardar.hayGit())) return 'SALTADA: sin git';
+    const cp = require('node:child_process');
+    const donde = fs.mkdtempSync(path.join(os.tmpdir(), 'guardar-sin-claves-'));
+    const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
+    assert.ok((await historial.iniciar(donde)).ok, 'la carpeta necesita su historial');
+    const poner = (rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(donde, rel)), { recursive: true });
+      fs.writeFileSync(path.join(donde, rel), txt);
+    };
+    poner('informe.md', '# Informe\n');
+    poner('.env', 'STRIPE_API_KEY=sk_live_1234567890\n');
+    poner('credentials.json', '{"installed":{"client_secret":"x"}}\n');
+    poner('x.pem', '-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n');
+    poner('presentacion.key', 'PK\u0003\u0004 una presentación, no una clave');
+    const enGit = () => cp.execFileSync('git', ['ls-files'], { cwd: donde, encoding: 'utf8' }).split('\n').filter(Boolean);
+    vscode.guion.raiz = donde;
+    try {
+      const hecho = await guardar.guardar('Primera copia');
+      assert.equal(hecho.ok, true, hecho.mensaje);
+      for (const f of ['.env', 'credentials.json', 'x.pem']) assert.ok(!enGit().includes(f), `«${f}» ha entrado en la copia`);
+      for (const f of ['informe.md', 'presentacion.key']) assert.ok(enGit().includes(f), `«${f}» se ha quedado fuera, y no es una credencial`);
+      assert.match(hecho.mensaje, /No he metido «\.env», «credentials\.json» y «x\.pem» en la copia: son ficheros de acceso y no deben salir de este ordenador\./, 'y no se dice');
+      assert.equal(hecho.boton && hecho.boton.etiqueta, 'Ponerlos en su sitio', 'sin el botón que los pone en su sitio');
+      assert.equal(hecho.boton.accion.tipo, 'pedir');
+      // Y el aviso lo lleva a la pantalla.
+      const panelFalso = require('./panel-falso').montarPanel();
+      panelFalso.mandar({ tipo: 'estado', estado: { listo: false }, sinArnes: true, donde: 'Aquí ya hay trabajo tuyo', aviso: '', yaEmpezada: { cuantos: 3, conHistorial: true } });
+      const pintado = panelFalso.mandar({ tipo: 'aviso', texto: hecho.mensaje, boton: hecho.boton });
+      assert.match(pintado, /Ponerlos en su sitio/, 'el aviso no trae su botón');
+
+      // Si solo cambia lo que se queda fuera, no hay copia que hacer.
+      poner('.env', 'STRIPE_API_KEY=sk_live_otra_0987654321\n');
+      const otra = await guardar.guardar('Segunda copia');
+      assert.equal(otra.sinCambios, true, `con solo una clave cambiada, se guarda algo: ${otra.mensaje}`);
+
+      // Una que ya estaba en git sigue en git: sacarla lo decide la persona.
+      cp.execFileSync('git', ['add', '-f', '.env'], { cwd: donde });
+      cp.execFileSync('git', ['-c', 'user.name=Ana', '-c', 'user.email=ana@example.com', 'commit', '-q', '-m', 'La suya'], { cwd: donde });
+      poner('.env', 'STRIPE_API_KEY=sk_live_la_tercera_1111\n');
+      await guardar.guardar('Tercera copia');
+      assert.ok(enGit().includes('.env'), 'se ha sacado de git una que ya estaba');
+      assert.match(cp.execFileSync('git', ['show', 'HEAD:.env'], { cwd: donde, encoding: 'utf8' }), /la_tercera/, 'y lo que cambia en ella ya no se guarda');
+      return hecho.mensaje.slice(0, 80);
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('un push fallido no deja el token en el informe', async () => {
+    // F2 y T055. El token de GitHub iba en la URL del `git push`: se ve en la
+    // lista de procesos mientras corre, y un git de antes la repite entera en su
+    // error, que acababa en el informe de «Algo va mal». Con un git de mentira que
+    // hace lo de esos: apunta con qué se le llamó y repite la URL al fallar.
+    const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
+    if (process.platform === 'win32') return 'SALTADA: el git de mentira es un guion de sh';
+    const guardar = cargar('guardar');
+    if (!(await guardar.hayGit())) return 'SALTADA: sin git';
+    const TOKEN = 'ghp_TOKENDEPRUEBA1234567890';
+    const donde = fs.mkdtempSync(path.join(os.tmpdir(), 'subir-que-falla-'));
+    const apuntes = path.join(donde, '..', `${path.basename(donde)}-argv.txt`);
+    const falso = path.join(donde, '..', `${path.basename(donde)}-git`);
+    fs.writeFileSync(falso, `#!/bin/sh
+printf '%s\\n' "$@" >> "${apuntes}"
+for a in "$@"; do
+  case "$a" in
+    push) for u in "$@"; do case "$u" in https://*) echo "fatal: unable to access '$u': Could not resolve host: github.com" >&2;; esac; done
+      # Y lo que repetiría uno con la traza encendida: sus cabeceras.
+      [ -n "\${GIT_CONFIG_VALUE_0:-}" ] && echo "trace: \${GIT_CONFIG_VALUE_0}" >&2
+      exit 128;;
+  esac
+done
+exec git "$@"
+`, { mode: 0o755 });
+    try {
+      assert.ok((await historial.iniciar(donde)).ok);
+      fs.writeFileSync(path.join(donde, 'a.txt'), 'uno');
+      await historial.guardar(donde, 'Primera');
+      const hecho = await historial.subir(donde, { url: 'https://github.com/empresa/copia.git', token: TOKEN }, { git: falso, preferirBinario: true, recalcular: true });
+      assert.equal(hecho.ok, false, 'el git de mentira siempre falla al subir');
+      const formas = [TOKEN, encodeURIComponent(TOKEN), Buffer.from(`${TOKEN}:x-oauth-basic`).toString('base64')];
+      for (const forma of formas) assert.ok(!String(hecho.error).includes(forma), `el error lleva el token: ${hecho.error}`);
+      const llamado = fs.readFileSync(apuntes, 'utf8');
+      for (const forma of formas) assert.ok(!llamado.includes(forma), 'el token va en la orden, a la vista mientras corre');
+      // Y lo que se apunta llega al informe sin él.
+      const informe = (await cargar('soporte').revisar({ lineas: [`10:11:12 [subir] ${hecho.error}`], carpetaAparte: fs.mkdtempSync(path.join(os.tmpdir(), 'incidencias-')) })).informe;
+      for (const forma of formas) assert.ok(!informe.includes(forma), 'el informe lleva el token');
+      return String(hecho.error).slice(0, 80);
+    } finally {
+      historial.queMotor({ recalcular: true, preferirBinario: true });
+      fs.rmSync(falso, { force: true });
+      fs.rmSync(apuntes, { force: true });
+    }
+  });
+
   await comprobar('volver atrás dice qué pasa con lo que tenías sin guardar', async () => {
     // Volver atrás hace lo que promete y guarda una copia de lo actual antes,
     // así que no se pierde nada. Pero el mensaje era «Listo. Tu empresa ha
@@ -1528,8 +1752,15 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     await historial.volverA(donde, guardadas[1].id);
     assert.equal(fs.readFileSync(path.join(donde, 'factura.txt'), 'utf8'), 'uno', 'vuelve a como estaba');
 
+    // Y deja fuera lo que se le pide, como el binario (F1).
+    await historial.guardar(donde, 'Después de volver');
+    fs.writeFileSync(path.join(donde, '.env'), 'X=1\n');
+    const conClave = await historial.guardar(donde, 'Con una clave suelta', { excluir: ['.env'] });
+    assert.deepEqual(conClave.excluidos, ['.env'], 'no se deja fuera');
+    assert.equal(conClave.sinCambios, true, 'con solo la clave, se guarda algo');
+
     fs.rmSync(donde, { recursive: true, force: true });
-    return 'guardar, listar y volver atrás';
+    return 'guardar, listar, volver atrás y dejar fuera';
   });
 
   // ------------------------------------------------ que avise cuando ayuda
@@ -5130,6 +5361,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       // Con Claude, los de hoy traen también el bloque de CLAUDE.md (D1) y sus
       // cuatro comandos (D6).
       escribir('CLAUDE.md', '\n<!-- executive-lab:start -->\n@.claude/skills/executive-lab/siempre.md\n<!-- executive-lab:end -->\n');
+      // Y el bloque de lo que no entra en git (F1).
+      escribir('.gitignore', `${require(path.join(RAIZ, 'media', 'railes', 'no-entra-en-git')).elBloque()}\n`);
       const COMANDOS_DE_HOY = path.join(RAIZ, 'media', 'railes', 'comandos');
       for (const fichero of fs2.readdirSync(COMANDOS_DE_HOY)) {
         escribir(`.claude/commands/${fichero}`, fs2.readFileSync(path.join(COMANDOS_DE_HOY, fichero), 'utf8'));
@@ -6969,6 +7202,89 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     ponerLosRailesEn(vieja);
     assert.equal(leer(vieja, 'guardar.md'), hoy, 'uno nuestro de antes no se pone al día');
     return 'el suyo, intacto · el nuestro de antes, al día';
+  });
+
+  await comprobar('el bloque se pone una vez y no saca de git lo que ya estaba', async () => {
+    // F1 y T053. RSC solo deja fuera de git lo suyo, y la plantilla de cada
+    // herramienta, su `.env`, `keys/` y `out/`. Un `.env` o un `credentials.json`
+    // sueltos en la raíz entraban en la copia, y subían con «Subir a GitHub».
+    // Los raíles ponen un bloque entre marcas en el `.gitignore` de la raíz.
+    const cp = require('node:child_process');
+    const git = (c, ...args) => cp.execFileSync('git', args, { cwd: c, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const ignora = (c, f) => cp.spawnSync('git', ['check-ignore', '-q', f], { cwd: c }).status === 0;
+    const leer = (c) => fs.readFileSync(path.join(c, '.gitignore'), 'utf8');
+    const SUYO = 'node_modules/\n';
+
+    // Una carpeta nuestra con su .gitignore y un .env que ya estaba en git.
+    const carpeta = conEnganchesDeRsc('gitignore-credenciales-');
+    fs.writeFileSync(path.join(carpeta, '.gitignore'), SUYO);
+    fs.writeFileSync(path.join(carpeta, '.env'), 'X=1\n');
+    git(carpeta, 'init', '-q');
+    git(carpeta, 'add', '.env', '.gitignore');
+    git(carpeta, '-c', 'user.name=Barra', '-c', 'user.email=barra@example.com', 'commit', '-q', '-m', 'Lo de antes');
+    ponerLosRailesEn(carpeta);
+    ponerLosRailesEn(carpeta);
+    const texto = leer(carpeta);
+    assert.ok(texto.startsWith(SUYO), 'se ha tocado lo suyo');
+    assert.equal((texto.match(/# executive-lab:start/g) || []).length, 1, 'el bloque no está, o está dos veces');
+    for (const f of ['otra/.env', '.env.local', 'x.pem', 'credentials.json', 'client_secret_123.json', 'mi-service-account.json', 'id_rsa', 'token.json', 'cert.p12']) {
+      assert.ok(ignora(carpeta, f), `«${f}» entra en la copia`);
+    }
+    for (const f of ['.env.example', 'presentacion.key', 'facturas.json', 'README.md']) {
+      assert.ok(!ignora(carpeta, f), `«${f}» se queda fuera, y no es una credencial`);
+    }
+    assert.match(git(carpeta, 'ls-files'), /^\.env$/m, 'se ha sacado de git lo que ya estaba');
+
+    // Uno de otro día, con menos cosas dentro, es de antes, y se pone al día.
+    vscode.guion.raiz = carpeta;
+    try {
+      assert.ok(cargar('terreno').comoEstanLosRailes(RAIZ).alDia, 'recién puesto, y ya es viejo');
+      fs.writeFileSync(path.join(carpeta, '.gitignore'), texto.replace('token.json\n', ''));
+      assert.ok(!cargar('terreno').comoEstanLosRailes(RAIZ).alDia, 'un bloque de otro día se da por al día');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    ponerLosRailesEn(carpeta);
+    assert.equal(leer(carpeta), texto, 'y no se pone al día');
+
+    // Sin .gitignore, se crea con el bloque.
+    const sinNada = conEnganchesDeRsc('gitignore-nuevo-');
+    ponerLosRailesEn(sinNada);
+    assert.match(leer(sinNada), /# executive-lab:start[\s\S]*\n\.env\n[\s\S]*# executive-lab:end/);
+
+    // En una carpeta de alguien, su .gitignore espera a su sí (C-4); con él, se pone.
+    const ajena = conEnganchesDeRsc('gitignore-ajeno-');
+    fs.writeFileSync(path.join(ajena, '.gitignore'), SUYO);
+    const dicho = ponerLosRailesEn(ajena, '--ajena');
+    assert.equal(leer(ajena), SUYO, 'se ha tocado su .gitignore sin su sí');
+    assert.match(dicho, /Pendiente[^\n]*la lista de lo que no entra en git/, 'y no se dice que espera');
+    ponerLosRailesEn(ajena, '--ajena', '--poner-bloque');
+    assert.ok(leer(ajena).startsWith(SUYO) && /# executive-lab:start/.test(leer(ajena)), 'con su sí, no se pone');
+
+    // Y la barra lo ve: sin él, «Lo que pone la barra» lo ofrece, y el botón lo nombra.
+    const pendiente = conEnganchesDeRsc('gitignore-pendiente-');
+    fs.mkdirSync(path.join(pendiente, '02-DOCS', 'wiki', 'harness'), { recursive: true });
+    fs.writeFileSync(path.join(pendiente, '02-DOCS', 'wiki', 'harness', 'user-profile.md'), '---\narnes: Contabilidad\ntechnical_level: non-technical\n---\n');
+    fs.writeFileSync(path.join(pendiente, '.gitignore'), SUYO);
+    ponerLosRailesEn(pendiente, '--ajena', '--poner-bloque');
+    fs.writeFileSync(path.join(pendiente, '.gitignore'), SUYO);
+    vscode.guion.raiz = pendiente;
+    const proveedor = vscode.registrado.proveedor;
+    const antes = { enviar: proveedor.enviar, refrescar: proveedor.refrescar };
+    proveedor.enviar = () => {};
+    proveedor.refrescar = async () => {};
+    try {
+      const pieza = (await cargar('terreno').radiografia()).piezas.find((p) => p.nombre === 'Lo que pone la barra');
+      assert.equal(pieza.estado, 'aMedias', `dice «${pieza.detalle}» sin el bloque de su .gitignore`);
+      const vistas = (await conRespuestas({}, () => proveedor.ponerElBloque())).vistas;
+      const pregunta = vistas.find((v) => v.aviso && /^Aquí ya hay cosas tuyas/.test(v.pregunta));
+      assert.equal(pregunta && pregunta.pregunta, 'Aquí ya hay cosas tuyas. Voy a tocar esto: la lista de lo que no entra en git. No borro nada tuyo.');
+    } finally {
+      proveedor.enviar = antes.enviar;
+      proveedor.refrescar = antes.refrescar;
+      vscode.guion.raiz = empresa;
+    }
+    return 'una vez · lo suyo intacto · lo de git, en git · en la de alguien, con su sí';
   });
 
   // ── De quién es el historial ─────────────────────────────────────────────

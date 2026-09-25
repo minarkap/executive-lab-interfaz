@@ -114,18 +114,25 @@ function motorJs(js) {
       return (await cambios(dir)).length;
     },
 
-    async guardar(dir, mensaje) {
+    async guardar(dir, mensaje, { excluir = [] } = {}) {
       await ponerloTodoEnElIndice(dir);
+
+      // Lo que no entra en la copia (F1): se saca del índice. Solo lo que git no
+      // seguía: una que ya estaba en la última copia sigue, y eso lo decide la
+      // persona.
+      const seguidos = new Set(await git.listFiles({ ...comun(dir), ref: 'HEAD' }).catch(() => []));
+      const fuera = excluir.filter((rel) => fs.existsSync(path.join(dir, rel)) && !seguidos.has(rel));
+      for (const rel of fuera) await git.remove({ ...comun(dir), filepath: rel });
 
       // Ahora sí se puede contar: se comparan la columna de la última copia y
       // la del índice, que salen las dos de resúmenes de contenido. La del
       // disco, la de la fecha, no pinta nada aquí.
       const filas = await git.statusMatrix(comun(dir));
       const cambiados = filas.filter(([, copia, , indice]) => copia !== indice);
-      if (!cambiados.length) return { ok: true, sinCambios: true, cuantos: 0 };
+      if (!cambiados.length) return { ok: true, sinCambios: true, cuantos: 0, excluidos: fuera };
 
       await git.commit({ ...comun(dir), message: mensaje, author: QUIEN });
-      return { ok: true, cuantos: cambiados.length };
+      return { ok: true, cuantos: cambiados.length, excluidos: fuera };
     },
 
     async historial(dir, cuantas) {
@@ -177,15 +184,15 @@ function motorJs(js) {
 // ───────────────────────────── el motor binario ───────────────────────────────
 
 function motorBinario(ejecutable) {
-  function correr(dir, args) {
+  function correr(dir, args, entorno = null) {
     return new Promise((resolver) => {
-      execFile(ejecutable, ['-C', dir, ...args], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 },
+      execFile(ejecutable, ['-C', dir, ...args], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, ...(entorno ? { env: { ...process.env, ...entorno } } : {}) },
         (error, salida, err) => resolver({ codigo: error ? (error.code ?? 1) : 0, salida: salida || '', error: err || '' }));
     });
   }
 
-  const exigir = async (dir, args) => {
-    const r = await correr(dir, args);
+  const exigir = async (dir, args, entorno = null) => {
+    const r = await correr(dir, args, entorno);
     if (r.codigo !== 0) throw new Error(`git ${args[0]}: ${r.error.trim() || r.codigo}`);
     return r.salida;
   };
@@ -207,10 +214,22 @@ function motorBinario(ejecutable) {
 
     cuantosCambios: contarCambios,
 
-    async guardar(dir, mensaje) {
-      const cuantos = await contarCambios(dir);
-      if (!cuantos) return { ok: true, sinCambios: true, cuantos: 0 };
-      await exigir(dir, ['add', '-A']);
+    async guardar(dir, mensaje, { excluir = [] } = {}) {
+      if (!(await contarCambios(dir))) return { ok: true, sinCambios: true, cuantos: 0, excluidos: [] };
+
+      // Lo que no entra en la copia (F1): lo que quien llama reconoce como una
+      // credencial y git no seguía. Con un pathspec que lo excluye, sin tocar el
+      // `.gitignore` de nadie; una que ya estaba en git sigue, y eso lo decide
+      // la persona.
+      const seguidos = new Set((await correr(dir, ['ls-files'])).salida.split('\n').map((l) => l.trim()).filter(Boolean));
+      const fuera = excluir.filter((rel) => fs.existsSync(path.join(dir, rel)) && !seguidos.has(rel));
+      await exigir(dir, ['add', '-A', '--', '.', ...fuera.map((rel) => `:(exclude,literal)${rel}`)]);
+
+      // Se cuenta lo que va a entrar, no lo que cambió: si solo cambió lo que se
+      // queda fuera, no hay copia que hacer.
+      const preparados = (await exigir(dir, ['diff', '--cached', '--name-only'])).trim();
+      const cuantos = preparados ? preparados.split('\n').length : 0;
+      if (!cuantos) return { ok: true, sinCambios: true, cuantos: 0, excluidos: fuera };
 
       // ── Un git recién instalado no sabe quién eres ────────────────────
       //
@@ -231,7 +250,7 @@ function motorBinario(ejecutable) {
         await exigir(dir, ['config', '--local', 'user.email', QUIEN.email]);
         await exigir(dir, ['commit', '-q', '-m', mensaje]);
       }
-      return { ok: true, cuantos };
+      return { ok: true, cuantos, excluidos: fuera };
     },
 
     async historial(dir, cuantas) {
@@ -255,10 +274,18 @@ function motorBinario(ejecutable) {
     },
 
     async subir(dir, { url, token, rama }) {
-      // El token va en la URL y no en el disco: se pasa como argumento de una
-      // sola invocación, no se guarda en la configuración del repositorio.
-      const conClave = url.replace('https://', `https://${encodeURIComponent(token)}:x-oauth-basic@`);
-      await exigir(dir, ['push', conClave, `${rama}:${rama}`]);
+      // El token no va en la orden, que se ve en la lista de procesos mientras
+      // corre y que un git de antes repetía entera en su error (F2). Va en una
+      // cabecera, por el entorno de esta sola invocación: ni en el disco ni en
+      // la configuración del repositorio. Se suma a lo que ya hubiera en el
+      // entorno con `GIT_CONFIG_COUNT`, sin pisarlo.
+      const cuantas = Number.parseInt(process.env.GIT_CONFIG_COUNT || '0', 10) || 0;
+      const entorno = {
+        GIT_CONFIG_COUNT: String(cuantas + 1),
+        [`GIT_CONFIG_KEY_${cuantas}`]: 'http.extraHeader',
+        [`GIT_CONFIG_VALUE_${cuantas}`]: `Authorization: Basic ${Buffer.from(`${token}:x-oauth-basic`).toString('base64')}`,
+      };
+      await exigir(dir, ['push', url, `${rama}:${rama}`], entorno);
     },
 
     async rama(dir) {
@@ -309,9 +336,11 @@ async function iniciar(carpeta, opciones) {
   } catch (error) { return fallo(error); }
 }
 
+// `opciones.excluir`: rutas relativas que no entran en la copia, si git no las
+// seguía ya (F1). Las reconoce quien llama; aquí no se sabe qué es una credencial.
 async function guardar(carpeta, mensaje, opciones) {
   try {
-    return await motor(opciones).guardar(carpeta, mensaje);
+    return await motor(opciones).guardar(carpeta, mensaje, { excluir: (opciones && opciones.excluir) || [] });
   } catch (error) { return fallo(error); }
 }
 
@@ -338,13 +367,28 @@ async function enlazar(carpeta, url, opciones) {
   } catch (error) { return fallo(error); }
 }
 
+// Lo que diga git al fallar se limpia del token, en todas las formas en que
+// puede ir, por si algún camino lo repite: ese texto acaba en el informe de
+// «Algo va mal» (F2).
+function sinElToken(texto, token) {
+  if (!token) return texto;
+  let limpio = String(texto);
+  for (const forma of [token, encodeURIComponent(token), Buffer.from(`${token}:x-oauth-basic`).toString('base64')]) {
+    limpio = limpio.split(forma).join(`••••${token.slice(-4)}`);
+  }
+  return limpio;
+}
+
 async function subir(carpeta, { url, token }, opciones) {
   try {
     const m = motor(opciones);
     const rama = await m.rama(carpeta);
     await m.subir(carpeta, { url, token, rama });
     return { ok: true, rama };
-  } catch (error) { return fallo(error); }
+  } catch (error) {
+    const dicho = fallo(error);
+    return { ...dicho, error: sinElToken(dicho.error, token) };
+  }
 }
 
 async function cuantosCambios(carpeta, opciones) {

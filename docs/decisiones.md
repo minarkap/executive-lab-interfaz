@@ -3796,3 +3796,45 @@ La barra solo ofrece Claude y Codex. Lo demás es para leer bien una carpeta mon
   antes, como al montar; y un cambio que se quedó a medias se termina en el siguiente intento.
 - «La barra habla con Claude» en una carpeta montada solo para otros: con el que esté instalado, y
   la pantalla lo dice y ofrece prepararla para él.
+
+## 122. Las claves no salen de este ordenador
+
+**Fecha:** 25 de septiembre de 2026 · **Estado:** hecho · **Cadena SDD** `todo-cuadra`, fase F6
+
+«Guardar en git» hacía `git add -A` sin mirar, y en la raíz RSC solo deja fuera lo suyo: un `.env`,
+un `credentials.json` o un `.pem` sueltos entraban en la copia y subían con «Subir a GitHub». Las
+claves se guardaban sin comillas en un fichero que la prueba de la conexión carga con `source`. El
+token de GitHub iba en la línea de órdenes del `push`. Y una consulta en Python se lanzaba a ciegas.
+
+### Lo que no entra en la copia (F1)
+
+- **Un bloque entre marcas en el `.gitignore` de la raíz**, puesto por los raíles, con lo que el
+  inventario de la barra reconoce como credencial. Vive en un módulo de los raíles
+  (`no-entra-en-git.js`) que usan los raíles para ponerlo y la barra para mirarlo. En una carpeta de
+  alguien, su `.gitignore` espera a su sí, como sus instrucciones. Sin `*.key`: en un Mac, las
+  presentaciones de Keynote acaban así.
+- **Guardar deja fuera las credenciales sueltas que git no seguía**, en los dos motores de git, y lo
+  dice, con un botón para ponerlas en su sitio. Por ahí pasan el botón y el guardado solo. Una que ya
+  estaba en git sigue en git: sacarla lo decide la persona. El raíl de guardar pide lo mismo al
+  asistente.
+
+### Lo que no se enseña (F2)
+
+- **Los valores de las claves de la carpeta se tapan** en lo que se pinta de una consulta y en el
+  informe de «Algo va mal», con sus cuatro últimos caracteres. Solo los de seis o más.
+- **El token de GitHub va en una cabecera, por el entorno de esa sola orden**, no en la URL, que se ve
+  mientras corre y que un git de antes repetía en su error. Lo que diga git al fallar se limpia del
+  token, y se apunta para el tutor. Medido: el git de este Mac (2.46) ya no repite la clave de la URL.
+
+### Las claves y los guiones, que corran (F3, F4)
+
+- **Una clave con algo que bash no lee tal cual va entre comillas simples**, con la comilla escapada,
+  y la barra la lee igual que bash: llega entera a la prueba y no se ejecuta nada. Una de antes, sin
+  comillas, que rompe la prueba, se dice como lo que es, en vez de culpar al guion.
+- **Antes de lanzar un `.py` se mira si hay Python.** Sin él se dice cuál falta, con un botón para
+  pedírselo al asistente. La habilidad pide los guiones de cada herramienta en bash o en node.
+
+Pendiente, con Jose: una subida de verdad a GitHub con la cabecera, y una consulta en Python en un
+Windows sin Python.
+
+0.38.0. 287 comprobaciones, 294 con el arnés de verdad, y 12 de contrato.

@@ -27,6 +27,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const sitios = require('./sitios');
+const noEntra = require('./no-entra-en-git');
 
 const [, , destinoBruto, ...banderas] = process.argv;
 const forzar = banderas.includes('--forzar');
@@ -139,24 +140,28 @@ const HASTA = '<!-- executive-lab:end -->';
 // añade al final, sin tocar lo demás. Se crea si no existe.
 const ENTRE_MARCAS = new RegExp(`${DESDE}[\\s\\S]*?${HASTA}`);
 
-function ponerElTrozo(fichero, trozo) {
+// Las marcas, las de los ficheros de instrucciones salvo que se digan otras: las
+// del `.gitignore` son comentarios suyos.
+function ponerElTrozo(fichero, trozo, { desde: DESDE_AQUI = DESDE, entre = ENTRE_MARCAS } = {}) {
   let texto = '';
   try {
     texto = fs.readFileSync(fichero, 'utf8');
   } catch { /* todavía no existe: se crea con el trozo */ }
 
-  if (ENTRE_MARCAS.test(texto)) {
-    texto = texto.replace(ENTRE_MARCAS, () => trozo);
-  } else if (texto.includes(DESDE)) {
+  if (entre.test(texto)) {
+    texto = texto.replace(entre, () => trozo);
+  } else if (texto.includes(DESDE_AQUI)) {
     // Con la marca de inicio y sin la de final (revisión de F4, m1), lo nuestro
     // llega hasta el final de ese párrafo: lo de detrás de la primera línea en
     // blanco es de quien lo escribió, y no se toca.
-    const desde = texto.indexOf(DESDE);
+    const desde = texto.indexOf(DESDE_AQUI);
     const hueco = texto.indexOf('\n\n', desde);
     const hasta = hueco < 0 ? texto.replace(/\n+$/, '').length : hueco;
     texto = texto.slice(0, desde) + trozo + texto.slice(hasta);
+  } else if (!texto) {
+    texto = `${trozo}\n`;
   } else {
-    texto += `${texto && !texto.endsWith('\n') ? '\n' : ''}\n${trozo}\n`;
+    texto += `${texto.endsWith('\n') ? '' : '\n'}\n${trozo}\n`;
   }
 
   fs.mkdirSync(path.dirname(fichero), { recursive: true });
@@ -423,6 +428,25 @@ for (const quien of quienes) {
   if (loDeSiempre) hechos.push(loDeSiempre);
   hechos.push(engancharElFreno(quien, suyo));
 }
+
+// 4b. Lo que no entra en git: las claves y los ficheros de acceso (F1).
+//
+// Un bloque entre marcas en el `.gitignore` de la raíz, con lo que el inventario
+// de la barra reconoce como credencial (`no-entra-en-git.js` dice cuál y por
+// qué). Uno por carpeta, no por asistente. Aditivo: lo que ya estaba en git
+// sigue en git. En una carpeta cuyo historial no creó la barra, su `.gitignore`
+// espera a su sí (C-4), como sus instrucciones.
+function ponerLoQueNoEntra() {
+  const fichero = en('.gitignore');
+  const hay = leerSiHay(fichero);
+  if (ajena && !ponerBloque && hay.trim() && !noEntra.elQueHay(hay)) {
+    pendientes.push('la lista de lo que no entra en git');
+    return '.gitignore (lo que no entra en git, pendiente: es suyo, y se pide antes)';
+  }
+  ponerElTrozo(fichero, noEntra.elBloque(), { desde: noEntra.DESDE, entre: noEntra.ENTRE_MARCAS });
+  return '.gitignore (lo que no entra en git: claves y ficheros de acceso)';
+}
+hechos.push(ponerLoQueNoEntra());
 
 // 5. El perfil del arnés.
 //

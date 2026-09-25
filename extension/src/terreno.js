@@ -231,6 +231,7 @@ const rsc = require('./rsc');
 const donde = require('./donde');
 const identidad = require('./identidad');
 const sitios = require('../media/railes/sitios');
+const noEntra = require('../media/railes/no-entra-en-git');
 
 // Los cuatro ficheros de raíz que se llevan la peor parte de un merge y que un
 // asistente lee siempre. Si alguno tiene contenido, aquí había alguien.
@@ -488,8 +489,19 @@ function loDeSiempreDeCadaUno() {
   });
 }
 
+// Y el de lo que no entra en git (F1), uno por carpeta: si está, el de hoy.
+function elDeGit() {
+  let texto = '';
+  try {
+    texto = fs.readFileSync(proyecto.ruta('.gitignore'), 'utf8');
+  } catch { /* no hay */ }
+  return noEntra.elQueHay(texto);
+}
+
 function losBloquesSonLosDeHoy() {
-  return loDeSiempreDeCadaUno().every(({ bloque, entero }) => !bloque || (NOMBRA_SIEMPRE.test(bloque[0]) && (!entero || /^alwaysApply:\s*true\s*$/m.test(bloque[0]))));
+  const deGit = elDeGit();
+  return loDeSiempreDeCadaUno().every(({ bloque, entero }) => !bloque || (NOMBRA_SIEMPRE.test(bloque[0]) && (!entero || /^alwaysApply:\s*true\s*$/m.test(bloque[0]))))
+    && (!deGit || deGit === noEntra.elBloque());
 }
 
 // Dónde vive la barra, para poder comparar sus raíles con los de la carpeta.
@@ -1110,10 +1122,16 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
 // Si el `CLAUDE.md` de la carpeta ya trae nuestro bloque, el que importa
 // `siempre.md` en cada conversación.
 // Lo de siempre, puesto para todos los declarados: el bloque de `CLAUDE.md` con
-// Claude, y el trozo de su fichero con los demás (revisión de F4, m6).
-function tieneElBloque() {
-  return loDeSiempreDeCadaUno().every(({ bloque }) => Boolean(bloque) && NOMBRA_SIEMPRE.test(bloque[0]));
+// Claude, y el trozo de su fichero con los demás (revisión de F4, m6). Y el de lo
+// que no entra en git (F1).
+function loQueFaltaPorPoner() {
+  const falta = [];
+  if (!loDeSiempreDeCadaUno().every(({ bloque }) => Boolean(bloque) && NOMBRA_SIEMPRE.test(bloque[0]))) falta.push('Cómo se trabaja aquí');
+  if (!elDeGit()) falta.push('la lista de lo que no entra en git');
+  return falta;
 }
+
+const tieneElBloque = () => loQueFaltaPorPoner().length === 0;
 
 // Qué freno ante órdenes peligrosas está enganchado aquí: el nuestro (los
 // raíles), el de RSC (cuando el plan practica la cadena SDD), los dos o ninguno.
@@ -1199,5 +1217,5 @@ function fechaDelPlan() {
 module.exports = {
   queCarpetaEs, comoEsEstaCarpeta, MARCA_DEL_HISTORIAL,
   queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia, fechaDelPlan,
-  laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos, comoEstaElFreno, tieneTexto, tieneElBloque,
+  laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos, comoEstaElFreno, tieneTexto, tieneElBloque, loQueFaltaPorPoner,
 };
