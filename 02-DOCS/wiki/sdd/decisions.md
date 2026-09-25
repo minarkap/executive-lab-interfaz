@@ -95,3 +95,47 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
   formas, y nada más», con las líneas literales de RSC. Faltaba antes de mutar: ninguna otra prueba
   miraba un «a medias» o un «listo» de otra huella. La mutación M5, quitar la comparación con el
   recibo, solo la caza esta.
+
+## 2026-09-25 · todo-cuadra · implement, F2 (T015–T030)
+
+- **Las carpetas del sistema se comparan enteras, no lo de dentro** (T015): las carpetas temporales
+  viven debajo de `/var`, y ahí se prueba todo. Lo mismo al buscar un proyecto por encima (T023): no
+  se mira la carpeta personal ni lo de encima de ella, porque hay quien versiona ahí su
+  configuración.
+- **«Sobrescribir» solo existe con las habilidades** (T018). Medido con el paquete: con los comandos y
+  los agentes, RSC deja el de la persona. Así que para ellos se elige entre renombrar el suyo y
+  dejarlo. «Lo mismo para todas» es renombrarlas todas; lo demás, una a una.
+- **El historial es nuestro por una marca y por su raíz** (T020): la marca local no viaja en un clon,
+  la raíz sí. Los asuntos de la barra (punto de partida y copias) cuentan como raíz nuestra.
+- **La pieza de las copias sin historial entró con T017**, que la necesitaba para su botón. T021 la
+  deja probada por su lado.
+- **`completar` pregunta lo que en el recibo no vale** (T024). No estaba en el plan: salió al probar
+  B11, porque con un valor que RSC no acepta mandaba el montaje igual.
+- **Los encargos que van en el primer mensaje se calculan al montar** (T026), porque después la
+  carpeta ya no es «empezada». El párrafo de las claves, que armaba la extensión aparte, va con ellos.
+- **Un recibo sin decisiones no se compara** (T029): es de una versión anterior, y no se sabe qué se
+  firmó. RSC comprueba el plan igual al aceptarlo.
+- **La sombra de RSC se descuenta por su plantilla** (T030): marca, título, las dos frases fijas y el
+  comentario. Si RSC cambia la plantilla, la sombra contará como de alguien y se pedirá permiso de
+  más, que es el lado seguro.
+
+## 2026-09-25 · todo-cuadra · revisión de F2
+
+- **En una carpeta de alguien, el historial va detrás del montaje** (I1), porque el sí se pide dentro
+  del montaje. Antes del sí no se escribe nada, tampoco un `git init`. Medido con el paquete: RSC
+  monta igual sin historial. Lo único que se salta es la línea de rescate del `.gitignore` cuando
+  alguien ignora `.claude/` entera, que en una carpeta sin git es raro. *Alternativa descartada:*
+  poner el historial dentro del montaje, entre el sí y la firma. Cambia la huella del plan, y habría
+  que volver a pedirlo.
+- **Lo que cambia entre dos planes se nombra con las claves que da RSC 2.0.5** (C2), medidas con el
+  paquete. Las siete que entran de verdad al pasar de algo pequeño a algo que crece son `skill/sdd`,
+  cuatro `agent/<id>`, `hook/code-hooks` y `guard/gitmoji-guard`. Las habilidades y los agentes van
+  juntos y cada uno por su nombre (decisión 98), y los agentes se buscan en su tabla. «Formato al
+  guardar en git» se nombra aunque los raíles lo apaguen: la firma es sobre lo que monta RSC, y lo
+  apagado ya sale en «Lo que tiene apagado».
+- **Renombrar se decide entero antes de mover nada** (I4). Un SKILL.md que es un enlace no se renombra:
+  cambiarle el `name:` escribiría fuera de la carpeta. Se para y se dice cuál, como pide C-9.
+- **La guarda de la carpeta personal cuenta como «sin declarar» un montaje a medias sin `.rsc.json`**
+  (C1). Uno con su `.rsc.json` sigue funcionando, como antes de la guarda.
+- **Quince menores quedan anotados para el cierre** (F9), con su sitio en la verificación de F2. No
+  cambian lo que se promete, o tocan cosas que otras fases rehacen.

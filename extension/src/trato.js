@@ -150,4 +150,4 @@ function comoEstamos() {
   };
 }
 
-module.exports = { comoEstamos, ponerTrato, ponerPalabras, ESCALONES, VOCABULARIOS };
+module.exports = { leer, comoEstamos, ponerTrato, ponerPalabras, ESCALONES, VOCABULARIOS };

@@ -120,7 +120,8 @@ let ultimo = { cuando: 0, estado: null };
 
 async function estado({ fresco = false } = {}) {
   if (!fresco && ultimo.estado && Date.now() - ultimo.cuando < 20000) return ultimo.estado;
-  const calculado = await calcular();
+  // Con varias carpetas abiertas, en todas las pantallas se dice con cuál (B9).
+  const calculado = { ...(await calcular()), conVarias: proyecto.conVarias() };
   ultimo = { cuando: Date.now(), estado: calculado };
   return calculado;
 }
@@ -142,7 +143,31 @@ async function calcular() {
   // vacía, donde se puede montar sin pensar, y una que ya es de alguien. En la
   // segunda hay que decir qué se ha visto antes de ofrecer nada (terreno.js).
   if (!proyecto.existe('.rsc.json')) {
+    // La carpeta personal, la raíz o una del sistema no se preparan (B1). Se
+    // dice aquí, antes de ofrecer nada, y la salida es una carpeta nueva.
+    const { prohibida } = terreno.comoEsEstaCarpeta(proyecto.raiz());
+    if (prohibida) {
+      const dicho = require('./arrancar').comoSeDiceQueNo(prohibida);
+      return { listo: false, sinArnes: true, noSePrepara: prohibida, hiciste: null, donde: dicho.donde, aviso: dicho.aviso, boton: dicho.boton };
+    }
+
     const hay = await terreno.queHay();
+
+    // Un montaje nuestro a medias, sin su `.rsc.json` (B8): se ofrece
+    // terminarlo, como cuando falta el suelo.
+    if (hay.tipo === 'aMedias') {
+      return {
+        listo: false,
+        sinArnes: true,
+        aMedioPreparar: true,
+        donde: 'Tu espacio está a medio preparar',
+        hiciste: null,
+        aviso: 'Se quedó algo sin montar, seguramente porque se cerró antes de tiempo. Se termina en un momento y no se pierde nada de lo que ya haya.',
+        faltaGit: !(await guardar.hayGit()),
+        comoSeInstalaGit: git.comoSeInstala(),
+      };
+    }
+
     const comun = {
       listo: false,
       sinArnes: true,

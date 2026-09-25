@@ -16,6 +16,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 
 const proyecto = require('./proyecto');
 const procesos = require('./procesos');
@@ -34,17 +35,38 @@ function loQueHayDentro(raiz) {
   }
 }
 
-// ¿Este historial es nuestro o de alguien? Nuestro quiere decir: lo creó el
-// botón de preparar y no hay nada más dentro. Con un solo dato basta — si hay
-// commits que no hemos escrito nosotros, es de alguien.
+// ¿Este historial es nuestro o de alguien? Nuestro quiere decir que nació en
+// la barra, y eso no lo cambia que luego guarde en él quien trabaja aquí, ni
+// que sea un clon en otro ordenador (B6).
+//
+// Se decidía por los autores de los 20 últimos commits, y fallaba de dos
+// maneras: el `git init` de la barra no ponía identidad, así que con la de la
+// persona puesta en el ordenador el propio punto de partida salía con su nombre;
+// y una copia suya encima ya lo volvía «ajeno». El guardado solo no corría.
+//
+// Ahora, dos pruebas, de más fuerte a menos:
+//   1. la marca que deja la barra al crearlo (`git config --local`), que no
+//      viaja en un clon;
+//   2. su raíz, el primer commit: si es uno de los que escribe la barra —el
+//      punto de partida o una copia—, nació aquí. Esa sí viaja.
+// Sin commits todavía no hay nada que proteger.
+const MARCA_DEL_HISTORIAL = 'executivelab.historial';
+const ASUNTOS_DE_LA_BARRA = /^(Punto de partida|Copia automática|Copia de seguridad) — /;
+
 async function historialAjeno(raiz) {
   if (!fs.existsSync(path.join(raiz, '.git'))) return false;
 
-  const { codigo, salida } = await procesos.git('log', '--format=%an', '-n', '20');
-  if (codigo !== 0) return false; // repositorio recién creado, sin commits
+  const marca = await procesos.git('config', '--local', '--get', MARCA_DEL_HISTORIAL);
+  if (marca.codigo === 0 && marca.salida.trim() === 'nuestro') return false;
 
-  const autores = salida.split('\n').map((a) => a.trim()).filter(Boolean);
-  return autores.some((quien) => quien !== 'Executive Lab');
+  const raices = await procesos.git('rev-list', '--max-parents=0', 'HEAD');
+  if (raices.codigo !== 0) return false; // recién creado, sin commits
+  const [primera, ...otras] = raices.salida.split('\n').map((l) => l.trim()).filter(Boolean);
+  // Dos raíces son dos historias juntadas, y una de ellas no es nuestra.
+  if (!primera || otras.length) return true;
+
+  const asunto = await procesos.git('log', '-1', '--format=%s', primera);
+  return !(asunto.codigo === 0 && ASUNTOS_DE_LA_BARRA.test(asunto.salida.trim()));
 }
 
 async function cambiosSinGuardar(raiz) {
@@ -76,6 +98,110 @@ function deQueParece(raiz) {
   }
   return null;
 }
+
+// ── Las carpetas que no se preparan, y las que se preguntan ──────────────
+//
+// Preparar la carpeta personal hacía un `git init` en ella y un escaneo de todo
+// el disco, y RSC escribía sus enganches y habilidades en `~/.claude/`, que es
+// la configuración de Claude de esa persona para todo el ordenador (B1). Nada
+// lo impedía.
+//
+// Lista cerrada por sistema (C-5), comparada con el sitio real de la carpeta,
+// con los enlaces resueltos:
+//
+//   prohibida  'raiz'               la raíz de un disco: `/`, `C:\`
+//              'personal'           la carpeta personal
+//              'contieneLaPersonal' una que la contiene: `/Users`, `C:\Users`
+//              'sistema'            una del sistema, ella misma y no lo de dentro
+//   delicada   Escritorio, Documentos o Descargas enteras, también en iCloud y
+//              en OneDrive, que los mueven de sitio. No se prohíben: se pregunta.
+//
+// Lo de dentro de una del sistema no se mira a propósito: las carpetas
+// temporales viven debajo de `/var`, y ahí se prueba todo esto.
+//
+// Pura: recibe la casa, el sistema y cómo se resuelve un sitio real, para poder
+// probarla con rutas de macOS y de Windows desde cualquiera de los dos.
+const DEL_SISTEMA = {
+  darwin: ['/System', '/Library', '/Applications', '/usr', '/bin', '/sbin', '/etc', '/var', '/private', '/opt', '/Volumes', '/cores', '/tmp'],
+  linux: ['/usr', '/bin', '/sbin', '/lib', '/etc', '/var', '/opt', '/boot', '/sys', '/proc', '/dev', '/mnt', '/media', '/root', '/srv', '/tmp'],
+  win32: ['Windows', 'Program Files', 'Program Files (x86)', 'ProgramData', 'PerfLogs', 'Recovery', '$Recycle.Bin'],
+};
+const DELICADAS = [
+  ['escritorio', ['Desktop', 'Escritorio']],
+  ['documentos', ['Documents', 'Documentos']],
+  ['descargas', ['Downloads', 'Descargas']],
+];
+
+function queCarpetaEs(raiz, { casa, plataforma = process.platform, real = (r) => r } = {}) {
+  const ruta = plataforma === 'win32' ? path.win32 : path.posix;
+  // En macOS y en Windows el disco no distingue mayúsculas.
+  const igual = (a, b) => (plataforma === 'linux' ? a === b : a.toLowerCase() === b.toLowerCase());
+  const limpia = (r) => {
+    const resuelta = ruta.resolve(r);
+    const { root } = ruta.parse(resuelta);
+    return resuelta === root ? root : resuelta.replace(/[\/]+$/, '');
+  };
+  const aqui = limpia(real(raiz));
+  const suya = casa ? limpia(real(casa)) : null;
+  const nada = { prohibida: null, delicada: null };
+
+  if (aqui === ruta.parse(aqui).root) return { ...nada, prohibida: 'raiz' };
+  if (suya && igual(aqui, suya)) return { ...nada, prohibida: 'personal' };
+  if (suya && igual(suya.slice(0, aqui.length + 1), `${aqui}${ruta.sep}`)) return { ...nada, prohibida: 'contieneLaPersonal' };
+
+  const delSistema = plataforma === 'win32'
+    ? DEL_SISTEMA.win32.map((n) => ruta.join(ruta.parse(aqui).root, n))
+    : DEL_SISTEMA[plataforma === 'darwin' ? 'darwin' : 'linux'];
+  // La lista también por su sitio real: en macOS `/etc`, `/var` y `/tmp` son
+  // enlaces a `/private/…`, y en Linux con `/usr` unido `/bin` es `/usr/bin`
+  // (revisión de F2, I2).
+  if (delSistema.some((s) => igual(aqui, s) || igual(aqui, limpia(real(s))))) return { ...nada, prohibida: 'sistema' };
+
+  if (!suya) return nada;
+  const bases = [suya];
+  if (plataforma === 'darwin') bases.push(ruta.join(suya, 'Library', 'Mobile Documents', 'com~apple~CloudDocs'));
+  if (plataforma === 'win32') bases.push(ruta.join(suya, 'OneDrive'));
+  for (const [cual, nombres] of DELICADAS) {
+    for (const base of bases) {
+      for (const nombre of nombres) {
+        const suSitio = ruta.join(base, nombre);
+        if (igual(aqui, suSitio) || igual(aqui, limpia(real(suSitio)))) return { ...nada, delicada: cual };
+      }
+    }
+  }
+  return nada;
+}
+
+// Si esta carpeta está dentro de otro proyecto: un historial o un arnés más
+// arriba (B9). Montar aquí haría un historial dentro de otro, y RSC avisaría de
+// otro arnés por encima sin que nadie se lo contara a la persona. Son unas
+// pocas comprobaciones de existencia, sin procesos. No se mira la carpeta
+// personal ni lo de encima de ella: hay quien guarda su configuración en un git
+// ahí, y eso no convierte cada carpeta suya en parte de otro proyecto.
+function queHayEncima(raiz) {
+  if (!raiz) return null;
+  const casa = sitioReal(os.homedir());
+  let arriba = path.dirname(sitioReal(raiz));
+  while (arriba !== path.dirname(arriba) && arriba !== casa) {
+    if (fs.existsSync(path.join(arriba, '.git')) || fs.existsSync(path.join(arriba, '.rsc.json'))) {
+      return { nombre: path.basename(arriba) };
+    }
+    arriba = path.dirname(arriba);
+  }
+  return null;
+}
+
+// El sitio real de una carpeta, con los enlaces resueltos. Si no se puede
+// resolver, se compara tal cual: mejor eso que no mirar.
+const sitioReal = (r) => {
+  try {
+    return fs.realpathSync(r);
+  } catch {
+    return r;
+  }
+};
+
+const comoEsEstaCarpeta = (raiz) => queCarpetaEs(raiz, { casa: os.homedir(), real: sitioReal });
 
 // ─────────────────────────────────────────────────────────────────────────
 //                        EL PARTE DE RECONOCIMIENTO
@@ -129,9 +255,15 @@ const tieneAlgoDentro = (carpeta) => {
 // otro asistente montado a mano», y le pediríamos permiso a alguien para
 // respetar un fichero que hemos escrito nosotros. RSC hace esta misma resta en
 // su `scanProject` por el mismo motivo.
+//
+// La sombra se descuenta de su principio a su final, no hasta el final del
+// fichero (B12): es la marca, el título, dos frases fijas y el comentario que
+// explica por qué existe (`targets/agents-md-shadow.js`). Lo que alguien
+// escriba debajo es suyo —RSC lo dice de su sombra: «Edit it and it is yours»—
+// y cuenta como suyo.
 const MARCAS_DE_RSC = [
   /<!-- rsc-suggest:start -->[\s\S]*?<!-- rsc-suggest:end -->/g,
-  /<!-- rsc:claude-md-shadow -->[\s\S]*/g,
+  /<!-- rsc:claude-md-shadow -->\s*# Project instructions\s*\n[^\n]*\n\s*Project instructions for Claude Code go below\.\s*(?:<!--[\s\S]*?-->)?/g,
 ];
 
 const tieneTexto = (fichero) => {
@@ -192,12 +324,14 @@ function mirar() {
   if (!raiz) {
     return {
       raiz: null,
-      carpeta: { vacia: true, cuantos: 0, parece: null },
+      carpeta: { vacia: true, cuantos: 0, parece: null, prohibida: null, delicada: null },
       declarada: 'no',
       declaracion: null,
       recibo: null,
       suelo: { declaracion: false, conexiones: false, conocimiento: false, faltan: [] },
       habilidades: { declaradas: [], enDisco: [], colgando: [] },
+      clonado: false,
+      dentroDeOtro: null,
       conEstadoDeRsc: false,
       versionAtrasada: false,
       otroMontaje: { asistentes: [], ficheros: [] },
@@ -216,9 +350,24 @@ function mirar() {
     : [];
   const enDisco = rsc.habilidadesEnDisco();
 
+  // ── Un clon, como lo llama el propio RSC ──────────────────────────────
+  //
+  // `.rsc/` es de cada máquina y nunca viaja en git, y las habilidades de RSC
+  // tampoco: él mismo las deja fuera (`install-apply.js`). Lo nuestro sí viaja
+  // —`executive-lab`, los comandos, los ajustes—, así que «hay alguna
+  // habilidad en disco» no distinguía un clon de un arnés montado: la nuestra
+  // lo tapaba, y la barra decía «ya estaba» con las del arnés sin estar (B2).
+  //
+  // Es clon si falta `.rsc/`, o si no está en disco ninguna de las que RSC
+  // declara, descontadas las propias.
+  const propias = new Set(['executive-lab', ...((declaracion && declaracion.ownSkills) || [])]);
+  const deRsc = declaradas.filter((id) => !propias.has(id));
+  const clonado = Boolean(declaracion) && (!proyecto.existe('.rsc')
+    || (deRsc.length > 0 && !deRsc.some((id) => enDisco.includes(id))));
+
   return {
     raiz,
-    carpeta: { vacia: !dentro.length, cuantos: dentro.length, parece: deQueParece(raiz) },
+    carpeta: { vacia: !dentro.length, cuantos: dentro.length, parece: deQueParece(raiz), ...comoEsEstaCarpeta(raiz) },
     declarada,
     declaracion,
     recibo: proyecto.recibo(),
@@ -230,6 +379,8 @@ function mirar() {
       // looks like». Se arregla con `sync`, no volviendo a montar.
       colgando: declaradas.filter((id) => !enDisco.includes(id)),
     },
+    clonado,
+    dentroDeOtro: queHayEncima(raiz),
     conEstadoDeRsc: fs.existsSync(donde.ficheroDeEstado() || ''),
     // Montada con un catálogo más viejo que el que trae la barra dentro.
     versionAtrasada: Boolean(declaracion && declaracion.catalogVersion
@@ -313,13 +464,20 @@ function queEstadoEs(visto) {
     // montaje, nuestro o de otro. Si trae el fichero de estado de RSC es el
     // nuestro sin declaración; si no, es de alguien.
     const hayOtro = visto.otroMontaje.asistentes.length || visto.otroMontaje.ficheros.length;
+    // Lo que hay lo dejó RSC, y nada más: es un montaje nuestro que se quedó a
+    // medias sin su `.rsc.json`, no uno de otro (B8). Se termina, y no se pide
+    // permiso como si fuera de alguien.
+    const soloDeRsc = visto.otroMontaje.asistentes.length > 0
+      && visto.otroMontaje.asistentes.every((a) => a.deRsc)
+      && !visto.otroMontaje.ficheros.length;
+    if (soloDeRsc) return 'aMedias';
     if (hayOtro) return 'otroArnes';
     return visto.carpeta.vacia ? 'vacia' : 'empezada';
   }
 
   // Con `.rsc.json`: primero lo que impide usarlo, después lo que falta.
   if (!visto.recibo) return 'sinRecibo';
-  if (visto.habilidades.colgando.length && !visto.habilidades.enDisco.length) return 'clonado';
+  if (visto.clonado) return 'clonado';
   if (visto.suelo.faltan.length) return 'aMedias';
   return 'conArnes';
 }
@@ -446,7 +604,9 @@ const podemosGuardarElPuntoDePartida = async () => !(await historialAjeno(proyec
 // medias, claves que están pero fuera de sitio, una wiki vacía. Quien mira la
 // barra y no ve conexiones no sabe si es que no hay o es que no las encuentra.
 // Esto lo dice.
-async function radiografia({ aFondo = null } = {}) {
+// `sigueSinCopias`: que en esta carpeta se eligió seguir sin copias, que se
+// guarda en el estado del espacio de trabajo y no en el disco.
+async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
   const conexiones = require('./conexiones');
   const cerebro = require('./cerebro');
   // Tarde a propósito: `encargos` lee `cerebro` y `sueltas`, y cargarlo arriba
@@ -480,6 +640,9 @@ async function radiografia({ aFondo = null } = {}) {
   // (`asistentes.comoEstamos`) y no lo decíamos.
   const conQuien = asistentes.elDeAhora();
   const loTiene = conQuien ? asistentes.estaInstalado(conQuien) : false;
+
+  // Si en esta carpeta hay historial de verdad.
+  const conHistorial = proyecto.existe('.git');
 
   // ── Cada pieza trae su salida ─────────────────────────────────────────
   //
@@ -564,13 +727,25 @@ async function radiografia({ aFondo = null } = {}) {
       estado: !conArnes ? 'noAplica' : (botones ? 'si' : 'no'),
       detalle: !conArnes ? 'Cuando esté montado' : (botones ? `${botones}` : 'Ninguno todavía'),
     }, { como: 'solo', etiqueta: 'Ver los que hay', accion: { tipo: 'verComandos' } })] : []),
-    conArreglo({
-      nombre: 'Copias de seguridad aquí',
-      estado: hay.tipo === 'empezada' && hay.conHistorial ? 'si' : (conArnes ? 'si' : 'no'),
-      detalle: hay.tipo === 'empezada' && hay.conHistorial
-        ? 'Ya tenías un historial tuyo; no lo toco'
-        : (conArnes ? 'Listas' : 'Cuando prepares la carpeta'),
-    }, { como: 'solo', etiqueta: 'Preparar esta carpeta', accion: { tipo: 'arrancar' } }),
+    // Con el arnés puesto y sin historial en la carpeta no hay copias, aunque
+    // lo demás esté entero: pasa cuando se eligió seguir sin ellas (B3), y
+    // decía «Listas» (B7). Se ofrecen, con su botón.
+    (conArnes && !conHistorial
+      ? {
+        nombre: 'Copias de seguridad aquí',
+        estado: 'no',
+        // «Porque lo elegiste», solo a quien lo eligió: salía siempre que faltaba
+        // git (revisión de F2, m12).
+        detalle: sigueSinCopias ? 'Sin copias, porque lo elegiste' : 'Todavía sin copias',
+        arreglo: { como: 'solo', etiqueta: 'Ponerlas ahora', accion: { tipo: 'ponerCopias' } },
+      }
+      : conArreglo({
+        nombre: 'Copias de seguridad aquí',
+        estado: hay.tipo === 'empezada' && hay.conHistorial ? 'si' : (conArnes ? 'si' : 'no'),
+        detalle: hay.tipo === 'empezada' && hay.conHistorial
+          ? 'Ya tenías un historial tuyo; no lo toco'
+          : (conArnes ? 'Listas' : 'Cuando prepares la carpeta'),
+      }, { como: 'solo', etiqueta: 'Preparar esta carpeta', accion: { tipo: 'arrancar' } })),
     conArreglo({
       nombre: 'Copias fuera de este ordenador',
       estado: cuenta.conectado ? 'si' : 'no',
@@ -851,6 +1026,7 @@ function fechaDelPlan() {
 }
 
 module.exports = {
+  queCarpetaEs, comoEsEstaCarpeta, MARCA_DEL_HISTORIAL,
   queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia, fechaDelPlan,
   laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos,
 };

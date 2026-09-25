@@ -3561,3 +3561,68 @@ innegociables por escribir, un nombre con `$&` que rompía el perfil, y el plan,
 contrato que se publicó.
 
 0.33.0. 205 comprobaciones, 208 con el arnés de verdad, y 9 de contrato.
+
+## 118. Las carpetas que no son la de siempre
+
+**Fecha:** 25 de septiembre de 2026 · **Estado:** hecho · **Cadena SDD** `todo-cuadra`, fase F2 ·
+**Revisa la 28**
+
+La barra montaba igual en la carpeta personal que en una vacía, veía un clon como un arnés entero,
+montaba sobre lo de alguien sin enseñarle qué tocaba, y decidía de quién era un historial por el
+nombre de los autores. Quince arreglos, cada uno con su prueba en rojo primero.
+
+### Lo que no se prepara, y lo que se pregunta
+
+- **La carpeta personal, la raíz del disco y las del sistema no se preparan.** Se explica por qué y
+  se ofrece «Crear una carpeta aquí dentro», que la crea en la carpeta personal y la abre. Nunca en
+  la raíz ni en una del sistema, que pedirían administrador. Lista cerrada por sistema, comparada con
+  el sitio real (B1, C-5).
+- **Documentos, el Escritorio o las Descargas enteras se preguntan**, también en iCloud y OneDrive.
+- **Dentro de otro proyecto se avisa** antes de escribir nada. Y con varias carpetas abiertas, se
+  dice con cuál se trabaja (B9).
+
+### Lo de alguien, con su sí
+
+**Antes de firmar el plan, se enseña qué de lo suyo toca el arnés**, en cristiano: «la lista de lo
+que no entra en git», «los ajustes de Claude de esta carpeta». Y se pide el sí (B4, decisión 3 de
+Jose, P4 enmendada). Medido con el paquete:
+
+- una habilidad suya que se llame como una del arnés, RSC la cambia por la suya y la guarda en sus
+  copias;
+- un comando o un agente suyo con el mismo nombre, RSC lo deja y no pone el suyo.
+
+Por cada choque se pregunta: cambiarle el nombre al suyo (`review-propia`, con su `name:`) o dejarlo
+como decide RSC. Con varios, «Cambiarles el nombre a todas» o «Elegir una a una». Sin respuesta, no
+se monta. Con renombrados, el plan se vuelve a pedir antes de firmar.
+
+**Volver a montar tampoco firma por nadie** (A12, decisión 95): si el plan nuevo cambia lo que se
+instala, se enseña qué cambia y se pide el sí. Si solo cambia la huella, no se pregunta.
+
+### De quién es el historial (revisa la 28)
+
+La 28 decía que el historial de alguien no se escribe, y se decidía por los autores de los veinte
+últimos commits. Fallaba: el `git init` de la barra no ponía identidad, así que con la de la persona
+en el ordenador el propio punto de partida salía con su nombre y el historial se tomaba por ajeno. El
+guardado solo no corría nunca (B6).
+
+Ahora el historial es nuestro si nació en la barra: por una marca local que deja al crearlo, o, en
+un clon, porque su primer commit es uno de los que escribe la barra. La barra crea el historial con
+su identidad solo en esa carpeta. Lo que sigue igual que en la 28: en un historial ajeno la barra no
+escribe por su cuenta. Lo que pide la persona, con el botón o al asistente, es acto suyo (C-16).
+
+### Lo demás
+
+- **El clon real** se reconoce como lo llama RSC: `.rsc.json` sin `.rsc/`. La prueba vieja usaba un
+  `.claude/skills` vacío que ningún `git clone` deja (B2).
+- **«Seguir sin copias» se respeta**: se monta sin ellas, y «Qué falta por montar» ofrece ponerlas
+  (B3). Toda rama que monta sobre una carpeta sin historial la deja con él (B7).
+- **Un montaje nuestro a medias** se termina, sin pedir permiso como si fuera de otro (B8).
+- **Volver a montar respeta lo de hoy**: el dial, las palabras y los asistentes (B11). Y pregunta lo
+  que en el recibo no vale, que antes se mandaba igual.
+- **El primer mensaje** pide el perfil, dice si hay freno, pregunta de una en una y, en una carpeta
+  de alguien, pide mirar antes de tocar. Ningún encargo se queda solo en el registro (A6, A7).
+- **Sin ningún asistente**, se pregunta cuál y se pone con un botón (A9).
+- El punto de partida que no se guarda se dice (B10). Lo escrito debajo de la sombra de RSC cuenta
+  como suyo (B12). En una carpeta empezada, se sugiere seguir con lo que hay (A5).
+
+0.34.0. 227 comprobaciones, 232 con el arnés de verdad, y 9 de contrato.

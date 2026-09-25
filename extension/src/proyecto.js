@@ -12,6 +12,14 @@ function raiz() {
   return carpetas && carpetas.length ? carpetas[0].uri.fsPath : null;
 }
 
+// Con varias carpetas abiertas en la misma ventana se trabaja con la primera,
+// y hay que decirlo (B9): el nombre de esa, o null si solo hay una.
+function conVarias() {
+  const carpetas = vscode.workspace.workspaceFolders;
+  if (!carpetas || carpetas.length < 2) return null;
+  return carpetas[0].name || path.basename(carpetas[0].uri.fsPath);
+}
+
 function ruta(...partes) {
   const base = raiz();
   return base ? path.join(base, ...partes) : null;
@@ -96,5 +104,5 @@ function versionDelCatalogo() {
 
 module.exports = {
   raiz, ruta, existe, declaracion, comoEstaLaDeclaracion, recibo, sueloDelArnes, arnesCompleto, versionDelCatalogo,
-  faltanLosInnegociables, INNEGOCIABLES,
+  faltanLosInnegociables, INNEGOCIABLES, conVarias,
 };

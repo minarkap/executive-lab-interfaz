@@ -225,6 +225,49 @@ function queRecomienda({ codigo, salida }) {
     .map(([, tipo, id, porQue]) => ({ tipo, id, porQue }));
 }
 
+// ── El plan, antes de aceptarlo ──────────────────────────────────────────
+//
+// `onboard` sin `--accept-plan` enseña el plan y no escribe nada. De ahí se lee
+// lo que hace falta para decidir antes de firmar: la huella, la línea exacta de
+// aceptación, lo que va a gestionar (`Managed paths:`, que en una carpeta de
+// alguien incluye ficheros suyos), lo que ha elegido (`Selected:`) y si ha
+// visto otro arnés por encima.
+function leerElPlanEnSeco(salida = '') {
+  const lineas = String(salida).split('\n');
+  const seccion = (titulo) => {
+    const desde = lineas.indexOf(titulo);
+    if (desde < 0) return [];
+    const hasta = lineas.findIndex((l, i) => i > desde && /^\S/.test(l));
+    return lineas.slice(desde + 1, hasta < 0 ? undefined : hasta).map((l) => l.trim()).filter(Boolean);
+  };
+  const aceptar = (String(salida).match(/^Accept exactly this plan: npx @ericrisco\/rsc@\S+ onboard (.+)$/m) || [])[1];
+  return {
+    planId: (String(salida).match(/^Plan id: ([0-9a-f]{64})$/m) || [])[1] || null,
+    aceptar: aceptar ? aceptar.trim().split(/\s+/) : [],
+    gestionados: seccion('Managed paths:'),
+    seleccionados: seccion('Selected:')
+      .map((l) => l.match(/^\+ ([a-z-]+)\/(\S+) —/))
+      .filter(Boolean)
+      .map(([, kind, id]) => ({ kind, id })),
+    avisos: lineas.filter((l) => /^Parent harness detected/.test(l)),
+  };
+}
+
+// Lo que cambia entre lo que se aceptó y lo que propone un plan nuevo: lo que
+// entra y lo que sale de «Selected». La huella puede cambiar solo porque cambió
+// lo que hay en la carpeta, y eso no es una política nueva (decisión 95). Un
+// recibo sin decisiones —de una versión anterior— no se puede comparar.
+function cambiosDePolitica(seleccionados = [], decisiones) {
+  if (!Array.isArray(decisiones)) return null;
+  const clave = (d) => `${d.kind}/${d.id}`;
+  const antes = new Set(decisiones.filter((d) => d && d.state === 'selected').map(clave));
+  const ahora = new Set(seleccionados.map(clave));
+  return {
+    entran: [...ahora].filter((k) => !antes.has(k)).sort(),
+    salen: [...antes].filter((k) => !ahora.has(k)).sort(),
+  };
+}
+
 // ── Lo que contesta el montaje ───────────────────────────────────────────
 //
 // `onboard --accept-plan` termina de seis formas, y dos se llaman casi igual y
@@ -302,7 +345,7 @@ const arreglarSolo = () => correr(['repair', '--yes'], { tiempoMaximo: 180000 })
 
 module.exports = {
   correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar, arreglarSolo,
-  comoEstaDeSalud, queHayQueArreglar, queRecomienda, comoAcaboElMontaje,
+  comoEstaDeSalud, queHayQueArreglar, queRecomienda, comoAcaboElMontaje, leerElPlanEnSeco, cambiosDePolitica,
   queGuardianes, queCopiasDelArnes, queFaltaEnDisco, LOS_GUARDIANES,
   olvidarLaContinuacion,
   paquete, VERSION_DE_RESPALDO, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,

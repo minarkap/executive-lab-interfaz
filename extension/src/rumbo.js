@@ -131,7 +131,36 @@ const loQueHayQueOrdenar = (parte) => [
   parte.carpeta.cuantos > 0 ? 'ordenarLaCarpeta' : null,
 ];
 
+// Lo que no se puede hacer sin git, y que se quita del plan cuando alguien
+// eligió seguir sin copias.
+const CON_GIT = ['ponerGit', 'puntoDePartida'];
+
+// Las carpetas de alguien: en ellas el sí se pide dentro del montaje (B4), y
+// antes de ese sí no se escribe nada.
+const DE_ALGUIEN = ['empezada', 'otroArnes'];
+
 function elegirRama(parte) {
+  const plan = laRama(parte);
+  if (parte.git && !parte.git.hay && parte.git.sigueSinCopias) {
+    return { ...plan, pasos: plan.pasos.filter((p) => !CON_GIT.includes(p.id)) };
+  }
+  // Toda rama que monta sobre una carpeta sin historial la deja con él (B7):
+  // solo las dos de siempre lo ponían. El punto de partida, no: ese solo va en
+  // una carpeta vacía (decisión 28).
+  //
+  // En una carpeta de alguien va detrás del montaje, que es donde se pide el sí:
+  // delante, el `git init` y la marca de que el historial es de la barra
+  // quedaban puestos aunque dijera que no (revisión de F2, I1).
+  const escribe = plan.pasos.some((p) => p.escribe);
+  const sinHistorial = parte.git && parte.git.repositorio === false;
+  if (escribe && sinHistorial && !plan.pasos.some((p) => p.id === 'ponerGit')) {
+    const detras = DE_ALGUIEN.includes(parte.estado) ? plan.pasos.findIndex((p) => p.id === 'montarElArnes') + 1 : 0;
+    return { ...plan, pasos: [...plan.pasos.slice(0, detras), ...pasos('ponerGit'), ...plan.pasos.slice(detras)] };
+  }
+  return plan;
+}
+
+function laRama(parte) {
   const preguntar = loQueFaltaPorPreguntar(parte);
 
   // Sin carpeta no hay nada que decidir.
@@ -146,9 +175,23 @@ function elegirRama(parte) {
     return { rama: 'reciboRoto', preguntar: [], pasos: [], porQue: 'el .rsc.json de esta carpeta no se puede leer' }; // diccionario: interno
   }
 
+  // La carpeta personal, la raíz del disco y las del sistema no se preparan
+  // (B1): se explica y se ofrece una carpeta dentro de la personal. Solo cuando
+  // aquí no hay nada montado todavía: una que se montó antes de esta guarda
+  // sigue funcionando, y lo suyo no se toca. Un montaje a medias sin su
+  // `.rsc.json` tampoco está declarado: completarlo es prepararla (revisión de
+  // F2, C1).
+  const sinDeclarar = ['vacia', 'empezada', 'otroArnes'].includes(parte.estado)
+    || (parte.estado === 'aMedias' && parte.declarada === 'no');
+  if (parte.carpeta && parte.carpeta.prohibida && sinDeclarar) {
+    return { rama: 'noSePrepara', preguntar: [], pasos: [], porQue: `esta carpeta no se prepara: ${parte.carpeta.prohibida}` };
+  }
+
   // Portón previo a todo lo que escriba: sin git no hay copias de seguridad, y
-  // eso se decide antes de preguntar seis cosas más.
-  if (!parte.git.hay) {
+  // eso se decide antes de preguntar seis cosas más. Si ya eligió seguir sin
+  // copias, no se le vuelve a preguntar (B3): se monta sin ellas, y la lista
+  // de lo que falta ofrece ponerlas.
+  if (!parte.git.hay && !parte.git.sigueSinCopias) {
     return { rama: 'sinGit', preguntar: [], pasos: pasos('ponerGit'), porQue: 'falta git en este ordenador' };
   }
 
@@ -204,11 +247,13 @@ function elegirRama(parte) {
     };
   }
 
-  // Falta suelo. Cero preguntas: los flags salen del recibo.
+  // Falta suelo. Los flags salen del recibo, y solo se pregunta lo que en el
+  // recibo no vale: preguntar nada con un valor que RSC no acepta era mandarlo
+  // igual y no montar. Los nombres, no: se quedan los del perfil.
   if (parte.estado === 'aMedias') {
     return {
       rama: 'completar',
-      preguntar: parte.recibo ? [] : preguntar,
+      preguntar: parte.recibo ? preguntar.filter((id) => id !== 'nombres') : preguntar,
       pasos: pasos('montarElArnes', ...loNuestro),
       porQue: `falta parte del suelo: ${parte.suelo.faltan.join(', ')}`,
     };
@@ -231,7 +276,7 @@ function elegirRama(parte) {
     return {
       rama: 'encimaDeLoQueHay',
       preguntar,
-      pasos: pasos('ponerGit', 'montarElArnes', ...loNuestro, ...loQueHayQueOrdenar(parte)),
+      pasos: pasos('montarElArnes', 'ponerGit', ...loNuestro, ...loQueHayQueOrdenar(parte)),
       porQue: 'hay trabajo de alguien y no se toca',
     };
   }

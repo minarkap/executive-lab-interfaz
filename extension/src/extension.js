@@ -12,6 +12,7 @@ const vscode = require('vscode');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 
 const proyecto = require('./proyecto');
 const brujula = require('./brujula');
@@ -378,6 +379,7 @@ ${cabecera}
       arreglar: () => this.arreglar(),
       arrancar: () => this.arrancar(),
       instalarGit: () => this.instalarGit(),
+      ponerCopias: () => this.ponerCopias(),
       conectarGitHub: () => this.conectarGitHub(),
       verCopiaFuera: () => this.verCopiaFuera(),
       verRadiografia: () => this.verRadiografia(),
@@ -420,6 +422,9 @@ ${cabecera}
       abrirCarpetaDeSalida: () => salidas.abrirLaCarpeta(mensaje.herramienta),
       ponerLaCara: () => this.ponerLaCara(),
       elegirCarpeta: () => this.elegirCarpeta(),
+      // La salida de una carpeta que no se prepara: una nueva, dentro de la
+      // personal (B1).
+      crearCarpeta: () => arrancar.crearUnaCarpetaDentro(os.homedir(), this.salida),
       abrirAsistente: () => puente.abrirConversacion(),
       ahoraNo: () => this.ahoraNo(mensaje.id),
       aprenderCapacidad: () => this.aprenderCapacidad(mensaje.capacidad, mensaje.nombre),
@@ -745,7 +750,7 @@ ${cabecera}
   async loQueNoCuadra() {
     const visto = [];
     try {
-      const revision = await terreno.radiografia();
+      const revision = await terreno.radiografia({ sigueSinCopias: this.eligioSinCopias() });
       for (const pieza of revision.piezas || []) {
         if (pieza.estado === 'no' || pieza.estado === 'aMedias') visto.push(`${pieza.nombre}: ${pieza.detalle}`);
       }
@@ -1033,7 +1038,7 @@ ${cabecera}
     // hay una pantalla de espera delante; la principal, que se repinta sola, no
     // puede permitirse tres subprocesos del arnés cada vez.
     const aFondo = (await terreno.reconocer({ profundo: true })).arnes;
-    const radio = await terreno.radiografia({ aFondo });
+    const radio = await terreno.radiografia({ aFondo, sigueSinCopias: this.eligioSinCopias() });
     this.enviar({ tipo: 'radiografia', queEs: radio.queEs, piezas: radio.piezas });
   }
 
@@ -1091,7 +1096,7 @@ ${cabecera}
   // afinar las cosas». Va donde va todo lo que se lee: la bandeja del arnés; y
   // si no hay arnés, fuera del proyecto, que es donde no estorba.
   async guardarLaRevision() {
-    const { piezas, queEs } = await terreno.radiografia();
+    const { piezas, queEs } = await terreno.radiografia({ sigueSinCopias: this.eligioSinCopias() });
     const cuando = new Date().toISOString().slice(0, 10);
 
     const linea = (p) => `| ${{ si: '✓', aMedias: '!', no: '·' }[p.estado] || '·'} | ${p.nombre} | ${p.detalle} |`;
@@ -1196,6 +1201,25 @@ ${cabecera}
     return this.enviar({ tipo: 'aviso', texto: 'Ya está. Puedes preparar la carpeta.' });
   }
 
+  // Si en esta carpeta se eligió seguir sin copias. Es la misma clave que
+  // guarda el arranque.
+  eligioSinCopias() {
+    return Boolean(this.contexto.workspaceState && this.contexto.workspaceState.get('executiveLab.sigueSinCopias'));
+  }
+
+  // Las copias de una carpeta que se montó sin ellas. Si falta git, se pone
+  // antes, con el mismo botón de siempre.
+  async ponerCopias() {
+    let hecho = await arrancar.ponerLasCopias(this.contexto);
+    if (hecho.faltaGit) {
+      await this.instalarGit();
+      hecho = await arrancar.ponerLasCopias(this.contexto);
+      if (hecho.faltaGit) return undefined; // lo que pasa ya lo ha dicho instalarGit
+    }
+    this.enviar({ tipo: 'aviso', texto: hecho.mensaje, malo: !hecho.ok });
+    return this.refrescar(true);
+  }
+
   async arrancar() {
     const hecho = await arrancar.arrancar(this.contexto, this.salida);
 
@@ -1230,6 +1254,8 @@ ${cabecera}
     if (hecho.avisos && hecho.avisos.length) {
       this.salida.appendLine(`[arrancar] terminó con pegas: ${hecho.avisos.join(', ')}`); // diccionario: interno
     }
+    // Lo que salió mal y hay que decir, aunque lo demás esté montado (B10).
+    for (const pega of hecho.pegas || []) this.enviar({ tipo: 'aviso', texto: pega, malo: true });
     if (hecho.encargos && hecho.encargos.length) {
       this.salida.appendLine(`[arrancar] falta que el asistente haga: ${hecho.encargos.join(', ')}`); // diccionario: interno
     }
@@ -1289,11 +1315,10 @@ ${cabecera}
     // Si la carpeta ya traía claves —un `.env` de antes, un `.env.local`—, el
     // plan de a dónde va cada una viaja en este primer mensaje: es cuando el
     // asistente está montando y cuando el alumno espera trámites. Antes solo
-    // salía si alguien entraba en Conexiones y pulsaba (decisión 104).
-    const desordenadas = sueltas.resumen();
-    const conClaves = desordenadas ? `\n\n${desordenadas.prompt}\n\n` : '';
+    // salía si alguien entraba en Conexiones y pulsaba (decisión 104). Ahora
+    // va con los demás encargos del arranque, en `hecho.paraElMensaje` (A7).
     const comoSeLlama = hecho.nombres.arnes || identidad.deQuien();
-    await puente.enviar(arrancar.primerMensaje(hecho, { comoSeLlama, conWeb, conClaves }));
+    await puente.enviar(arrancar.primerMensaje(hecho, { comoSeLlama, conWeb, conFreno: arrancar.hayFreno() }));
     await this.siFaltaAlgoDecirlo(false);
     return undefined;
   }
@@ -1303,7 +1328,7 @@ ${cabecera}
   // decir — y entonces sale con un botón por cada cosa, que es lo que le
   // faltaba a esa pantalla desde el principio.
   async siFaltaAlgoDecirlo(refrescarSiEstaTodo) {
-    const revision = await terreno.radiografia();
+    const revision = await terreno.radiografia({ sigueSinCopias: this.eligioSinCopias() });
     if (revision.listo) {
       if (refrescarSiEstaTodo) await this.refrescar(true);
       return;

@@ -317,6 +317,53 @@ async function main() {
     return 'código 4, deshecho';
   });
 
+  // ── Lo que cambia entre dos planes, en español ─────────────────────────
+  //
+  // Revisión de F2, C2. Volver a montar con otro plan se enseña antes de
+  // firmarlo, y la tabla que lo dice en cristiano tenía claves que RSC 2.0.5 no
+  // usa (`workflow/sdd`, `agent/base-agents`) y buscaba los agentes entre las
+  // habilidades: la pantalla salía en inglés. Aquí se piden los planes de
+  // verdad, y cada pieza que entra o sale tiene que tener su nombre.
+  await comprobar('lo que cambia entre dos planes de RSC se dice en español', async () => {
+    const carpeta = temporal('contrato-cambios-');
+    const nombresM = cargar('nombres');
+    const seleccion = async (respuestas) => {
+      const intento = await pedirElPlan(arrancar.flagsDelMontaje({ ...MONTAJE, objetivo: 'Organizar el papeleo', ...respuestas }), carpeta);
+      return rscM.leerElPlanEnSeco(intento.salida).seleccionados;
+    };
+    const PARES = [
+      [{ kind: 'operations' }, { kind: 'software', tamano: 'growing' }],
+      [{ kind: 'software', tamano: 'small' }, { kind: 'software', tamano: 'complex' }],
+      [{ kind: 'mixed', tamano: 'small' }, { kind: 'mixed', tamano: 'growing' }],
+    ];
+    const sinNombre = new Set();
+    let piezas = 0;
+    for (const [antes, despues] of PARES) {
+      const eran = (await seleccion(antes)).map((d) => ({ ...d, state: 'selected' }));
+      const { entran, salen } = rscM.cambiosDePolitica(await seleccion(despues), eran);
+      const claves = [...entran, ...salen];
+      // Lo que sale en la pantalla, y no lo que hay en las tablas: cada pieza,
+      // con su frase o con su nombre de verdad entre comillas.
+      const dicho = arrancar.comoSeDiceLoQueCambia(claves).join(' · ');
+      assert.doesNotMatch(dicho, /\b(skill|agent|hook|guard|workflow|capability|route)\//, `«${dicho}» lo dice en clave`);
+      for (const clave of claves) {
+        piezas += 1;
+        const [kind, id] = clave.split('/');
+        if (arrancar.PIEZAS_DEL_PLAN[clave]) {
+          if (!dicho.includes(arrancar.PIEZAS_DEL_PLAN[clave])) sinNombre.add(clave);
+          continue;
+        }
+        const monton = { agent: 'ayudantes', skill: 'habilidades' }[kind];
+        const fila = monton && nombresM.comoSeLlama(monton, id, {});
+        if (!fila || !fila.deFuera || !dicho.includes(`«${fila.nombre}»`)) sinNombre.add(clave);
+      }
+    }
+    assert.ok(piezas > 0, 'ningún par cambia nada: la prueba no mira');
+    assert.deepEqual([...sinNombre], [], 'estas piezas salen sin nombre en español');
+    assert.deepEqual(fs.readdirSync(carpeta), [], 'pedir el plan en seco ha escrito algo en la carpeta');
+    return `${piezas} piezas que entran o salen, todas con su nombre`;
+  });
+
   vscode.guion.raiz = null;
   console.log(`\n${pasadas} comprobaciones pasadas${process.exitCode ? ' — y alguna ha fallado' : ''}`);
 }

@@ -191,6 +191,12 @@ function grupo({ id, etiqueta, cuantos = '', dentro, abiertoDeEntrada = false })
 // dentro de Ayuda y Ayuda solo sale cuando ya hay arnés. O sea, justo cuando
 // más falta hace, no estaba. Ahora lo trae el propio aviso: quien lo nombra,
 // lo ofrece, esté en la pantalla que esté.
+// Con varias carpetas abiertas se trabaja con la primera, y se dice (B9).
+function lineaDeVarias() {
+  if (!estado || !estado.conVarias) return '';
+  return `<p class="nota">${texto(`Trabajo con «${estado.conVarias}», la primera de las carpetas abiertas.`)}</p>`;
+}
+
 function bloqueAviso(cual = aviso) {
   if (!cual) return '';
   const manda = cual.malo && /Algo va mal/.test(cual.texto || '');
@@ -1482,8 +1488,11 @@ function bloqueFaltaGit() {
 
 // Lo que se ha encontrado en una carpeta que ya es de alguien. Se enseña ANTES
 // de ofrecer el botón, porque quien lo pulsa tiene derecho a saber sobre qué lo
-// está pulsando. Y se promete lo que el código cumple: no se toca nada de lo
-// que hay, y el historial de esa persona no se escribe (terreno.js).
+// está pulsando. Y se promete lo que el código cumple: antes de montar se
+// enseña qué de lo suyo toca el arnés y no se monta sin su sí (B4), y el
+// historial de esa persona no se escribe (terreno.js). Decía «No voy a tocar
+// nada de esto», y el arnés sí toca: su `.gitignore`, sus ajustes, y una
+// habilidad suya que se llame como una del arnés.
 function bloqueYaEmpezada() {
   const y = estado.yaEmpezada;
   const visto = [];
@@ -1496,9 +1505,26 @@ function bloqueYaEmpezada() {
   return `
     <div class="aviso">
       <p>${texto(visto.join(' · '))}</p>
-      <p>No voy a tocar nada de esto. Solo añado lo que el asistente necesita para entenderlo${y.conHistorial ? ', y tu historial lo dejo como está' : ''}.</p>
+      <p>Antes de tocar nada te enseño qué cambia, y no se monta sin tu sí.${y.conHistorial ? ' Tu historial lo dejo como está.' : ''}</p>
     </div>
     ${boton({ etiqueta: 'Añadir el asistente a esto', icono: '✳', principal: true, accion: { tipo: 'arrancar' } })}
+  `;
+}
+
+// La carpeta personal, la raíz o una del sistema: aquí no se prepara nada, y la
+// salida es una carpeta nueva dentro de la personal (B1). Los textos los
+// escribe la extensión, que es donde se decide.
+function pantallaNoSePrepara() {
+  return `
+    ${bloqueAviso()}
+    ${lineaDeVarias()}
+    <div class="brujula">
+      <h2>Lo último</h2>
+      <p class="donde">${texto(estado.donde)}</p>
+      <p class="hiciste">${texto(estado.aviso)}</p>
+    </div>
+    ${boton({ etiqueta: estado.boton, icono: '📁', principal: true, accion: { tipo: 'crearCarpeta' } })}
+    ${boton({ etiqueta: 'Elegir otra carpeta', icono: '📂', discreto: true, accion: { tipo: 'elegirCarpeta' } })}
   `;
 }
 
@@ -1506,6 +1532,7 @@ function bloqueYaEmpezada() {
 // se ofrece prepararla: sin él la preparación aborta a mitad, y enseñar un
 // botón que no puede funcionar es peor que no enseñarlo.
 function pantallaSinArnes() {
+  if (estado.noSePrepara) return pantallaNoSePrepara();
   // Una carpeta a medio montar no se «prepara», se termina: decirle otra cosa
   // le haría pensar que va a empezar de cero y a perder lo que ya hay.
   const ofrecer = estado.yaEmpezada
@@ -1519,6 +1546,7 @@ function pantallaSinArnes() {
 
   return `
     ${bloqueAviso()}
+    ${lineaDeVarias()}
     <div class="brujula">
       <h2>Lo último</h2>
       <p class="donde">${texto(estado.donde)}</p>
@@ -1641,6 +1669,7 @@ function pantallaPrincipal() {
           con algo que se pregunta mejor hablando. Lo que se queda es lo que no
           es narración: los avisos y el consejo, que llevan botón. */''}
     ${bloqueAviso()}
+    ${lineaDeVarias()}
     ${pulso.length ? `<p class="pulso">${texto(pulso.join(' · '))}</p>` : ''}
 
     ${sinAsistente}

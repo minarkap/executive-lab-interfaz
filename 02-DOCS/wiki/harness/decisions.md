@@ -511,3 +511,20 @@ Decisión 117 en `docs/decisiones.md`. Fase F1 de la cadena SDD `todo-cuadra`.
   perfil entero. Ahora se releen.
 
 0.33.0. 205 comprobaciones, 208 con el arnés de verdad, y 9 de contrato.
+
+## Las carpetas que no son la de siempre — 25 de septiembre de 2026
+
+Decisión 118 en `docs/decisiones.md`, que revisa la 28. Fase F2 de la cadena SDD `todo-cuadra`.
+
+- **La carpeta personal, la raíz y las del sistema no se preparan**: se ofrece crear una carpeta
+  dentro de la personal. Documentos, el Escritorio y las Descargas enteras se preguntan. Dentro de
+  otro proyecto, se avisa.
+- **En una carpeta de alguien, antes de firmar se enseña qué se toca y se pide el sí.** Cada nombre
+  que choca se renombra o se deja, y sin respuesta no se monta. Volver a montar con un plan distinto,
+  tampoco sin el sí.
+- **El historial es nuestro si nació en la barra**, no por el nombre de los autores. El guardado solo
+  vuelve a correr con la identidad de la persona puesta.
+- El clon real se reconoce, «Seguir sin copias» se respeta, y el primer mensaje pide el perfil y dice
+  si hay freno.
+
+0.34.0. 227 comprobaciones, 232 con el arnés de verdad, y 9 de contrato.

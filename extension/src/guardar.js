@@ -81,6 +81,15 @@ async function hayGit() {
 // diciendo que falta.
 const olvidarSiHayGit = () => { sabemosSiHayGit = null; };
 
+// Crear el historial de esta carpeta como lo crea la barra: rama `main` y su
+// identidad solo aquí, nunca en todo el ordenador (lo hace `historial.iniciar`).
+async function iniciar() {
+  const h = historial();
+  const donde = proyecto.raiz();
+  if (!h || !donde || !(await hayGit())) return { ok: false, faltaGit: true };
+  return h.iniciar(donde, comoLlamar());
+}
+
 async function guardar(mensaje) {
   const h = historial();
   if (!h || !(await hayGit())) return { ok: false, faltaGit: true, mensaje: SIN_PIEZA };
@@ -265,4 +274,4 @@ async function cambiosSinGuardar() {
   return h.cuantosCambios(donde, comoLlamar());
 }
 
-module.exports = { guardar, copias, volverA, cambiosSinGuardar, subirCopia, puedeSubir, fechaLarga, haceCuanto, hayGit, olvidarSiHayGit };
+module.exports = { iniciar, guardar, copias, volverA, cambiosSinGuardar, subirCopia, puedeSubir, fechaLarga, haceCuanto, hayGit, olvidarSiHayGit };

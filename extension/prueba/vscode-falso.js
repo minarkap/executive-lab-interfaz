@@ -28,6 +28,8 @@ const guion = {
   extensionesInstaladas: ['anthropic.claude-code'],
   comandosDeCodex: ['chatgpt.openSidebar', 'chatgpt.addToThread'],
   raiz: null,
+  // Más carpetas abiertas en la misma ventana, detrás de `raiz`.
+  otrasRaices: [],
   // La sesión de GitHub del editor. null = no ha entrado; un objeto = dentro.
   sesionGitHub: null,
 };
@@ -105,7 +107,11 @@ module.exports = {
   RelativePattern: class { constructor(base, patron) { this.base = base; this.pattern = patron; registrado.vigilado = patron; } },
 
   workspace: {
-    get workspaceFolders() { return guion.raiz ? [{ uri: uri(guion.raiz) }] : undefined; },
+    get workspaceFolders() {
+      if (!guion.raiz) return undefined;
+      const nombre = (p) => p.split(/[\\/]/).filter(Boolean).pop();
+      return [guion.raiz, ...guion.otrasRaices].map((p, index) => ({ uri: uri(p), name: nombre(p), index }));
+    },
     onDidChangeConfiguration: () => ({ dispose() {} }),
     createFileSystemWatcher: (patron) => {
       const oyentes = { crear: null, cambiar: null, borrar: null };

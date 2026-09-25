@@ -11,6 +11,7 @@
 const vscode = require('vscode');
 const path = require('node:path');
 const fs = require('node:fs');
+const os = require('node:os');
 
 const proyecto = require('./proyecto');
 const procesos = require('./procesos');
@@ -23,6 +24,8 @@ const identidad = require('./identidad');
 const asistentes = require('./asistentes');
 const rumbo = require('./rumbo');
 const trato = require('./trato');
+const ajena = require('./ajena');
+const encargosDelAsistente = require('./encargos');
 
 // Las preguntas que hace RSC, en cristiano. Antes se daban por supuestas tres
 // —siempre operaciones, siempre no técnico, siempre L3— y eso está mal: un
@@ -110,9 +113,14 @@ async function elegir(titulo, pregunta, opciones, extra = []) {
   return elegida ? (elegida.valor !== undefined ? elegida.valor : elegida) : null;
 }
 
-async function preguntarObjetivo(kind) {
+// En una carpeta que ya tiene algo, lo primero que se sugiere es seguir con lo
+// que hay (A5): los objetivos de una carpeta vacía no hablan de ella.
+const SEGUIR_CON_LO_QUE_HAY = 'Seguir con lo que ya hay';
+
+async function preguntarObjetivo(kind, { empezada = false } = {}) {
   const OTRA = { label: 'Otra cosa — te la cuento yo', otra: true };
-  const sugeridos = (OBJETIVOS_POR_TIPO[kind] || OBJETIVOS_POR_TIPO.mixed).map((e) => ({ etiqueta: e }));
+  const deSuTipo = OBJETIVOS_POR_TIPO[kind] || OBJETIVOS_POR_TIPO.mixed;
+  const sugeridos = (empezada ? [SEGUIR_CON_LO_QUE_HAY, ...deSuTipo] : deSuTipo).map((e) => ({ etiqueta: e }));
 
   const elegido = await elegir('Para empezar', '¿Qué te gustaría resolver primero?', sugeridos, [OTRA]);
   if (!elegido) return null;
@@ -132,13 +140,34 @@ async function preguntarObjetivo(kind) {
 async function preguntarAsistente() {
   const puestos = asistentes.ASISTENTES.filter(asistentes.estaInstalado);
   if (puestos.length === 1) return puestos[0].id;
-  if (!puestos.length) return 'claude';
+  if (!puestos.length) return ponerUnAsistente();
 
   const elegido = await vscode.window.showQuickPick(
     puestos.map((a) => ({ label: a.nombre, id: a.id })),
     { title: 'Con quién vas a trabajar', placeHolder: 'Tienes los dos instalados: elige uno', ignoreFocusOut: true },
   );
   return elegido ? elegido.id : null;
+}
+
+// Sin ningún asistente en el ordenador no se monta para uno que no está: se
+// pregunta cuál y se pone con un botón (A9). Antes se montaba para Claude en
+// silencio, y después la barra decía «díselo a tu tutor».
+async function ponerUnAsistente() {
+  const opciones = asistentes.ASISTENTES.map((a) => ({ boton: `Poner ${a.nombre}`, asistente: a }));
+  const elegido = await vscode.window.showWarningMessage(
+    'No tienes ningún asistente en este ordenador. ¿Cuál pongo?',
+    { modal: true },
+    ...opciones.map((o) => o.boton),
+  );
+  const cual = opciones.find((o) => o.boton === elegido);
+  if (!cual) return null;
+  try {
+    await vscode.commands.executeCommand('workbench.extensions.installExtension', cual.asistente.extension);
+  } catch {
+    await vscode.window.showWarningMessage(`No he podido poner ${cual.asistente.nombre}. Pulsa «Algo va mal» y pásale el código a tu tutor.`);
+    return null;
+  }
+  return cual.asistente.id;
 }
 
 // Cómo se llama esto. Dos nombres, y los pone el alumno: para qué es esta
@@ -267,18 +296,51 @@ const CUANDO_FALLO = {
   Invalido: 'el arnés no aceptó lo que se le mandó',
 };
 
-async function montarElArnes(respuestas) {
+// En una carpeta de alguien, antes de aceptar el plan se enseña qué de lo suyo
+// va a tocar, y se pregunta por lo que se llame igual que algo del arnés (B4).
+async function montarElArnes(respuestas, { ajenaCarpeta = false, reciboAnterior = null } = {}) {
   const flags = flagsDelMontaje(respuestas);
+  const pedirElPlan = async () => {
+    const previo = await rsc.correr(['onboard', ...flags], { tiempoMaximo: 600000 });
+    return { previo, plan: rsc.leerElPlanEnSeco(previo.salida) };
+  };
 
-  const previo = await rsc.correr(['onboard', ...flags], { tiempoMaximo: 600000 });
-  const huella = (previo.salida.match(/Plan id:\s*([0-9a-f]{64})/i) || [])[1];
-  if (!huella) return { ok: false, forma: 'SinPlan', detalle: loQuePaso('al pedir el plan', previo) };
+  let { previo, plan } = await pedirElPlan();
+  if (!plan.planId) return { ok: false, forma: 'SinPlan', detalle: loQuePaso('al pedir el plan', previo) };
+
+  let renombrados = [];
+  if (ajenaCarpeta) {
+    const decidido = await confirmarLoQueSeToca(plan);
+    if (!decidido.seguir) return { ok: false, forma: 'SinPermiso', cancelado: true, detalle: 'no quiso montar sobre lo suyo' };
+    if (decidido.fallo) {
+      return {
+        ok: false,
+        forma: 'NoSeRenombro',
+        detalle: `no se pudo renombrar ${decidido.fallo.fichero}: ${decidido.error}`, // diccionario: interno
+        mensaje: `No he podido cambiarle el nombre a «${decidido.fallo.id}», así que no he montado nada. Pulsa «Algo va mal» y pásale el código a tu tutor.`,
+      };
+    }
+    renombrados = decidido.renombrados;
+    // Lo que hay en disco ha cambiado, y la huella del plan depende de ello:
+    // se vuelve a pedir antes de firmar.
+    if (renombrados.length) {
+      ({ previo, plan } = await pedirElPlan());
+      if (!plan.planId) return { ok: false, forma: 'SinPlan', detalle: loQuePaso('al pedir el plan otra vez', previo) };
+    }
+  }
+
+  // Volver a montar no firma por nadie (A12, decisión 95): si el plan nuevo
+  // cambia lo que se instala, se enseña y se pide el sí. Si solo cambia la
+  // huella, se acepta.
+  if (reciboAnterior && !(await confirmarLoQueCambia(plan, reciboAnterior))) {
+    return { ok: false, forma: 'SinPermiso', cancelado: true, detalle: 'no quiso cambiar lo montado' };
+  }
 
   // Se reutiliza la línea de aceptación tal cual la imprime RSC —con el
   // objetivo en base64 y los mismos flags— para que la huella no pueda dejar
   // de coincidir.
-  const linea = (previo.salida.match(/^Accept exactly this plan: npx @ericrisco\/rsc@\S+ onboard (.+)$/m) || [])[1];
-  const aceptar = linea ? linea.trim().split(/\s+/) : [...flags, '--accept-plan', huella];
+  const huella = plan.planId;
+  const aceptar = plan.aceptar.length ? plan.aceptar : [...flags, '--accept-plan', huella];
 
   const aplicado = await rsc.correr(['onboard', ...aceptar], { tiempoMaximo: 900000 });
 
@@ -288,10 +350,148 @@ async function montarElArnes(respuestas) {
   // tiene que ser la que se enseñó y la que RSC dejó en el recibo.
   const recibo = (proyecto.declaracion() || {}).onboarding || {};
   const como = rsc.comoAcaboElMontaje(aplicado, { planId: huella, aceptado: recibo.acceptedPlanId });
-  if (como.forma === 'Listo') return { ok: true, forma: 'Listo' };
-  if (como.forma === 'SueloAMedias') return { ok: true, forma: 'SueloAMedias', faltan: como.faltan };
+  if (como.forma === 'Listo') return { ok: true, forma: 'Listo', renombrados };
+  if (como.forma === 'SueloAMedias') return { ok: true, forma: 'SueloAMedias', faltan: como.faltan, renombrados };
   return { ok: false, forma: como.forma, detalle: loQuePaso(CUANDO_FALLO[como.forma] || 'al aplicar el plan', aplicado) };
 }
+
+// ── Lo de alguien, antes de firmar ──────────────────────────────────────
+
+const CADA_UNA = {
+  habilidad: { una: 'una habilidad', la: 'la habilidad', igual: 'igual que una del arnés' },
+  comando: { una: 'un comando', la: 'el comando', igual: 'igual que uno del arnés' },
+  agente: { una: 'un agente', la: 'el agente', igual: 'igual que uno del arnés' },
+};
+
+// «a, b y c»
+const enLista = (cosas) => (cosas.length < 2 ? cosas.join('') : `${cosas.slice(0, -1).join(', ')} y ${cosas[cosas.length - 1]}`);
+const cualEs = (choque) => `${CADA_UNA[choque.que].la} «${choque.id}»`;
+
+// Un choque, de uno en uno: 'renombrar', 'dejar' o null (no montar nada).
+async function preguntarPorUnChoque(choque) {
+  const habilidad = choque.que === 'habilidad';
+  const renombrar = habilidad ? 'Cambiarle el nombre a la mía' : 'Cambiarle el nombre al mío';
+  const dejar = habilidad ? 'Que la del arnés ocupe su sitio' : 'Dejar el mío';
+  const detail = habilidad
+    ? `Si le cambias el nombre, la tuya pasa a llamarse ${choque.sugerido}. Si la del arnés ocupa su sitio, la tuya queda en las copias que guarda el arnés.`
+    : `Si le cambias el nombre, el tuyo pasa a llamarse ${choque.sugerido} y se pone también el del arnés. Si lo dejas, el tuyo se queda como está y el del arnés no se pone.`;
+  const elegido = await vscode.window.showWarningMessage(
+    `Ya tienes ${CADA_UNA[choque.que].una} que se llama «${choque.id}», ${CADA_UNA[choque.que].igual}.`,
+    { modal: true, detail },
+    renombrar,
+    dejar,
+    'No montar nada',
+  );
+  if (elegido === renombrar) return 'renombrar';
+  if (elegido === dejar) return 'dejar';
+  return null;
+}
+
+// El resumen y el sí, y después los choques. Devuelve si se sigue, y lo que se
+// renombró, o el fallo.
+async function confirmarLoQueSeToca(plan) {
+  const raiz = proyecto.raiz();
+  const { tocados, choques } = ajena.resumen(plan, raiz);
+
+  // Sin nada más que tocar, lo que choca es lo que se toca: la suya puede
+  // acabar en las copias del arnés (revisión de F2, m10).
+  const loQueToco = tocados.length ? tocados.map((t) => t.enCristiano) : choques.map(cualEs);
+  const mensaje = loQueToco.length
+    ? `Aquí ya hay cosas tuyas. Para montar el arnés voy a tocar esto: ${enLista(loQueToco)}. No borro nada tuyo.`
+    : 'Aquí ya hay cosas tuyas. Para montar el arnés solo añado cosas: no toco nada tuyo.';
+  const detail = !choques.length ? undefined : (choques.length === 1
+    ? `Y hay una cosa tuya que se llama igual que una del arnés: ${cualEs(choques[0])}. Ahora te pregunto qué hago con ella.`
+    : `Y hay ${choques.length} cosas tuyas que se llaman igual que unas del arnés: ${enLista(choques.map(cualEs))}. Ahora te pregunto qué hago con ellas.`);
+
+  const si = 'Sí, móntalo encima';
+  const conSi = await vscode.window.showInformationMessage(mensaje, { modal: true, ...(detail ? { detail } : {}) }, si, 'No, déjalo');
+  if (conSi !== si) return { seguir: false };
+  if (!choques.length) return { seguir: true, renombrados: [] };
+
+  // Varios a la vez: lo mismo para todas, o una a una (C-3).
+  const elecciones = {};
+  if (choques.length > 1) {
+    const todas = 'Cambiarles el nombre a todas';
+    const unaAUna = 'Elegir una a una';
+    const global = await vscode.window.showWarningMessage(
+      `Tienes ${choques.length} cosas tuyas que se llaman igual que unas del arnés: ${enLista(choques.map(cualEs))}.`,
+      { modal: true },
+      todas,
+      unaAUna,
+      'No montar nada',
+    );
+    if (global === todas) choques.forEach((c) => { elecciones[c.fichero] = 'renombrar'; });
+    else if (global !== unaAUna) return { seguir: false };
+  }
+  for (const choque of choques) {
+    if (elecciones[choque.fichero]) continue;
+    const eleccion = await preguntarPorUnChoque(choque);
+    if (!eleccion) return { seguir: false };
+    elecciones[choque.fichero] = eleccion;
+  }
+
+  const hecho = ajena.resolver(choques, elecciones, raiz);
+  if (!hecho.ok) return { seguir: true, fallo: hecho.fallo, error: hecho.error };
+  return { seguir: true, renombrados: hecho.renombrados };
+}
+
+// Las piezas de un plan, dichas en cristiano, y en este orden. Las claves son
+// las de RSC 2.0.5, medidas con el paquete (revisión de F2, C2): la cadena SDD
+// llega como `skill/sdd`, y los agentes, uno a uno. `workflow/sdd` y
+// `agent/base-agents` solo salen aplazadas, pero un recibo de antes puede
+// traerlas.
+const PIEZAS_DEL_PLAN = {
+  'skill/sdd': 'trabajar por pasos (especificar, planificar y hacer)',
+  'workflow/sdd': 'trabajar por pasos (especificar, planificar y hacer)',
+  'hook/code-hooks': 'las comprobaciones antes de cada orden',
+  'agent/base-agents': 'los agentes que revisan',
+  'guard/gitmoji-guard': 'Formato al guardar en git',
+  'capability/memory': 'La memoria entre conversaciones',
+  'route/harness-documents': 'el perfil y las decisiones del arnés',
+};
+
+// Lo que cambia, en frases: lo de la tabla de arriba, cada cosa una vez; las
+// habilidades y los agentes, juntos y cada uno por su nombre. Los agentes se
+// buscan entre los agentes: buscados entre las habilidades salían en inglés.
+function comoSeDiceLoQueCambia(claves) {
+  const nombres = require('./nombres');
+  const dichas = [...new Set(Object.keys(PIEZAS_DEL_PLAN).filter((k) => claves.includes(k)).map((k) => PIEZAS_DEL_PLAN[k]))];
+  const habilidades = [];
+  const agentes = [];
+  for (const clave of claves) {
+    if (PIEZAS_DEL_PLAN[clave]) continue;
+    const [kind, id] = clave.split('/');
+    if (kind === 'agent') agentes.push(`«${nombres.comoSeLlama('ayudantes', id, {}).nombre}»`);
+    else habilidades.push(`«${nombres.comoSeLlama(kind === 'skill' ? 'habilidades' : 'automatismos', id, {}).nombre}»`);
+  }
+  return [
+    ...dichas,
+    ...(habilidades.length ? [`${habilidades.length === 1 ? 'la habilidad' : 'las habilidades'} ${enLista(habilidades)}`] : []),
+    ...(agentes.length ? [`${agentes.length === 1 ? 'el agente' : 'los agentes'} ${enLista(agentes)}`] : []),
+  ];
+}
+
+async function confirmarLoQueCambia(plan, recibo) {
+  const cambios = rsc.cambiosDePolitica(plan.seleccionados, recibo.decisions);
+  if (!cambios || (!cambios.entran.length && !cambios.salen.length)) return true;
+  const partes = [
+    ...(cambios.entran.length ? [`añadir ${enLista(comoSeDiceLoQueCambia(cambios.entran))}`] : []),
+    ...(cambios.salen.length ? [`quitar ${enLista(comoSeDiceLoQueCambia(cambios.salen))}`] : []),
+  ];
+  const si = 'Sí, acéptalo';
+  const elegido = await vscode.window.showWarningMessage(
+    `El arnés quiere cambiar lo que tiene montado: ${partes.join('; ')}. ¿Lo acepto?`,
+    { modal: true },
+    si,
+    'No, déjalo como está',
+  );
+  return elegido === si;
+}
+
+// Lo que se renombró, dicho al terminar: con su nombre nuevo es como se pide.
+const loQueSeRenombro = (renombrados = []) => renombrados
+  .map((r) => ` Tu ${r.que === 'habilidad' ? 'habilidad' : r.que} «${r.id}» ahora se llama «${r.ahora}».`)
+  .join('');
 
 // Los raíles viajan dentro de la extensión: mismo `aplicar.js` que usa el
 // instalador, así que no hay dos versiones de lo que significa "poner los
@@ -356,10 +556,18 @@ function apuntarLosEnganches(salida) {
 
 // Hace falta para que "Guardar copia de seguridad" tenga dónde guardar, y para
 // que la memoria del arnés se ancle a una rama.
+//
+// Con la identidad de la barra puesta solo aquí, y con una marca de que el
+// historial nació aquí: es lo que dice después que es nuestro, pase lo que
+// pase con los autores (B6). Antes era un `git init` pelado, y con la
+// identidad de la persona en el ordenador el punto de partida salía con su
+// nombre y el historial se tomaba por ajeno.
 async function prepararHistorial() {
   if (proyecto.existe('.git')) return true;
-  const hecho = await procesos.git('init', '-q');
-  return hecho.codigo === 0;
+  const hecho = await guardar.iniciar();
+  if (!hecho.ok) return false;
+  const marca = await procesos.git('config', '--local', terreno.MARCA_DEL_HISTORIAL, 'nuestro');
+  return marca.codigo === 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -371,14 +579,29 @@ async function prepararHistorial() {
 // arnés, seis de las nueve ya están escritas en `.rsc.json` y hasta ahora se
 // volvían a preguntar igual.
 
+// Lo que ya se ve en la carpeta: si parece un proyecto de software (un
+// `package.json`, un `requirements.txt`, una web), «Construir algo» va primero
+// (A5). Todas las pistas de `terreno.deQueParece` son de construir algo.
+const loQueSeVe = (parte) => Boolean(parte && parte.carpeta && parte.carpeta.parece);
+const esDeAlguien = (parte) => Boolean(parte) && ['empezada', 'otroArnes'].includes(parte.estado);
+
+function deQueVaPorLoQueSeVe(parte) {
+  if (!loQueSeVe(parte)) return DE_QUE_VA;
+  const construir = DE_QUE_VA.find((o) => o.kind === 'software');
+  return [
+    { ...construir, detalle: `Lo que parece que hay aquí · ${construir.detalle}` },
+    ...DE_QUE_VA.filter((o) => o !== construir),
+  ];
+}
+
 const COMO_SE_PREGUNTA = {
   asistente: () => preguntarAsistente(),
-  deQueVa: () => elegir('Para empezar', '¿De qué va esto?', DE_QUE_VA),
+  deQueVa: (yaDicho, parte) => elegir('Para empezar', '¿De qué va esto?', deQueVaPorLoQueSeVe(parte)),
   alcance: () => elegir('Para empezar', '¿Qué vas a llevar en esta carpeta?', QUE_LLEVA),
   personas: () => elegir('Para empezar', '¿Cuántas personas están metidas en esto?', CUANTAS_PERSONAS),
   queConstruir: (yaDicho) => elegir('Para empezar', '¿Qué vas a construir?',
     QUE_VAS_A_CONSTRUIR.filter((o) => !o.soloCon || o.soloCon === yaDicho.kind)),
-  objetivo: (yaDicho) => preguntarObjetivo(yaDicho.kind),
+  objetivo: (yaDicho, parte) => preguntarObjetivo(yaDicho.kind, { empezada: esDeAlguien(parte) }),
   nivel: () => elegir('Sobre ti', '¿Qué tal te manejas con el ordenador?', COMO_TE_MANEJAS),
   dial: () => elegir('Sobre ti', '¿Cuánto quieres que te explique?', CUANTO_TE_EXPLICO),
   nombres: (yaDicho) => preguntarNombres(yaDicho.objetivo, yaDicho.alcance),
@@ -412,6 +635,19 @@ function loQueYaSeSabe(recibo) {
 // Devuelve las respuestas completas, o null si alguien canceló.
 async function entrevistar(plan, parte) {
   const sabido = loQueYaSeSabe(parte.recibo);
+
+  // Lo de hoy manda sobre el recibo, que es lo que se firmó el primer día
+  // (B11): el dial y las palabras que la persona cambió después en «Cómo te
+  // habla», y los asistentes que tiene declarados ahora. Lo que se conteste en
+  // este mismo montaje manda sobre todo, porque se escribe después.
+  if (parte.recibo) {
+    const hoy = trato.leer();
+    if (hoy.trato) sabido.dial = hoy.trato;
+    if (hoy.palabras) sabido.nivel = hoy.palabras;
+    const declarados = ((proyecto.declaracion() || {}).targets || []).filter((t) => typeof t === 'string' && t);
+    if (declarados.length) sabido.asistente = declarados.join(',');
+  }
+
   const respuestas = { ...sabido };
   const nombres = parte.railes.nombres || null;
 
@@ -424,7 +660,7 @@ async function entrevistar(plan, parte) {
     const pregunta = rumbo.PREGUNTAS.find((p) => p.id === que);
     if (pregunta && pregunta.soloSi && !pregunta.soloSi({ deQueVa: respuestas.kind })) continue;
 
-    const contestada = await COMO_SE_PREGUNTA[que](respuestas);
+    const contestada = await COMO_SE_PREGUNTA[que](respuestas, parte);
     if (!contestada) return null;
 
     if (LO_QUE_SE_GUARDA[que]) LO_QUE_SE_GUARDA[que](respuestas, contestada);
@@ -475,7 +711,16 @@ async function arreglarLoQueSePuedaSolo(salida) {
 const COMO_SE_HACE = {
   ponerGit: async () => ({ ok: await prepararHistorial() }),
 
-  montarElArnes: async ({ respuestas }) => ({ ...(await montarElArnes(respuestas)), imprescindible: true }),
+  // En una carpeta que ya era de alguien se enseña lo que se toca antes de
+  // firmar (B4). Una vacía no tiene nada suyo que enseñar.
+  montarElArnes: async ({ respuestas, parte }) => ({
+    ...(await montarElArnes(respuestas, {
+      ajenaCarpeta: Boolean(parte) && ['empezada', 'otroArnes'].includes(parte.estado),
+      // Si ya había un plan aceptado, el nuevo se compara con él (A12).
+      reciboAnterior: (parte && parte.recibo) || null,
+    })),
+    imprescindible: true,
+  }),
 
   // Traer a esta máquina lo que el repositorio ya declaraba. No se vuelve a
   // montar nada: `sync` reconstruye desde el plan que alguien ya aceptó.
@@ -498,7 +743,16 @@ const COMO_SE_HACE = {
     if (!(await terreno.podemosGuardarElPuntoDePartida())) {
       return { ok: true, detalle: 'historial de alguien: no se toca' };
     }
-    await guardar.guardar(`Punto de partida — ${guardar.fechaLarga()}`);
+    // Se mira si se guardó (B10). Si no, se dice: sin él, «Volver a como estaba»
+    // no tiene adónde volver. Lo demás del montaje sí está.
+    const hecho = await guardar.guardar(`Punto de partida — ${guardar.fechaLarga()}`);
+    if (!hecho.ok) {
+      return {
+        ok: false,
+        detalle: hecho.mensaje,
+        pega: 'No he podido guardar el punto de partida. Lo demás está listo. Pulsa «Algo va mal» y pásale el código a tu tutor.',
+      };
+    }
     return { ok: true };
   },
 
@@ -558,6 +812,20 @@ async function elCamino(contexto, salida) {
     };
   }
 
+  // La carpeta personal, la raíz o una del sistema: no se prepara (B1).
+  if (plan.rama === 'noSePrepara') return noSePrepara(parte, salida);
+
+  // Documentos, el Escritorio o las Descargas enteras: se pregunta antes de
+  // escribir nada, también antes de poner git.
+  if (parte.carpeta && parte.carpeta.delicada && plan.pasos.some((p) => p.escribe)) {
+    if ((await confirmarLaCarpeta(parte, salida)) !== 'seguir') return { ok: false, cancelado: true };
+  }
+
+  // Dentro de otro proyecto: se dice antes de escribir nada (B9).
+  if (parte.dentroDeOtro && plan.pasos.some((p) => p.escribe)) {
+    if ((await confirmarDentroDeOtro(parte)) !== 'seguir') return { ok: false, cancelado: true };
+  }
+
   if (plan.rama === 'sinGit') return decidirSobreGit(contexto, parte);
 
   if (plan.rama === 'yaEstaba') {
@@ -598,6 +866,123 @@ async function decidirSobreGit(contexto, parte) {
   return { ok: false, cancelado: true };
 }
 
+// ── Las carpetas que no se preparan enteras ─────────────────────────────
+//
+// La salida es una carpeta nueva: dentro de la personal si la de ahora no se
+// puede preparar, y dentro de la de ahora si solo era Documentos o el
+// Escritorio. Nunca en la raíz ni en una del sistema, que pedirían
+// administrador (B1).
+const NO_SE_PREPARA = {
+  personal: {
+    donde: 'Esta es tu carpeta personal',
+    aviso: 'Esta es tu carpeta personal: si la preparo, el asistente tendría a mano todo tu ordenador. Crea una carpeta aquí dentro y trabaja en ella.',
+    boton: 'Crear una carpeta aquí dentro',
+  },
+  otra: {
+    donde: 'Esta carpeta es del sistema',
+    aviso: 'Esta carpeta es del sistema: aquí no preparo nada. Crea una carpeta en tu carpeta personal y trabaja en ella.',
+    boton: 'Crear una carpeta en tu carpeta personal',
+  },
+};
+const comoSeDiceQueNo = (prohibida) => (prohibida === 'personal' ? NO_SE_PREPARA.personal : NO_SE_PREPARA.otra);
+
+const NOMBRE_DE_LA_DELICADA = { escritorio: 'Escritorio', documentos: 'Documentos', descargas: 'Descargas' };
+
+async function noSePrepara(parte, salida) {
+  const dicho = comoSeDiceQueNo(parte.carpeta.prohibida);
+  const elegido = await vscode.window.showWarningMessage(dicho.aviso, { modal: true }, dicho.boton);
+  if (elegido === dicho.boton) await crearUnaCarpetaDentro(os.homedir(), salida);
+  return { ok: false, cancelado: true, noSePrepara: parte.carpeta.prohibida };
+}
+
+// 'seguir', 'crear' (ya se ha abierto la nueva) o null, si no contesta.
+async function confirmarLaCarpeta(parte, salida) {
+  const crear = 'Crear una carpeta aquí dentro';
+  const entera = 'Prepararla entera';
+  const elegido = await vscode.window.showWarningMessage(
+    `Vas a preparar tu carpeta de ${NOMBRE_DE_LA_DELICADA[parte.carpeta.delicada]} entera. Mejor una carpeta dentro, solo para esto.`,
+    { modal: true },
+    crear,
+    entera,
+  );
+  if (elegido === entera) return 'seguir';
+  if (elegido !== crear) return null;
+  await crearUnaCarpetaDentro(proyecto.raiz(), salida);
+  return 'crear';
+}
+
+// 'seguir' o null. Elegir otra abre el mismo diálogo que «Elegir otra carpeta».
+async function confirmarDentroDeOtro(parte) {
+  const igual = 'Prepararla igual';
+  const otra = 'Elegir otra carpeta';
+  const elegido = await vscode.window.showWarningMessage(
+    `Esta carpeta está dentro de otro proyecto, «${parte.dentroDeOtro.nombre}». Si la preparo, sus copias irán aparte.`,
+    { modal: true },
+    igual,
+    otra,
+  );
+  if (elegido === igual) return 'seguir';
+  if (elegido === otra) await elegirOtraCarpeta();
+  return null;
+}
+
+async function elegirOtraCarpeta() {
+  const elegida = await vscode.window.showOpenDialog({
+    canSelectFolders: true,
+    canSelectFiles: false,
+    canSelectMany: false,
+    openLabel: 'Trabajar aquí',
+    title: 'Elige la carpeta con la que quieres trabajar',
+  });
+  if (elegida && elegida.length) await vscode.commands.executeCommand('vscode.openFolder', elegida[0], { forceNewWindow: false });
+}
+
+const NOMBRE_QUE_NO_VALE = 'Ese nombre no vale para una carpeta: sin barras ni símbolos.';
+const nombreQueVale = (nombre) => Boolean(nombre) && !/[\\/:*?"<>|]/.test(nombre) && !nombre.startsWith('.');
+
+// Se abre en esta misma ventana, como al elegir carpeta: dos ventanas dejan al
+// alumno sin saber cuál es la suya.
+async function crearUnaCarpetaDentro(base, salida) {
+  const escrito = await vscode.window.showInputBox({
+    title: 'Crear una carpeta',
+    prompt: '¿Cómo se llama la carpeta nueva? Es donde vas a trabajar.',
+    placeHolder: 'Contabilidad · Marketing · el proyecto que sea',
+    ignoreFocusOut: true,
+    validateInput: (v) => (!v || nombreQueVale(v.trim()) ? null : NOMBRE_QUE_NO_VALE),
+  });
+  const nombre = (escrito || '').trim();
+  if (!nombre) return { ok: false, cancelado: true };
+  if (!nombreQueVale(nombre)) {
+    await vscode.window.showWarningMessage(NOMBRE_QUE_NO_VALE);
+    return { ok: false };
+  }
+
+  const nueva = path.join(base, nombre);
+  try {
+    fs.mkdirSync(nueva, { recursive: true });
+  } catch (error) {
+    if (salida) salida.appendLine(`[arrancar] no se pudo crear ${nueva}: ${error.message}`); // diccionario: interno
+    await vscode.window.showWarningMessage('No he podido crear la carpeta. Pulsa «Algo va mal» y pásale el código a tu tutor.');
+    return { ok: false };
+  }
+  await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(nueva), { forceNewWindow: false });
+  return { ok: true, nueva };
+}
+
+// «Ponerlas ahora»: las copias de una carpeta que se montó sin ellas (B3). Se
+// olvida la respuesta de seguir sin copias, se prepara el historial y se deja
+// el punto de partida, que aquí es nuestro: no había ninguno.
+async function ponerLasCopias(contexto) {
+  if (!(await git.hay())) return { ok: false, faltaGit: true };
+  await loQueDecidio(contexto).update(CLAVE_SIN_GIT, undefined);
+  if (!(await prepararHistorial())) {
+    return { ok: false, mensaje: 'No he podido preparar las copias. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
+  }
+  const partida = await COMO_SE_HACE.puntoDePartida();
+  if (!partida.ok) return { ok: false, mensaje: partida.pega };
+  return { ok: true, mensaje: 'Ya hay copias. La primera es el punto de partida.' };
+}
+
 // Aquí ya había un montaje de asistente. No se decide por nadie: se le enseña
 // lo que tiene y se le pregunta, y lo suyo no se borra pase lo que pase.
 async function pedirPermiso(parte) {
@@ -611,7 +996,7 @@ async function pedirPermiso(parte) {
   const si = 'Sí, móntalo encima';
   const elegido = await vscode.window.showInformationMessage(
     'Aquí ya tienes un asistente montado a mano. Puedo poner el arnés encima sin quitarte nada de lo que ya tienes.',
-    { modal: true, detail: `He encontrado: ${visto}.\n\nTus habilidades (skills), tus comandos y tus agentes se quedan donde están. Lo que hago es ordenar la carpeta como el arnés espera.` },
+    { modal: true, detail: `He encontrado: ${visto}.\n\nAntes de tocar nada te enseño qué cambia, y no se monta sin tu sí. Si algo tuyo se llama igual que algo del arnés, te pregunto qué hago con ello.` },
     si,
   );
   return elegido === si;
@@ -630,6 +1015,9 @@ async function hacerLosPasos(plan, parte, respuestas, contexto, salida) {
       // Lo que RSC dijo que falta del suelo al aplicar: con la cadena SDD, los
       // innegociables. El arnés está montado y lo nuestro se sigue poniendo.
       const dijoRsc = [];
+      const renombrados = [];
+      // Lo que salió mal y hay que decir, aunque el montaje siga.
+      const pegas = [];
 
       for (const paso of plan.pasos) {
         if (paso.escribe) progreso.report({ message: `${paso.etiqueta}…` });
@@ -637,9 +1025,14 @@ async function hacerLosPasos(plan, parte, respuestas, contexto, salida) {
         const hecho = await COMO_SE_HACE[paso.id]({ respuestas, parte, contexto, salida, progreso });
         if (hecho.encargo) encargos.push(hecho.encargo);
         if (hecho.faltan) dijoRsc.push(...hecho.faltan);
+        if (hecho.renombrados) renombrados.push(...hecho.renombrados);
         if (hecho.detalle) salida.appendLine(`[arrancar] ${paso.id}: ${hecho.detalle}`); // diccionario: interno
 
         if (hecho.ok) continue;
+
+        // Dijo que no a montar sobre lo suyo: no es un fallo, y no se toca nada.
+        if (hecho.cancelado) return { ok: false, cancelado: true, sinPermiso: true };
+        if (hecho.forma === 'NoSeRenombro') return { ok: false, mensaje: hecho.mensaje };
 
         // Sin arnés no hay nada que hacer: se para y se cuenta.
         if (hecho.imprescindible) {
@@ -649,6 +1042,7 @@ async function hacerLosPasos(plan, parte, respuestas, contexto, salida) {
         // ninguna y callada. Antes estos fallos se tiraban sin mirarlos.
         salida.appendLine(`[arrancar] ${paso.id} no ha salido bien`); // diccionario: interno
         avisos.push(paso.id);
+        if (hecho.pega) pegas.push(hecho.pega);
       }
 
       // El suelo, después de montar, desde dos sitios: lo que RSC dijo que
@@ -664,11 +1058,22 @@ async function hacerLosPasos(plan, parte, respuestas, contexto, salida) {
         encargos.push('levantarElSuelo');
       }
 
+      // Lo que va en el primer mensaje, con su contrato entero. Se calcula ahora,
+      // que todavía se sabe cómo era la carpeta: después de montar ya no es
+      // «empezada» (A7).
+      const paraElMensaje = encargos
+        .filter((nombre) => COMO_SE_ENTREGA[nombre] === 'mensaje')
+        .map((nombre) => encargosDelAsistente.traer(nombre, parte))
+        .filter(Boolean)
+        .map((encargo) => encargo.prompt);
+
       return {
         ok: true,
         rama: plan.rama,
         avisos,
+        pegas,
         encargos,
+        paraElMensaje,
         sueloAMedias,
         faltan,
         objetivo: respuestas.objetivo,
@@ -678,9 +1083,10 @@ async function hacerLosPasos(plan, parte, respuestas, contexto, salida) {
         nombres: respuestas.nombres || { arnes: null, empresa: null },
         // «Listo» solo cuando el arnés también lo daría por listo (G7). Con el
         // suelo a medias está montado, y lo que falta sale al terminar.
-        mensaje: sueloAMedias
+        mensaje: (sueloAMedias
           ? `${(respuestas.nombres && respuestas.nombres.arnes) || 'Tu arnés'} ya está montado. Al terminar te enseño lo que falta.`
-          : `${(respuestas.nombres && respuestas.nombres.arnes) || 'Tu arnés'} ya está listo.`,
+          : `${(respuestas.nombres && respuestas.nombres.arnes) || 'Tu arnés'} ya está listo.`) + loQueSeRenombro(renombrados),
+        renombrados,
       };
     },
   );
@@ -703,22 +1109,53 @@ function loQueLlevaLaCarpeta({ alcance, personas } = {}) {
   return '';
 }
 
+// Por dónde le llega al asistente cada encargo del arranque (A7). Ninguno se
+// queda solo en el registro, que es donde se quedaban:
+//   mensaje  en el primer mensaje, con su contrato entero;
+//   pieza    en «Qué falta por montar», con su botón.
+const COMO_SE_ENTREGA = {
+  ordenarLaCarpeta: 'mensaje',
+  ordenarLasClaves: 'mensaje',
+  levantarElSuelo: 'pieza',
+};
+
+// Si en esta carpeta hay freno ante órdenes peligrosas, leído como lo lee «Las
+// reglas»: armado, sin apagar, y con un perfil que no es técnico.
+function hayFreno() {
+  return require('./reglas').losGuardianes().some((g) => g.id === 'danger-guard' && g.estado === 'armado');
+}
+
 // El primer mensaje al asistente, al terminar de montar. Sale en la caja del
 // chat antes de mandarse, así que es texto de pantalla como cualquier otro.
-function primerMensaje(hecho, { comoSeLlama, conWeb = '', conClaves = '' }) {
+//
+// Hace lo que el `init` de RSC espera al empezar (A6): que se complete el perfil
+// —a qué se dedica, qué herramientas usa, qué no se puede tocar—, que se sepa
+// si hay freno, y que se pregunte de una en una. En una carpeta de alguien,
+// además, que mire antes de tocar. Los encargos que van en el mensaje,
+// después del objetivo, cada uno en su párrafo.
+function primerMensaje(hecho, { comoSeLlama, conWeb = '', conFreno = false }) {
   const { empresa } = hecho.nombres || {};
   const deQuien = empresa && empresa !== comoSeLlama ? ` Es para ${empresa}.` : '';
   const queLleva = loQueLlevaLaCarpeta(hecho);
-  // Lo de la web y lo de las claves van en párrafo aparte; sin ellos, un
-  // espacio. Antes salía «facturas.Después» pegado.
-  const enMedio = conWeb || conClaves ? `${conWeb}${conClaves}` : ' ';
-  return `Acabo de montar aquí un arnés que he llamado "${comoSeLlama}".${deQuien}${queLleva ? ` ${queLleva}` : ''}`
+  const deAlguien = ['encimaDeLoQueHay', 'otroArnes'].includes(hecho.rama)
+    ? ' La carpeta ya tenía cosas de antes: mira qué hay antes de tocar nada.'
+    : '';
+  const encargos = (hecho.paraElMensaje || []).map((prompt) => `\n\n${prompt}\n\n`).join('');
+  // Lo de la web y los encargos van en párrafo aparte; sin ellos, un espacio.
+  // Antes salía «facturas.Después» pegado.
+  const enMedio = conWeb || encargos ? `${conWeb}${encargos}` : ' ';
+  const freno = conFreno
+    ? 'En esta carpeta hay freno ante órdenes peligrosas.'
+    : 'En esta carpeta no hay freno ante órdenes peligrosas: antes de una orden que borre o deshaga algo, pregúntame.';
+  return `Acabo de montar aquí un arnés que he llamado "${comoSeLlama}".${deQuien}${queLleva ? ` ${queLleva}` : ''}${deAlguien}`
     + ` Lo primero que quiero resolver: ${hecho.objetivo}.${enMedio}`
-    + 'Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.';
+    + `Completa conmigo el perfil: a qué me dedico, qué herramientas uso y qué no se puede tocar. ${freno} Pregúntame de una en una.`;
 }
 
 module.exports = {
   arrancar, entrevistar, ponerLosRailes, flagsDelMontaje, loQueLlevaLaCarpeta, primerMensaje,
+  confirmarLaCarpeta, confirmarDentroDeOtro, crearUnaCarpetaDentro, comoSeDiceQueNo, ponerLasCopias,
+  COMO_SE_ENTREGA, hayFreno, PIEZAS_DEL_PLAN, comoSeDiceLoQueCambia,
   COMO_SE_HACE, COMO_SE_PREGUNTA, DE_QUE_VA, QUE_LLEVA, CUANTAS_PERSONAS, QUE_VAS_A_CONSTRUIR,
   COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO,
 };
