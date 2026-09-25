@@ -218,8 +218,8 @@ function losGuardianes() {
             ? 'Apagado aquí, a propósito'
             : (contigoNo ? 'Contigo no actúa: tu perfil dice que eres técnico' : '')),
         // De quién es, junto a lo que hace. Solo el de órdenes peligrosas puede
-        // ser de los dos.
-        deQuien: g.id !== 'danger-guard' ? ''
+        // ser de los dos, y sin enganchar todavía no es de nadie.
+        deQuien: g.id !== 'danger-guard' || pendiente ? ''
           : (deRsc ? 'Lo pone el arnés.' : 'Lo pone Executive Lab: el arnés no lo trae en esta clase de proyecto.'),
       };
     });

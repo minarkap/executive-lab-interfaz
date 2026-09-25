@@ -348,7 +348,7 @@
   "guardianes": {
     "danger-guard": {
       "nombre": "Freno ante órdenes peligrosas",
-      "queHace": "Para una orden que podría borrar algo sin vuelta atrás, y pide otra más segura. Está puesto porque no eres técnico."
+      "queHace": "Para una orden que podría borrar algo sin vuelta atrás, y pide otra más segura."
     },
     "gitmoji-guard": {
       "nombre": "Formato al guardar en git",

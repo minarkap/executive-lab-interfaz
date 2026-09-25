@@ -102,6 +102,14 @@ function resumen(plan, raiz) {
     const dicho = comoSeDice(rel);
     if (!tocados.some((t) => t.enCristiano === dicho)) tocados.push({ fichero: rel, enCristiano: dicho });
   }
+  // Y lo que tocan los raíles, que no sale en el plan de RSC: con Claude, un
+  // bloque en su `CLAUDE.md` para que lo que vale siempre se cargue en cada
+  // conversación (D1, C-4).
+  const conClaude = (plan.gestionados || []).some((g) => g.startsWith('.claude/'));
+  if (conClaude && require('./terreno').tieneTexto(path.join(raiz, 'CLAUDE.md'))) {
+    const dicho = comoSeDice('CLAUDE.md');
+    if (!tocados.some((t) => t.enCristiano === dicho)) tocados.push({ fichero: 'CLAUDE.md', enCristiano: dicho });
+  }
   return { tocados, choques };
 }
 

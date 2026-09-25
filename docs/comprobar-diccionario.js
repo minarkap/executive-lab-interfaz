@@ -123,27 +123,33 @@ function revisarRotulos(rotulos, fichero, prohibidas) {
     .map((mala) => ({ fichero, linea: donde, mala, cadena: texto.slice(0, 70) })));
 }
 
-const prohibidas = palabrasProhibidas();
-const todos = REVISAR.flatMap(ficheros);
-const delManifiesto = rotulosDelManifiesto();
-const deLosRailes = rotulosDeLosRailes();
-const fallos = [
-  ...todos.flatMap((f) => revisar(f, prohibidas)),
-  ...revisarRotulos(delManifiesto, 'extension/package.json', prohibidas),
-  ...revisarRotulos(deLosRailes, 'skills/comandos', prohibidas),
-];
+// Como guion, revisa y sale con 0 o 1. Como módulo, da la lista: la usan las
+// pruebas de la barra, para no tener dos listas que se separen (H2).
+if (require.main === module) {
+  const prohibidas = palabrasProhibidas();
+  const todos = REVISAR.flatMap(ficheros);
+  const delManifiesto = rotulosDelManifiesto();
+  const deLosRailes = rotulosDeLosRailes();
+  const fallos = [
+    ...todos.flatMap((f) => revisar(f, prohibidas)),
+    ...revisarRotulos(delManifiesto, 'extension/package.json', prohibidas),
+    ...revisarRotulos(deLosRailes, 'skills/comandos', prohibidas),
+  ];
 
-console.log(`${prohibidas.length} palabras prohibidas · ${todos.length} ficheros y ${delManifiesto.length + deLosRailes.length} rótulos revisados\n`);
+  console.log(`${prohibidas.length} palabras prohibidas · ${todos.length} ficheros y ${delManifiesto.length + deLosRailes.length} rótulos revisados\n`);
 
-if (!fallos.length) {
-  console.log('Todo el texto de pantalla respeta el diccionario.');
-  process.exit(0);
+  if (!fallos.length) {
+    console.log('Todo el texto de pantalla respeta el diccionario.');
+    process.exit(0);
+  }
+
+  for (const f of fallos) {
+    console.log(`${path.relative(raiz, f.fichero)}:${f.linea}  "${f.mala}"`);
+    console.log(`   ${f.cadena}\n`);
+  }
+  console.log(`${fallos.length} ${fallos.length === 1 ? 'texto incumple' : 'textos incumplen'} el diccionario.`);
+  console.log('Cámbialo, o márcalo con "// diccionario: interno" si no lo ve el alumno.');
+  process.exit(1);
 }
 
-for (const f of fallos) {
-  console.log(`${path.relative(raiz, f.fichero)}:${f.linea}  "${f.mala}"`);
-  console.log(`   ${f.cadena}\n`);
-}
-console.log(`${fallos.length} ${fallos.length === 1 ? 'texto incumple' : 'textos incumplen'} el diccionario.`);
-console.log('Cámbialo, o márcalo con "// diccionario: interno" si no lo ve el alumno.');
-process.exit(1);
+module.exports = { palabrasProhibidas };

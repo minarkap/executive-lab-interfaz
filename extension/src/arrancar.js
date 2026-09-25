@@ -497,11 +497,12 @@ const loQueSeRenombro = (renombrados = []) => renombrados
 // instalador, así que no hay dos versiones de lo que significa "poner los
 // raíles".
 // `ajena`: el historial de esta carpeta no lo creó la barra, y lo que toca
-// ficheros suyos se queda pendiente (C-4). `ponerFreno`: el sí al freno.
-async function ponerLosRailes(contexto, { ajena = false, ponerFreno = false } = {}) {
+// ficheros suyos se queda pendiente (C-4). `ponerFreno` y `ponerBloque`: el
+// sí a cada una de esas piezas.
+async function ponerLosRailes(contexto, { ajena = false, ponerFreno = false, ponerBloque = false } = {}) {
   const aplicar = path.join(contexto.extensionPath, 'media', 'railes', 'aplicar.js');
   if (!fs.existsSync(aplicar)) return false;
-  const banderas = [...(ajena ? ['--ajena'] : []), ...(ponerFreno ? ['--poner-freno'] : [])];
+  const banderas = [...(ajena ? ['--ajena'] : []), ...(ponerFreno ? ['--poner-freno'] : []), ...(ponerBloque ? ['--poner-bloque'] : [])];
   const { codigo } = await procesos.node([aplicar, proyecto.raiz(), ...banderas], { tiempoMaximo: 60000 });
   return codigo === 0;
 }
@@ -569,6 +570,31 @@ async function apuntarLosEnganches(salida) {
   } catch {
     return false;
   }
+}
+
+// Una carpeta montada con un arnés más nuevo que el de la clase, puesta como la
+// de la clase (B5, C-10). Lo declarado que la de la clase no trae se quita de la
+// declaración antes, porque con ello dentro su `sync` falla a medias; se nombra
+// en la pantalla y solo se hace con el sí. Después, `sync` con el de dentro.
+function loQueNoTraeLaClase() {
+  const deLaClase = rsc.habilidadesDeLaClase();
+  if (!deLaClase) return [];
+  return ((proyecto.declaracion() || {}).skills || []).filter((id) => !deLaClase.has(id));
+}
+
+async function ponerComoLaDeLaClase(sobran = []) {
+  const ruta = proyecto.ruta('.rsc.json');
+  if (sobran.length) {
+    try {
+      const declaracion = JSON.parse(fs.readFileSync(ruta, 'utf8'));
+      declaracion.skills = (declaracion.skills || []).filter((id) => !sobran.includes(id));
+      fs.writeFileSync(ruta, `${JSON.stringify(declaracion, null, 2)}\n`);
+    } catch {
+      return { ok: false };
+    }
+  }
+  const hecho = await rsc.sincronizar();
+  return { ok: hecho.codigo === 0 };
 }
 
 // Hace falta para que "Guardar copia de seguridad" tenga dónde guardar, y para
@@ -1172,6 +1198,7 @@ function primerMensaje(hecho, { comoSeLlama, conWeb = '', conFreno = false }) {
 module.exports = {
   arrancar, entrevistar, ponerLosRailes, flagsDelMontaje, loQueLlevaLaCarpeta, primerMensaje,
   confirmarLaCarpeta, confirmarDentroDeOtro, crearUnaCarpetaDentro, comoSeDiceQueNo, ponerLasCopias, apuntarLosEnganches,
+  loQueNoTraeLaClase, ponerComoLaDeLaClase,
   COMO_SE_ENTREGA, hayFreno, PIEZAS_DEL_PLAN, comoSeDiceLoQueCambia,
   COMO_SE_HACE, COMO_SE_PREGUNTA, DE_QUE_VA, QUE_LLEVA, CUANTAS_PERSONAS, QUE_VAS_A_CONSTRUIR,
   COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO,

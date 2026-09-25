@@ -545,3 +545,17 @@ Decisión 119 en `docs/decisiones.md`. Fase F3 de la cadena SDD `todo-cuadra`.
 - Pendiente: medirlo en un VS Code de verdad y en Windows.
 
 0.35.0. 242 comprobaciones, 247 con el arnés de verdad, y 12 de contrato.
+
+## Los raíles que se leen siempre — 25 de septiembre de 2026
+
+Decisión 120 en `docs/decisiones.md`. Fase F4 de la cadena SDD `todo-cuadra`.
+
+- **Con Claude, lo que vale siempre se carga en cada conversación**: un `siempre.md` corto, importado
+  desde `CLAUDE.md`. En una carpeta de alguien, con su sí.
+- **La regla 7 nombra todo lo que el arnés manda correr sin versión**, y para añadir una habilidad,
+  el botón de la barra.
+- La lista entera de palabras prohibidas, dentro; con Codex, habilidad propia en vez de comando; el
+  dial, igual lo escriba quien lo escriba; y los raíles de antes, por cualquiera de sus piezas.
+- **Una carpeta con una versión más nueva que la de la clase se dice**, y no se baja sin pulsar.
+
+0.36.0. 253 comprobaciones, 258 con el arnés de verdad, y 12 de contrato.

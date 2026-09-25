@@ -266,11 +266,16 @@ const MARCAS_DE_RSC = [
   /<!-- rsc:claude-md-shadow -->\s*# Project instructions\s*\n[^\n]*\n\s*Project instructions for Claude Code go below\.\s*(?:<!--[\s\S]*?-->)?/g,
 ];
 
+// Y lo nuestro, igual: el bloque entre marcas que dejan los raíles en
+// `CLAUDE.md` con Claude y en `AGENTS.md` con Codex. Lo de fuera del bloque es
+// de quien lo escribió.
+const MARCAS_NUESTRAS = [/<!-- executive-lab:start -->[\s\S]*?<!-- executive-lab:end -->/g];
+
 const tieneTexto = (fichero) => {
   if (!fichero || !fs.existsSync(fichero)) return false;
   try {
     const crudo = fs.readFileSync(fichero, 'utf8');
-    return MARCAS_DE_RSC.reduce((texto, marca) => texto.replace(marca, ''), crudo).trim().length > 0;
+    return [...MARCAS_DE_RSC, ...MARCAS_NUESTRAS].reduce((texto, marca) => texto.replace(marca, ''), crudo).trim().length > 0;
   } catch {
     return false;
   }
@@ -382,9 +387,10 @@ function mirar() {
     clonado,
     dentroDeOtro: queHayEncima(raiz),
     conEstadoDeRsc: fs.existsSync(donde.ficheroDeEstado() || ''),
-    // Montada con un catálogo más viejo que el que trae la barra dentro.
-    versionAtrasada: Boolean(declaracion && declaracion.catalogVersion
-      && declaracion.catalogVersion !== rsc.VERSION_DE_RESPALDO),
+    // Montada con un catálogo más viejo que el que trae la barra dentro. Uno
+    // más nuevo no es atrasado (B5): se dice aparte, y no se baja sin pulsar.
+    versionAtrasada: rsc.comoEsLaVersion(declaracion && declaracion.catalogVersion) === 'vieja',
+    versionMasNueva: rsc.comoEsLaVersion(declaracion && declaracion.catalogVersion) === 'nueva',
     otroMontaje: otroMontaje(),
     railes: comoEstanLosRailes(),
     claves: sueltas.resumen(),
@@ -426,6 +432,38 @@ function laHabilidadEsLaDeHoy(carpetaDeLaExtension, puesta) {
   }
 }
 
+// Y lo que llega con la habilidad (D6): los comandos, donde el asistente los
+// tiene, y el bloque entre marcas de `CLAUDE.md` o de `AGENTS.md`. Mirando solo
+// la habilidad, un comando de otro día, o un bloque que todavía no nombra
+// `siempre.md`, se daban por puestos. Un bloque que falta no es de antes: es lo
+// que el reponer pone, o lo que espera al sí de alguien (C-4).
+function losComandosSonLosDeHoy(carpetaDeLaExtension) {
+  const nuestros = carpetaDeLaExtension && path.join(carpetaDeLaExtension, 'media', 'railes', 'comandos');
+  const suyos = donde.carpetaDeComandos();
+  if (!nuestros || !suyos || !fs.existsSync(nuestros)) return true;
+  try {
+    return fs.readdirSync(nuestros).every((fichero) => {
+      const aqui = path.join(suyos, fichero);
+      return fs.existsSync(aqui) && fs.readFileSync(path.join(nuestros, fichero), 'utf8') === fs.readFileSync(aqui, 'utf8');
+    });
+  } catch {
+    return true;
+  }
+}
+
+function losBloquesSonLosDeHoy() {
+  return ['CLAUDE.md', 'AGENTS.md'].every((nombre) => {
+    let texto = '';
+    try {
+      texto = fs.readFileSync(proyecto.ruta(nombre), 'utf8');
+    } catch {
+      return true;
+    }
+    const bloque = texto.match(/<!-- executive-lab:start -->[\s\S]*?<!-- executive-lab:end -->/);
+    return !bloque || /\/executive-lab\/siempre\.md/.test(bloque[0]);
+  });
+}
+
 // Dónde vive la barra, para poder comparar sus raíles con los de la carpeta.
 // Mismo patrón que `buscar.saberDondeEstamos` y `rsc.saberDondeEstamos`: lo
 // dice `activate()` una vez y no hay que pasarlo por seis funciones.
@@ -441,7 +479,8 @@ function comoEstanLosRailes(carpetaDeLaExtension = carpetaDeLaBarra) {
   return {
     habilidadPropia: puesta,
     // Puestos, pero de una versión anterior de la barra.
-    alDia: !puesta || laHabilidadEsLaDeHoy(carpetaDeLaExtension, suSkill),
+    alDia: !puesta || (laHabilidadEsLaDeHoy(carpetaDeLaExtension, suSkill)
+      && losComandosSonLosDeHoy(carpetaDeLaExtension) && losBloquesSonLosDeHoy()),
     perfil: proyecto.existe(...identidad.PERFIL),
     // `puesto` es lo que distingue un nombre escrito por alguien del que se
     // deduce de la carpeta. Un nombre deducido no cuenta como contestado.
@@ -838,14 +877,26 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
   // que se dice, con el botón que lo arregla.
   if (conArnes) {
     const suya = proyecto.versionDelCatalogo();
-    const nuestra = require('./rsc').VERSION_DE_RESPALDO;
-    const alDia = !suya || suya === nuestra;
-    piezas.push({
-      nombre: 'La versión del arnés',
-      estado: alDia ? 'si' : 'aMedias',
-      detalle: alDia ? (suya || 'la que trae la barra') : `${suya}, y la barra ya trae la ${nuestra}`,
-      ...(alDia ? {} : { arreglo: { como: 'solo', etiqueta: 'Ponerlo al día', accion: { tipo: 'arrancar' } } }),
-    });
+    const nuestra = rsc.VERSION_DE_RESPALDO;
+    const relacion = rsc.comoEsLaVersion(suya);
+    // Más nueva que la de la clase (B5, C-10): una versión para toda la clase
+    // (P7), pero no se baja en silencio. El botón nombra antes lo que se pierde.
+    if (relacion === 'nueva') {
+      piezas.push({
+        nombre: 'La versión del arnés',
+        estado: 'aMedias',
+        detalle: 'Esta carpeta se montó con una versión del arnés más nueva que la de tu clase.',
+        arreglo: { como: 'solo', etiqueta: 'Ponerla como la de la clase', accion: { tipo: 'ponerComoLaDeLaClase' } },
+      });
+    } else {
+      const alDia = !suya || relacion === 'igual';
+      piezas.push({
+        nombre: 'La versión del arnés',
+        estado: alDia ? 'si' : 'aMedias',
+        detalle: alDia ? (suya || 'la que trae la barra') : `${suya}, y la barra ya trae la ${nuestra}`,
+        ...(alDia ? {} : { arreglo: { como: 'solo', etiqueta: 'Ponerlo al día', accion: { tipo: 'arrancar' } } }),
+      });
+    }
   }
 
   // ── La última revisión que hizo el asistente ──────────────────────────
@@ -996,23 +1047,39 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
     // Puestos pero viejos es un tercer estado, y el que más engaña: se ve
     // igual que «Puesto» y el asistente está leyendo las reglas de otro día.
     const viejos = railes && !parte.railes.alDia;
+    // Y con Claude, sin el bloque de `CLAUDE.md` que carga lo que vale siempre
+    // (D1): en una carpeta cuyo historial no creó la barra, reponer los raíles
+    // no lo pone sin su sí (C-4), y el botón lo pregunta.
+    const sinBloque = railes && !viejos && donde.paraQuien() === 'claude' && !tieneElBloque();
+    const bien = railes && !viejos && !sinBloque;
     piezas.push({
       nombre: 'Lo que pone la barra',
-      estado: railes && !viejos ? 'si' : 'aMedias',
+      estado: bien ? 'si' : 'aMedias',
       detalle: viejos
         ? 'Puesto, pero de una versión anterior de la barra'
-        : (railes ? 'Puesto' : 'Falta ajustarlo a esta carpeta'),
-      ...(railes && !viejos ? {} : {
+        : (bien ? 'Puesto' : 'Falta ajustarlo a esta carpeta'),
+      ...(bien ? {} : {
         arreglo: {
           como: 'solo',
           etiqueta: viejos ? 'Ponerlo al día' : 'Ajustarlo ahora',
-          accion: viejos ? { tipo: 'ponerLosRailesAlDia' } : { tipo: 'arrancar' },
+          accion: viejos ? { tipo: 'ponerLosRailesAlDia' } : (sinBloque ? { tipo: 'ponerElBloque' } : { tipo: 'arrancar' }),
         },
       }),
     });
   }
 
   return { queEs: hay.tipo, piezas, listo: piezas.every((p) => p.estado === 'si' || p.estado === 'noAplica') };
+}
+
+// Si el `CLAUDE.md` de la carpeta ya trae nuestro bloque, el que importa
+// `siempre.md` en cada conversación.
+function tieneElBloque() {
+  try {
+    return /<!-- executive-lab:start -->[\s\S]*?\/executive-lab\/siempre\.md[\s\S]*?<!-- executive-lab:end -->/
+      .test(fs.readFileSync(proyecto.ruta('CLAUDE.md'), 'utf8'));
+  } catch {
+    return false;
+  }
 }
 
 // Qué freno ante órdenes peligrosas está enganchado aquí: el nuestro (los
@@ -1099,5 +1166,5 @@ function fechaDelPlan() {
 module.exports = {
   queCarpetaEs, comoEsEstaCarpeta, MARCA_DEL_HISTORIAL,
   queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia, fechaDelPlan,
-  laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos, comoEstaElFreno,
+  laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos, comoEstaElFreno, tieneTexto,
 };

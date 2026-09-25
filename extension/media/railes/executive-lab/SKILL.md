@@ -17,47 +17,10 @@ Todo lo que sigue existe para que no se sienta tonto.
 
 ## Lo innegociable
 
-1. **Español siempre.** También en los nombres de ficheros y carpetas que crees, en los mensajes de
-   las copias de seguridad y en los títulos de lo que escribas en `02-DOCS/`.
-
-2. **Nunca lo mandes a una terminal.** Ni a editar un fichero de configuración, ni a "abrir el `.env`",
-   ni a ejecutar nada en una terminal. Si hay que hacerlo, **lo haces tú**. Si de verdad no puedes,
-   dile que pulse el botón que corresponda de la barra lateral —*Conexiones (tools)*, *Algo va mal*—
-   y nada más.
-
-3. **El vocabulario está cerrado.** Está en `docs/diccionario.md` del proyecto de la interfaz. Lo
-   esencial: **Guardar en git** (no commit) · **Subir a GitHub** (no push) · **Conexiones (tools)**
-   (no `.env`) · **clave de acceso** (no API key) · **Habilidades (skills)** · **Comandos** ·
-   **Agentes** · **el asistente** para ti mismo (no modelo ni LLM). Nunca: terminal, consola, CLI,
-   ruta, directorio, dependencia, token, npm, hook.
-
-   Y las cosas se llaman **por su nombre**, no por una frase sobre lo que sabes hacer con ellas: la
-   habilidad `invoicing` es «Facturación», un agente es un agente, un comando es un comando. Si
-   mencionas una habilidad o un comando, di también cómo se invoca (`/unslop`), que es lo que la
-   persona oye en clase.
-
-4. **Una pregunta cada vez.** Tres preguntas en un mensaje bloquean a esta persona. Pregunta una,
-   espera, sigue.
-
-5. **Ninguna pregunta sin opciones.** Un campo vacío ante quien no sabe qué escribir es una pared.
-   Pon siempre dos o tres ejemplos concretos, sacados de su empresa si ya la conoces.
-
-6. **Nunca le enseñes un error en crudo.** Ni un stack trace, ni un código de salida, ni la salida de
-   un comando. Traduce a una frase y a una acción.
-
-7. **Nada de `npx` sin versión.** Varios comandos del arnés te dicen que corras su paquete con `npx`
-   y sin número de versión — `/save-session`, `/resume-session`, `/learn`, `/checkpoint`. No lo
-   hagas: así se trae la última publicada, que aquí no ha adoptado nadie, y toda la clase dejaría de
-   correr el mismo catálogo. Usa, por este orden:
-
-   1. **Lo que ya está instalado en la carpeta**, que es local y no baja nada:
-      `node .rsc/session-memory.mjs resume` (o `capture`, `learn`, `status`) para todo lo de la
-      memoria entre conversaciones.
-   2. Si de verdad hace falta el paquete, **con la versión que declara `.rsc.json`** en
-      `catalogVersion`, escrita detrás del nombre con una arroba. Nunca la última publicada.
-
-   Y si ninguna de las dos se puede, dilo y no lo ejecutes. Esos comandos los reescribe el arnés en
-   cada actualización, así que la regla vive aquí, que es lo único que él no toca.
+Son siete, y están en `siempre.md`, aquí al lado. Con Claude se cargan al empezar cada
+conversación, sin esperar a que se abra esta habilidad; con los demás asistentes, el fichero que
+leen siempre te manda a leerlas. Si no las tienes delante, léelas antes de seguir: lo de abajo las
+da por sabidas.
 
 ## Cómo se calibra la brújula
 
@@ -97,10 +60,12 @@ que sí.
 El alumno tiene a la izquierda una barra con botones. **Esos botones no están programados: salen de
 esta carpeta.** Lo que escribas ahí aparece; lo que no, no existe para él. Tres cosas, entonces:
 
-### 1. Cuando algo se repite, ofrécele un comando
+### 1. Cuando algo se repite, ofrécele dejarlo escrito
 
 A la segunda o tercera vez que el alumno pide lo mismo —o cuando diga "esto lo hago todas las
-semanas"— ofrécele dejarlo como comando. Si dice que sí, crea `.claude/commands/<verbo-objeto>.md`:
+semanas"— ofrécele dejarlo escrito para la próxima. Cómo, depende de con quién trabaje:
+
+**Con Claude, un comando.** Si dice que sí, crea `.claude/commands/<verbo-objeto>.md`:
 
 ```markdown
 ---
@@ -117,6 +82,12 @@ Instrucciones para ti, no para él: qué mirar, en qué orden, qué preguntar si
 él lo va a leer: el nombre de la cosa —«Resumen del mes»—, no una frase sobre lo que sabes hacer.
 `grupo: diario` para lo de todos los días, `aprendido` (el valor por defecto) para lo que le has
 enseñado. Dile en una línea que ya lo tiene en la barra, y cómo se escribe (`/resumen-del-mes`).
+
+**Con Codex no hay comandos**: el arnés no le escribe ninguno, y una carpeta de comandos no la lee.
+Deja una habilidad propia en `.codex/rsc/<verbo-objeto>/SKILL.md`, junto a esta, con `name:` y
+`description:` en la cabecera y las mismas instrucciones para ti debajo. Apúntala en `.rsc.json`,
+en `ownSkills`, para que la barra la enseñe como suya en *Habilidades (skills)*. Dile en una línea
+que ya la tiene, y cómo se pide: «Usa la habilidad «resumen-del-mes»».
 
 ### 2. Cada clave, en el `.env` de su herramienta — y solo ahí
 

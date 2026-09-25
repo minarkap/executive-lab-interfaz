@@ -6,6 +6,7 @@
 // por medio, que en Windows es un .cmd y en cualquier sitio tarda segundos.
 
 const fs = require('node:fs');
+const path = require('node:path');
 const procesos = require('./procesos');
 const proyecto = require('./proyecto');
 const entorno = require('./entorno');
@@ -13,6 +14,19 @@ const entorno = require('./entorno');
 // Último recurso si .rsc.json no dice versión. Se actualiza a mano, a
 // propósito: subir de versión es una decisión, no un efecto secundario.
 const VERSION_DE_RESPALDO = '2.0.5';
+
+// Cómo es una versión frente a la de la clase: 'igual', 'vieja' o 'nueva'. Por
+// sus números y no como texto (B5): comparada como texto, la 2.0.13 salía
+// distinta de la 2.0.5 y se tomaba por anterior, y el arranque la bajaba.
+function comoEsLaVersion(version) {
+  if (!version) return null;
+  const numeros = (v) => String(v).replace(/^[^\d]*/, '').split(/[.-]/).slice(0, 3).map((n) => Number.parseInt(n, 10) || 0);
+  const [a, b] = [numeros(version), numeros(VERSION_DE_RESPALDO)];
+  for (let i = 0; i < 3; i += 1) {
+    if (a[i] !== b[i]) return a[i] < b[i] ? 'vieja' : 'nueva';
+  }
+  return 'igual';
+}
 
 function paquete() {
   return `@ericrisco/rsc@${proyecto.versionDelCatalogo() || VERSION_DE_RESPALDO}`;
@@ -115,6 +129,19 @@ function habilidadesEnDisco() {
 
 // Las habilidades que esta carpeta tiene puestas: las de disco más las que
 // declara el arnés. Es lo que la barra enseña.
+// Las habilidades que trae el arnés de la clase, el que viaja dentro de la
+// barra; o null si no se sabe dónde está.
+function habilidadesDeLaClase() {
+  const carpeta = carpetaDeLaExtension
+    && path.join(carpetaDeLaExtension, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'skills');
+  if (!carpeta || !fs.existsSync(carpeta)) return null;
+  try {
+    return new Set(fs.readdirSync(carpeta, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name));
+  } catch {
+    return null;
+  }
+}
+
 function habilidadesPuestas() {
   const declaracion = proyecto.declaracion() || {};
   return [...new Set([...habilidadesEnDisco(), ...(declaracion.skills || []), ...(declaracion.ownSkills || [])])];
@@ -362,5 +389,5 @@ module.exports = {
   comoEstaDeSalud, queHayQueArreglar, queRecomienda, comoAcaboElMontaje, leerElPlanEnSeco, cambiosDePolitica,
   queGuardianes, queCopiasDelArnes, queFaltaEnDisco, LOS_GUARDIANES,
   olvidarLaContinuacion,
-  paquete, VERSION_DE_RESPALDO, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
+  paquete, VERSION_DE_RESPALDO, comoEsLaVersion, habilidadesDeLaClase, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
 };

@@ -6,6 +6,7 @@
 //   node aplicar.js <carpeta> --ajena      (su historial es de alguien: lo que toca ficheros suyos
 //                                           se queda pendiente, y la barra lo ofrece con su botón)
 //   node aplicar.js <carpeta> --ajena --poner-freno   (ese botón: el freno, con su sí)
+//   node aplicar.js <carpeta> --ajena --poner-bloque  (el otro: el bloque de CLAUDE.md, con su sí)
 //
 // RSC trata esto como una "own skill": vive en el repo del alumno, funciona
 // para quien clone sin ejecutar nada, y RSC nunca la instala, actualiza ni
@@ -31,6 +32,7 @@ const [, , destinoBruto, ...banderas] = process.argv;
 const forzar = banderas.includes('--forzar');
 const ajena = banderas.includes('--ajena');
 const ponerFreno = banderas.includes('--poner-freno');
+const ponerBloque = banderas.includes('--poner-bloque');
 
 if (!destinoBruto) {
   console.error('Dime en qué carpeta. Ejemplo:\n  node aplicar.js "~/Documentos/Mi Empresa IA"');
@@ -114,33 +116,98 @@ if (suyo.comandos) {
 const DESDE = '<!-- executive-lab:start -->';
 const HASTA = '<!-- executive-lab:end -->';
 
-function nombrarLaHabilidad() {
-  if (!suyo.siempre) return `${quien} encuentra la habilidad solo`;
-  if (!suyo.siempre.compartido) {
-    return `${comoSeEscribe(suyo.siempre.fichero)} es de RSC y lo reescribe: no lo toco`;
-  }
+// El trozo entre marcas, en su fichero: si ya estaba se cambia, y si no se
+// añade al final, sin tocar lo demás. Se crea si no existe.
+const ENTRE_MARCAS = new RegExp(`${DESDE}[\\s\\S]*?${HASTA}`);
 
-  const fichero = en(...suyo.siempre.fichero);
-  const ruta = `${comoSeEscribe(raizDeHabilidades)}/executive-lab/SKILL.md`;
-  const trozo = `${DESDE}\nLéete \`${ruta}\` antes de hacer nada y respeta lo que diga: es la habilidad siempre activa de esta carpeta.\n${HASTA}`;
-
+function ponerElTrozo(fichero, trozo) {
   let texto = '';
   try {
     texto = fs.readFileSync(fichero, 'utf8');
   } catch { /* todavía no existe: se crea con el trozo */ }
 
   if (texto.includes(DESDE)) {
-    texto = texto.replace(new RegExp(`${DESDE}[\\s\\S]*?${HASTA}`), trozo);
+    texto = texto.replace(ENTRE_MARCAS, () => trozo);
   } else {
     texto += `${texto && !texto.endsWith('\n') ? '\n' : ''}\n${trozo}\n`;
   }
 
   fs.mkdirSync(path.dirname(fichero), { recursive: true });
   fs.writeFileSync(fichero, texto);
+}
+
+function nombrarLaHabilidad() {
+  if (!suyo.siempre) return `${quien} encuentra la habilidad solo`;
+  if (!suyo.siempre.compartido) {
+    return `${comoSeEscribe(suyo.siempre.fichero)} es de RSC y lo reescribe: no lo toco`;
+  }
+
+  const dir = `${comoSeEscribe(raizDeHabilidades)}/executive-lab`;
+  ponerElTrozo(en(...suyo.siempre.fichero),
+    `${DESDE}\nLéete \`${dir}/siempre.md\` y \`${dir}/SKILL.md\` antes de hacer nada y respeta lo que digan: es la habilidad siempre activa de esta carpeta.\n${HASTA}`);
   return `${comoSeEscribe(suyo.siempre.fichero)} (apunta a la habilidad)`;
 }
 
 hechos.push(nombrarLaHabilidad());
+
+// 3b. Y con Claude, lo que vale siempre, en cada conversación (D1).
+//
+// Claude encuentra las habilidades solo, pero carga una cuando decide que hace
+// falta, y esta es la que fija el español, prohíbe la terminal y trae la regla
+// 7. Claude Code importa al empezar cada conversación lo que `CLAUDE.md` nombra
+// con `@`, así que ahí va un bloque entre marcas con `siempre.md`, que es
+// corto. No sale de `sitios.js`: esa tabla es copia de la de RSC, y para RSC
+// Claude no tiene fichero compartido.
+//
+// Sin ningún `CLAUDE.md`, Claude Code lee el `AGENTS.md` de la carpeta, y
+// crearle uno haría que dejara de leerlo. Si ese `AGENTS.md` es de alguien, el
+// bloque lo importa también. Si solo lleva lo de RSC, no: RSC ya lo da con su
+// enganche, y saldría dos veces (`targets/agents-md-shadow.js`).
+//
+// En una carpeta cuyo historial no creó la barra, toca un fichero suyo, así que
+// espera a su sí (C-4): queda pendiente, y la barra lo ofrece con su botón.
+const FORMAS_DE_CLAUDE_MD = ['CLAUDE.md', path.join('.claude', 'CLAUDE.md'), 'CLAUDE.local.md'];
+
+function hayUnClaudeMd(desde) {
+  let dir = desde;
+  for (;;) {
+    if (FORMAS_DE_CLAUDE_MD.some((forma) => fs.existsSync(path.join(dir, forma)))) return true;
+    const arriba = path.dirname(dir);
+    if (arriba === dir) return false;
+    dir = arriba;
+  }
+}
+
+function esDeAlguien(fichero) {
+  try {
+    return fs.readFileSync(fichero, 'utf8')
+      .replace(/<!-- rsc-suggest:start -->[\s\S]*?<!-- rsc-suggest:end -->/g, '')
+      .replace(new RegExp(ENTRE_MARCAS.source, 'g'), '')
+      .trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function ponerLoDeSiempre() {
+  if (quien !== 'claude') return null;
+  const fichero = en('CLAUDE.md');
+  const antes = fs.existsSync(fichero) ? fs.readFileSync(fichero, 'utf8') : null;
+  const viejo = antes && antes.match(ENTRE_MARCAS);
+  if (ajena && !ponerBloque && !viejo) {
+    pendientes.push('el bloque de Cómo se trabaja aquí');
+    return 'CLAUDE.md (el bloque, pendiente: toca sus instrucciones, y se pide antes)';
+  }
+  const conAgents = viejo
+    ? viejo[0].includes('@AGENTS.md')
+    : (!hayUnClaudeMd(destino) && esDeAlguien(en('AGENTS.md')));
+  const lineas = [`@${comoSeEscribe(raizDeHabilidades)}/executive-lab/siempre.md`, ...(conAgents ? ['@AGENTS.md'] : [])];
+  ponerElTrozo(fichero, [DESDE, ...lineas, HASTA].join('\n'));
+  return `CLAUDE.md (se carga siempre.md en cada conversación${conAgents ? ', y su AGENTS.md' : ''})`;
+}
+
+const loDeSiempre = ponerLoDeSiempre();
+if (loDeSiempre) hechos.push(loDeSiempre);
 
 // 4. Callar los avisos del arnés que mandan al alumno a una terminal.
 //

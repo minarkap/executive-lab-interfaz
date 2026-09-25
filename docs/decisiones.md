@@ -3698,3 +3698,42 @@ RSC 2.0.5 solo engancha su freno cuando el plan practica la cadena SDD. Con «Ll
 Windows.
 
 0.35.0. 242 comprobaciones, 247 con el arnés de verdad, y 12 de contrato.
+
+## 120. Los raíles que se leen siempre
+
+**Fecha:** 25 de septiembre de 2026 · **Estado:** hecho · **Cadena SDD** `todo-cuadra`, fase F4
+
+Con Claude, la habilidad de los raíles solo se cargaba si el asistente decidía abrirla, y es la que
+fija el español, prohíbe la terminal y trae la regla 7. La regla 7 nombraba cuatro comandos cuando el
+arnés manda correr su paquete sin versión con catorce verbos. La habilidad remitía a un diccionario que
+en la carpeta del alumno no está, y con Codex mandaba crear comandos que Codex no tiene.
+
+### Lo que vale siempre, en cada conversación (D1)
+
+- **`siempre.md`**, junto a la habilidad, con las siete innegociables. Claude Code importa al empezar
+  cada conversación lo que `CLAUDE.md` nombra con `@`, así que los raíles dejan ahí un bloque entre
+  marcas que lo nombra. Es corto: cargar la habilidad entera en cada sesión costaría contexto sin
+  necesidad. Las innegociables viven solo ahí, y `SKILL.md` dice dónde están.
+- **Si no había `CLAUDE.md`, Claude leía el `AGENTS.md` de la carpeta**, y crearle uno haría que
+  dejara de leerlo. Si ese `AGENTS.md` es de alguien, el bloque lo importa también. Si solo lleva lo de
+  RSC, no, porque RSC ya lo da con su enganche.
+- **En una carpeta de alguien, con su sí** (C-4): al montar, el resumen lo dice como «Cómo se trabaja
+  aquí»; al reponer los raíles solos, espera, y «Lo que pone la barra» lo ofrece con un botón que
+  pregunta antes.
+- No se toca `sitios.js`: es copia de la tabla de RSC, y para RSC Claude no tiene fichero compartido.
+
+### Lo demás
+
+- **La regla 7, completa** (D2): los catorce verbos del paquete, nunca `@latest`, y para añadir una
+  habilidad, el botón de la barra, que usa el arnés de la clase y no cambia la versión de la carpeta.
+- **La lista entera de palabras prohibidas en la regla 3** (D3), comparada por prueba con la del
+  diccionario. El comprobador exporta su lista y sigue funcionando como guion.
+- **Con Codex, una habilidad propia en vez de un comando** (D4).
+- **El dial se escribe sin comerse el comentario de la plantilla** (D5): con los dos nombres puestos,
+  quedaba `L0<!-- …`.
+- **Unos raíles de antes se ven por cualquiera de sus piezas** (D6): la habilidad, los comandos y los
+  bloques.
+- **Una versión más nueva que la de la clase no se baja sin pulsar** (B5, C-10): se compara por sus
+  números, se dice, y «Ponerla como la de la clase» nombra antes lo que se pierde.
+
+0.36.0. 253 comprobaciones, 258 con el arnés de verdad, y 12 de contrato.

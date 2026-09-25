@@ -161,3 +161,18 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
   corren (el montaje y «Algo va mal»).
 - **Tres interruptores sin nombre esperan a Jose** (T037): `.no-git`, `.no-harness` y el aviso de
   versión. P2 no deja pintar un nombre que no está en el diccionario.
+
+## 2026-09-25 · todo-cuadra · implement, F4 (T040–T045, T077 y T019)
+
+- **`siempre.md` importado desde `CLAUDE.md`, y no la habilidad entera** (T040): cargar sus 276
+  líneas en cada sesión cuesta contexto sin necesidad.
+- **El bloque importa el `AGENTS.md` de alguien cuando se crea el primer `CLAUDE.md`** (T040). No lo
+  decía el plan: sin eso, Claude habría dejado de leer las instrucciones que esa persona ya tenía.
+  Con lo de RSC en ese `AGENTS.md`, no, porque se leería dos veces.
+- **En una carpeta de alguien, el bloque pendiente pregunta con la frase del resumen de B4** (T040),
+  en vez de con una pieza nueva: son palabras que ya estaban aprobadas.
+- **La regla 7 nombra catorce verbos y no once** (T041): el barrido del paquete encontró `registry`,
+  `sello` y `memory`, que el plan no tenía.
+- **«Ponerla como la de la clase» quita de la declaración lo que la de la clase no trae antes de
+  sincronizar** (T019): con ello dentro, el `sync` de la 2.0.5 falla a medias. Se nombra antes y solo
+  se hace con el sí (C-10).

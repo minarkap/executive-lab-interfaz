@@ -100,12 +100,15 @@ function escribir(claves, valor) {
   let puesta = false;
 
   for (const clave of claves) {
-    const donde = `^(\\s*-?\\s*${clave}\\s*:\\s*)([^<\\n]*)`;
+    // El valor, y aparte los espacios que lo separan del comentario de la
+    // plantilla (`L3   <!-- L0 | L1 | L2 | L3 -->`): sin ellos quedaba
+    // `L0<!-- …`, y quien no corte en `<` leía otra cosa.
+    const donde = `^(\\s*-?\\s*${clave}\\s*:\\s*)([^<\\n]*?)([ \\t]*)(?=<!--|$)`;
     // Mirar y escribir son dos pasos a propósito: si se mira comparando el
     // texto de antes y el de después, volver a elegir lo que ya estaba puesto
     // parecería que la clave no existe, y se escribiría una segunda debajo.
     if (!new RegExp(donde, 'mi').test(nuevo)) continue;
-    nuevo = nuevo.replace(new RegExp(donde, 'gmi'), (_, delante) => `${delante}${valor}`);
+    nuevo = nuevo.replace(new RegExp(donde, 'gmi'), (_, delante, antes, espacios) => `${delante}${valor}${espacios}`);
     puesta = true;
   }
 

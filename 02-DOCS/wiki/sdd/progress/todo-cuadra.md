@@ -463,3 +463,120 @@ Solo se añade.
 
   Decisión 119, su resumen, el worklog `2026-09-25-todo-cuadra-F3-los-frenos.md`, la barra a 0.35.0
   y el final de la 118 al día con su revisión.
+- **Corrección a T036** 25-09 · Al pintar las pantallas de F3 salió que la fila del freno sin
+  enganchar decía debajo «Está puesto porque no eres técnico», que no es verdad; con un perfil
+  técnico, tampoco. **Rojo**: en la misma prueba de T036, sin enganchar, no dice que está puesto ni
+  de quién es, y el primer mensaje no dice que hay freno. **Verde**: la segunda frase de lo que hace
+  sale de `nombres.json` (el porqué ya lo dice el estado), y sin enganchar no se dice de quién es.
+  `humo` 242. Va con los arreglos de la revisión de F3.
+
+## F4
+
+- **T040 ✓** 25-09 · Lo que vale siempre, en cada conversación de Claude (D1, C-11, C-4):
+  - **rojo**, cinco: «aplicar.js escribe una vez el bloque de CLAUDE.md», «otroMontaje no lo
+    cuenta», «SKILL.md no copia las innegociables de siempre.md», «en una carpeta con historial
+    ajeno, reponer no toca su CLAUDE.md sin su sí» y «al montar sobre una carpeta de alguien, el
+    resumen dice que se toca su CLAUDE.md».
+  - **verde**: `siempre.md`, nuevo, con las siete innegociables movidas tal cual desde `SKILL.md`,
+    que ahora dice dónde están sin copiarlas. `aplicar.js`, con Claude, deja en el `CLAUDE.md` de la
+    raíz un bloque entre marcas con `@.claude/skills/executive-lab/siempre.md`: se crea si no hay
+    fichero, y si hay uno se añade al final sin tocar lo demás, una sola vez. Con Codex, el bloque de
+    `AGENTS.md` nombra también `siempre.md`. `sitios.js` no se toca.
+  - **Lo que el plan no decía**: sin ningún `CLAUDE.md`, Claude lee el `AGENTS.md` de la carpeta, y
+    creárselo le haría dejar de leerlo. Si ese `AGENTS.md` es de alguien, el bloque lo importa
+    también (`@AGENTS.md`); si solo lleva lo de RSC, no, porque saldría dos veces.
+  - `terreno` descuenta el bloque en `CLAUDE.md` y en `AGENTS.md`, como la sombra de RSC.
+  - **C-4**: al montar sobre lo de alguien, el resumen dice «Cómo se trabaja aquí» si tiene
+    `CLAUDE.md`, y con ese sí se pone. Al reponer los raíles solos en una carpeta cuyo historial no
+    creó la barra, queda pendiente: «Lo que pone la barra» dice «Falta ajustarlo a esta carpeta» con
+    «Ajustarlo ahora», y el botón pregunta con la frase del resumen antes de tocar nada.
+  - Dos pruebas de antes cambian por la mudanza: la de la regla 7 lee `siempre.md`, y la de raíles
+    viejos pone el bloque en «la de hoy».
+  - Mutación: nueve, y mueren todas.
+
+  Verde: `humo` 247, `contrato` 12, diccionario limpio (con la fila de «Lo que pone la barra», cuyas
+  frases ya salían en pantalla sin estar).
+- **T077 ✓** 25-09 · El comprobador del diccionario, también como módulo (parte de 8.2):
+  - **rojo**: `require('./docs/comprobar-diccionario.js').palabrasProhibidas()` no devolvía nada,
+    porque requerirlo lo ejecutaba entero y salía del proceso.
+  - **verde**: lo del guion va dentro de `require.main === module`, y el módulo exporta
+    `palabrasProhibidas()`. Da 27. Como guion dice lo mismo que antes, byte a byte; sale con 0 limpio
+    y con 1 al sembrar una palabra prohibida en `extension/src/` (sembrada y quitada).
+- **T041 ✓** 25-09 · La regla 7, completa (D2):
+  - **barrido** del paquete: las 32 habilidades `core`, sus referencias y los comandos que escribe
+    RSC (`targets/commands.js`) mandan correr `npx @ericrisco/rsc` sin versión, o con `@latest`, con
+    catorce verbos. El plan nombraba once; faltaban `registry` (en `implement` y `sdd-init`), `sello`
+    (en `review`, `ship` y un comando) y `memory` (en los comandos).
+  - **rojo**: «todo npx @ericrisco/rsc de las habilidades core queda cubierto por la regla 7»: no
+    nombraba ninguno de los catorce.
+  - **verde**: la regla 7 de `siempre.md` los nombra todos, dice que nunca `@latest`, y ordena: lo
+    instalado en la carpeta; para añadir una habilidad, el botón de la barra; y solo si hace falta, el
+    paquete con la versión de `catalogVersion`, con un ejemplo.
+  - La prueba de siempre, la que barre los raíles línea a línea, tomaba por orden la regla que prohíbe
+    `@latest`, porque nombraba `npx` y `@latest` en la misma línea. Se repartieron las frases.
+  - Mutación: quitar `registry` o `sync` de la regla, y muere.
+
+  Verde: `humo` 248.
+- **T042 ✓** 25-09 · La lista entera de palabras prohibidas, dentro de la regla 3 (D3):
+  - **rojo**: «la lista de la habilidad es la del diccionario»: remitía a `docs/diccionario.md`, que
+    en la carpeta del alumno no existe, y nombraba nueve de las veintisiete.
+  - **verde**: la regla 3 de `siempre.md` trae las veintisiete, con los dos matices del diccionario
+    («Claude» sí; «archivo», «documento» y «carpeta» también), y no remite a ningún fichero. La prueba
+    la compara con `palabrasProhibidas()` del comprobador (T077): una sola lista.
+  - Mutación: quitar «symlink» de la regla, y muere.
+
+  Verde: `humo` 249.
+- **T043 ✓** 25-09 · Con Codex, habilidad propia en vez de comando (D4):
+  - **rojo**: «en Codex la habilidad no manda crear comandos»: la sección de lo que se repite mandaba
+    crear `.claude/commands/` pasara lo que pasara.
+  - **verde**: la sección se llama «Cuando algo se repite, ofrécele dejarlo escrito» y distingue.
+    **Con Claude, un comando**, como antes. **Con Codex no hay comandos**: una habilidad propia en
+    `.codex/rsc/<verbo-objeto>/SKILL.md`, apuntada en `ownSkills` para que la barra la enseñe como
+    suya, y dicha como se pide con Codex («Usa la habilidad «…»», que es lo que ya dice la barra).
+  - Mutación: quitar el párrafo de Codex, y muere.
+
+  Verde: `humo` 250.
+- **T044 ✓** 25-09 · El dial, con sus dos nombres (D5, C-7):
+  - **rojo**, y no por lo esperado: «accompaniment y accompaniment_level dan el mismo dial». Leer
+    las dos formas ya funcionaba; al cambiar el dial con las dos puestas, la barra escribía el valor
+    nuevo en las dos, pero se comía los espacios de delante del comentario de la plantilla, y quedaba
+    `accompaniment_level: L0<!-- L0 | L1 | L2 | L3 -->`. Quien lea hasta el primer espacio, y no hasta
+    el `<`, se lleva otra cosa.
+  - **verde**: `trato.escribir` guarda aparte esos espacios y los devuelve. Vale también para
+    `technical_level`.
+  - Mutación: tres (leer solo la cabecera, solo el cuerpo, y sin los espacios), y mueren las tres.
+
+  Verde: `humo` 251.
+- **T045 ✓** 25-09 · Raíles de antes, por cualquiera de sus piezas (D6):
+  - **rojo**: «unos comandos o un bloque viejos cuentan como raíles de antes»: con la habilidad de
+    hoy, un comando de otro día pasaba por al día.
+  - **verde**: «al día» mira también los comandos de la barra (donde el asistente los tenga; con
+    Codex no hay) y los bloques entre marcas de `CLAUDE.md` y `AGENTS.md`, que tienen que nombrar
+    `siempre.md`. Un comando que falta cuenta como de antes; un bloque que falta, no, porque es lo que
+    el reponer pone, o lo que espera al sí de alguien (C-4).
+  - La prueba de raíles de la semana pasada pone ahora «la de hoy» con sus cuatro comandos.
+  - Mutación: dos (sin los comandos, sin los bloques), y mueren las dos.
+
+  Verde: `humo` 252.
+- **T019 ✓** 25-09 · Una carpeta montada con una versión más nueva que la de la clase (B5, C-10),
+  aquí detrás de la regla 7, como decía el plan:
+  - **rojo**, con la comparación puesta como hoy (distinta es vieja): «1.4.1 se pone al día, 2.0.13
+    no se baja sin pulsar». La 2.0.13 no salía más nueva que la 2.0.5.
+  - **verde**: `rsc.comoEsLaVersion()` compara por sus números: 'igual', 'vieja' o 'nueva'.
+    `versionAtrasada` es solo la vieja, que es la única que va a `ponerAlDia`. La más nueva se dice
+    en «La versión del arnés» con las frases aprobadas y el botón «Ponerla como la de la clase».
+    Antes de nada, el botón nombra las habilidades declaradas que la de la clase no trae (las mira en
+    el paquete de dentro, `rsc.habilidadesDeLaClase()`). Solo con el sí las quita de la declaración
+    y corre `sync` con el arnés de dentro; sin el sí, no toca nada.
+  - La prueba fingía `rsc.correr` y no `rsc.sincronizar`, que llama a `correr` por dentro: la primera
+    vez corrió el `sync` de verdad en la carpeta temporal. Ahora finge los dos.
+  - Mutación: cuatro, y mueren todas.
+
+  Verde: `humo` 253, diccionario limpio.
+- **T046 ✓** 25-09 · Verificación de F4, en `verifications/todo-cuadra-F4-2026-09-25.md`:
+  - la batería entera y `humo+`, en verde: `humo` 253, `humo+` 258, `contrato` 12, las tres
+    empresas, el diccionario y PowerShell;
+  - veintidós mutaciones, y mueren todas.
+
+  Decisión 120, su resumen, el worklog `2026-09-25-todo-cuadra-F4-los-railes.md` y la barra a
+  0.36.0. La revisión de F3 sigue corriendo; la de F4, después.

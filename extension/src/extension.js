@@ -40,6 +40,7 @@ const papeles = require('./papeles');
 const reglas = require('./reglas');
 const ajustes = require('./ajustes');
 const donde = require('./donde');
+const nombres = require('./nombres');
 const pulso = require('./pulso');
 const fijadas = require('./fijadas');
 const tema = require('./tema');
@@ -384,6 +385,8 @@ ${cabecera}
       ponerCopias: () => this.ponerCopias(),
       arreglarElRelevo: () => this.arreglarElRelevo(),
       ponerElFreno: () => this.ponerElFreno(),
+      ponerElBloque: () => this.ponerElBloque(),
+      ponerComoLaDeLaClase: () => this.ponerComoLaDeLaClase(),
       conectarGitHub: () => this.conectarGitHub(),
       verCopiaFuera: () => this.verCopiaFuera(),
       verRadiografia: () => this.verRadiografia(),
@@ -1236,6 +1239,49 @@ ${cabecera}
     return this.enviar(ok
       ? { tipo: 'aviso', texto: 'Ya está. Cierra la conversación con Claude y ábrela otra vez para que lo coja.' }
       : { tipo: 'aviso', texto: 'No he podido ponerlo. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
+  }
+
+  // El botón del bloque de `CLAUDE.md` pendiente (C-4). Toca un fichero suyo,
+  // así que antes se pregunta con la frase de cuando se monta sobre lo de alguien.
+  async ponerElBloque() {
+    const si = 'Sí, móntalo encima';
+    const elegido = await vscode.window.showInformationMessage(
+      'Aquí ya hay cosas tuyas. Para montar el arnés voy a tocar esto: Cómo se trabaja aquí. No borro nada tuyo.',
+      { modal: true },
+      si,
+      'No, déjalo',
+    );
+    if (elegido !== si) return this.enviar({ tipo: 'aviso', texto: 'No he tocado nada. Cuando quieras, el botón sigue aquí.' });
+    const ok = await arrancar.ponerLosRailes(this.contexto, { ajena: true, ponerBloque: true });
+    this.salida.appendLine(`[railes] el bloque de CLAUDE.md: ${ok}`); // diccionario: interno
+    await this.refrescar(true);
+    return this.enviar(ok
+      ? { tipo: 'aviso', texto: 'Ya está. Cierra la conversación con Claude y ábrela otra vez para que lo coja.' }
+      : { tipo: 'aviso', texto: 'No he podido ponerlo. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
+  }
+
+  // Una carpeta montada con un arnés más nuevo que el de la clase (B5, C-10). No
+  // se baja sin pulsar, y antes se nombra lo que la de la clase no trae.
+  async ponerComoLaDeLaClase() {
+    const sobran = arrancar.loQueNoTraeLaClase();
+    if (sobran.length) {
+      const lista = sobran.map((id) => `«${nombres.comoSeLlama('habilidades', id, {}).nombre}»`);
+      const dicha = lista.length < 2 ? lista.join('') : `${lista.slice(0, -1).join(', ')} y ${lista[lista.length - 1]}`;
+      const si = 'Ponerla como la de la clase';
+      const elegido = await vscode.window.showWarningMessage(
+        `Se quitarán estas habilidades, que la versión de tu clase no trae: ${dicha}.`,
+        { modal: true },
+        si,
+      );
+      if (elegido !== si) return this.enviar({ tipo: 'aviso', texto: 'No he tocado nada. Cuando quieras, el botón sigue aquí.' });
+    }
+    this.enviar({ tipo: 'esperando', que: 'Poniéndola como la de la clase…' });
+    const { ok } = await arrancar.ponerComoLaDeLaClase(sobran);
+    this.salida.appendLine(`[version] como la de la clase: ${ok}${sobran.length ? `, sin ${sobran.join(', ')}` : ''}`); // diccionario: interno
+    await this.refrescar(true);
+    return this.enviar(ok
+      ? { tipo: 'aviso', texto: donde.paraQuien() === 'claude' ? 'Ya está. Cierra la conversación con Claude y ábrela otra vez para que lo coja.' : 'Ya está.' }
+      : { tipo: 'aviso', texto: 'No he podido ponerla como la de la clase. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
   }
 
   // Las copias de una carpeta que se montó sin ellas. Si falta git, se pone
