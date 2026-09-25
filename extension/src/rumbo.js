@@ -19,26 +19,51 @@
 // la pantalla, con las palabras del diccionario.
 //
 // `preguntar` se calcula RESTANDO lo que el recibo de RSC ya contesta. Cuando
-// hay arnés, `.rsc.json → onboarding.plan.record` guarda cinco de las siete
-// respuestas, y se volvían a preguntar igual. Un clon tiene que preguntar una
-// —los nombres, si no están—, no siete.
+// hay arnés, `.rsc.json → onboarding.plan.record` guarda seis de las nueve
+// respuestas —todas las que se le mandan a RSC—, y se volvían a preguntar
+// igual. Un clon tiene que preguntar una —los nombres, si no están—, no nueve.
 
 // Lo que RSC acepta en cada campo. Un valor fuera de estos conjuntos hace que
 // rechace los flags, así que lo que no valide se vuelve a preguntar en vez de
 // arrastrar un arnés roto.
+//
+// La prueba de contrato (`prueba/contrato.js`) compara estos conjuntos con los
+// del paquete de RSC. Aquí estuvo un cuarto tamaño que RSC no acepta, y quien
+// elegía «Va para largo» no llegaba a tener arnés.
 const VALORES = {
   nivel: ['non-technical', 'mixed', 'technical'],
   dial: ['L0', 'L1', 'L2', 'L3'],
   deQueVa: ['software', 'operations', 'research', 'content', 'mixed'],
-  tamano: ['small', 'growing', 'complex', 'large'],
+  tamano: ['small', 'growing', 'complex'],
 };
 
-// Las siete preguntas, y de dónde sale ya contestada cada una.
+// Los tipos de proyecto para los que RSC exige el tamaño del software: los que
+// son construir algo, del todo o en parte (`normalizeOnboarding`, `needsScope`).
+// Solo se preguntaba con `software`, y «Un poco de todo» no montaba nunca.
+const CON_TAMANO = ['software', 'mixed'];
+
+// Las preguntas, y de dónde sale ya contestada cada una.
+//
+// `alcance` y `personas` no las pide RSC: qué lleva la carpeta y cuánta gente
+// hay detrás van al perfil, al nombre que se sugiere y al primer mensaje. Por
+// eso solo se preguntan al montar de cero (`soloAlMontar`): un clon o un
+// montaje a medias no las vuelven a pedir.
+//
+// `queConstruir` es el tamaño que se le manda a RSC, preguntado por lo que se
+// va a construir y no por «grande o pequeño», que para quien empieza es difícil
+// de decidir (C-21, decisión de Jose del 25-09-2026).
 const PREGUNTAS = [
   { id: 'asistente', delRecibo: (r) => (r.targets || [])[0] },
   { id: 'deQueVa', delRecibo: (r) => r.projectKind, valores: VALORES.deQueVa },
+  { id: 'alcance', soloAlMontar: true },
+  { id: 'personas', soloAlMontar: true },
+  {
+    id: 'queConstruir',
+    delRecibo: (r) => r.softwareScope,
+    valores: VALORES.tamano,
+    soloSi: (resp) => CON_TAMANO.includes(resp.deQueVa),
+  },
   { id: 'objetivo', delRecibo: (r) => r.goal },
-  { id: 'tamano', delRecibo: (r) => r.softwareScope, valores: VALORES.tamano, soloSi: (resp) => resp.deQueVa === 'software' },
   { id: 'nivel', delRecibo: (r) => r.technicalLevel, valores: VALORES.nivel },
   { id: 'dial', delRecibo: (r) => r.accompaniment, valores: VALORES.dial },
 ];
@@ -55,15 +80,17 @@ function loQueFaltaPorPreguntar(parte) {
   const sabidas = {};
   const faltan = [];
   for (const pregunta of PREGUNTAS) {
+    if (pregunta.soloAlMontar) continue;
     const valor = pregunta.delRecibo(record);
     if (vale(pregunta, valor)) sabidas[pregunta.id] = valor;
     else faltan.push(pregunta.id);
   }
 
-  // Lo que solo se pregunta en ciertos casos, y el caso no se da.
+  // Lo que solo se pregunta en ciertos casos, y el caso no se da. Si el tipo
+  // de proyecto también está por preguntar, se decide al contestarlo.
   const filtradas = faltan.filter((id) => {
     const pregunta = PREGUNTAS.find((p) => p.id === id);
-    return !pregunta.soloSi || pregunta.soloSi(sabidas);
+    return !pregunta.soloSi || !('deQueVa' in sabidas) || pregunta.soloSi(sabidas);
   });
 
   if (!parte.railes || !parte.railes.nombres) filtradas.push('nombres');
@@ -218,4 +245,4 @@ function elegirRama(parte) {
   };
 }
 
-module.exports = { elegirRama, loQueFaltaPorPreguntar, PASOS, PREGUNTAS, VALORES };
+module.exports = { elegirRama, loQueFaltaPorPreguntar, PASOS, PREGUNTAS, VALORES, CON_TAMANO };

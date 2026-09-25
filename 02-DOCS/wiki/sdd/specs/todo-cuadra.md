@@ -187,8 +187,9 @@ diferida).
     ejemplos: una cosa concreta, algo que irá sumando piezas, una plataforma completa, y «No lo sé
     todavía». Con «Un poco de todo», además, «Nada, o casi nada».
 
-  El tamaño que se le manda a RSC sale solo de la tercera. Las dos primeras sirven para sugerir el
-  nombre y van en el perfil y en el primer mensaje al asistente.
+  El tamaño que se le manda a RSC sale solo de la tercera. Las dos primeras van en el perfil y en el
+  primer mensaje al asistente, y la primera decide además cómo se pregunta el nombre. Volver a montar
+  las conserva.
 - **A3.** Dado un plan que practica SDD, cuando RSC dice que lo aplicó pero falta el suelo, entonces
   la barra pone sus raíles, sus nombres y sus enganches, y ofrece con un botón levantar lo que falta.
   Y cuando RSC dice que lo deshizo, la barra dice que no se pudo montar.
@@ -559,3 +560,6 @@ Y dos suposiciones que Jose puede vetar en la misma parada:
   - la lista de vocabulario, preparada para la parada.
 - 24-09-2026 — Revisión con ojos frescos: diez puntos, seis de ellos bloqueaban el plan. Se
   arreglaron todos (C-13 a C-20). P4 se enmienda en la constitución por la decisión 3 de Jose.
+- 25-09-2026 — La revisión de F1 afina A13: el nombre lo sugiere lo que lleva la carpeta, no cuánta
+  gente hay, que no dice nada de cómo se llama. Y volver a montar conserva las dos respuestas, que
+  RSC borraba al reescribir el perfil.

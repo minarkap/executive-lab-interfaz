@@ -122,6 +122,17 @@ jerga por goteo.
 | `02-DOCS/wiki/sdd/verifications/` | Qué se ha comprobado |
 | `02-DOCS/wiki/sdd/decisions.md` | (se enseña junto a las otras, en Decisiones) |
 | `rsc onboard` en una carpeta nueva | Preparar esta carpeta |
+| `--project-kind`, al preparar la carpeta | ¿De qué va esto? · Llevar el día a día · Crear cosas · Construir algo · Estudiar un tema a fondo · Un poco de todo |
+| qué abarca la carpeta (`alcance:` del perfil; no se le manda al arnés) | ¿Qué vas a llevar en esta carpeta? · Una tarea concreta («Preparar un informe, ordenar unos papeles, una web de una página») · Un proyecto («Algo con principio y fin: un lanzamiento, una web con reservas, un estudio») · Un departamento o un área («Lo de todos los días de un equipo: facturación, personal, marketing») · La empresa entera («Todas las áreas a la vez: ventas, facturas, personal, clientes») |
+| cuánta gente hay detrás (`personas:` del perfil; no se le manda al arnés) | ¿Cuántas personas están metidas en esto? · Solo yo · De 2 a 10 · De 11 a 50 · Más de 50 |
+| `--software-scope` (`small` · `growing` · `complex`), con «Construir algo» y con «Un poco de todo» | ¿Qué vas a construir? · Una cosa concreta («Una landing, una web de una página, un aviso por correo») · Algo que irá sumando piezas («Una web con reservas, automatizaciones que se hablan entre sí») · Una plataforma completa («Con usuarios, varios idiomas y panel de administración») · No lo sé todavía («Empiezo sencillo, y si crece ya se ajusta») · y, solo con «Un poco de todo», la primera: Nada, o casi nada («Aquí no voy a hacer webs ni automatizaciones») |
+| `--technical-level`, al preparar la carpeta | ¿Qué tal te manejas con el ordenador? · Lo justo · Me defiendo · Programo, o he programado |
+| `--accompaniment`, al preparar la carpeta | ¿Cuánto quieres que te explique? · los cuatro escalones de Cómo te habla, con sus mismas frases: Al grano · Corto · Te explica por qué · De la mano (un dial, un nombre) |
+| el nombre, según lo que lleve la carpeta | ¿Cómo llamamos a esta tarea? · ¿Cómo se llama el proyecto? · ¿Cómo se llama el departamento o el área? · con «La empresa entera», una sola caja: ¿Cómo se llama tu empresa? |
+| lo que lleva la carpeta y cuánta gente hay, en el primer mensaje al asistente | En esta carpeta llevo un departamento o un área, y somos de 11 a 50 personas. · …y solo estoy yo. |
+| la constitución que el plan pide y todavía no está (`floorPaths` del recibo) | Innegociables · «Faltan, y el arnés los pide para lo que vas a construir» · Que termine de prepararlo |
+| el aviso al terminar de montar, con el suelo a medias (nunca «listo»: eso es cuando el arnés también lo da por listo) | {nombre} ya está montado. Al terminar te enseño lo que falta. |
+| «El asistente, montado aquí», en Qué falta por montar | Listo, desde el 18 de septiembre · y con los innegociables por escribir: Montado, desde el 18 de septiembre |
 | abrir otra carpeta | Elegir una carpeta (la primera vez) · Cambiar de proyecto |
 | quitar el disfraz en esta ventana | Ver el editor completo |
 | poner el disfraz en esta ventana | Volver al modo sencillo |

@@ -22,6 +22,7 @@ const guardar = require('./guardar');
 const identidad = require('./identidad');
 const asistentes = require('./asistentes');
 const rumbo = require('./rumbo');
+const trato = require('./trato');
 
 // Las preguntas que hace RSC, en cristiano. Antes se daban por supuestas tres
 // —siempre operaciones, siempre no técnico, siempre L3— y eso está mal: un
@@ -38,17 +39,58 @@ const DE_QUE_VA = [
   { etiqueta: 'Un poco de todo', detalle: 'Todavía no lo tengo claro', kind: 'mixed' },
 ];
 
+// Las tres que se preguntan en vez de «¿es algo pequeño o va para largo?», que
+// para quien empieza es difícil de decidir (C-21, decisión de Jose del
+// 25-09-2026). Cada una contesta una sola cosa, y con un dato, no con una
+// opinión:
+//
+//   · qué lleva la carpeta — de una tarea suelta a la empresa entera;
+//   · cuánta gente hay detrás — no es lo mismo un departamento de tres que
+//     uno de cincuenta;
+//   · qué se va a construir — una landing no es una plataforma con usuarios.
+//
+// Solo la tercera va a RSC, como el tamaño del software: una empresa entera
+// puede querer una landing. Las otras dos van al perfil, al nombre que se
+// sugiere y al primer mensaje.
+const QUE_LLEVA = [
+  { etiqueta: 'Una tarea concreta', detalle: 'Preparar un informe, ordenar unos papeles, una web de una página', alcance: 'tarea' },
+  { etiqueta: 'Un proyecto', detalle: 'Algo con principio y fin: un lanzamiento, una web con reservas, un estudio', alcance: 'proyecto' },
+  { etiqueta: 'Un departamento o un área', detalle: 'Lo de todos los días de un equipo: facturación, personal, marketing', alcance: 'departamento' },
+  { etiqueta: 'La empresa entera', detalle: 'Todas las áreas a la vez: ventas, facturas, personal, clientes', alcance: 'empresa' },
+];
+
+const CUANTAS_PERSONAS = [
+  { etiqueta: 'Solo yo', personas: 'solo-yo' },
+  { etiqueta: 'De 2 a 10', personas: '2-10' },
+  { etiqueta: 'De 11 a 50', personas: '11-50' },
+  { etiqueta: 'Más de 50', personas: 'mas-de-50' },
+];
+
+// Cada respuesta, con el tamaño que le toca en RSC. RSC solo distingue pequeño
+// de no pequeño, y sube solo si el objetivo habla de pagos, cobros, bases de
+// datos o integraciones: «No lo sé» empieza pequeño sin atar nada. «Nada, o casi
+// nada» solo sale con «Un poco de todo»: con «Construir algo», algo se
+// construye.
+const QUE_VAS_A_CONSTRUIR = [
+  { etiqueta: 'Nada, o casi nada', detalle: 'Aquí no voy a hacer webs ni automatizaciones', tamano: 'small', soloCon: 'mixed' },
+  { etiqueta: 'Una cosa concreta', detalle: 'Una landing, una web de una página, un aviso por correo', tamano: 'small' },
+  { etiqueta: 'Algo que irá sumando piezas', detalle: 'Una web con reservas, automatizaciones que se hablan entre sí', tamano: 'growing' },
+  { etiqueta: 'Una plataforma completa', detalle: 'Con usuarios, varios idiomas y panel de administración', tamano: 'complex' },
+  { etiqueta: 'No lo sé todavía', detalle: 'Empiezo sencillo, y si crece ya se ajusta', tamano: 'small' },
+];
+
 const COMO_TE_MANEJAS = [
   { etiqueta: 'Lo justo', detalle: 'El correo, Word y poco más', nivel: 'non-technical' },
   { etiqueta: 'Me defiendo', detalle: 'Me apaño con casi todo, pero no programo', nivel: 'mixed' },
   { etiqueta: 'Programo, o he programado', detalle: 'He escrito código alguna vez', nivel: 'technical' },
 ];
 
-const CUANTO_TE_EXPLICO = [
-  { etiqueta: 'Todo, paso a paso', detalle: 'Prefiero que me lleve de la mano', dial: 'L3' },
-  { etiqueta: 'Lo normal', detalle: 'Explícame lo importante y sigue', dial: 'L2' },
-  { etiqueta: 'Poco', detalle: 'Ya preguntaré yo si hace falta', dial: 'L1' },
-];
+// Los cuatro escalones de «Cómo te habla», con sus mismos nombres y frases: un
+// dial, un nombre (C-6, decisión 98). Antes eran tres, con otros nombres, y
+// faltaba «Al grano», que RSC también ofrece (A4). Van del más acompañado al
+// que menos, que es por donde empieza a leer quien empieza.
+const CUANTO_TE_EXPLICO = [...trato.ESCALONES].reverse()
+  .map((escalon) => ({ etiqueta: escalon.nombre, detalle: escalon.frase, dial: escalon.id }));
 
 const OBJETIVOS_POR_TIPO = {
   operations: ['Poner orden en mis facturas', 'Atender mejor a mis clientes', 'Organizar el papeleo', 'Vender más y hacer seguimiento', 'Quitarme tareas repetitivas'],
@@ -103,12 +145,38 @@ async function preguntarAsistente() {
 // carpeta, y de quién es. Un arnés no es "una empresa" — una empresa puede
 // tener cuatro, uno para contabilidad, otro para el personal, otro para
 // marketing.
-async function preguntarNombres(objetivo) {
+//
+// La pregunta sale de lo que lleva la carpeta: una tarea se llama como la
+// tarea, y un departamento, como el departamento. Con «La empresa entera» los
+// dos nombres son el mismo, así que se pregunta una vez.
+const COMO_SE_LLAMA = {
+  tarea: { prompt: '¿Cómo llamamos a esta tarea?', placeHolder: 'El informe de ventas · La mudanza de la oficina' },
+  proyecto: { prompt: '¿Cómo se llama el proyecto?', placeHolder: 'Lanzamiento de otoño · Web nueva' },
+  departamento: { prompt: '¿Cómo se llama el departamento o el área?', placeHolder: 'Contabilidad · Personal · Marketing · Clientes' },
+};
+const COMO_SE_LLAMA_SIN_ALCANCE = { prompt: '¿Cómo llamamos a esto?', placeHolder: 'Contabilidad · Personal · Marketing · Clientes · el proyecto que sea' };
+
+async function preguntarNombres(objetivo, alcance) {
+  if (alcance === 'empresa') {
+    const suya = await vscode.window.showInputBox({
+      title: 'Ponle nombre',
+      prompt: '¿Cómo se llama tu empresa? Es el nombre que verás arriba cada vez que lo abras.',
+      placeHolder: 'Nexus Consulting',
+      ignoreFocusOut: true,
+    });
+    if (!suya || !suya.trim()) return null;
+    return { arnes: suya.trim(), empresa: suya.trim() };
+  }
+
+  const como = COMO_SE_LLAMA[alcance] || COMO_SE_LLAMA_SIN_ALCANCE;
   const arnes = await vscode.window.showInputBox({
     title: 'Ponle nombre',
-    prompt: '¿Cómo llamamos a esto? Es el nombre que verás arriba cada vez que lo abras.',
-    placeHolder: 'Contabilidad · Personal · Marketing · Clientes · el proyecto que sea',
-    value: sugerirNombre(objetivo),
+    prompt: `${como.prompt} Es el nombre que verás arriba cada vez que lo abras.`,
+    placeHolder: como.placeHolder,
+    // Lo que sale del objetivo son nombres de área —Facturación, Clientes—. A
+    // una tarea o a un proyecto no les valen, y una caja vacía es mejor que un
+    // nombre equivocado.
+    value: !alcance || alcance === 'departamento' ? sugerirNombre(objetivo) : '',
     ignoreFocusOut: true,
   });
   if (!arnes || !arnes.trim()) return null;
@@ -142,7 +210,7 @@ function sugerirNombre(objetivo) {
 // a qué se dedica. Quien no tenga web, sigue sin ella.
 async function preguntarWeb() {
   const escrito = await vscode.window.showInputBox({
-    title: 'Empezar una empresa aquí',
+    title: 'Para empezar',
     prompt: '¿Tiene web tu empresa? Así cojo sus colores y su logotipo, y me entero de a qué os dedicáis.',
     placeHolder: 'ferreteriasoler.es — o déjalo en blanco si no tenéis',
     ignoreFocusOut: true,
@@ -172,20 +240,39 @@ function loQuePaso(cuando, intento) {
   ].join('\n');
 }
 
-async function montarElArnes(respuestas) {
+// Lo que se le manda a RSC, sacado de las respuestas. Va aparte para que la
+// prueba de contrato le pase a RSC exactamente lo mismo que le pasa el montaje.
+//
+// El objetivo va en base64, como lo escribe el propio RSC en su línea de
+// aceptación. Escrito a mano puede llevar cualquier cosa, y en el camino de
+// reserva de Windows pasa por cmd.exe, donde `& | ^ %` significan algo (A10).
+function flagsDelMontaje(respuestas) {
   const flags = [
     '--technical-level', respuestas.nivel,
     '--accompaniment', respuestas.dial,
     '--project-kind', respuestas.kind,
-    '--goal', respuestas.objetivo,
+    '--goal-base64', Buffer.from(String(respuestas.objetivo || ''), 'utf8').toString('base64url'),
     '--target', respuestas.asistente,
   ];
-  // RSC pide el tamaño cuando se trata de construir algo.
-  if (respuestas.kind === 'software') flags.push('--software-scope', respuestas.tamano || 'small');
+  // RSC pide el tamaño cuando se trata de construir algo, del todo o en parte.
+  if (rumbo.CON_TAMANO.includes(respuestas.kind)) flags.push('--software-scope', respuestas.tamano || 'small');
+  return flags;
+}
+
+// Lo que se cuenta en el parte según cómo acabó. `Listo` y `SueloAMedias` no
+// llegan aquí: los dos son un arnés montado.
+const CUANDO_FALLO = {
+  Deshecho: 'el arnés falló a mitad y lo deshizo',
+  PlanCambiado: 'el plan cambió entre que se vio y se aceptó',
+  Invalido: 'el arnés no aceptó lo que se le mandó',
+};
+
+async function montarElArnes(respuestas) {
+  const flags = flagsDelMontaje(respuestas);
 
   const previo = await rsc.correr(['onboard', ...flags], { tiempoMaximo: 600000 });
   const huella = (previo.salida.match(/Plan id:\s*([0-9a-f]{64})/i) || [])[1];
-  if (!huella) return { ok: false, detalle: loQuePaso('al pedir el plan', previo) };
+  if (!huella) return { ok: false, forma: 'SinPlan', detalle: loQuePaso('al pedir el plan', previo) };
 
   // Se reutiliza la línea de aceptación tal cual la imprime RSC —con el
   // objetivo en base64 y los mismos flags— para que la huella no pueda dejar
@@ -194,13 +281,16 @@ async function montarElArnes(respuestas) {
   const aceptar = linea ? linea.trim().split(/\s+/) : [...flags, '--accept-plan', huella];
 
   const aplicado = await rsc.correr(['onboard', ...aceptar], { tiempoMaximo: 900000 });
-  if (/RSC_PLAN_CHANGED/.test(aplicado.salida) || /RSC_PLAN_CHANGED/.test(aplicado.error || '')) {
-    return { ok: false, detalle: loQuePaso('el plan cambió entre que se vio y se aceptó', aplicado) };
-  }
-  if (!/RSC_ONBOARDING_READY/.test(aplicado.salida)) {
-    return { ok: false, detalle: loQuePaso('al aplicar el plan', aplicado) };
-  }
-  return { ok: true };
+
+  // Montado es montado aunque falte el suelo: con la cadena SDD siempre faltan
+  // los innegociables, que no escribe RSC sino el asistente. Lo que falta se
+  // devuelve para levantarlo después, sin dejar de poner lo nuestro. La huella
+  // tiene que ser la que se enseñó y la que RSC dejó en el recibo.
+  const recibo = (proyecto.declaracion() || {}).onboarding || {};
+  const como = rsc.comoAcaboElMontaje(aplicado, { planId: huella, aceptado: recibo.acceptedPlanId });
+  if (como.forma === 'Listo') return { ok: true, forma: 'Listo' };
+  if (como.forma === 'SueloAMedias') return { ok: true, forma: 'SueloAMedias', faltan: como.faltan };
+  return { ok: false, forma: como.forma, detalle: loQuePaso(CUANDO_FALLO[como.forma] || 'al aplicar el plan', aplicado) };
 }
 
 // Los raíles viajan dentro de la extensión: mismo `aplicar.js` que usa el
@@ -215,8 +305,9 @@ async function ponerLosRailes(contexto) {
 
 // Los nombres van al frontmatter del perfil del arnés, junto a los diales:
 // es el fichero que RSC ya usa para el perfil y el que leen `orient` y la
-// barra lateral.
-function ponerLosNombres({ arnes, empresa }) {
+// barra lateral. Con ellos, qué lleva la carpeta y cuánta gente hay detrás,
+// que no los pide RSC y el asistente sí necesita saber.
+function ponerEnElPerfil(campos) {
   const perfil = proyecto.ruta(...identidad.PERFIL);
   if (!perfil || !fs.existsSync(perfil)) return false;
 
@@ -224,15 +315,18 @@ function ponerLosNombres({ arnes, empresa }) {
   const bloque = texto.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!bloque) return false;
 
+  // Los reemplazos van con función y no con texto: en un texto de reemplazo,
+  // `$&` o `$'` quieren decir «lo encontrado» o «lo que viene detrás», y un
+  // nombre como «Soler $& Hijos» rompía la cabecera del perfil.
   let cabecera = bloque[1];
-  for (const [clave, valor] of [['arnes', arnes], ['empresa', empresa]]) {
+  for (const [clave, valor] of Object.entries(campos)) {
     if (!valor) continue;
     const linea = new RegExp(`^${clave}:.*$`, 'm');
     const puesta = `${clave}: ${valor}`;
-    cabecera = linea.test(cabecera) ? cabecera.replace(linea, puesta) : `${cabecera}\n${puesta}`;
+    cabecera = linea.test(cabecera) ? cabecera.replace(linea, () => puesta) : `${cabecera}\n${puesta}`;
   }
 
-  fs.writeFileSync(perfil, texto.replace(bloque[0], `---\n${cabecera}\n---`));
+  fs.writeFileSync(perfil, texto.replace(bloque[0], () => `---\n${cabecera}\n---`));
   return true;
 }
 
@@ -274,20 +368,31 @@ async function prepararHistorial() {
 //
 // Se hacen de una en una y **solo las que hagan falta**. Cuál hace falta lo
 // decide `rumbo.js` restando lo que el recibo de RSC ya contesta: cuando hay
-// arnés, cinco de las siete ya están escritas en `.rsc.json` y hasta ahora se
+// arnés, seis de las nueve ya están escritas en `.rsc.json` y hasta ahora se
 // volvían a preguntar igual.
 
 const COMO_SE_PREGUNTA = {
   asistente: () => preguntarAsistente(),
   deQueVa: () => elegir('Para empezar', '¿De qué va esto?', DE_QUE_VA),
+  alcance: () => elegir('Para empezar', '¿Qué vas a llevar en esta carpeta?', QUE_LLEVA),
+  personas: () => elegir('Para empezar', '¿Cuántas personas están metidas en esto?', CUANTAS_PERSONAS),
+  queConstruir: (yaDicho) => elegir('Para empezar', '¿Qué vas a construir?',
+    QUE_VAS_A_CONSTRUIR.filter((o) => !o.soloCon || o.soloCon === yaDicho.kind)),
   objetivo: (yaDicho) => preguntarObjetivo(yaDicho.kind),
-  tamano: () => elegir('Para empezar', '¿Es algo pequeño o va para largo?', [
-    { etiqueta: 'Algo pequeño', detalle: 'Una cosa concreta, para salir del paso', valor: 'small' },
-    { etiqueta: 'Va para largo', detalle: 'Le voy a dedicar tiempo y va a crecer', valor: 'large' },
-  ]),
   nivel: () => elegir('Sobre ti', '¿Qué tal te manejas con el ordenador?', COMO_TE_MANEJAS),
   dial: () => elegir('Sobre ti', '¿Cuánto quieres que te explique?', CUANTO_TE_EXPLICO),
-  nombres: (yaDicho) => preguntarNombres(yaDicho.objetivo),
+  nombres: (yaDicho) => preguntarNombres(yaDicho.objetivo, yaDicho.alcance),
+};
+
+// Dónde se guarda cada respuesta, en la forma que espera `montarElArnes`.
+const LO_QUE_SE_GUARDA = {
+  deQueVa: (r, o) => { r.kind = o.kind; },
+  alcance: (r, o) => { r.alcance = o.alcance; },
+  personas: (r, o) => { r.personas = o.personas; },
+  queConstruir: (r, o) => { r.tamano = o.tamano; },
+  nivel: (r, o) => { r.nivel = o.nivel; },
+  dial: (r, o) => { r.dial = o.dial; },
+  nombres: (r, o) => { r.nombres = o; },
 };
 
 // Lo que el recibo ya contesta, en la forma que espera `montarElArnes`.
@@ -313,26 +418,31 @@ async function entrevistar(plan, parte) {
   for (const que of plan.preguntar) {
     if (que === 'permiso') continue; // se pide aparte, antes de todo
 
-    // El tamaño solo lo pide RSC cuando se va a construir algo. Sin recibo no
-    // se sabe el tipo hasta que se contesta la anterior, así que se mira aquí y
-    // no al calcular la lista.
-    if (que === 'tamano' && respuestas.kind !== 'software') continue;
+    // Lo que solo se pregunta en ciertos casos: qué va a construir, solo si hay
+    // algo que construir. Sin recibo no se sabe el tipo hasta que se contesta
+    // la anterior, así que se mira aquí y no al calcular la lista.
+    const pregunta = rumbo.PREGUNTAS.find((p) => p.id === que);
+    if (pregunta && pregunta.soloSi && !pregunta.soloSi({ deQueVa: respuestas.kind })) continue;
 
     const contestada = await COMO_SE_PREGUNTA[que](respuestas);
     if (!contestada) return null;
 
-    if (que === 'deQueVa') respuestas.kind = contestada.kind;
-    else if (que === 'nivel') respuestas.nivel = contestada.nivel;
-    else if (que === 'dial') respuestas.dial = contestada.dial;
-    else if (que === 'tamano') respuestas.tamano = contestada.valor || contestada;
-    else if (que === 'nombres') Object.assign(respuestas, { nombres: contestada });
+    if (LO_QUE_SE_GUARDA[que]) LO_QUE_SE_GUARDA[que](respuestas, contestada);
     else respuestas[que] = contestada;
   }
 
   // La web no se pregunta nunca dos veces ni bloquea: es opcional.
   const web = plan.pasos.some((p) => p.id === 'montarElArnes') && !parte.recibo ? await preguntarWeb() : null;
 
-  return { ...respuestas, nombres: respuestas.nombres || nombres, web };
+  // Lo que ya estaba en el perfil vuelve a él: RSC lo reescribe entero en cada
+  // plan aceptado, y alcance y personas no se vuelven a preguntar.
+  return {
+    ...respuestas,
+    nombres: respuestas.nombres || nombres,
+    alcance: respuestas.alcance || parte.railes.alcance || null,
+    personas: respuestas.personas || parte.railes.personas || null,
+    web,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -365,10 +475,7 @@ async function arreglarLoQueSePuedaSolo(salida) {
 const COMO_SE_HACE = {
   ponerGit: async () => ({ ok: await prepararHistorial() }),
 
-  montarElArnes: async ({ respuestas }) => {
-    const hecho = await montarElArnes(respuestas);
-    return { ok: hecho.ok, detalle: hecho.detalle, imprescindible: true };
-  },
+  montarElArnes: async ({ respuestas }) => ({ ...(await montarElArnes(respuestas)), imprescindible: true }),
 
   // Traer a esta máquina lo que el repositorio ya declaraba. No se vuelve a
   // montar nada: `sync` reconstruye desde el plan que alguien ya aceptó.
@@ -379,7 +486,10 @@ const COMO_SE_HACE = {
 
   arreglarLoRoto: ({ salida }) => arreglarLoQueSePuedaSolo(salida),
   ponerLosRailes: async ({ contexto }) => ({ ok: await ponerLosRailes(contexto) }),
-  ponerLosNombres: ({ respuestas }) => ({ ok: respuestas.nombres ? ponerLosNombres(respuestas.nombres) : true }),
+  ponerLosNombres: ({ respuestas }) => {
+    const campos = { ...(respuestas.nombres || {}), alcance: respuestas.alcance, personas: respuestas.personas };
+    return { ok: Object.values(campos).some(Boolean) ? ponerEnElPerfil(campos) : true };
+  },
   apuntarLosEnganches: ({ salida }) => ({ ok: true, detalle: apuntarLosEnganches(salida) ? 'apuntados' : 'no hacía falta' }),
 
   puntoDePartida: async () => {
@@ -513,16 +623,20 @@ async function hacerLosPasos(plan, parte, respuestas, contexto, salida) {
   if (!queEscriben.length) return { ok: true, yaEstaba: true, mensaje: 'No hacía falta tocar nada.' };
 
   return vscode.window.withProgress(
-    { location: vscode.ProgressLocation.Notification, title: 'Preparando tu empresa', cancellable: false },
+    { location: vscode.ProgressLocation.Notification, title: 'Preparando esta carpeta', cancellable: false },
     async (progreso) => {
       const avisos = [];
       const encargos = [];
+      // Lo que RSC dijo que falta del suelo al aplicar: con la cadena SDD, los
+      // innegociables. El arnés está montado y lo nuestro se sigue poniendo.
+      const dijoRsc = [];
 
       for (const paso of plan.pasos) {
         if (paso.escribe) progreso.report({ message: `${paso.etiqueta}…` });
 
         const hecho = await COMO_SE_HACE[paso.id]({ respuestas, parte, contexto, salida, progreso });
         if (hecho.encargo) encargos.push(hecho.encargo);
+        if (hecho.faltan) dijoRsc.push(...hecho.faltan);
         if (hecho.detalle) salida.appendLine(`[arrancar] ${paso.id}: ${hecho.detalle}`); // diccionario: interno
 
         if (hecho.ok) continue;
@@ -537,12 +651,16 @@ async function hacerLosPasos(plan, parte, respuestas, contexto, salida) {
         avisos.push(paso.id);
       }
 
-      // El suelo, después de montar: RSC puede decir que terminó y dejarlo a
-      // medias, y entonces lo que falta lo levanta el asistente.
-      const sueloAMedias = plan.pasos.some((p) => p.id === 'montarElArnes') && !proyecto.arnesCompleto();
+      // El suelo, después de montar, desde dos sitios: lo que RSC dijo que
+      // falta y lo que ve la barra, que son sus tres piezas. RSC puede decir
+      // que terminó y dejarlo a medias, o decir que está a medias con el plan
+      // aplicado. En los dos casos lo que falta lo levanta el asistente.
+      const montado = plan.pasos.some((p) => p.id === 'montarElArnes');
+      const veLaBarra = montado ? Object.entries(proyecto.sueloDelArnes()).filter(([, hay]) => !hay).map(([que]) => que) : [];
+      const faltan = [...new Set([...dijoRsc, ...veLaBarra])];
+      const sueloAMedias = faltan.length > 0;
       if (sueloAMedias) {
-        const faltan = Object.entries(proyecto.sueloDelArnes()).filter(([, hay]) => !hay).map(([que]) => que);
-        salida.appendLine(`[arrancar] el arnés dijo estar listo y falta el suelo: ${faltan.join(', ')}`); // diccionario: interno
+        salida.appendLine(`[arrancar] el arnés quedó montado y falta el suelo: ${faltan.join(', ')}`); // diccionario: interno
         encargos.push('levantarElSuelo');
       }
 
@@ -552,16 +670,55 @@ async function hacerLosPasos(plan, parte, respuestas, contexto, salida) {
         avisos,
         encargos,
         sueloAMedias,
+        faltan,
         objetivo: respuestas.objetivo,
+        alcance: respuestas.alcance || null,
+        personas: respuestas.personas || null,
         web: respuestas.web,
         nombres: respuestas.nombres || { arnes: null, empresa: null },
-        mensaje: `${(respuestas.nombres && respuestas.nombres.arnes) || 'Tu arnés'} ya está listo.`,
+        // «Listo» solo cuando el arnés también lo daría por listo (G7). Con el
+        // suelo a medias está montado, y lo que falta sale al terminar.
+        mensaje: sueloAMedias
+          ? `${(respuestas.nombres && respuestas.nombres.arnes) || 'Tu arnés'} ya está montado. Al terminar te enseño lo que falta.`
+          : `${(respuestas.nombres && respuestas.nombres.arnes) || 'Tu arnés'} ya está listo.`,
       };
     },
   );
 }
 
+// Lo que lleva la carpeta y cuánta gente hay detrás, dicho para el asistente
+// en el primer mensaje. Es lo que el `init` de RSC pregunta en su
+// descubrimiento, y aquí ya se sabe.
+const EN_EL_MENSAJE = {
+  alcance: { tarea: 'una tarea concreta', proyecto: 'un proyecto', departamento: 'un departamento o un área', empresa: 'la empresa entera' },
+  personas: { 'solo-yo': 'solo estoy yo', '2-10': 'somos de 2 a 10 personas', '11-50': 'somos de 11 a 50 personas', 'mas-de-50': 'somos más de 50 personas' },
+};
+
+function loQueLlevaLaCarpeta({ alcance, personas } = {}) {
+  const que = EN_EL_MENSAJE.alcance[alcance];
+  const quienes = EN_EL_MENSAJE.personas[personas];
+  if (que && quienes) return `En esta carpeta llevo ${que}, y ${quienes}.`;
+  if (que) return `En esta carpeta llevo ${que}.`;
+  if (quienes) return `${quienes.charAt(0).toUpperCase()}${quienes.slice(1)}.`;
+  return '';
+}
+
+// El primer mensaje al asistente, al terminar de montar. Sale en la caja del
+// chat antes de mandarse, así que es texto de pantalla como cualquier otro.
+function primerMensaje(hecho, { comoSeLlama, conWeb = '', conClaves = '' }) {
+  const { empresa } = hecho.nombres || {};
+  const deQuien = empresa && empresa !== comoSeLlama ? ` Es para ${empresa}.` : '';
+  const queLleva = loQueLlevaLaCarpeta(hecho);
+  // Lo de la web y lo de las claves van en párrafo aparte; sin ellos, un
+  // espacio. Antes salía «facturas.Después» pegado.
+  const enMedio = conWeb || conClaves ? `${conWeb}${conClaves}` : ' ';
+  return `Acabo de montar aquí un arnés que he llamado "${comoSeLlama}".${deQuien}${queLleva ? ` ${queLleva}` : ''}`
+    + ` Lo primero que quiero resolver: ${hecho.objetivo}.${enMedio}`
+    + 'Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.';
+}
+
 module.exports = {
-  arrancar, entrevistar, ponerLosRailes,
-  COMO_SE_HACE, DE_QUE_VA, COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO,
+  arrancar, entrevistar, ponerLosRailes, flagsDelMontaje, loQueLlevaLaCarpeta, primerMensaje,
+  COMO_SE_HACE, COMO_SE_PREGUNTA, DE_QUE_VA, QUE_LLEVA, CUANTAS_PERSONAS, QUE_VAS_A_CONSTRUIR,
+  COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO,
 };

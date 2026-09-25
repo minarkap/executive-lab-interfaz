@@ -9,6 +9,7 @@ Pasa las comprobaciones de este proyecto y cuéntame el resultado en dos líneas
 
 ```
 node extension/prueba/humo.js
+node extension/prueba/contrato.js
 node extension/prueba/empresas-distintas.js
 node docs/comprobar-diccionario.js
 node herramientas/revisar-powershell.js

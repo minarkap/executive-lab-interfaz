@@ -225,6 +225,57 @@ function queRecomienda({ codigo, salida }) {
     .map(([, tipo, id, porQue]) => ({ tipo, id, porQue }));
 }
 
+// ── Lo que contesta el montaje ───────────────────────────────────────────
+//
+// `onboard --accept-plan` termina de seis formas, y dos se llaman casi igual y
+// no se parecen en nada (A3 de la auditoría todo-cuadra):
+//
+//   Listo          RSC_ONBOARDING_READY <huella>, por la salida normal
+//   SueloAMedias   RSC_ONBOARDING_INCOMPLETE <huella>, por la salida normal y
+//                  con código 0: el plan ESTÁ aplicado y falta parte del suelo.
+//                  Pasa siempre que el plan practica SDD, porque entonces el
+//                  suelo incluye los innegociables y `onboard` no los escribe
+//   Deshecho       RSC_ONBOARDING_INCOMPLETE: …, por la de errores y con código
+//                  4: falló a mitad y RSC lo ha deshecho
+//   PlanCambiado   RSC_PLAN_CHANGED, con código 3
+//   Invalido       RSC_ONBOARDING_INVALID o _REQUIRED, con código 2
+//   Fallo          cualquier otra cosa
+//
+// La barra leía como un fallo todo lo que no fuera «listo», así que quien
+// elegía algo que va a crecer se quedaba sin raíles, sin nombres y sin
+// enganches, con el arnés montado debajo.
+//
+// Para dar un «a medias» por bueno, la huella tiene que ser la que se aceptó y
+// la que RSC dejó escrita en el recibo: el de otro plan no es este montaje.
+function comoAcaboElMontaje({ codigo, salida = '', error = '' }, { planId, aceptado } = {}) {
+  const listo = salida.match(/^RSC_ONBOARDING_READY ([0-9a-f]{64})$/m);
+  if (codigo === 0 && listo && (!planId || listo[1] === planId)) return { forma: 'Listo', planId: listo[1] };
+
+  const aMedias = salida.match(/^RSC_ONBOARDING_INCOMPLETE ([0-9a-f]{64})$/m);
+  if (codigo === 0 && aMedias && aMedias[1] === planId && aceptado === planId) {
+    const faltan = [...salida.matchAll(/^\s+missing harness floor (.+)$/gm)].map((m) => m[1].trim());
+    return { forma: 'SueloAMedias', planId, faltan };
+  }
+
+  if (codigo === 4 && /RSC_ONBOARDING_INCOMPLETE:/.test(error)) {
+    const motivo = error.split('RSC_ONBOARDING_INCOMPLETE:')[1].split('. Recover with:')[0].trim();
+    return { forma: 'Deshecho', motivo };
+  }
+  if (/RSC_PLAN_CHANGED/.test(`${salida}\n${error}`)) return { forma: 'PlanCambiado' };
+
+  const invalido = error.match(/RSC_ONBOARDING_INVALID: invalid ([a-z-]+)/);
+  if (invalido) return { forma: 'Invalido', campo: invalido[1] };
+  const falta = error.match(/RSC_ONBOARDING_REQUIRED (\{.*\})/);
+  if (falta) {
+    try {
+      return { forma: 'Invalido', campo: JSON.parse(falta[1]).missing.join(', ') };
+    } catch {
+      return { forma: 'Invalido', campo: null };
+    }
+  }
+  return { forma: 'Fallo', codigo };
+}
+
 const revisar = () => correr(['doctor'], { tiempoMaximo: 120000 });
 
 // El mismo doctor, pero para máquina. Sin `--json` la salida lleva delante el
@@ -251,7 +302,7 @@ const arreglarSolo = () => correr(['repair', '--yes'], { tiempoMaximo: 180000 })
 
 module.exports = {
   correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar, arreglarSolo,
-  comoEstaDeSalud, queHayQueArreglar, queRecomienda,
+  comoEstaDeSalud, queHayQueArreglar, queRecomienda, comoAcaboElMontaje,
   queGuardianes, queCopiasDelArnes, queFaltaEnDisco, LOS_GUARDIANES,
   olvidarLaContinuacion,
   paquete, VERSION_DE_RESPALDO, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,

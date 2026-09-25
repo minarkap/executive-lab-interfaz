@@ -3094,6 +3094,35 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'Claude en la suya · Codex en la suya · desconocido, ninguna';
   });
 
+  await comprobar('los raíles apagan el guardián de gitmoji con su porqué', () => {
+    // El guardián de gitmoji deniega todo `git commit -m` sin emoji ni gramática
+    // inglesa, y en esta casa se guarda en español y en frase (el raíl
+    // `guardar.md`). RSC lo monta cuando el plan practica SDD: lo que eligen
+    // quienes construyen algo que irá creciendo (A11). Jose: «Apagarlo».
+    const cp = require('node:child_process');
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'sin-gitmoji-'));
+    fs.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'], skills: [] }));
+    const hecho = cp.spawnSync(process.execPath, [path.join(RAIZ, 'media', 'railes', 'aplicar.js'), carpeta], { encoding: 'utf8' });
+    assert.equal(hecho.status, 0, hecho.stderr);
+
+    const interruptor = path.join(carpeta, '.rsc', '.no-gitmoji');
+    assert.ok(fs.existsSync(interruptor), 'los raíles no lo apagan');
+    assert.match(fs.readFileSync(interruptor, 'utf8'), /español/, 'se apaga sin decir por qué');
+
+    // Y el guardián del paquete lo respeta. Siempre sale con 0: cuando deniega,
+    // lo dice por la salida. Sin el interruptor, el mismo commit se deniega.
+    const guardian = path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'targets', 'gitmoji-guard.mjs');
+    const orden = JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'git commit -m "Primera versión"' } });
+    const pasar = (donde) => cp.spawnSync(process.execPath, [guardian, donde], { input: orden, encoding: 'utf8' });
+
+    const conElSuyo = pasar(carpeta);
+    assert.equal(conElSuyo.status, 0);
+    assert.ok(!/"deny"/.test(conElSuyo.stdout), `con el interruptor puesto, deniega: ${conElSuyo.stdout.slice(0, 120)}`);
+    const sinNada = pasar(fs.mkdtempSync(path.join(os.tmpdir(), 'con-gitmoji-')));
+    assert.match(sinNada.stdout, /"deny"/, 'el guardián no deniega ni sin interruptor: la prueba no mira nada');
+    return 'apagado, con su porqué, y el guardián lo respeta';
+  });
+
   await comprobar('una habilidad escrita aquí no se cuenta como fontanería', () => {
     // Era justo al revés: la más pertinente de todas —la que alguien se molestó
     // en escribir para esta carpeta— acababa contada como "cosas que trae de
@@ -4636,8 +4665,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   });
 
   await comprobar('lo que ya está en el recibo no se vuelve a preguntar', () => {
-    // Cinco de las siete preguntas viven en `.rsc.json` desde que alguien
-    // aceptó el plan. Se preguntaban igual, las siete, cada vez.
+    // Seis de las nueve preguntas viven en `.rsc.json` desde que alguien
+    // aceptó el plan. Se preguntaban igual, todas, cada vez.
     const rumbo = cargar('rumbo');
     const entero = {
       projectKind: 'operations', goal: 'llevar las facturas', softwareScope: null,
@@ -4654,12 +4683,12 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.deepEqual(conNombres.preguntar, [], 'con recibo y nombres no queda nada que preguntar');
 
     const sinNombres = rumbo.elegirRama({ ...base, recibo: { record: entero }, railes: { nombres: null } });
-    assert.deepEqual(sinNombres.preguntar, ['nombres'], 'un clon pregunta una, no siete');
+    assert.deepEqual(sinNombres.preguntar, ['nombres'], 'un clon pregunta una, no nueve');
 
-    // Sin recibo se preguntan las siete. El tamaño solo se llega a preguntar
-    // si el proyecto resulta ser software, y eso se decide al contestar.
+    // Sin recibo se preguntan las nueve. Qué va a construir solo se llega a
+    // preguntar si hay algo que construir, y eso se decide al contestar.
     const aPelo = rumbo.elegirRama({ ...base, estado: 'empezada', recibo: null, railes: { nombres: null } });
-    assert.deepEqual(aPelo.preguntar, ['asistente', 'deQueVa', 'objetivo', 'tamano', 'nivel', 'dial', 'nombres']);
+    assert.deepEqual(aPelo.preguntar, ['asistente', 'deQueVa', 'alcance', 'personas', 'queConstruir', 'objetivo', 'nivel', 'dial', 'nombres']);
 
     // Y un valor que RSC no aceptaría se pregunta igual, aunque esté escrito.
     const torcido = rumbo.elegirRama({
@@ -4668,7 +4697,357 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       railes: { nombres: { arnes: 'X' } },
     });
     assert.deepEqual(torcido.preguntar.sort(), ['dial', 'nivel'], 'lo que no vale se vuelve a preguntar');
-    return '0 · 1 · 7 · 2';
+    return '0 · 1 · 9 · 2';
+  });
+
+  // ── Las preguntas del arranque, jugadas ──────────────────────────────────
+  //
+  // Contesta por la pregunta que se ve en pantalla (`contesta[pregunta]`), y lo
+  // que no está ahí, con la primera opción. Apunta cada pregunta con sus
+  // opciones, para poder afirmar sobre lo que se pregunta y lo que no.
+  const conRespuestas = async (contesta, hacer) => {
+    const vistas = [];
+    const antes = { elegir: vscode.window.showQuickPick, escribir: vscode.window.showInputBox };
+    vscode.window.showQuickPick = async (opciones, ajustes = {}) => {
+      const lista = await opciones;
+      const quiere = contesta[ajustes.placeHolder];
+      const elegida = quiere ? lista.find((o) => o.label === quiere) : lista[0];
+      if (!elegida) throw new Error(`«${ajustes.placeHolder}» no ofrece «${quiere}»: ${lista.map((o) => o.label).join(' · ')}`);
+      vistas.push({ pregunta: ajustes.placeHolder, opciones: lista.map((o) => o.label) });
+      return elegida;
+    };
+    vscode.window.showInputBox = async (ajustes = {}) => {
+      vistas.push({ pregunta: ajustes.prompt, caja: true });
+      return ajustes.prompt in contesta ? contesta[ajustes.prompt] : 'Prueba';
+    };
+    try {
+      return { hecho: await hacer(), vistas };
+    } finally {
+      vscode.window.showQuickPick = antes.elegir;
+      vscode.window.showInputBox = antes.escribir;
+    }
+  };
+  const PARTE_VACIA = {
+    estado: 'vacia', git: { hay: true }, carpeta: { vacia: true, cuantos: 0, parece: null },
+    suelo: { faltan: [] }, habilidades: { declaradas: [], enDisco: [], colgando: [] },
+    recibo: null, railes: { nombres: null }, claves: null,
+  };
+  const entrevistarCon = async (contesta = {}) => {
+    const { hecho, vistas } = await conRespuestas(contesta,
+      () => cargar('arrancar').entrevistar(cargar('rumbo').elegirRama(PARTE_VACIA), PARTE_VACIA));
+    return { respuestas: hecho, vistas, preguntas: vistas.map((v) => v.pregunta) };
+  };
+
+  await comprobar('alcance y personas se preguntan a todos', async () => {
+    // Jose: «no es lo mismo un departamento de 3 personas que de 50». Se
+    // pregunta a todo el mundo, sea de lo que sea la carpeta (A13).
+    const arrancarM = cargar('arrancar');
+    for (const tipo of arrancarM.DE_QUE_VA) {
+      const { respuestas, preguntas } = await entrevistarCon({
+        '¿De qué va esto?': tipo.etiqueta,
+        '¿Qué vas a llevar en esta carpeta?': 'Un departamento o un área',
+        '¿Cuántas personas están metidas en esto?': 'De 11 a 50',
+      });
+      assert.ok(preguntas.includes('¿Qué vas a llevar en esta carpeta?'), `con «${tipo.etiqueta}» no se pregunta qué lleva la carpeta`);
+      assert.ok(preguntas.includes('¿Cuántas personas están metidas en esto?'), `con «${tipo.etiqueta}» no se pregunta cuánta gente hay`);
+      assert.equal(respuestas.alcance, 'departamento');
+      assert.equal(respuestas.personas, '11-50');
+    }
+
+    // Sugieren el nombre: un departamento se llama como el departamento, y la
+    // empresa entera se nombra una vez, con los dos nombres iguales.
+    const deDepartamento = await entrevistarCon({ '¿Qué vas a llevar en esta carpeta?': 'Un departamento o un área' });
+    assert.ok(deDepartamento.preguntas.some((p) => /^¿Cómo se llama el departamento o el área\?/.test(p || '')), 'el nombre no se pregunta por lo que lleva la carpeta');
+    const entera = await entrevistarCon({
+      '¿Qué vas a llevar en esta carpeta?': 'La empresa entera',
+      '¿Cómo se llama tu empresa? Es el nombre que verás arriba cada vez que lo abras.': 'Nexus Consulting',
+    });
+    assert.deepEqual(entera.respuestas.nombres, { arnes: 'Nexus Consulting', empresa: 'Nexus Consulting' });
+    assert.equal(entera.vistas.filter((v) => v.caja && /Cómo se llama|Cómo llamamos/.test(v.pregunta)).length, 1, 'con la empresa entera se pregunta el nombre dos veces');
+
+    // Van al perfil, para el asistente…
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'perfil-alcance-'));
+    fs.mkdirSync(path.join(carpeta, '02-DOCS', 'wiki', 'harness'), { recursive: true });
+    const perfil = path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'user-profile.md');
+    fs.writeFileSync(perfil, '---\ntechnical_level: mixed\n---\n\n# Perfil\n');
+    vscode.guion.raiz = carpeta;
+    // Con un nombre que lleva `$&`, que en un reemplazo de texto quiere decir
+    // «lo encontrado»: tiene que llegar tal cual.
+    const puesto = arrancarM.COMO_SE_HACE.ponerLosNombres({ respuestas: { nombres: { arnes: 'Soler $& Hijos', empresa: "Tienda $' Uno" }, alcance: 'departamento', personas: '11-50' } });
+    vscode.guion.raiz = empresa;
+    assert.equal(puesto.ok, true);
+    const escrito = fs.readFileSync(perfil, 'utf8');
+    assert.match(escrito, /^alcance: departamento$/m);
+    assert.match(escrito, /^personas: 11-50$/m);
+    assert.ok(escrito.includes('\narnes: Soler $& Hijos\n'), `el nombre no llega entero: ${escrito.split('---')[1]}`);
+    assert.ok(escrito.includes("\nempresa: Tienda $' Uno\n"), 'el de la empresa tampoco');
+    assert.ok(escrito.includes('# Perfil'), 'se ha comido el resto del perfil');
+
+    // …y al primer mensaje, que es lo que el `init` de RSC pregunta al empezar.
+    const mensaje = arrancarM.primerMensaje(
+      { nombres: { arnes: 'Contabilidad', empresa: 'Nexus Consulting' }, objetivo: 'Poner orden en mis facturas', alcance: 'departamento', personas: '11-50' },
+      { comoSeLlama: 'Contabilidad' },
+    );
+    assert.match(mensaje, /Es para Nexus Consulting\. En esta carpeta llevo un departamento o un área, y somos de 11 a 50 personas\./);
+    assert.match(mensaje, /Poner orden en mis facturas\. Después empieza/, 'el objetivo y lo que sigue salen pegados');
+    const deTodos = arrancarM.primerMensaje(
+      { nombres: { arnes: 'Nexus Consulting', empresa: 'Nexus Consulting' }, objetivo: 'Vender más', alcance: 'empresa', personas: 'solo-yo' },
+      { comoSeLlama: 'Nexus Consulting' },
+    );
+    assert.ok(!/Es para/.test(deTodos), 'con la empresa entera se repite el nombre');
+    assert.match(deTodos, /En esta carpeta llevo la empresa entera, y solo estoy yo\./);
+    return `${arrancarM.DE_QUE_VA.length} tipos, al perfil y al primer mensaje`;
+  });
+
+  await comprobar('qué va a construir se pregunta con construir algo y con un poco de todo, y nada más', async () => {
+    // RSC exige el tamaño para `software` y para `mixed`, y a los demás no se
+    // lo usa: preguntarlo ahí es una pantalla de más.
+    const arrancarM = cargar('arrancar');
+    const conLaPregunta = [];
+    for (const tipo of arrancarM.DE_QUE_VA) {
+      const { vistas } = await entrevistarCon({ '¿De qué va esto?': tipo.etiqueta });
+      const vista = vistas.find((v) => v.pregunta === '¿Qué vas a construir?');
+      if (!vista) continue;
+      conLaPregunta.push(tipo.kind);
+      // Con «Construir algo», algo se construye: «Nada» solo con «Un poco de todo».
+      const conNada = vista.opciones.includes('Nada, o casi nada');
+      assert.equal(conNada, tipo.kind === 'mixed', `«Nada, o casi nada» ${conNada ? 'sale' : 'no sale'} con «${tipo.etiqueta}»`);
+    }
+    assert.deepEqual(conLaPregunta.sort(), ['mixed', 'software']);
+    assert.ok(!arrancarM.flagsDelMontaje({ kind: 'operations', tamano: 'small' }).includes('--software-scope'), 'a unas operaciones se les manda tamaño');
+    return 'software y mixed';
+  });
+
+  await comprobar('cada respuesta da el tamaño de RSC que le toca', async () => {
+    // C-21: el tamaño sale de lo que se va a construir. «No lo sé» y «Nada»
+    // empiezan pequeño; si crece, RSC lo detecta y se propone con su sí.
+    const arrancarM = cargar('arrancar');
+    const TOCA = {
+      'Nada, o casi nada': 'small',
+      'Una cosa concreta': 'small',
+      'Algo que irá sumando piezas': 'growing',
+      'Una plataforma completa': 'complex',
+      'No lo sé todavía': 'small',
+    };
+    assert.deepEqual(arrancarM.QUE_VAS_A_CONSTRUIR.map((o) => o.etiqueta).sort(), Object.keys(TOCA).sort(), 'hay una respuesta sin su tamaño aquí');
+
+    let jugadas = 0;
+    for (const tipo of ['Construir algo', 'Un poco de todo']) {
+      for (const [respuesta, tamano] of Object.entries(TOCA)) {
+        if (respuesta === 'Nada, o casi nada' && tipo === 'Construir algo') continue;
+        const { respuestas } = await entrevistarCon({ '¿De qué va esto?': tipo, '¿Qué vas a construir?': respuesta });
+        assert.equal(respuestas.tamano, tamano, `«${tipo}» con «${respuesta}» manda «${respuestas.tamano}»`);
+        const flags = arrancarM.flagsDelMontaje(respuestas);
+        assert.equal(flags[flags.indexOf('--software-scope') + 1], tamano, 'lo que se manda no es lo que se contestó');
+        jugadas += 1;
+      }
+    }
+    return `${jugadas} respuestas`;
+  });
+
+  await comprobar('el arranque ofrece los cuatro escalones con sus nombres', async () => {
+    // Un dial, un nombre (C-6, decisión 98): cuánto explica el asistente se
+    // elige al montar con los mismos cuatro escalones que luego se cambian en
+    // «Cómo te habla». Antes eran tres, con otros nombres, y sin «Al grano».
+    const trato = cargar('trato');
+    const arrancarM = cargar('arrancar');
+    const { vistas, respuestas } = await entrevistarCon({ '¿Cuánto quieres que te explique?': 'Al grano' });
+    const vista = vistas.find((v) => v.pregunta === '¿Cuánto quieres que te explique?');
+    assert.deepEqual([...vista.opciones].sort(), trato.ESCALONES.map((e) => e.nombre).sort(), `no son los de Cómo te habla: ${vista.opciones.join(' · ')}`);
+    assert.equal(respuestas.dial, 'L0', '«Al grano» no manda L0');
+    for (const escalon of trato.ESCALONES) {
+      const opcion = arrancarM.CUANTO_TE_EXPLICO.find((o) => o.dial === escalon.id);
+      assert.ok(opcion, `falta ${escalon.id}`);
+      assert.equal(opcion.etiqueta, escalon.nombre);
+      assert.equal(opcion.detalle, escalon.frase, `«${escalon.nombre}» no lleva la frase de Cómo te habla`);
+    }
+    return trato.ESCALONES.map((e) => e.nombre).join(' · ');
+  });
+
+  await comprobar('volver a montar conserva lo que lleva la carpeta y cuánta gente hay', async () => {
+    // RSC reescribe el perfil entero cada vez que acepta un plan
+    // (`onboarding-apply.js`, `writeOnboardingDocuments`). Los nombres se
+    // salvaban porque la barra los lee antes y los vuelve a escribir; qué lleva
+    // la carpeta y cuántas personas hay, no, y no se vuelven a preguntar.
+    const rscM = cargar('rsc');
+    const arrancarM = cargar('arrancar');
+    const HUELLA = 'e'.repeat(64);
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'volver-a-montar-'));
+    const poner = (rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(carpeta, rel)), { recursive: true });
+      fs.writeFileSync(path.join(carpeta, rel), txt);
+    };
+    const RECORD = { projectKind: 'operations', goal: 'Poner orden en mis facturas', technicalLevel: 'non-technical', accompaniment: 'L3', targets: ['claude'] };
+    poner('.rsc.json', JSON.stringify({ version: 1, catalogVersion: '2.0.5', targets: ['claude'], skills: ['bro'], ownSkills: [], onboarding: { acceptedPlanId: HUELLA, plan: { record: RECORD } } }));
+    poner('.claude/skills/bro/SKILL.md', '#');
+    poner('02-DOCS/wiki/harness/user-profile.md',
+      '---\ntechnical_level: non-technical\naccompaniment: L3\nproject_kind: operations\narnes: Facturación\nempresa: Nexus Consulting\nalcance: departamento\npersonas: 11-50\n---\n\n# User profile\n');
+    // Sin la plantilla de conexiones: el suelo a medias, que se completa montando otra vez.
+
+    const antes = rscM.correr;
+    rscM.correr = async (args) => {
+      if (args[0] !== 'onboard') return { codigo: 0, salida: '' };
+      if (!args.includes('--accept-plan')) {
+        return { codigo: 0, salida: `Plan id: ${HUELLA}\nAccept exactly this plan: npx @ericrisco/rsc@2.0.5 onboard --target claude --accept-plan ${HUELLA}` };
+      }
+      // Lo que hace RSC al aceptar: el perfil, entero y de nuevo, y el suelo.
+      poner('02-DOCS/wiki/harness/user-profile.md', '---\ntechnical_level: non-technical\naccompaniment: L3\nproject_kind: operations\n---\n\n# User profile\n\nGoal: Poner orden en mis facturas\n');
+      poner('01-TOOLS/_TEMPLATE/README.md', '#');
+      return { codigo: 0, salida: `RSC_ONBOARDING_READY ${HUELLA}` };
+    };
+    try {
+      vscode.guion.raiz = carpeta;
+      vscode.registrado.quickPick = null;
+      const hecho = await arrancarM.arrancar({ extensionPath: RAIZ, workspaceState: { get: () => undefined, update: async () => {} } }, { appendLine() {} });
+      assert.equal(hecho.rama, 'completar', `ha tomado otra rama: ${hecho.rama || hecho.mensaje}`);
+      assert.equal(vscode.registrado.quickPick, null, 'y ha preguntado algo');
+      const perfil = fs.readFileSync(path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'user-profile.md'), 'utf8');
+      assert.match(perfil, /^arnes: Facturación$/m, 'se pierde el nombre');
+      assert.match(perfil, /^alcance: departamento$/m, 'se pierde lo que lleva la carpeta');
+      assert.match(perfil, /^personas: 11-50$/m, 'se pierde cuánta gente hay');
+      return 'nombres, alcance y personas, después de que RSC reescriba el perfil';
+    } finally {
+      rscM.correr = antes;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('un objetivo con & | ^ % " llega entero', () => {
+    // El objetivo escrito a mano viajaba en claro, y en el camino de reserva de
+    // Windows pasa por cmd.exe, donde la cita de `procesos.delPath` no escapa
+    // `& | ^ %` (A10). RSC acepta `--goal-base64` en las dos llamadas.
+    const arrancarM = cargar('arrancar');
+    const objetivo = 'Cobrar a "Soler & Hijos" el 50% | ^ que falta';
+    const flags = arrancarM.flagsDelMontaje({ nivel: 'mixed', dial: 'L2', kind: 'operations', objetivo, asistente: 'claude' });
+
+    assert.ok(!flags.includes(objetivo) && !flags.includes('--goal'), 'el objetivo viaja en claro');
+    const cual = flags.indexOf('--goal-base64');
+    assert.ok(cual >= 0, 'no se manda el objetivo');
+    assert.equal(Buffer.from(flags[cual + 1], 'base64url').toString('utf8'), objetivo, 'no llega entero');
+    // Nada que cmd.exe pueda tocar: ni espacios, ni comillas, ni `& | ^ % < > ( ) !`.
+    const tocables = flags.filter((f) => !/^[A-Za-z0-9_.,-]+$/.test(f));
+    assert.deepEqual(tocables, [], 'hay algo que cmd.exe interpretaría');
+    return 'base64, y nada que interpretar';
+  });
+
+  await comprobar('lo que contesta el montaje se lee en sus seis formas, y nada más', () => {
+    // Las formas son las de `scripts/rsc.js` de RSC 2.0.5; que las escribe así
+    // lo comprueba `prueba/contrato.js` contra el paquete. Aquí, los bordes: un
+    // «a medias» o un «listo» de otra huella no son este montaje.
+    const { comoAcaboElMontaje: leer } = cargar('rsc');
+    const H = 'c'.repeat(64);
+    const OTRA = 'd'.repeat(64);
+    const aMedias = `RSC_ONBOARDING_INCOMPLETE ${H}\n  missing harness floor 02-DOCS/wiki/sdd/constitution.md\n  Next: invoke the \`harness\` skill`;
+
+    assert.equal(leer({ codigo: 0, salida: `RSC_ONBOARDING_READY ${H}` }, { planId: H }).forma, 'Listo');
+    assert.equal(leer({ codigo: 0, salida: `RSC_ONBOARDING_READY ${OTRA}` }, { planId: H }).forma, 'Fallo', 'un «listo» de otro plan');
+
+    const bien = leer({ codigo: 0, salida: aMedias }, { planId: H, aceptado: H });
+    assert.equal(bien.forma, 'SueloAMedias');
+    assert.deepEqual(bien.faltan, ['02-DOCS/wiki/sdd/constitution.md']);
+    assert.equal(leer({ codigo: 0, salida: aMedias }, { planId: H, aceptado: OTRA }).forma, 'Fallo', 'el recibo es de otro plan');
+    assert.equal(leer({ codigo: 0, salida: aMedias }, { planId: OTRA, aceptado: OTRA }).forma, 'Fallo', 'la huella no es la que se aceptó');
+    assert.equal(leer({ codigo: 0, salida: aMedias }, { planId: H }).forma, 'Fallo', 'sin recibo que lo diga');
+
+    const deshecho = leer({ codigo: 4, salida: '', error: 'RSC_ONBOARDING_INCOMPLETE: ENOTDIR: not a directory, mkdir \'x\'. Recover with: npx @ericrisco/rsc@latest onboard' }, { planId: H });
+    assert.equal(deshecho.forma, 'Deshecho');
+    assert.match(deshecho.motivo, /^ENOTDIR/);
+    assert.equal(leer({ codigo: 4, salida: '', error: 'otra cosa' }, { planId: H }).forma, 'Fallo', 'un código 4 sin su marca');
+
+    assert.equal(leer({ codigo: 3, salida: '', error: `RSC_PLAN_CHANGED: accepted ${H}, current plan is ${OTRA}.` }, { planId: H }).forma, 'PlanCambiado');
+    assert.deepEqual(leer({ codigo: 2, salida: '', error: 'RSC_ONBOARDING_INVALID: invalid software-scope: expected small|growing|complex' }, {}),
+      { forma: 'Invalido', campo: 'software-scope' });
+    assert.deepEqual(leer({ codigo: 2, salida: '', error: 'RSC_ONBOARDING_REQUIRED {"code":"RSC_ONBOARDING_REQUIRED","missing":["software-scope"]}' }, {}),
+      { forma: 'Invalido', campo: 'software-scope' });
+    assert.equal(leer({ codigo: 1, salida: 'cualquier cosa' }, { planId: H }).forma, 'Fallo');
+    return 'seis formas y sus bordes';
+  });
+
+  await comprobar('aplicado con el suelo a medias pone los raíles y ofrece levantarlo', async () => {
+    // Con la cadena SDD, RSC aplica el plan y dice `RSC_ONBOARDING_INCOMPLETE`
+    // por la salida normal: le faltan los innegociables, que no escribe él.
+    // La barra lo daba por fallo y no ponía nada suyo (A3). La forma de la
+    // respuesta, contra el RSC de verdad, está en `prueba/contrato.js`.
+    const rscM = cargar('rsc');
+    const arrancarM = cargar('arrancar');
+    const terrenoM = cargar('terreno');
+    const HUELLA = 'b'.repeat(64);
+    const nueva = fs.mkdtempSync(path.join(os.tmpdir(), 'suelo-a-medias-'));
+    const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'suelo-a-medias-git-'));
+    fs.writeFileSync(path.join(casa, '.gitconfig'), '');
+    const antes = { correr: rscM.correr, global: process.env.GIT_CONFIG_GLOBAL };
+    process.env.GIT_CONFIG_GLOBAL = path.join(casa, '.gitconfig');
+
+    const poner = (rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(nueva, rel)), { recursive: true });
+      fs.writeFileSync(path.join(nueva, rel), txt);
+    };
+    rscM.correr = async (args) => {
+      if (args[0] !== 'onboard') return { codigo: 0, salida: '' };
+      if (!args.includes('--accept-plan')) {
+        return { codigo: 0, salida: `Plan id: ${HUELLA}\nAccept exactly this plan: npx @ericrisco/rsc@2.0.5 onboard --target claude --accept-plan ${HUELLA}` };
+      }
+      // Lo que deja RSC al aplicar: su recibo, con el suelo que pide, y el suelo
+      // que sí sabe levantar.
+      poner('.rsc.json', JSON.stringify({
+        version: 1, catalogVersion: '2.0.5', targets: ['claude'], skills: ['bro'], ownSkills: [],
+        onboarding: {
+          acceptedPlanId: HUELLA,
+          plan: {
+            record: { projectKind: 'software', softwareScope: 'growing', goal: 'x', technicalLevel: 'mixed', accompaniment: 'L2', targets: ['claude'] },
+            floorPaths: ['01-TOOLS/_TEMPLATE/', '02-DOCS/wiki/harness/', '02-DOCS/wiki/sdd/constitution.md'],
+          },
+        },
+      }));
+      poner('01-TOOLS/_TEMPLATE/README.md', '#');
+      poner('02-DOCS/wiki/harness/user-profile.md', '---\ntechnical_level: mixed\naccompaniment: L2\n---\n');
+      poner('.claude/skills/bro/SKILL.md', '#');
+      return {
+        codigo: 0,
+        salida: `RSC_ONBOARDING_INCOMPLETE ${HUELLA}\n  missing harness floor 02-DOCS/wiki/sdd/constitution.md\n  Next: invoke the \`harness\` skill`,
+      };
+    };
+
+    try {
+      vscode.guion.raiz = nueva;
+      const contexto = { extensionPath: RAIZ, workspaceState: { get: () => undefined, update: async () => {} } };
+      const { hecho } = await conRespuestas(
+        { '¿De qué va esto?': 'Construir algo', '¿Qué vas a construir?': 'Algo que irá sumando piezas' },
+        () => arrancarM.arrancar(contexto, { appendLine() {} }),
+      );
+
+      assert.equal(hecho.ok, true, `el montaje se ha dado por fallo: ${hecho.mensaje}`);
+      assert.equal(hecho.sueloAMedias, true, 'no dice que falta el suelo');
+      assert.ok(hecho.faltan.includes('02-DOCS/wiki/sdd/constitution.md'), `faltan: ${hecho.faltan.join(', ')}`);
+      assert.ok(hecho.encargos.includes('levantarElSuelo'), 'no deja el encargo de levantarlo');
+      assert.match(hecho.mensaje, /ya está montado\. Al terminar te enseño lo que falta\./, 'dice «listo» con el suelo a medias');
+
+      // Lo nuestro, puesto igual.
+      assert.ok(fs.existsSync(path.join(nueva, '.claude', 'skills', 'executive-lab', 'SKILL.md')), 'sin raíles');
+      assert.match(fs.readFileSync(path.join(nueva, '02-DOCS', 'wiki', 'harness', 'user-profile.md'), 'utf8'), /^arnes: Prueba$/m, 'sin nombres');
+
+      // Y la pieza con su botón, que es lo que se le enseña al terminar.
+      const { piezas, listo } = await terrenoM.radiografia();
+      const innegociables = piezas.find((p) => p.nombre === 'Innegociables');
+      assert.ok(innegociables, 'la lista de lo que falta no dice que faltan los innegociables');
+      assert.equal(listo, false, 'con los innegociables por escribir, dice que está listo');
+      assert.equal(innegociables.arreglo.como, 'agente');
+      assert.match(innegociables.arreglo.accion.prompt, /`constitution`/, 'el encargo no dice con qué se escriben');
+      // Y «Listo» no sale en ningún sitio: lo es cuando RSC también lo da por listo (G7).
+      const montado = piezas.find((p) => p.nombre === 'El asistente, montado aquí');
+      assert.ok(!/Listo/.test(montado.detalle), `con los innegociables por escribir dice «${montado.detalle}»`);
+
+      // Escritos, la pieza se va: lo dice el disco.
+      poner('02-DOCS/wiki/sdd/constitution.md', '# Innegociables\n');
+      const despues = await terrenoM.radiografia();
+      assert.ok(!despues.piezas.some((p) => p.nombre === 'Innegociables'), 'escritos, y la pieza sigue ahí');
+      return 'raíles, nombres y la pieza con su botón';
+    } finally {
+      rscM.correr = antes.correr;
+      if (antes.global === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+      else process.env.GIT_CONFIG_GLOBAL = antes.global;
+      vscode.guion.raiz = empresa;
+    }
   });
 
   await comprobar('un arnés que ya está no se toca, y el historial de alguien tampoco', () => {
@@ -4935,9 +5314,10 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     rscM.correr = async (args) => {
       llamadas.push(args[0]);
       if (args[0] !== 'onboard') return { codigo: 0, salida: '' };
-      // Primera pasada: el plan. Segunda: listo.
+      // Primera pasada: el plan. Segunda: listo, con la misma huella, que es
+      // como lo escribe RSC (lo comprueba `prueba/contrato.js`).
       return args.includes('--accept-plan')
-        ? { codigo: 0, salida: 'RSC_ONBOARDING_READY abc' }
+        ? { codigo: 0, salida: `RSC_ONBOARDING_READY ${'a'.repeat(64)}` }
         : { codigo: 0, salida: `Plan id: ${'a'.repeat(64)}\nAccept exactly this plan: npx @ericrisco/rsc@1.4.1 onboard --accept-plan ${'a'.repeat(64)}` };
     };
 
@@ -5175,9 +5555,11 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       // seis: como solo corre con --con-arnes, nadie lo vio.
       vscode.guion.respuestas = [
         'Llevar el día a día',            // de qué va
+        'Un departamento o un área',      // qué lleva la carpeta
+        'De 2 a 10',                      // cuánta gente hay detrás
         'Organizar el papeleo',           // qué quiere resolver
         'Lo justo',                       // cómo se maneja
-        'Todo, paso a paso',              // cuánto se le explica
+        'De la mano',                     // cuánto se le explica
         'Contratos',                      // cómo se llama esto
         'Nexus Consulting',               // y su empresa
         '',                               // la web: en blanco, que es opcional
@@ -5208,13 +5590,63 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       const botones = cargar('acciones').acciones().map((a) => a.etiqueta);
       assert.deepEqual(botones.sort(), ['Empezar algo nuevo', 'No sé qué hacer ahora', 'Seguir donde lo dejé']);
 
-      // Y los nombres que puso, en el perfil: de ahí sale el rótulo.
+      // Y los nombres que puso, en el perfil: de ahí sale el rótulo. Con ellos,
+      // qué lleva la carpeta y cuánta gente hay detrás.
       assert.match(perfil, /^arnes: Contratos$/m);
       assert.match(perfil, /^empresa: Nexus Consulting$/m);
+      assert.match(perfil, /^alcance: departamento$/m);
+      assert.match(perfil, /^personas: 2-10$/m);
 
       vscode.guion.raiz = empresa;
       vscode.guion.respuestas = null;
       return `${botones.length} botones desde cero`;
+    });
+
+    await comprobar('con «irá sumando piezas» queda montado, y guardar en español no se deniega', async () => {
+      // El caso que más se rompía: con «Algo que irá sumando piezas» RSC elige
+      // la cadena SDD, deja los innegociables por escribir (A3) y monta el
+      // guardián de gitmoji (A11). Aquí se monta de verdad y se le pasa al
+      // guardián que ha quedado en la carpeta un commit en español.
+      const cp = require('node:child_process');
+      const nueva = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-que-crece-'));
+      const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-que-crece-git-'));
+      fs.writeFileSync(path.join(casa, '.gitconfig'), '');
+      const antes = process.env.GIT_CONFIG_GLOBAL;
+      process.env.GIT_CONFIG_GLOBAL = path.join(casa, '.gitconfig');
+      vscode.guion.raiz = nueva;
+      vscode.guion.respuestas = [
+        'Construir algo',                 // de qué va
+        'Un proyecto',                    // qué lleva la carpeta
+        'Solo yo',                        // cuánta gente hay detrás
+        'Algo que irá sumando piezas',    // qué va a construir
+        'Montar una web sencilla',        // qué quiere resolver
+        'Me defiendo',                    // cómo se maneja
+        'Te explica por qué',             // cuánto se le explica
+        'Web nueva',                      // cómo se llama el proyecto
+        '',                               // y su empresa, en blanco
+        '',                               // la web, en blanco
+      ];
+      try {
+        const hecho = await cargar('arrancar').arrancar(contexto, vscode.window.createOutputChannel());
+        assert.equal(hecho.ok, true, hecho.mensaje || 'se canceló a mitad');
+        assert.equal(vscode.guion.respuestas.length, 0, 'han sobrado respuestas');
+        assert.equal(hecho.sueloAMedias, true, 'con la cadena SDD, RSC deja los innegociables por escribir');
+        assert.ok(fs.existsSync(path.join(nueva, '.claude', 'skills', 'executive-lab', 'SKILL.md')), 'sin raíles');
+
+        const guardian = path.join(nueva, '.rsc', 'gitmoji-guard.mjs');
+        assert.ok(fs.existsSync(guardian), 'RSC no ha montado el guardián: la prueba no mira nada');
+        assert.match(fs.readFileSync(path.join(nueva, '.claude', 'settings.json'), 'utf8'), /gitmoji-guard/, 'no está enganchado');
+        const orden = JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'git commit -m "Primera versión"' } });
+        const dicho = cp.spawnSync(process.execPath, [guardian, nueva], { input: orden, encoding: 'utf8' });
+        assert.equal(dicho.status, 0);
+        assert.ok(!/"deny"/.test(dicho.stdout), `deniega un commit en español: ${dicho.stdout.slice(0, 160)}`);
+        return 'montado a medias, con raíles, y el commit pasa';
+      } finally {
+        if (antes === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+        else process.env.GIT_CONFIG_GLOBAL = antes;
+        vscode.guion.raiz = empresa;
+        vscode.guion.respuestas = null;
+      }
     });
 
     await comprobar('un arnés de Codex de verdad se lee entero, y se dice lo que ahí no hay', async () => {

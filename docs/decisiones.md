@@ -3489,3 +3489,75 @@ Diez fases (F0–F9) y 77 tareas, cada una con su comprobación literal, en
 prueba en rojo primero. **No hay push, ni merge, ni publicación sin Jose.**
 
 0.32.0. Sin cambios de código en esta fase.
+
+## 117. El arranque monta con cualquier respuesta
+
+**Fecha:** 25 de septiembre de 2026 · **Estado:** hecho · **Cadena SDD** `todo-cuadra`, fase F1
+
+Dos respuestas del arranque no montaban nunca, y una tercera montaba y se daba por fallo (A1, A2 y
+A3 de la 116). Ahora monta con cualquier respuesta, y lo vigila una comprobación nueva que le
+pregunta a RSC de verdad.
+
+### Tres preguntas en vez de «¿es algo pequeño o va para largo?»
+
+Es la decisión 5 de Jose en la 116. A todo el mundo:
+- **¿Qué vas a llevar en esta carpeta?** Una tarea concreta · Un proyecto · Un departamento o un
+  área · La empresa entera.
+- **¿Cuántas personas están metidas en esto?** Solo yo · De 2 a 10 · De 11 a 50 · Más de 50.
+
+Y con «Construir algo» o «Un poco de todo», **¿Qué vas a construir?**, con ejemplos. Es la única que
+decide el tamaño que se le manda a RSC:
+
+| Respuesta | A RSC |
+|---|---|
+| Nada, o casi nada (solo con «Un poco de todo») · Una cosa concreta · No lo sé todavía | `small` |
+| Algo que irá sumando piezas | `growing` |
+| Una plataforma completa | `complex` |
+
+Las otras dos van al perfil (`alcance:`, `personas:`), al nombre que se sugiere y al primer mensaje
+al asistente. Solo se preguntan al montar de cero: un clon sigue preguntando una sola cosa. Con «La
+empresa entera», el nombre se pregunta una vez.
+
+### Lo que contesta RSC al montar, en sus seis formas
+
+`onboard --accept-plan` tiene dos `RSC_ONBOARDING_INCOMPLETE` que no se parecen en nada:
+- por la salida normal, con código 0 y la huella, el plan **está aplicado** y falta el suelo. Pasa
+  siempre que el plan practica SDD, porque el suelo incluye los innegociables y `onboard` no los
+  escribe;
+- por la de errores, con código 4, el montaje falló a mitad y RSC lo ha deshecho.
+
+La barra leía los dos como fallo. Ahora el primero sigue adelante: raíles, nombres y enganches, y
+una pieza nueva en «Qué falta por montar», **Innegociables**, con el botón que se los pide al
+asistente. El «a medias» solo vale con la huella que se aceptó y la que RSC dejó en el recibo.
+
+### Lo demás de F1
+
+- **El objetivo va en base64** en las dos llamadas: escrito a mano puede llevar `& | ^ %`, que
+  cmd.exe interpreta en el camino de reserva de Windows (A10).
+- **Los cuatro escalones de «Cómo te habla»** en el arranque: *De la mano · Te explica por qué ·
+  Corto · Al grano*. Faltaba el último, que RSC también ofrece (A4).
+- **El guardián de gitmoji, apagado** en las carpetas de alumno, con su porqué escrito en
+  `.rsc/.no-gitmoji` (A11). Siempre, y no solo cuando el plan lo trae: `repair` lo monta aunque el
+  plan no lo pida.
+- Dos textos que decían «empresa» por defecto: el título de la caja de la web y el aviso de
+  progreso. Y con el suelo a medias, el aviso final dice «ya está montado», no «listo»: «listo» es
+  cuando el arnés también lo da por listo (G7).
+- El primer mensaje al asistente sale de una función que se puede probar, y ya no pega el objetivo
+  con lo que sigue («facturas.Después»), que venía de antes.
+
+### La prueba que faltaba
+
+`extension/prueba/contrato.js` juega el arranque de verdad y le pide a RSC el plan en seco, con el
+paquete que viaja dentro de la barra y en carpetas temporales. En los casos con SDD, además, lo
+aplica. No finge nada de RSC, que es lo que dejó pasar A1 y A2. Tarda cinco segundos y entra en la
+batería.
+
+### Lo que encontró la revisión
+
+Un revisor con el contexto limpio vio que **qué lleva la carpeta y cuánta gente hay se perdían al
+volver a montar**: RSC reescribe el perfil entero cada vez que acepta un plan, y la barra solo
+releía los nombres. Ahora los relee todos. Y tres cosas menores: «Listo» en la primera fila con los
+innegociables por escribir, un nombre con `$&` que rompía el perfil, y el plan, que no decía el
+contrato que se publicó.
+
+0.33.0. 205 comprobaciones, 208 con el arnés de verdad, y 9 de contrato.

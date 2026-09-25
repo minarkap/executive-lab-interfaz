@@ -35,6 +35,11 @@ function leer() {
     empresa: texto(campos.empresa),
     // Lo puso el alumno, o lo hemos deducido de la carpeta.
     puesto: Boolean(texto(campos.arnes)),
+    // Qué lleva la carpeta y cuánta gente hay detrás. Los escribe la barra y
+    // no RSC, que reescribe el perfil entero en cada plan aceptado: se leen
+    // aquí para poder volver a escribirlos.
+    alcance: texto(campos.alcance),
+    personas: texto(campos.personas),
   };
 }
 
@@ -53,9 +58,10 @@ function objetivo() {
 }
 
 // El rótulo de la ventana: "Contabilidad · Nexus Consulting", o lo que haya.
+// Con «La empresa entera» los dos nombres son el mismo, y se dice una vez.
 function titulo() {
   const { arnes, empresa } = leer();
-  if (arnes && empresa) return `${arnes} · ${empresa}`;
+  if (arnes && empresa && arnes !== empresa) return `${arnes} · ${empresa}`;
   return arnes || empresa || 'Executive Lab';
 }
 

@@ -57,6 +57,7 @@ if [ "${1:-}" = "--rapido" ]; then
   npm run probar --silent | grep -E 'comprobaciones|empresas'
 else
   node "$R/extension/prueba/humo.js" --con-arnes | tail -1
+  node "$R/extension/prueba/contrato.js" | tail -1
   node "$R/extension/prueba/empresas-distintas.js" | tail -1
 fi
 

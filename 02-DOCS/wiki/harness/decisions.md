@@ -493,3 +493,21 @@ tareas y gate `analyze` en verde, en `02-DOCS/wiki/sdd/`.
 - Un commit por fase, sin push ni merge.
 
 0.32.0. Sin cambios de código en esta fase.
+
+## El arranque monta con cualquier respuesta — 25 de septiembre de 2026
+
+Decisión 117 en `docs/decisiones.md`. Fase F1 de la cadena SDD `todo-cuadra`.
+
+- **Tres preguntas en vez de «¿es algo pequeño o va para largo?»**: qué lleva la carpeta, cuántas
+  personas y, con «Construir algo» o «Un poco de todo», qué se va a construir. Solo la última va a
+  RSC como tamaño (`small`, `growing`, `complex`); las otras dos, al perfil y al primer mensaje.
+- **El suelo a medias se lee como montado.** Con la cadena SDD, RSC aplica el plan y dice que faltan
+  los innegociables; la barra pone lo suyo y ofrece escribirlos con un botón. El «deshecho», con
+  código 4, sigue siendo un fallo.
+- El objetivo va en base64, el arranque ofrece los cuatro escalones de «Cómo te habla», y el
+  guardián de gitmoji queda apagado en las carpetas de alumno.
+- **`extension/prueba/contrato.js`**, nueva: le pregunta al RSC de dentro, sin fingirlo.
+- La revisión vio que alcance y personas se perdían al volver a montar, porque RSC reescribe el
+  perfil entero. Ahora se releen.
+
+0.33.0. 205 comprobaciones, 208 con el arnés de verdad, y 9 de contrato.

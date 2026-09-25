@@ -64,13 +64,30 @@ function comoEstaLaDeclaracion() {
 }
 
 // El recibo del onboarding: lo que RSC firmó cuando alguien aceptó el plan.
-// Dentro está `record`, que ya contiene cinco de las siete preguntas del
-// asistente —nivel, dial, de qué va, objetivo y tamaño— y los targets. Es lo
+// Dentro está `record`, que ya contiene cinco de las nueve preguntas del
+// arranque —nivel, dial, de qué va, objetivo y tamaño— y los targets. Es lo
 // que permite no volver a preguntar lo que ya está contestado.
 function recibo() {
   const declarado = declaracion();
   const plan = declarado && declarado.onboarding && declarado.onboarding.plan;
   return plan && plan.record ? plan : null;
+}
+
+// Lo que el plan aceptado pide además de las tres piezas de siempre. RSC lo
+// guarda en el recibo (`floorPaths`), y con la cadena SDD incluye los
+// innegociables, que `onboard` no escribe: los escribe la fase `constitution`
+// con quien lleva el proyecto. Sin mirarlo, la barra decía «Listo» y RSC,
+// «incompleto».
+//
+// Va aparte de `sueloDelArnes()` a propósito: esas tres las levanta volver a
+// montar, y esta no. Metida allí, la carpeta se vería «a medias» y el arranque
+// volvería a montar para nada.
+const INNEGOCIABLES = ['02-DOCS', 'wiki', 'sdd', 'constitution.md'];
+
+function faltanLosInnegociables() {
+  const plan = recibo();
+  const losPide = Boolean(plan) && Array.isArray(plan.floorPaths) && plan.floorPaths.includes(INNEGOCIABLES.join('/'));
+  return losPide && !existe(...INNEGOCIABLES);
 }
 
 function versionDelCatalogo() {
@@ -79,4 +96,5 @@ function versionDelCatalogo() {
 
 module.exports = {
   raiz, ruta, existe, declaracion, comoEstaLaDeclaracion, recibo, sueloDelArnes, arnesCompleto, versionDelCatalogo,
+  faltanLosInnegociables, INNEGOCIABLES,
 };

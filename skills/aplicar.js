@@ -159,10 +159,20 @@ hechos.push(nombrarLaHabilidad());
 //
 // El aviso de versión nueva no se apaga con un fichero sino con la variable
 // `RSC_NO_UPDATE_CHECK`, así que ese sigue abierto y está dicho en la auditoría.
+//
+// Y un guardián, que no es un aviso: el de gitmoji deniega todo `git commit -m`
+// sin emoji ni gramática inglesa, y en esta casa se guarda en español y en
+// frase (el raíl `guardar.md`). RSC lo monta cuando el plan practica SDD, que es
+// justo lo que eligen quienes construyen algo que irá creciendo: cada copia de
+// esa persona recibiría un «BLOCKED» en inglés (A11). La decisión 94 lo apagó
+// en este repositorio y Jose lo apagó en las de alumno el 25-09-2026. Se pone
+// siempre, no solo cuando el plan lo trae: `repair` lo monta aunque el plan no
+// lo pida (C6), y entonces el interruptor ya tiene que estar.
 const CALLAR = [
   ['no-audit', 'la revisión de habilidades es herramienta de quien mantiene esto, no del alumno'],
   ['no-worktree-cleanup', 'un alumno no tiene worktrees, y el aviso lleva dos comandos'],
   ['no-scope-check', 'hablar de "scopes" a quien lleva las facturas no significa nada'],
+  ['no-gitmoji', 'aquí se guarda en español y en frase: el guardián de gitmoji denegaría cada copia'],
 ];
 
 function callarLosAvisos() {

@@ -171,8 +171,10 @@ rumbo.elegirRama(parte) -> { rama, preguntar[], pasos[], porQue }
   - preguntar: 'alcance' y 'personas' siempre; 'queConstruir' cuando deQueVa ∈ {software, mixed} (A1, A13)
     · queConstruir → --software-scope: concreta | noLoSe | nada → small · sumando → growing ·
       plataforma → complex ('nada' solo se ofrece con mixed)
-    · alcance ∈ {tarea, proyecto, departamento, empresa} y personas ∈ {solo, 2a10, 11a50, masDe50}
-      no van a RSC: van al perfil (alcance:, personas:), al nombre sugerido y al primer mensaje
+    · alcance ∈ {tarea, proyecto, departamento, empresa} y personas ∈ {solo-yo, 2-10, 11-50, mas-de-50}
+      no van a RSC: van al perfil (alcance:, personas:) y al primer mensaje; el alcance decide
+      además cómo se pregunta el nombre. Se leen del perfil al volver a montar, porque RSC lo
+      reescribe entero (F1, revisión)
   - pura: ni disco ni procesos (prueba ya existente)
 
 rsc.planEnSeco(flags) -> { planId, gestionados[], seleccionados[{kind,id}], avisos[], politica }
@@ -180,12 +182,15 @@ rsc.planEnSeco(flags) -> { planId, gestionados[], seleccionados[{kind,id}], avis
     «Parent harness detected», «Accept exactly this plan»
   - flags siempre con --goal-base64 (A10)
 
-rsc.aplicarPlan(lineaDeAceptacion) -> Listo{planId}
+rsc.comoAcaboElMontaje(intento, { planId, aceptado }) -> Listo{planId}
                                      | SueloAMedias{planId, faltan[]}   stdout
                                                                         ^RSC_ONBOARDING_INCOMPLETE <64hex>$,
-                                                                        código 0, id == acceptedPlanId
+                                                                        código 0, id == planId == aceptado
                                      | Deshecho{motivo}                 stderr RSC_ONBOARDING_INCOMPLETE:, código 4
-                                     | PlanCambiado | Invalido{campo} | Fallo{codigo, salida, error}
+                                     | PlanCambiado | Invalido{campo} | Fallo{codigo}
+  - lector puro de lo que contesta `onboard --accept-plan`, que se lanza con `rsc.correr`; el
+    intento entero lo guarda quien llama, para el parte (así quedó en F1: un `aplicarPlan` dentro
+    de `rsc.js` se saltaba el RSC fingido de las pruebas; ver sdd/decisions.md)
 
 carpetaAjena.resumen(planEnSeco, disco) -> { tocados[{fichero, enCristiano}], choques[{que, id, sugerido}] }
 carpetaAjena.resolver(choques, elecciones) -> Ok | Fallo{fichero}
@@ -252,7 +257,8 @@ cerebro.huecos() -> [{ fecha, concepto }]
    - y la web.
 4. `ponerGit`, con la identidad local puesta.
 5. `rsc.planEnSeco()`, con `--goal-base64` y `--software-scope`.
-6. `rsc.aplicarPlan()` → `Listo` o `SueloAMedias`. Las dos siguen adelante.
+6. `onboard --accept-plan`, leído con `rsc.comoAcaboElMontaje()` → `Listo` o `SueloAMedias`. Las dos
+   siguen adelante.
 7. Los raíles, para todos los asistentes; `.no-gitmoji` si el plan trae el guardián.
 8. Los nombres.
 9. El relevo.
@@ -397,14 +403,14 @@ pasa. Y la verificación anota que se pone roja otra vez si se quita el código.
 | T007 |  | Comprobar que están en el diccionario las palabras de F1 que Jose aprobó en T005 (1.6) | Las filas del tamaño y de los escalones están; `dicc` limpio | T005 | A2, A4 · P2 |
 | T008 |  | Escribir `contrato.js` en rojo: todas las respuestas del arranque contra el RSC empaquetado (1.1 a, c, d) | `contrato` sale con código 1 y nombra «mixed sin tamaño» y «large no es un tamaño de RSC». Cuando T010 esté, recorre además cada respuesta de «¿Qué vas a construir?» con los dos tipos que la hacen | T002 | A1, A2, A13, I1 |
 | T009 |  | Escribir en rojo la comprobación del suelo a medias (1.1 b) | `contrato` monta en temporal `software/growing`, `software/complex` y `small` con «pagos», y sale rojo porque la barra lo da por fallo; la forma de código 4 se espera `Deshecho` | T008 | A3, I1 |
-| T010 |  | Hacer las tres preguntas nuevas y tratar `SueloAMedias`, en el mismo commit (1.2 + 1.4). A todos, alcance y personas; con `software` y con `mixed`, qué va a construir, que se traduce a `small` / `growing` / `complex` (C-21). Alcance y personas van al perfil (`alcance:`, `personas:`), sugieren el nombre y entran en el primer mensaje | `contrato` en verde. `humo`, en verde con cuatro nuevas: «alcance y personas se preguntan a todos», «qué va a construir se pregunta con construir algo y con un poco de todo, y nada más», «cada respuesta da el tamaño de RSC que le toca» y «aplicado con el suelo a medias pone los raíles y ofrece levantarlo». `large` ya no aparece en `arrancar.js` ni en `rumbo.js` (`grep`) | T007, T009 | A1, A2, A3, A13 |
+| T010 |  | Hacer las tres preguntas nuevas y tratar `SueloAMedias`, en el mismo commit (1.2 + 1.4). A todos, alcance y personas; con `software` y con `mixed`, qué va a construir, que se traduce a `small` / `growing` / `complex` (C-21). Alcance y personas van al perfil (`alcance:`, `personas:`) y entran en el primer mensaje; el alcance decide cómo se pregunta el nombre | `contrato` en verde. `humo`, en verde con cuatro nuevas: «alcance y personas se preguntan a todos», «qué va a construir se pregunta con construir algo y con un poco de todo, y nada más», «cada respuesta da el tamaño de RSC que le toca» y «aplicado con el suelo a medias pone los raíles y ofrece levantarlo». `large` ya no aparece en `arrancar.js` ni en `rumbo.js` (`grep`) | T007, T009 | A1, A2, A3, A13 |
 | T011 |  | Mandar el objetivo con `--goal-base64` en las dos llamadas (1.3) | `humo` «un objetivo con & \| ^ % " llega entero», rojo → verde | T010 | A10 |
 | T012 |  | Usar en el arranque los cuatro escalones de «Cómo te habla» (1.5) | `humo` «el arranque ofrece los cuatro escalones con sus nombres» y `contrato` con L0 en verde; la habilidad dice L0–L3 | T010 | A4 |
 | T013 |  | Dejar `.rsc/.no-gitmoji` con su motivo en las carpetas de alumno (1.7) | `humo` «los raíles apagan el guardián de gitmoji con su porqué» en verde; y en `humo+`, en `software/growing`, el guardián recibe un `git commit -m "Primera versión"` y sale 0 | T010, T005 (veto) | A11 |
 | T014 |  | Verificar F1, y escribir la decisión 117, el worklog, la versión y el commit | `batería` y `humo+` en verde; mutación anotada en `verifications/todo-cuadra-F1-<fecha>.md` | T011, T012, T013 | A1–A4, A10, A11 |
 
 **T010 — Interfaces**
-- Consume `rsc.aplicarPlan(linea) -> Listo{planId} | SueloAMedias{planId, faltan[]} | Deshecho{motivo} | PlanCambiado | Invalido{campo} | Fallo{codigo, salida, error}`:
+- Consume `rsc.comoAcaboElMontaje(intento, { planId, aceptado }) -> Listo{planId} | SueloAMedias{planId, faltan[]} | Deshecho{motivo} | PlanCambiado | Invalido{campo} | Fallo{codigo}` (en el plan aprobado se llamaba `rsc.aplicarPlan(linea)`; cambió en F1, ver sdd/decisions.md):
   - `SueloAMedias`: la línea de la salida normal `^RSC_ONBOARDING_INCOMPLETE [0-9a-f]{64}$`, con código 0 y la huella igual a `acceptedPlanId`.
   - `Deshecho`: `RSC_ONBOARDING_INCOMPLETE:` por la salida de errores, con código 4.
 - Produce en `arrancar.hacerLosPasos`: `SueloAMedias` no es `imprescindible`. Se siguen `ponerLosRailes`, `ponerLosNombres` y `apuntarLosEnganches`, y se añade el encargo `levantarElSuelo`, que nombra `02-DOCS/wiki/sdd/constitution.md` si está en los `floorPaths` del recibo.

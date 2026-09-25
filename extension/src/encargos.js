@@ -59,18 +59,32 @@ function armar({ etiqueta, queHay, queTieneQueQuedar, queNoSeToca, queHayQueAvis
 function levantarElSuelo(faltan = []) {
   // Lo que va dentro de un encargo lo lee el asistente, no el alumno: ahí sí
   // hacen falta las rutas exactas, o no sabría qué levantar.
+  //
+  // Lo que falta llega de dos sitios: la barra nombra sus tres piezas, y RSC
+  // dice sus rutas. Son las mismas, salvo los innegociables, que solo los pide
+  // un plan con la cadena SDD y que no se levantan con `harness`.
+  const INNEGOCIABLES = proyecto.INNEGOCIABLES.join('/');
   const QUE_ES = {
     declaracion: 'el fichero que dice cómo está montado esto (.rsc.json)', // diccionario: interno
     conexiones: 'la carpeta de conexiones con la plantilla dentro (01-TOOLS/_TEMPLATE/)',
     conocimiento: 'la carpeta del perfil y las decisiones (02-DOCS/wiki/harness/)',
+    '01-TOOLS/_TEMPLATE/': 'la carpeta de conexiones con la plantilla dentro (01-TOOLS/_TEMPLATE/)',
+    '02-DOCS/wiki/harness/': 'la carpeta del perfil y las decisiones (02-DOCS/wiki/harness/)',
+    [INNEGOCIABLES]: `los innegociables del proyecto (${INNEGOCIABLES})`,
   };
+  const descritas = [...new Set(faltan.map((f) => QUE_ES[f] || f))];
+  const conInnegociables = faltan.includes(INNEGOCIABLES);
+  const soloInnegociables = conInnegociables && faltan.every((f) => f === INNEGOCIABLES);
+
+  const conHarness = 'Usa la habilidad `harness` para levantar el suelo que falta, exactamente esas rutas y ninguna más.';
+  const conConstitution = 'Los innegociables se escriben con la fase `constitution` de la cadena SDD: pregúntame lo que necesites para escribirlos, de una en una.';
 
   return armar({
     etiqueta: 'Que termine de prepararlo',
-    queHay: `El arnés de esta carpeta se quedó a medias: falta ${faltan.map((f) => QUE_ES[f] || f).join(', ')}.`,
-    queTieneQueQuedar: 'Usa la habilidad `harness` para levantar el suelo que falta, exactamente esas rutas y ninguna más.',
+    queHay: `El arnés de esta carpeta se quedó a medias. Falta esto: ${descritas.join('; ')}.`,
+    queTieneQueQuedar: soloInnegociables ? conConstitution : [conHarness, conInnegociables ? conConstitution : ''].filter(Boolean).join(' '),
     queNoSeToca: 'No toques nada de lo que ya hay dentro de 01-TOOLS ni de 02-DOCS: puede haber claves y documentos de esta persona.',
-    comprobar: () => proyecto.arnesCompleto(),
+    comprobar: () => proyecto.arnesCompleto() && !proyecto.faltanLosInnegociables(),
   });
 }
 

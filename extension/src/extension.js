@@ -1292,9 +1292,8 @@ ${cabecera}
     // salía si alguien entraba en Conexiones y pulsaba (decisión 104).
     const desordenadas = sueltas.resumen();
     const conClaves = desordenadas ? `\n\n${desordenadas.prompt}\n\n` : '';
-    const deQuien = hecho.nombres.empresa ? ` Es para ${hecho.nombres.empresa}.` : '';
     const comoSeLlama = hecho.nombres.arnes || identidad.deQuien();
-    await puente.enviar(`Acabo de montar aquí un arnés que he llamado "${comoSeLlama}".${deQuien} Lo primero que quiero resolver: ${hecho.objetivo}.${conWeb}${conClaves}Después empieza preguntándome lo que necesites saber, de una pregunta en una pregunta.`);
+    await puente.enviar(arrancar.primerMensaje(hecho, { comoSeLlama, conWeb, conClaves }));
     await this.siFaltaAlgoDecirlo(false);
     return undefined;
   }

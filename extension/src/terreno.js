@@ -289,6 +289,11 @@ function comoEstanLosRailes(carpetaDeLaExtension = carpetaDeLaBarra) {
     // `puesto` es lo que distingue un nombre escrito por alguien del que se
     // deduce de la carpeta. Un nombre deducido no cuenta como contestado.
     nombres: nombres.puesto ? { arnes: nombres.arnes, empresa: nombres.empresa } : null,
+    // Lo que se contestó al montar y no pide RSC: sin leerlo aquí, volver a
+    // montar lo perdía, porque RSC reescribe el perfil y no se vuelve a
+    // preguntar.
+    alcance: nombres.alcance,
+    personas: nombres.personas,
   };
 }
 
@@ -509,8 +514,10 @@ async function radiografia({ aFondo = null } = {}) {
     conArreglo({
       nombre: 'El asistente, montado aquí',
       estado: hay.tipo === 'conArnes' ? 'si' : hay.tipo === 'aMedias' ? 'aMedias' : 'no',
+      // «Listo» solo cuando el arnés también lo daría por listo (G7): con los
+      // innegociables por escribir está montado, y lo que falta va en su pieza.
       detalle: hay.tipo === 'conArnes'
-        ? (montadoEl ? `Listo, desde el ${montadoEl}` : 'Listo')
+        ? `${proyecto.faltanLosInnegociables() ? 'Montado' : 'Listo'}${montadoEl ? `, desde el ${montadoEl}` : ''}`
         : hay.tipo === 'aMedias' ? 'Se quedó a medias' : 'Todavía no',
     }, { como: 'solo', etiqueta: 'Terminar de prepararlo', accion: { tipo: 'arrancar' } }),
     conArreglo({
@@ -573,6 +580,19 @@ async function radiografia({ aFondo = null } = {}) {
     }, { como: 'persona', etiqueta: 'Guardar fuera de aquí', accion: { tipo: 'verCopiaFuera' } }),
   ];
 
+
+  // Los innegociables que pide el plan. Con la cadena SDD, RSC los exige y
+  // `onboard` no los escribe: los escribe el asistente con quien lleva el
+  // proyecto, así que el botón se lo pide (A3 de la auditoría todo-cuadra).
+  // Hasta ahora, aquí salía «Listo» y RSC decía «incompleto».
+  if (conArnes && proyecto.faltanLosInnegociables()) {
+    piezas.push({
+      nombre: 'Innegociables',
+      estado: 'no',
+      detalle: 'Faltan, y el arnés los pide para lo que vas a construir',
+      arreglo: comoEncargo(encargos.levantarElSuelo([proyecto.INNEGOCIABLES.join('/')])),
+    });
+  }
 
   // Lo que el repositorio declara y no está en esta máquina. Es lo que RSC
   // llama «what a fresh clone looks like», y hasta ahora se veía como un arnés
