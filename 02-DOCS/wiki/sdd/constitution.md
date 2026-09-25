@@ -48,6 +48,17 @@ permiso antes de nada; si dice que no, no se instala nada.
 **Se comprueba**: ninguna rama sobre historial ajeno lleva el paso
 `puntoDePartida`, y hay una prueba que lo recorre estado por estado.
 
+**Enmienda del 24-09-2026, decisión 3 de Jose en el programa `todo-cuadra`.** RSC borra la
+habilidad, el comando o el agente de esa persona que se llame como uno suyo, y enlaza el suyo
+encima. Por cada choque se le pregunta, y solo con su sí explícito se hace una de dos cosas:
+
+- **sobrescribir** la suya con la del arnés, que la guarda en sus copias (`.rsc/backups/`), y se le
+  dice dónde;
+- **cambiarle el nombre** a la suya para que quepan las dos.
+
+Sin respuesta no se monta nada. Su historial sigue sin escribirse. **Se comprueba**: la prueba de
+choques exige que, sin respuesta, no cambie ni un fichero suyo.
+
 ## P5 · Determinista lo que se puede leer del disco
 
 Clasificar, decidir la rama, calcular qué preguntar, los mapeos de conexiones,

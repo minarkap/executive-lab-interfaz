@@ -3415,3 +3415,77 @@ que es como este proyecto prefiere fallar.
 
 0.32.0. 196 comprobaciones, la nueva verificada por mutación y aplicada a esta carpeta: `git status`
 deja de sacar `settings.json` sin que Jose pierda su ruta.
+
+## 116. Todo cuadra: la auditoría entera, y cómo se arregla
+
+**Fecha:** 24 y 25 de septiembre de 2026 · **Estado:** decidido · **Cadena SDD** `todo-cuadra`
+
+Jose: *«revisa todo este proyecto […] mira bien RSC […] audites y revises todo y redactes un plan
+para arreglar todo aquello que no esté perfectamente hecho […] todo, todo, todo, tiene que estar
+todo perfecto. Hazlo para un plan de SDD de tipo de este arnés y en autopilot»*.
+
+Se leyó RSC 2.0.5 desde la copia que viaja dentro de la barra y se cruzó contra la barra, los
+raíles, los instaladores, la documentación y las pruebas. Hubo tres exploraciones en paralelo,
+lectura propia de cada hallazgo de peso y una revisión adversarial que intentó tumbarlos. Salen
+**56 hallazgos**: 3 críticos, 14 altos, 29 medios y 10 bajos. Están enteros, con fichero y línea, en
+`02-DOCS/wiki/sdd/proposals/todo-cuadra.md`.
+
+### Lo gordo
+
+- **Dos respuestas del arranque no montan.**
+  - «Un poco de todo»: RSC exige el tamaño también para `mixed`, y la barra solo lo manda con
+    software.
+  - «Va para largo»: la barra manda `large`, que RSC no acepta.
+
+  Nadie lo vio, porque la única prueba con arnés de verdad usa «Llevar el día a día».
+- **La mayoría de los alumnos no tiene freno ante órdenes peligrosas.** RSC solo engancha sus frenos
+  cuando el plan practica SDD. Sin ellos se quedan la operativa, el contenido, la investigación y el
+  software pequeño. La barra, la decisión 99 y el README decían lo contrario.
+- **Sin Node en el ordenador no corre ningún enganche**, y un enganche que falla no para la orden.
+- **Con Claude, las reglas de los raíles no se cargan seguro**: solo si el asistente decide leerlas.
+- **Además:**
+  - «Guardar en git» se lleva a la copia una credencial suelta en la raíz;
+  - las claves se guardan sin comillas en un fichero que se carga con `source`;
+  - «Resolver una incidencia» revienta por un `require` que falta;
+  - nada impide preparar la carpeta personal;
+  - un clon se da por sano;
+  - cambiar de asistente se deshace en el siguiente `sync`.
+
+### Lo que decidió Jose
+
+1. **Freno propio** donde RSC no pone el suyo: una copia fijada del de RSC (MIT), con el mismo
+   interruptor, y se le cuenta a Eric.
+2. **Rama propia**, esperando a que las sesiones paralelas estén paradas.
+3. **En una carpeta de alguien, se confirma antes de montar.** Si un nombre choca, se le pregunta si
+   se sobrescribe lo suyo o si prefiere cambiarle el nombre.
+4. **Sin Node, se usa el Node que ya trae VS Code**, con un relevo. Si no sale limpio, se descarga
+   el oficial sin administrador.
+5. **Tres preguntas fáciles en vez de «¿es algo pequeño o va para largo?»**:
+   - qué lleva la carpeta (una tarea, un proyecto, un departamento, la empresa entera);
+   - cuántas personas están metidas;
+   - y, si se va a construir algo, qué es: *«no es lo mismo un departamento de 3 personas que de
+     50»*, *«una landing no es lo mismo que una plataforma completa SAAS multiidioma con
+     backoffice»*.
+
+   Solo la última decide el tamaño que se le manda a RSC.
+6. **Guardián de gitmoji apagado** en las carpetas de alumno, como aquí en la 94. **La puerta SDD se
+   queda.**
+7. **Los demás textos de pantalla, con su criterio**: gente no técnica que lleva desde una tarea
+   puntual hasta una empresa entera. Al cerrar cada fase, Jose ve las pantallas pintadas.
+
+### Lo que encontraron los gates, y no la auditoría
+
+- **La revisión con ojos frescos de la spec**: la decisión 3 chocaba con P4, que decía «no se
+  renombra» sin excepción. **Se enmienda P4**: solo con su sí explícito y con copia recuperable. Es
+  mejor enmendar la regla que saltársela en silencio.
+- **`analyze`**: el arreglo de los raíles, que se reponen solos al abrir, habría metido un bloque en
+  el `CLAUDE.md` de un proyecto ajeno sin su sí. En esas carpetas, lo nuevo se ofrece con su botón y
+  no se pone en silencio.
+
+### Cómo se hace
+
+Diez fases (F0–F9) y 77 tareas, cada una con su comprobación literal, en
+`02-DOCS/wiki/sdd/plans/todo-cuadra.md`. Van en la rama `todo-cuadra`, con un commit por fase y la
+prueba en rojo primero. **No hay push, ni merge, ni publicación sin Jose.**
+
+0.32.0. Sin cambios de código en esta fase.

@@ -468,3 +468,28 @@ Decisión 115 en `docs/decisiones.md`.
   apuntando a su node.
 
 0.32.0. 196 comprobaciones.
+
+## Todo cuadra: la auditoría entera, y cómo se arregla — 24 y 25 de septiembre de 2026
+
+Decisión 116 en `docs/decisiones.md`. Cadena SDD `todo-cuadra`: propuesta, spec, plan con 77
+tareas y gate `analyze` en verde, en `02-DOCS/wiki/sdd/`.
+
+- **56 hallazgos**: 3 críticos, 14 altos, 29 medios y 10 bajos.
+  - Dos respuestas del arranque no montan: «Un poco de todo» y «Va para largo».
+  - La mayoría de los alumnos no tiene freno ante órdenes peligrosas: RSC solo los engancha cuando
+    el plan practica SDD.
+  - Sin Node no corre ningún enganche.
+  - Con Claude, los raíles no se cargan seguro.
+- **Jose decidió siete cosas:**
+  - freno propio;
+  - rama propia;
+  - confirmar en las carpetas ajenas, y preguntar si se sobrescribe o se renombra lo que choque;
+  - el Node de VS Code como relevo;
+  - tres preguntas fáciles (qué lleva la carpeta, cuántas personas, qué se va a construir) en vez
+    de «grande o pequeño»;
+  - gitmoji apagado en las carpetas de alumno;
+  - los textos con su criterio.
+- **P4 se enmienda**: renombrar o sobrescribir algo de otra persona solo con su sí y con copia.
+- Un commit por fase, sin push ni merge.
+
+0.32.0. Sin cambios de código en esta fase.
