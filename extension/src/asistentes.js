@@ -108,7 +108,9 @@ function laEleccion() {
 function conQuien() {
   const declarados = losDelArnes();
   const elegido = porId(laEleccion());
-  if (elegido && declarados.some((a) => a.id === elegido.id)) return elegido;
+  // Y si sigue en el ordenador: si no, los botones acababan en «pégalo en su
+  // caja» para una caja que no hay (revisión de F5, m1).
+  if (elegido && declarados.some((a) => a.id === elegido.id) && estaInstalado(elegido)) return elegido;
   return declarados.find(estaInstalado) || declarados[0] || ASISTENTES.find(estaInstalado) || ASISTENTES[0];
 }
 
@@ -119,8 +121,12 @@ const elDeAhora = () => conQuien();
 function comoEstamos() {
   const ahora = elDeAhora();
   const delArnes = losDelArnes().map((a) => a.id);
+  const targets = (proyecto.declaracion() || {}).targets;
   return {
     ahora: ahora ? ahora.id : null,
+    // Si la carpeta está montada, aunque sea para uno que la barra no ofrece: ahí
+    // el de ahora no tiene nada, y se dice (revisión de F5, m4).
+    montada: Array.isArray(targets) && targets.length > 0,
     cuales: ASISTENTES.map((a) => ({
       id: a.id,
       nombre: a.nombre,
@@ -158,21 +164,41 @@ async function elegir(id, { montar } = {}) {
     const d = proyecto.declaracion() || {};
     return Array.isArray(d.targets) ? d.targets : [];
   };
-  if (!declarados().includes(id)) {
+  // Declarado y sin sus raíles es un cambio que se quedó a medias: el arnés lo
+  // declaró y los raíles no se pudieron poner. Se termina, en vez de decir
+  // «Hecho» sin ellos (revisión de F5, m2).
+  const suyo = require('../media/railes/sitios').sitiosDe(id);
+  const conSusRailes = () => Boolean(suyo) && require('node:fs').existsSync(proyecto.ruta(...suyo.habilidades, 'executive-lab', 'SKILL.md'));
+  let renombrados = [];
+  if (!declarados().includes(id) || !conSusRailes()) {
     if (typeof montar !== 'function') return noSePudo;
-    let montado = false;
+    let hecho;
     try {
-      montado = await montar(id);
-    } catch {
-      montado = false;
+      hecho = await montar(id);
+    } catch (error) {
+      hecho = { ok: false, detalle: error.message };
     }
-    if (!montado || !declarados().includes(id)) return noSePudo;
+    if (hecho === true) hecho = { ok: true };
+    if (!hecho || typeof hecho !== 'object') hecho = { ok: false };
+    // Con una versión del arnés más nueva que la de la clase no se prepara nada
+    // (revisión de F5, I2), y sin su sí, nada se toca.
+    if (hecho.masNueva) {
+      return { ok: false, mensaje: 'Esta carpeta se montó con una versión del arnés más nueva que la de tu clase. Antes de cambiar de asistente, pulsa «Ponerla como la de la clase» en Qué falta por montar.' };
+    }
+    if (hecho.cancelado) return { ok: false, cancelado: true, mensaje: 'No he tocado nada. Cuando quieras, el botón sigue aquí.' };
+    if (!hecho.ok) return { ...noSePudo, ...(hecho.mensaje ? { mensaje: hecho.mensaje } : {}), detalle: hecho.detalle };
+    if (!declarados().includes(id)) return { ...noSePudo, detalle: 'el arnés terminó bien y no lo ha declarado' }; // diccionario: interno
+    renombrados = hecho.renombrados || [];
   }
 
+  // Sin dónde guardarlo no se dice «Hecho»: la elección no duraría ni hasta el
+  // siguiente repintado (revisión de F5, M2).
+  const noSeGuardo = { ok: false, mensaje: 'No he podido guardarlo. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
+  if (!estado) return { ...noSeGuardo, detalle: 'la barra no tiene dónde guardar la elección' }; // diccionario: interno
   try {
-    if (estado) await estado.update(CLAVE_DE_LA_ELECCION, id);
-  } catch {
-    return { ok: false, mensaje: 'No he podido guardarlo. Prueba con "Algo va mal".' };
+    await estado.update(CLAVE_DE_LA_ELECCION, id);
+  } catch (error) {
+    return { ...noSeGuardo, detalle: error.message };
   }
 
   // Lo que se pierde sin estar en ninguna carpeta: los frenos. RSC solo se los
@@ -184,7 +210,10 @@ async function elegir(id, { montar } = {}) {
   const sinFrenos = (donde.SITIOS[id] || {}).frenos
     ? ''
     : ` Y ${cual.nombre} no trae frenos: el que para una orden peligrosa solo se le engancha a Claude.`;
-  return { ok: true, mensaje: `Hecho. A partir de ahora los botones hablan con ${cual.nombre}.${sinFrenos}` };
+  const conOtroNombre = renombrados
+    .map((r) => ` Tu ${r.que === 'habilidad' ? 'habilidad' : r.que} «${r.id}» ahora se llama «${r.ahora}».`)
+    .join('');
+  return { ok: true, mensaje: `Hecho. A partir de ahora los botones hablan con ${cual.nombre}.${conOtroNombre}${sinFrenos}` };
 }
 
 module.exports = { ASISTENTES, saberDondeGuardar, conQuien, elDeAhora, losDelArnes, estaInstalado, porId, comoEstamos, elegir };

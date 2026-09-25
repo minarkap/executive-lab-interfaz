@@ -120,9 +120,14 @@ async function anadir(id) {
   if (!/^[a-z0-9-]{2,40}$/.test(id)) return { ok: false };
   if (comoEsLaVersion(proyecto.versionDelCatalogo()) === 'nueva') return { ok: false, masNueva: true };
 
-  // Para el asistente con el que se habla, y no para el primero declarado (E2).
-  const quien = require('./donde').paraQuien();
-  await correr(['add', id, '--target', quien], { tiempoMaximo: 180000 });
+  // Para todos los asistentes declarados que sabemos dónde miran, a la vez (`--target
+  // claude,codex`, medido con el paquete): con uno solo, el otro se quedaba con una
+  // habilidad declarada que no tenía (revisión de F5, m5). Sin nada declarado,
+  // para el de ahora (E2). Por el objeto del módulo, para que se pueda fingir.
+  const sitios = require('../media/railes/sitios');
+  const declarados = ((proyecto.declaracion() || {}).targets || []).filter((q) => sitios.sitiosDe(q));
+  const para = declarados.length ? declarados : [require('./donde').paraQuien()];
+  await module.exports.correr(['add', id, '--target', para.join(',')], { tiempoMaximo: 180000 });
   return { ok: habilidadesPuestas().includes(id) };
 }
 
@@ -134,8 +139,9 @@ async function anadir(id) {
 // traerlas hay que mirar el disco a secas.
 //
 // Con Cursor, cada habilidad es un fichero `<id>.mdc` en la carpeta de sus
-// reglas, y ahí también está el fichero de siempre de RSC, que no es una
-// habilidad (E3).
+// reglas, y ahí también deja RSC los suyos, que no son habilidades: el de siempre
+// (`rsc-suggest.mdc`) y el de la memoria (`rsc-memory.mdc`). Van con `rsc-` delante
+// (E3; revisión de F5, m3).
 function habilidadesEnDisco() {
   const donde = require('./donde');
   const carpeta = donde.carpetaDeHabilidades();
@@ -144,10 +150,8 @@ function habilidadesEnDisco() {
   try {
     const entradas = fs.readdirSync(carpeta, { withFileTypes: true }).filter((e) => !e.name.startsWith('.'));
     if (!ext) return entradas.filter((e) => e.isDirectory() || e.isSymbolicLink()).map((e) => e.name);
-    const siempre = ((donde.SITIOS[donde.paraQuien()] || {}).siempre || {}).fichero;
-    const deRsc = siempre ? siempre[siempre.length - 1] : null;
     return entradas
-      .filter((e) => (e.isFile() || e.isSymbolicLink()) && e.name.endsWith(ext) && e.name !== deRsc)
+      .filter((e) => (e.isFile() || e.isSymbolicLink()) && e.name.endsWith(ext) && !e.name.startsWith('rsc-'))
       .map((e) => e.name.slice(0, -ext.length));
   } catch {
     return [];
@@ -411,7 +415,31 @@ const arreglar = async () => yDespuesElPlan(await correr(['repair'], { tiempoMax
 // ha dicho que no hay nada que preguntar: ver arriba por qué.
 const arreglarSolo = async () => yDespuesElPlan(await correr(['repair', '--yes'], { tiempoMaximo: 180000 }));
 
+// Lo que un `sync --dry-run` dice que tocaría, relativo a la carpeta. RSC lo
+// escribe con la ruta entera, dos espacios delante, debajo de «Would sync»; en un
+// Mac, la carpeta temporal puede salir por `/private` (medido con el paquete).
+function loQueTocaElSync(salida, raiz) {
+  if (!raiz) return [];
+  const raices = [raiz];
+  try {
+    raices.push(fs.realpathSync(raiz));
+  } catch { /* con la que hay basta */ }
+  const dentro = (ruta) => {
+    for (const base of raices) {
+      const rel = path.relative(base, ruta);
+      if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) return rel.split(path.sep).join('/');
+    }
+    return null;
+  };
+  return String(salida || '').split('\n')
+    .map((linea) => (linea.match(/^ {2}(\S.*)$/) || [])[1])
+    .filter(Boolean)
+    .map((ruta) => dentro(ruta.trim()))
+    .filter(Boolean);
+}
+
 module.exports = {
+  loQueTocaElSync,
   correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar, arreglarSolo,
   comoEstaDeSalud, queHayQueArreglar, queRecomienda, comoAcaboElMontaje, leerElPlanEnSeco, cambiosDePolitica,
   queGuardianes, queCopiasDelArnes, queFaltaEnDisco, LOS_GUARDIANES,

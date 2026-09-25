@@ -222,7 +222,7 @@ conexiones.escribir(herramienta, clave, valor) -> Ok | Fallo
   - fuera de [A-Za-z0-9_./:@+=-], el valor va entre comillas simples, con la comilla escapada;
     el lector lo devuelve igual (F3)
 
-asistentes.conQuien() -> id
+asistentes.conQuien() -> { id, nombre, … }  (el asistente entero; `donde.paraQuien()` da su id)
   - una sola respuesta, de la que tiran donde, saberes.comoSePide, rsc.anadir y los raíles (E2)
   - la elección de esta máquina va en el estado del espacio de trabajo; targets queda para RSC (E1)
 
@@ -487,7 +487,7 @@ pasa. Y la verificación anota que se pone roja otra vez si se quita el código.
 | T052 |  | Verificar F5, y escribir la decisión 121, el worklog, la versión y el commit | `batería` y `humo+` en verde | T048–T051 | E1–E3 |
 
 **T047 — Interfaces**
-- `asistentes.conQuien() -> id`: una sola función, de la que tiran `donde.paraQuien`, `saberes.comoSePide`, `rsc.anadir` y `aplicar.js`.
+- `asistentes.conQuien() -> { id, nombre, … }`: una sola función, de la que tiran `donde.paraQuien`, `saberes.comoSePide`, `rsc.anadir` y `aplicar.js`.
 - La elección de esta máquina vive en el estado del espacio de trabajo; `.rsc.json → targets` queda para RSC.
 
 ### F6 · Credenciales, conexiones y copias

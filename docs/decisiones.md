@@ -3788,3 +3788,11 @@ ponían para el primero declarado.
 La barra solo ofrece Claude y Codex. Lo demás es para leer bien una carpeta montada fuera.
 
 0.37.0. 267 comprobaciones, 273 con el arnés de verdad, y 12 de contrato.
+
+**Tras la revisión de F5** (mismo día): dos frases de arriba decían más de lo que había.
+- «Si no, todo sigue como estaba» no era verdad: un `sync` que falla a medias deja lo que haya
+  escrito, y en una carpeta más nueva que la clase la bajaba. Ahora se sigue hablando con el de antes
+  y se dice; en una carpeta más nueva no se prepara nada; lo que toque algo de alguien se pregunta
+  antes, como al montar; y un cambio que se quedó a medias se termina en el siguiente intento.
+- «La barra habla con Claude» en una carpeta montada solo para otros: con el que esté instalado, y
+  la pantalla lo dice y ofrece prepararla para él.

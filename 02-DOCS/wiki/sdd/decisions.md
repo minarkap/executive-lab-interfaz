@@ -204,3 +204,16 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
   contenido no veía un `CLAUDE.md` suyo vacío.
 - **Un comando es nuestro si su `description` es la nuestra** (m8): es lo que conserva uno nuestro de
   otro día, y lo que no tiene uno suyo con el mismo nombre.
+
+## 2026-09-25 · todo-cuadra · revisión de F5
+
+- **Cambiar a un asistente sin montar pasa por lo mismo que montar**: primero en seco, y lo que es
+  de alguien se pregunta con las mismas pantallas (I1). `sync --dry-run` lista lo que tocaría, con la
+  ruta entera (medido con el paquete).
+- **Un `AGENTS.md` con normas del equipo y con lo de RSC se le apunta a Claude, no se importa** (I6):
+  importarlo traería dos veces lo de RSC, como dice `agents-md-shadow.js`, y no apuntarlo callaba las
+  normas del equipo. La sombra de `CLAUDE.md` que deja RSC no es de nadie.
+- **«Añadir» va para todos los declarados a la vez**, con `--target claude,codex` (m5): RSC sin
+  `--target` y con dos instalados no adivina, y con uno solo el otro se quedaba sin ella.
+- **La elección vale mientras ese asistente esté declarado e instalado** (M1, m1), y sin dónde
+  guardarla no se dice «Hecho» (M2).

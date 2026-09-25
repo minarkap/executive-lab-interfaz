@@ -29,8 +29,6 @@ const sitios = require('../media/railes/sitios');
 
 const SITIOS = sitios.SITIOS;
 
-// Para cuál se montó esta carpeta. Lo dice `.rsc.json`; sin él, Claude, que es
-// lo que monta nuestro instalador.
 // De quién son las carpetas en que se mira: del asistente con el que se habla,
 // que decide una sola función (E2). Se carga tarde: `asistentes` también usa esto.
 //

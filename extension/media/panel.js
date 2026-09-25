@@ -966,7 +966,7 @@ function pantallaComoTrabaja({
 
 // ---------------------------------------------------------- tu asistente
 
-function pantallaAsistente({ ahora, cuales = [], aviso: avisoLocal }) {
+function pantallaAsistente({ ahora, montada = false, cuales = [], aviso: avisoLocal }) {
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Tu asistente' }])}
     ${bloqueAviso(avisoLocal)}
@@ -990,6 +990,9 @@ function pantallaAsistente({ ahora, cuales = [], aviso: avisoLocal }) {
           : ''}
         ${a.instalado && a.id !== ahora
           ? boton({ etiqueta: `Hablar con ${a.nombre}`, icono: '▸', pequeno: true, accion: { tipo: 'elegirAsistente', cual: a.id } })
+          : ''}
+        ${a.instalado && a.id === ahora && montada && !a.delArnes
+          ? `<p class="pista">Esta carpeta no se montó para él.</p>${boton({ etiqueta: `Prepararla también para ${a.nombre}`, icono: '▸', pequeno: true, accion: { tipo: 'elegirAsistente', cual: a.id } })}`
           : ''}
       </div>`).join('')}
 

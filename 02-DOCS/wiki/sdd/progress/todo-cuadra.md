@@ -704,3 +704,20 @@ Solo se añade.
     todas. Dos sobrevivían a la primera versión de las pruebas, y se añadieron sus casos.
 
   Verde: `humo` 275, `humo+` 282, `contrato` 12.
+- **Corrección a T052** 25-09 · Las mutaciones de F5 fueron veintiséis, no treinta: 2 + 2 + 1 + 7 + 14.
+  Lo encontró la revisión de F5.
+- **Revisión de F5** 25-09 · Ocho importantes y diez menores, comprobados y aceptados
+  ([verificación de F5](../verifications/todo-cuadra-F5-2026-09-25.md#lo-que-encontró-la-revisión-con-ojos-frescos)).
+  I7 ya estaba arreglado en `62d6419`. En un commit propio, con F6 (T053) apartado en un `stash`:
+  - I1: cambiar a uno sin montar mira antes, en seco, qué tocaría, y lo que es de alguien se pregunta
+    como al montar. I2: no en una carpeta más nueva que la clase. I3, I4 e I5: el fallo al registro,
+    el vigía rearmado y el aviso de los frenos, lo último que se ve.
+  - I6: la sombra de `CLAUDE.md` de RSC no cuenta como suya, y un `AGENTS.md` con normas y con lo de
+    RSC se le apunta a Claude en vez de importarse.
+  - I8 y los menores: la elección, guardada al abrirse y válida mientras esté declarado e instalado;
+    un cambio a medias se termina; `add` para todos los declarados; lo de RSC en Cursor no son
+    habilidades; «Tu asistente» dice cuándo el de ahora no está montado; un trozo para dos en un
+    `AGENTS.md`; y los restos.
+  - Once pruebas nuevas o ampliadas, en rojo primero; diecinueve mutaciones, y mueren todas.
+
+  Verde: `humo` 280, `humo+` 287, `contrato` 12.

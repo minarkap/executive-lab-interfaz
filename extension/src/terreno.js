@@ -480,14 +480,16 @@ function loDeSiempreDeCadaUno() {
     try {
       texto = fs.readFileSync(proyecto.ruta(...partes), 'utf8');
     } catch { /* no está */ }
-    // El `.mdc` de Cursor es entero nuestro: no lleva marcas.
-    const bloque = texto === null ? null : (partes[partes.length - 1].startsWith('executive-lab.') ? [texto] : texto.match(NUESTRO));
-    return { texto, bloque };
+    // El `.mdc` de Cursor es entero nuestro: no lleva marcas, y tiene que
+    // aplicarse siempre (revisión de F5, m9).
+    const entero = partes[partes.length - 1].startsWith('executive-lab.');
+    const bloque = texto === null ? null : (entero ? [texto] : texto.match(NUESTRO));
+    return { texto, bloque, entero };
   });
 }
 
 function losBloquesSonLosDeHoy() {
-  return loDeSiempreDeCadaUno().every(({ bloque }) => !bloque || NOMBRA_SIEMPRE.test(bloque[0]));
+  return loDeSiempreDeCadaUno().every(({ bloque, entero }) => !bloque || (NOMBRA_SIEMPRE.test(bloque[0]) && (!entero || /^alwaysApply:\s*true\s*$/m.test(bloque[0]))));
 }
 
 // Dónde vive la barra, para poder comparar sus raíles con los de la carpeta.

@@ -129,8 +129,9 @@ function ponerLaHabilidadYLosComandos(quien, suyo) {
 // metiendo un trozo entre marcas en ese mismo fichero; aquí se hace lo mismo
 // con marcas nuestras, para no pisarnos con las suyas.
 //
-// Solo en los ficheros compartidos. Los `rsc-suggest.*` son de RSC y los
-// reescribe enteros en cada `sync`: escribir ahí sería escribir en agua.
+// Solo en los ficheros compartidos (`sitios.js` dice cuáles, según el adaptador de
+// RSC): los `rsc-suggest.md` de Windsurf, Cline, Roo, Continue y Kiro también lo
+// son. El de Cursor, no: lo reescribe entero, y Cursor tiene el suyo aparte.
 const DESDE = '<!-- executive-lab:start -->';
 const HASTA = '<!-- executive-lab:end -->';
 
@@ -162,8 +163,16 @@ function ponerElTrozo(fichero, trozo) {
   fs.writeFileSync(fichero, texto);
 }
 
+// Los ficheros de siempre ya nombrados en esta pasada. Dos asistentes pueden leer
+// el mismo (Codex y opencode, `AGENTS.md`): el trozo nombra la copia del primero
+// declarado, y el segundo tiene la suya, igual (revisión de F5, m6). Nombraba al
+// último que pasara.
+const yaNombrados = new Map();
+
 function nombrarLaHabilidad(quien, suyo) {
   if (!suyo.siempre) return `${quien} encuentra la habilidad solo`;
+  const suFichero = comoSeEscribe(suyo.siempre.fichero);
+  if (yaNombrados.has(suFichero)) return `${suFichero} ya apunta a la de ${yaNombrados.get(suFichero)}, que es la misma`;
 
   const dir = `${comoSeEscribe(suyo.habilidades)}/executive-lab`;
   const loQueDice = `Léete \`${dir}/siempre.md\` y \`${dir}/SKILL.md\` antes de hacer nada y respeta lo que digan: es la habilidad siempre activa de esta carpeta.`;
@@ -190,6 +199,7 @@ function nombrarLaHabilidad(quien, suyo) {
     return `${comoSeEscribe(suyo.siempre.fichero)} (el trozo, pendiente: toca sus instrucciones, y se pide antes)`;
   }
   ponerElTrozo(fichero, `${DESDE}\n${loQueDice}\n${HASTA}`);
+  yaNombrados.set(suFichero, quien);
   return `${comoSeEscribe(suyo.siempre.fichero)} (apunta a la habilidad)`;
 }
 
@@ -221,16 +231,31 @@ const leerSiHay = (fichero) => {
 };
 
 // Con cualquier `CLAUDE.md`, aquí o más arriba, aunque esté vacío, Claude no lee
-// el `AGENTS.md` de la carpeta.
+// el `AGENTS.md` de la carpeta. Salvo la sombra que deja RSC al enganchar a
+// Claude junto a un asistente de `AGENTS.md`, que no es de nadie: existe para que
+// su trozo no llegue dos veces, no para callar las normas del equipo (revisión de
+// F5, I6; `targets/agents-md-shadow.js`).
+const SOMBRA_DE_RSC = '<!-- rsc:claude-md-shadow -->';
+
 function hayUnClaudeMd(desde) {
   let dir = desde;
   for (;;) {
-    if (FORMAS_DE_CLAUDE_MD.some((forma) => fs.existsSync(path.join(dir, forma)))) return true;
+    for (const forma of FORMAS_DE_CLAUDE_MD) {
+      const fichero = path.join(dir, forma);
+      if (!fs.existsSync(fichero)) continue;
+      if (dir === desde && forma === 'CLAUDE.md' && leerSiHay(fichero).includes(SOMBRA_DE_RSC)) continue;
+      return true;
+    }
     const arriba = path.dirname(dir);
     if (arriba === dir) return false;
     dir = arriba;
   }
 }
+
+// Lo que se le dice a Claude de un `AGENTS.md` con normas de la carpeta y con el
+// trozo de RSC: importarlo traería ese trozo dos veces, así que se le pide que lo
+// lea (revisión de F5, I6).
+const LEE_TAMBIEN_AGENTS = 'Lee también `AGENTS.md`: lleva las normas de esta carpeta. Lo que va entre las marcas de rsc-suggest ya lo tienes.';
 
 const llevaLoDeRsc = (fichero) => leerSiHay(fichero).includes('<!-- rsc-suggest:start -->');
 
@@ -265,11 +290,14 @@ function ponerLoDeSiempre(quien, suyo) {
   // nuestro, y se mantiene lo decidido. Salvo que ese `AGENTS.md` ya no sea de
   // nadie o lleve lo de RSC: si después se engancha Codex, RSC mete ahí su trozo,
   // y el import lo traería dos veces (revisión de F4, m7; `agents-md-shadow.js`).
-  const conAgents = (viejo ? viejo[0].includes('@AGENTS.md') : !hayUnClaudeMd(destino))
-    && esDeAlguien(en('AGENTS.md')) && !llevaLoDeRsc(en('AGENTS.md'));
-  const lineas = [`@${comoSeEscribe(suyo.habilidades)}/executive-lab/siempre.md`, ...(conAgents ? ['@AGENTS.md'] : [])];
+  //
+  // Con lo de RSC dentro, en vez de importarlo se le pide que lo lea (I6).
+  const loLeia = viejo ? (viejo[0].includes('@AGENTS.md') || viejo[0].includes(LEE_TAMBIEN_AGENTS)) : !hayUnClaudeMd(destino);
+  const conAgents = loLeia && esDeAlguien(en('AGENTS.md'));
+  const deAgents = !conAgents ? [] : [llevaLoDeRsc(en('AGENTS.md')) ? LEE_TAMBIEN_AGENTS : '@AGENTS.md'];
+  const lineas = [`@${comoSeEscribe(suyo.habilidades)}/executive-lab/siempre.md`, ...deAgents];
   ponerElTrozo(fichero, [DESDE, ...lineas, HASTA].join('\n'));
-  return `CLAUDE.md (se carga siempre.md en cada conversación${conAgents ? ', y su AGENTS.md' : ''})`;
+  return `CLAUDE.md (se carga siempre.md en cada conversación${conAgents ? ', y se le apunta su AGENTS.md' : ''})`;
 }
 
 

@@ -644,10 +644,41 @@ async function ponerElBloque(contexto) {
 // arnés de dentro, que suma ese asistente a los declarados y no quita al que
 // había (medido con el paquete: con Codex, sus 32 habilidades en `.codex/rsc/`,
 // y las de Claude donde estaban), y después los raíles, que se ponen para todos.
+//
+// Con tres cuidados que faltaban (revisión de F5):
+//   · en una carpeta montada con un arnés más nuevo que el de la clase no se
+//     prepara nada: el `sync` de la clase le bajaría la versión (I2);
+//   · antes, en seco, se mira qué tocaría. Una habilidad, un comando o un agente
+//     suyo que se llama como uno del arnés se pregunta como al montar, y en una
+//     carpeta de alguien se enseña además lo suyo que se toca (I1);
+//   · lo que dice el arnés cuando falla vuelve en `detalle`, para el registro (I3).
 async function prepararTambienPara(id, contexto) {
+  if (rsc.comoEsLaVersion(proyecto.versionDelCatalogo()) === 'nueva') return { ok: false, masNueva: true };
+
+  const enSeco = await rsc.correr(['sync', '--target', id, '--dry-run'], { tiempoMaximo: 300000 });
+  if (enSeco.codigo !== 0) return { ok: false, detalle: loQuePaso('al mirar qué se toca', enSeco) };
+  const plan = { gestionados: rsc.loQueTocaElSync(enSeco.salida, proyecto.raiz()) };
+  const { tocados, choques } = ajena.resumen(plan, proyecto.raiz());
+  let renombrados = [];
+  if (choques.length || (tocados.length && await sinSuSi(null))) {
+    const decidido = await confirmarLoQueSeToca(plan);
+    if (!decidido.seguir) return { ok: false, cancelado: true };
+    if (decidido.fallo) {
+      return {
+        ok: false,
+        detalle: `no se pudo renombrar ${decidido.fallo.fichero}: ${decidido.error}`, // diccionario: interno
+        mensaje: `No he podido cambiarle el nombre a «${decidido.fallo.id}», así que no he montado nada. Pulsa «Algo va mal» y pásale el código a tu tutor.`,
+      };
+    }
+    renombrados = decidido.renombrados;
+  }
+
   const hecho = await rsc.correr(['sync', '--target', id], { tiempoMaximo: 300000 });
-  if (hecho.codigo !== 0) return false;
-  return ponerLosRailes(contexto, { ajena: await sinSuSi(null) });
+  if (hecho.codigo !== 0) return { ok: false, detalle: loQuePaso('al preparar la carpeta', hecho) };
+  if (!(await ponerLosRailes(contexto, { ajena: await sinSuSi(null) }))) {
+    return { ok: false, detalle: 'preparada, pero los raíles no se han podido poner' }; // diccionario: interno
+  }
+  return { ok: true, renombrados };
 }
 
 // Hace falta para que "Guardar copia de seguridad" tenga dónde guardar, y para

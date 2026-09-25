@@ -961,15 +961,22 @@ ${cabecera}
 
   async elegirAsistente(cual) {
     const nombre = (asistentes.porId(cual) || {}).nombre || cual;
-    const { ok, mensaje } = await asistentes.elegir(cual, {
+    const { ok, mensaje, detalle, cancelado } = await asistentes.elegir(cual, {
       // Si la carpeta no está montada para él, se prepara también para él (E1).
       montar: async (id) => {
         this.enviar({ tipo: 'esperando', que: `Preparando esta carpeta para ${nombre}…` });
         return arrancar.prepararTambienPara(id, this.contexto);
       },
     });
-    await this.verAsistente({ texto: mensaje, malo: !ok });
-    if (ok) await this.refrescar(true);
+    // Lo que dijo el arnés, para «Algo va mal» (revisión de F5, I3).
+    this.salida.appendLine(`[asistente] con ${cual}: ${ok ? 'hecho' : (cancelado ? 'sin su sí' : 'no')}${detalle ? ` · ${detalle}` : ''}`); // diccionario: interno
+    // Primero el repintado y después lo dicho: al revés, el repintado tapaba el
+    // aviso de los frenos, que es el único momento en que sirve (I5).
+    if (ok) {
+      vigilarOtraVez();
+      await this.refrescar(true);
+    }
+    await this.verAsistente({ texto: mensaje, malo: !ok && !cancelado });
   }
 
   // Lo que sabe que no sabe. Estaba al final de la pantalla de conceptos,
@@ -1568,6 +1575,11 @@ function loQueMira() {
   return `{${[...LO_FIJO, ...new Set(suyas)].join(',')}}`;
 }
 
+// Volver a vigilar lo del asistente de ahora. Cambiar de asistente ya no toca
+// `.rsc.json` (la elección va aparte, E1), y era lo que rearmaba el vigía: sin
+// esto se seguían vigilando las carpetas del anterior (revisión de F5, I4).
+let vigilarOtraVez = () => {};
+
 function vigilarElArnes(contexto, panel) {
   const carpetas = vscode.workspace.workspaceFolders;
   if (!carpetas || !carpetas.length) return;
@@ -1610,6 +1622,7 @@ function vigilarElArnes(contexto, panel) {
   }
 
   armar();
+  vigilarOtraVez = () => { if (loQueMira() !== mirando) armar(); };
   contexto.subscriptions.push({ dispose: () => { clearTimeout(reloj); if (vigia) vigia.dispose(); } });
 }
 

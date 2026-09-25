@@ -1128,6 +1128,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const conSync = (como) => async (args) => {
       pedidos.push(args.join(' '));
       if (args[0] !== 'sync') return { codigo: 0, salida: '' };
+      // En seco, antes, para ver si toca algo de alguien (revisión de F5, I1).
+      if (args.includes('--dry-run')) return { codigo: 0, salida: 'Would sync codex: bro\n' };
       if (como === 'falla') return { codigo: 1, salida: 'no se pudo' };
       if (como === 'noLoDeclara') return { codigo: 0, salida: '' };
       const d = JSON.parse(fs2.readFileSync(path.join(r, '.rsc.json'), 'utf8'));
@@ -1147,7 +1149,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       assert.equal(mal.ok, false, 'sin preparar, se da por cambiado');
       assert.match(mal.mensaje, /No he podido prepararla para Codex/);
       assert.equal(asistentesM.conQuien().id, 'claude', 'sin preparar, se cambia igual');
-      assert.equal(await montar('codex'), false, 'un arnés que no pudo prepararla se da por bueno, y se ponen los raíles');
+      assert.equal((await montar('codex')).ok, false, 'un arnés que no pudo prepararla se da por bueno, y se ponen los raíles');
 
       // Y si el arnés termina sin sumarlo a lo declarado, tampoco: los botones
       // no le hablarían, y el mensaje diría que sí.
@@ -1175,6 +1177,59 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       asistentesM.saberDondeGuardar(null);
       vscode.guion.raiz = empresa;
       vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    }
+  });
+
+  await comprobar('un cambio que se quedó a medias se termina en el siguiente', async () => {
+    // Revisión de F5, m2. Si el arnés ya lo había declarado y los raíles no se
+    // pudieron poner, el segundo intento decía «Hecho» sin raíles: ya estaba
+    // declarado. Declarado sin sus raíles es un cambio a medias, y se termina.
+    const fs2 = require('node:fs');
+    const rscM = cargar('rsc');
+    const asistentesM = cargar('asistentes');
+    const r = fs2.mkdtempSync(path.join(os.tmpdir(), 'cambio-a-medias-'));
+    fs2.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ version: 1, catalogVersion: '2.0.5', targets: ['claude', 'codex'], skills: ['bro'], ownSkills: [] }, null, 2));
+    const antes = rscM.correr;
+    const pedidos = [];
+    rscM.correr = async (args) => {
+      pedidos.push(args.join(' '));
+      return { codigo: 0, salida: args.includes('--dry-run') ? 'Would sync codex: bro\n' : '' };
+    };
+    const memoria = new Map();
+    asistentesM.saberDondeGuardar({ get: (k) => memoria.get(k), update: async (k, v) => memoria.set(k, v) });
+    vscode.guion.raiz = r;
+    vscode.guion.extensionesInstaladas = ['anthropic.claude-code', 'openai.chatgpt'];
+    try {
+      const { ok, mensaje } = await asistentesM.elegir('codex', { montar: (id) => cargar('arrancar').prepararTambienPara(id, { extensionPath: RAIZ }) });
+      assert.equal(ok, true, mensaje);
+      assert.ok(pedidos.includes('sync --target codex'), `declarado sin raíles, no se termina de preparar: ${pedidos.join(' · ')}`);
+      assert.ok(fs2.existsSync(path.join(r, '.codex', 'rsc', 'executive-lab', 'siempre.md')), 'y se queda sin raíles');
+      return 'terminado';
+    } finally {
+      rscM.correr = antes;
+      asistentesM.saberDondeGuardar(null);
+      vscode.guion.raiz = empresa;
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    }
+  });
+
+  await comprobar('montada solo para uno que la barra no ofrece, se dice y se ofrece prepararla', () => {
+    // Revisión de F5, m4. Montada fuera solo para Cursor, la barra habla con
+    // Claude, que no tiene nada montado ahí, y «Tu asistente» no decía nada ni
+    // ofrecía prepararla para él.
+    const r = fs.mkdtempSync(path.join(os.tmpdir(), 'solo-cursor-'));
+    fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ version: 1, targets: ['cursor'], skills: [] }));
+    vscode.guion.raiz = r;
+    try {
+      const estamos = cargar('asistentes').comoEstamos();
+      assert.equal(estamos.ahora, 'claude');
+      assert.equal(estamos.montada, true, 'no se sabe que la carpeta está montada');
+      const pintado = require('./panel-falso').montarPanel().mandar({ tipo: 'asistente', ...estamos });
+      assert.match(pintado, /Esta carpeta no se montó para él\./, 'no se dice');
+      assert.match(pintado, /Prepararla también para Claude/, 'y no se ofrece');
+      return 'dicho, y con su botón';
+    } finally {
+      vscode.guion.raiz = empresa;
     }
   });
 
@@ -1233,6 +1288,11 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const antes = fs2.readFileSync(declaracion, 'utf8');
     const conLosDos = JSON.stringify({ ...JSON.parse(antes), targets: ['claude', 'codex'] }, null, 2);
     fs2.writeFileSync(declaracion, conLosDos);
+    // Montada para los dos: con los raíles de Codex también (sin ellos, el cambio
+    // está a medias y se termina, revisión de F5, m2).
+    const deCodex = path.join(empresa, '.codex');
+    fs2.mkdirSync(path.join(deCodex, 'rsc', 'executive-lab'), { recursive: true });
+    fs2.writeFileSync(path.join(deCodex, 'rsc', 'executive-lab', 'SKILL.md'), '# executive-lab\n');
     vscode.guion.extensionesInstaladas = ['anthropic.claude-code', 'openai.chatgpt'];
     const memoria = new Map();
     asistentesM.saberDondeGuardar({ get: (k) => memoria.get(k), update: async (k, v) => memoria.set(k, v) });
@@ -1246,10 +1306,18 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       fs2.writeFileSync(declaracion, `${JSON.stringify({ ...JSON.parse(conLosDos), targets: ['claude', 'codex'] }, null, 2)}\n`);
       assert.equal(asistentesM.conQuien().id, 'codex', 'tras el sync, la elección se pierde');
       assert.equal(cargar('donde').paraQuien(), 'codex');
-      return 'Codex elegido, y sigue tras el sync';
+      // Revisión de F5, m1: si Codex ya no está en el ordenador, no se le habla.
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+      assert.equal(asistentesM.conQuien().id, 'claude', 'se le habla a uno que ya no está en el ordenador');
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code', 'openai.chatgpt'];
+      // Y M1: si ya no está declarado, tampoco.
+      fs2.writeFileSync(declaracion, JSON.stringify({ ...JSON.parse(conLosDos), targets: ['claude'] }, null, 2));
+      assert.equal(asistentesM.conQuien().id, 'claude', 'se le habla a uno para el que ya no está montado');
+      return 'Codex elegido, y sigue tras el sync, mientras esté';
     } finally {
       asistentesM.saberDondeGuardar(null);
       fs2.writeFileSync(declaracion, antes);
+      fs2.rmSync(deCodex, { recursive: true, force: true });
       vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
     }
   });
@@ -1263,6 +1331,13 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     globalState: new Map([['get', null]]),
   };
   contexto.globalState = {
+    datos: new Map(),
+    get(k) { return this.datos.get(k); },
+    async update(k, v) { this.datos.set(k, v); },
+  };
+  // Y el de esta carpeta, donde va con qué asistente se habla (E1): sin él, la
+  // prueba no veía si la barra lo conecta al abrirse (revisión de F5, M2).
+  contexto.workspaceState = {
     datos: new Map(),
     get(k) { return this.datos.get(k); },
     async update(k, v) { this.datos.set(k, v); },
@@ -1557,6 +1632,51 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.ok(vscode.registrado.vistas.includes('executiveLab.panel'));
     assert.ok(vscode.registrado.ejecutados.some((e) => e.id === 'executiveLab.panel.focus'), 'fuerza su vista');
     return `${manifiesto.length} comandos`;
+  });
+
+  await comprobar('al abrirse, la barra guarda con quién se habla en el estado de esta carpeta', async () => {
+    // Revisión de F5, M2: sin conectar el estado al abrirse, elegir decía «Hecho»
+    // sin guardar nada, y ninguna prueba lo veía.
+    const fs2 = require('node:fs');
+    const proveedor = vscode.registrado.proveedor;
+    const declaracion = path.join(empresa, '.rsc.json');
+    const rscM = cargar('rsc');
+    const antes = { rsc: fs2.readFileSync(declaracion, 'utf8'), enviar: proveedor.enviar, refrescar: proveedor.refrescar, correr: rscM.correr };
+    fs2.writeFileSync(declaracion, JSON.stringify({ ...JSON.parse(antes.rsc), targets: ['claude', 'codex'] }, null, 2));
+    // Montada para los dos, con sus raíles: aquí no se prepara nada, y el arnés
+    // de verdad no se llama.
+    const deCodex = path.join(empresa, '.codex');
+    fs2.mkdirSync(path.join(deCodex, 'rsc', 'executive-lab'), { recursive: true });
+    fs2.writeFileSync(path.join(deCodex, 'rsc', 'executive-lab', 'SKILL.md'), '# executive-lab\n');
+    rscM.correr = async (args) => { throw new Error(`no se tenía que llamar al arnés: ${args.join(' ')}`); };
+    vscode.guion.extensionesInstaladas = ['anthropic.claude-code', 'openai.chatgpt'];
+    const enviados = [];
+    proveedor.enviar = (m) => enviados.push(m);
+    proveedor.refrescar = async () => {};
+    try {
+      await proveedor.elegirAsistente('codex');
+      assert.equal(contexto.workspaceState.get('executiveLab.conQuien'), 'codex', 'la elección no se guarda donde la deja VS Code');
+      assert.match(enviados[enviados.length - 1].aviso.texto, /habla[n]? con Codex/);
+      // Y sin dónde guardarla, no se dice «Hecho».
+      const asistentesM = cargar('asistentes');
+      asistentesM.saberDondeGuardar(null);
+      try {
+        assert.equal((await asistentesM.elegir('claude')).ok, false, 'sin dónde guardarla, se da por elegida');
+      } finally {
+        asistentesM.saberDondeGuardar(contexto.workspaceState);
+      }
+      return 'guardada en la carpeta';
+    } finally {
+      // De vuelta con Claude, que vuelve a armar el vigía en lo suyo.
+      await proveedor.elegirAsistente('claude');
+      await contexto.workspaceState.update('executiveLab.conQuien', undefined);
+      fs2.writeFileSync(declaracion, antes.rsc);
+      fs2.rmSync(deCodex, { recursive: true, force: true });
+      rscM.correr = antes.correr;
+      proveedor.enviar = antes.enviar;
+      proveedor.refrescar = antes.refrescar;
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    }
   });
 
   await comprobar('la página del panel se arma entera, con y sin marca', () => {
@@ -3324,6 +3444,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
         '.cursor/rules/bro.mdc': '---\ndescription: rsc skill bro\nalwaysApply: false\n---\n# bro\n',
         '.cursor/rules/orient.mdc': '---\ndescription: rsc skill orient\nalwaysApply: false\n---\n# orient\n',
         '.cursor/rules/rsc-suggest.mdc': '---\ndescription: rsc auto-suggest\nalwaysApply: true\n---\n',
+        // Y la de la memoria, que RSC también deja ahí (`targets/memory.js`; revisión de F5, m3).
+        '.cursor/rules/rsc-memory.mdc': '---\ndescription: rsc memory\nalwaysApply: true\n---\n',
         '.cursor/rules/mi-regla.mdc': '---\ndescription: Escribir los correos como la casa.\nalwaysApply: false\n---\n',
       });
       // Montado fuera y solo para Cursor: se mira en lo de Cursor, nunca en lo de
@@ -3387,10 +3509,35 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.match(mdc, /^---\n[\s\S]*alwaysApply: true[\s\S]*?\n---\n/, 'y no se aplica siempre');
     assert.match(mdc, /\.cursor\/rules\/executive-lab\/siempre\.md/, 'y no nombra lo de siempre');
     assert.ok(!cursor.hay('.cursor', 'rules', 'rsc-suggest.mdc'), 'y se escribe en el fichero de RSC');
+    // Y uno que ya no se aplica siempre es de antes (revisión de F5, m9).
+    vscode.guion.raiz = cursor.carpeta;
+    try {
+      assert.ok(cargar('terreno').comoEstanLosRailes(RAIZ).alDia, 'con Cursor, recién puestos y ya se dan por viejos');
+      fs2.writeFileSync(path.join(cursor.carpeta, '.cursor', 'rules', 'executive-lab.mdc'), mdc.replace('alwaysApply: true', 'alwaysApply: false'));
+      assert.ok(!cargar('terreno').comoEstanLosRailes(RAIZ).alDia, 'un .mdc que no se aplica siempre se da por al día');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
 
     const windsurf = poner(['windsurf']);
     assert.match(windsurf.leer('.windsurf', 'rules', 'rsc-suggest.md'), /\.windsurf\/rsc\/executive-lab\/siempre\.md/, 'con Windsurf, nadie le nombra la habilidad');
-    return 'Copilot, Cursor y Windsurf, cada uno en su formato';
+
+    // Dos que leen el mismo AGENTS.md: un trozo, que nombra al primero declarado,
+    // y cada uno con su copia. Nombraba al último que pasara (revisión de F5, m6).
+    const dos = poner(['opencode', 'codex']);
+    const agents = dos.leer('AGENTS.md');
+    assert.equal(agents.match(/executive-lab:start/g).length, 1, 'dos trozos en el mismo fichero');
+    assert.match(agents, /\.opencode\/rsc\/executive-lab\/siempre\.md/, 'el trozo no nombra al primero declarado');
+    assert.ok(dos.hay('.codex', 'rsc', 'executive-lab', 'SKILL.md') && dos.hay('.opencode', 'rsc', 'executive-lab', 'SKILL.md'), 'uno se queda sin su copia');
+
+    // Uno que conocemos y otro que no: lo del primero, y del otro se dice (m7).
+    const mezcla = fs2.mkdtempSync(path.join(os.tmpdir(), 'railes-mezcla-'));
+    fs2.writeFileSync(path.join(mezcla, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude', 'un-asistente-que-no-conocemos'] }));
+    const hecho = cp.spawnSync(process.execPath, [aplicar, mezcla], { encoding: 'utf8' });
+    assert.equal(hecho.status, 0, 'con uno desconocido al lado, no se pone nada');
+    assert.ok(fs2.existsSync(path.join(mezcla, '.claude', 'skills', 'executive-lab', 'SKILL.md')), 'Claude se queda sin los suyos');
+    assert.match(hecho.stdout, /sin raíles para "un-asistente-que-no-conocemos"/, 'y del otro no se dice nada');
+    return 'Copilot, Cursor y Windsurf, cada uno en su formato · dos en un AGENTS.md · y uno raro al lado';
   });
 
   await comprobar('los raíles se ponen donde mira el asistente de esa carpeta', () => {
@@ -3918,7 +4065,27 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     fs.appendFileSync(path.join(d, 'AGENTS.md'), `\n\n${TROZO_DE_RSC}`);
     ponerLosRailesEn(d);
     assert.doesNotMatch(leer(d), /@AGENTS\.md/, 'con lo de RSC dentro, lo de RSC llega dos veces');
-    return 'dos pasadas · solo lo de RSC · con su CLAUDE.md · y con Codex después';
+    // Pero sus normas no se pierden: se le dice que lo lea (revisión de F5, I6).
+    assert.match(leer(d), /Lee también `AGENTS\.md`/, 'las normas de su AGENTS.md dejan de llegarle a Claude');
+
+    // I6: de Codex a Claude. El AGENTS.md del equipo lleva lo de RSC, y el sync
+    // de Claude deja su sombra de CLAUDE.md, que no es de nadie: sus normas tienen
+    // que seguir llegando, sin importar lo de RSC.
+    const e = conEnganchesDeRsc('agents-de-codex-a-claude-');
+    fs.writeFileSync(path.join(e, 'AGENTS.md'), `${SUYO}\n${TROZO_DE_RSC}`);
+    fs.writeFileSync(path.join(e, 'CLAUDE.md'), '<!-- rsc:claude-md-shadow -->\n# Project instructions\n\nClaude Code reads this file. Every other assistant wired in this project reads `AGENTS.md`.\n\nProject instructions for Claude Code go below.\n');
+    ponerLosRailesEn(e);
+    assert.match(leer(e), /Lee también `AGENTS\.md`/, 'de Codex a Claude, las normas del equipo no le llegan');
+    assert.doesNotMatch(leer(e), /^@AGENTS\.md$/m, 'y se importa lo de RSC dos veces');
+    for (const forma of ['CLAUDE.md', path.join('.claude', 'CLAUDE.md')]) {
+      const conSuyo = conEnganchesDeRsc('agents-con-su-claude-md-y-rsc-');
+      fs.writeFileSync(path.join(conSuyo, 'AGENTS.md'), `${SUYO}\n${TROZO_DE_RSC}`);
+      fs.mkdirSync(path.dirname(path.join(conSuyo, forma)), { recursive: true });
+      fs.writeFileSync(path.join(conSuyo, forma), '# Lo mío\n');
+      ponerLosRailesEn(conSuyo);
+      assert.doesNotMatch(leer(conSuyo), /AGENTS\.md/, `con su ${forma}, se le manda a leer un AGENTS.md que no leía`);
+    }
+    return 'dos pasadas · solo lo de RSC · con su CLAUDE.md · con Codex después · y de Codex a Claude';
   });
 
   await comprobar('un bloque sin su final se arregla, sin comerse lo que hay detrás', () => {
@@ -7270,6 +7437,103 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     }
   });
 
+  await comprobar('cambiar de asistente pregunta antes de tocar lo de alguien, y no baja la versión', async () => {
+    // Revisión de F5, I1, I2, I3, I5 y M5. Cambiar a uno sin montar corría su
+    // `sync` sin mirar: en una carpeta de Codex, una habilidad `debug` suya en
+    // `.claude/` se cambiaba por la de RSC. En una carpeta más nueva que la clase,
+    // le bajaba la versión. Si fallaba, no quedaba nada para el tutor. Y el aviso
+    // de los frenos se borraba al repintar. Se prueba por el botón de la barra,
+    // que es por donde pasa de verdad (M5: su contexto).
+    const fs2 = require('node:fs');
+    const rscM = cargar('rsc');
+    const asistentesM = cargar('asistentes');
+    const proveedor = vscode.registrado.proveedor;
+    const nueva = (targets, extra = {}) => {
+      const r = fs2.mkdtempSync(path.join(os.tmpdir(), 'cambiar-con-cuidado-'));
+      const poner = (rel, txt) => {
+        fs2.mkdirSync(path.dirname(path.join(r, rel)), { recursive: true });
+        fs2.writeFileSync(path.join(r, rel), txt);
+      };
+      poner('.rsc.json', JSON.stringify({ version: 1, catalogVersion: '2.0.5', targets, skills: ['bro'], ownSkills: [], ...extra }, null, 2));
+      return { r, poner };
+    };
+    const antes = { correr: rscM.correr, enviar: proveedor.enviar, refrescar: proveedor.refrescar };
+    const pedidos = [];
+    const enviados = [];
+    // El arnés, fingido: en seco dice lo que tocaría, y de verdad suma el asistente.
+    const conSync = (r, { tocaria = [], bien = true } = {}) => async (args) => {
+      pedidos.push(args.join(' '));
+      if (args[0] !== 'sync') return { codigo: 0, salida: '' };
+      if (args.includes('--dry-run')) return { codigo: 0, salida: `Would sync ${args[2]}: bro\n${tocaria.map((p) => `  ${path.join(r, p)}`).join('\n')}\n` };
+      if (!bien) return { codigo: 1, salida: 'Error: ENOENT: no such file or directory, lstat /x/solo-en-la-nueva' };
+      const d = JSON.parse(fs2.readFileSync(path.join(r, '.rsc.json'), 'utf8'));
+      fs2.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ ...d, targets: [...new Set([...d.targets, args[2]])].sort() }, null, 2));
+      return { codigo: 0, salida: `Synced ${args[2]}: bro` };
+    };
+    const memoria = new Map();
+    asistentesM.saberDondeGuardar({ get: (k) => memoria.get(k), update: async (k, v) => memoria.set(k, v) });
+    vscode.guion.extensionesInstaladas = ['anthropic.claude-code', 'openai.chatgpt'];
+    proveedor.enviar = (m) => enviados.push(m);
+    proveedor.refrescar = async () => { enviados.push({ tipo: 'repintado' }); };
+    try {
+      // I1: una habilidad suya donde el otro asistente va a poner la del arnés.
+      const conDebug = nueva(['codex']);
+      conDebug.poner('.claude/skills/debug/SKILL.md', '---\nname: debug\ndescription: la mía\n---\n# La mía\n');
+      vscode.guion.raiz = conDebug.r;
+      rscM.correr = conSync(conDebug.r, { tocaria: ['.claude/skills/debug', 'CLAUDE.md'] });
+      const sinSi = await conRespuestas({}, () => proveedor.elegirAsistente('claude'));
+      assert.ok(sinSi.vistas.some((v) => v.aviso && /^Aquí ya hay cosas tuyas/.test(v.pregunta)), 'se cambia sin preguntar por lo suyo');
+      assert.ok(!pedidos.includes('sync --target claude'), 'sin su sí, se ha preparado igual');
+      assert.equal(asistentesM.conQuien().id, 'codex', 'sin su sí, se ha cambiado');
+      assert.ok(fs2.existsSync(path.join(conDebug.r, '.claude', 'skills', 'debug', 'SKILL.md')), 'y lo suyo, tocado');
+
+      await conRespuestas({ 'Aquí ya hay cosas tuyas': 'Sí, móntalo encima', 'Ya tienes una habilidad': 'Cambiarle el nombre a la mía' },
+        () => proveedor.elegirAsistente('claude'));
+      assert.ok(pedidos.includes('sync --target claude'), 'con su sí, no se prepara');
+      assert.ok(fs2.existsSync(path.join(conDebug.r, '.claude', 'skills', 'debug-propia', 'SKILL.md')), 'la suya no se ha quedado con otro nombre');
+      assert.equal(asistentesM.conQuien().id, 'claude');
+      // I5: lo último que se ve es lo que se ha dicho, no el repintado de encima.
+      const ultimo = enviados[enviados.length - 1];
+      assert.equal(ultimo.tipo, 'asistente', `lo último que se pinta es ${ultimo.tipo}`);
+      assert.match(ultimo.aviso.texto, /habla[n]? con Claude/);
+
+      // I2: en una carpeta más nueva que la clase, no se prepara nada.
+      pedidos.length = 0;
+      const masNueva = nueva(['claude'], { catalogVersion: '2.1.0' });
+      vscode.guion.raiz = masNueva.r;
+      rscM.correr = conSync(masNueva.r);
+      await conRespuestas({}, () => proveedor.elegirAsistente('codex'));
+      assert.ok(!pedidos.some((p) => p.startsWith('sync')), `se prepara con la de la clase: ${pedidos.join(' · ')}`);
+      assert.match(enviados[enviados.length - 1].aviso.texto, /más nueva que la de tu clase/);
+
+      // I5 con Codex: el aviso de los frenos es lo último que se ve.
+      pedidos.length = 0;
+      const deClaude = nueva(['claude']);
+      vscode.guion.raiz = deClaude.r;
+      rscM.correr = conSync(deClaude.r);
+      await conRespuestas({}, () => proveedor.elegirAsistente('codex'));
+      assert.match(enviados[enviados.length - 1].aviso.texto, /no trae frenos/, 'el aviso de los frenos se borra al repintar');
+      // I4: y se vigila lo de Codex, no lo de Claude.
+      assert.match(vscode.registrado.vigilado, /\.codex\/rsc\/\*\*/, `tras cambiar se sigue vigilando lo de antes: ${vscode.registrado.vigilado}`);
+
+      // I3: si falla, lo que dijo el arnés va al registro.
+      const falla = nueva(['claude']);
+      vscode.guion.raiz = falla.r;
+      rscM.correr = conSync(falla.r, { bien: false });
+      await conRespuestas({}, () => proveedor.elegirAsistente('codex'));
+      assert.match(enviados[enviados.length - 1].aviso.texto, /No he podido prepararla para Codex/);
+      assert.ok(vscode.registrado.mensajes.some((l) => /\[asistente\][\s\S]*ENOENT/.test(l)), 'lo que dijo el arnés no llega al registro');
+      return 'pregunta · con su sí, con otro nombre · no baja la versión · el aviso se queda · y el fallo, apuntado';
+    } finally {
+      rscM.correr = antes.correr;
+      proveedor.enviar = antes.enviar;
+      proveedor.refrescar = antes.refrescar;
+      asistentesM.saberDondeGuardar(contexto.workspaceState);
+      vscode.guion.raiz = empresa;
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    }
+  });
+
   await comprobar('ponerla como la de la clase no se queda a medias', async () => {
     // Revisión de F4, I1, m9 y m10. Tres fallos del botón:
     //   · con lo que la clase no trae en el plan aceptado, su `sync` lo vuelve a
@@ -7365,6 +7629,32 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       rscM.correr = antes.correr;
       proveedor.enviar = antes.enviar;
       proveedor.refrescar = antes.refrescar;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('añadir una habilidad la pone para todos los asistentes declarados', async () => {
+    // Revisión de F5, m5 y M3: se añadía para uno solo, y el otro se quedaba con
+    // una habilidad declarada que no tenía. RSC acepta los dos a la vez
+    // (`--target claude,codex`, medido con el paquete); sin `--target`, con dos
+    // instalados, se niega a adivinar.
+    const rscM = cargar('rsc');
+    const r = conEnganches();
+    const d = JSON.parse(fs.readFileSync(path.join(r, '.rsc.json'), 'utf8'));
+    const antes = rscM.correr;
+    const pedidos = [];
+    rscM.correr = async (args) => { pedidos.push(args.join(' ')); return { codigo: 0, salida: '' }; };
+    vscode.guion.raiz = r;
+    try {
+      fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ ...d, targets: ['claude', 'codex'] }));
+      await rscM.anadir('bookkeeping');
+      assert.ok(pedidos.includes('add bookkeeping --target claude,codex'), `con los dos declarados: ${pedidos.join(' · ')}`);
+      fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ ...d, targets: ['claude', 'un-raro'] }));
+      await rscM.anadir('bookkeeping');
+      assert.ok(pedidos.includes('add bookkeeping --target claude'), `uno que no conocemos, fuera: ${pedidos.join(' · ')}`);
+      return pedidos.join(' · ');
+    } finally {
+      rscM.correr = antes;
       vscode.guion.raiz = empresa;
     }
   });
@@ -8625,7 +8915,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
         assert.match(fs.readFileSync(path.join(r, 'CLAUDE.md'), 'utf8'), /@\.claude\/skills\/executive-lab\/siempre\.md/, 'y Claude pierde lo de siempre');
         return `${delArnes.length} y la nuestra, y Claude igual`;
       } finally {
-        asistentesM.saberDondeGuardar(null);
+        asistentesM.saberDondeGuardar(contexto.workspaceState);
         vscode.guion.raiz = empresa;
         vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
       }
