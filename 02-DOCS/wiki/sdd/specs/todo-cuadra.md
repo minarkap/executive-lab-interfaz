@@ -496,6 +496,11 @@ bloqueaban el plan. Todas se arreglan aquí:
   regla «No se llama empresa» del diccionario). Cada texto entra en el diccionario al usarse, con el
   comprobador en verde, y al cerrar cada fase se le enseñan las pantallas pintadas para que los
   cambie. La tabla de vocabulario de abajo es el punto de partida, no la lista cerrada.
+- **C-23 · «La versión de la clase», en D2, es la de `catalogVersion` mientras la carpeta está en la
+  de la clase** (revisión de F4, m11; 25-09-2026). En una carpeta montada con una más nueva (B5), la
+  regla 7 no la baja ni la sube: el paquete va con la que declara la carpeta, y la barra no añade
+  nada hasta que se pulsa «Ponerla como la de la clase» (revisión de F4, I2). Así ninguna vía cambia
+  la versión de una carpeta sin que alguien lo decida.
 - **Apagar el guardián de gitmoji en las carpetas de alumno:** sí. **La puerta SDD:** se deja.
 
 **Lo que se hizo con cada punto abierto**

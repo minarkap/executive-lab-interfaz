@@ -102,12 +102,23 @@ function ponerLaHabilidadYLosComandos(quien, suyo) {
   const comandos = en(...suyo.comandos);
   fs.mkdirSync(comandos, { recursive: true });
   // Con el nombre que les da ese asistente: Copilot solo lee `.prompt.md` (E3).
+  //
+  // Y uno suyo que se llame como uno nuestro no se pisa (revisión de F4, m8): es
+  // nuestro si dice lo mismo que el nuestro en su `description`, que es lo que
+  // un comando de otro día conserva. La barra mira lo mismo (`terreno`).
   const cuantos = fs.readdirSync(path.join(origen, 'comandos'));
+  const suyos = [];
   for (const fichero of cuantos) {
     const suNombre = fichero.replace(/\.md$/, suyo.comandoAcabaEn || '.md');
-    fs.copyFileSync(path.join(origen, 'comandos', fichero), path.join(comandos, suNombre));
+    const hasta = path.join(comandos, suNombre);
+    const nuestro = fs.readFileSync(path.join(origen, 'comandos', fichero), 'utf8');
+    if (fs.existsSync(hasta) && descripcionDe(leerSiHay(hasta)) !== descripcionDe(nuestro)) {
+      suyos.push(fichero.replace(/\.md$/, ''));
+      continue;
+    }
+    fs.writeFileSync(hasta, nuestro);
   }
-  hechos.push(`${comoSeEscribe(suyo.comandos)}/ (${cuantos.length} comandos)`);
+  hechos.push(`${comoSeEscribe(suyo.comandos)}/ (${cuantos.length - suyos.length} comandos${suyos.length ? `; ${suyos.map((s) => `«${s}»`).join(', ')} es tuyo y no lo toco` : ''})`);
 }
 
 // 3. Que el asistente sepa que la habilidad está ahí.
@@ -133,8 +144,16 @@ function ponerElTrozo(fichero, trozo) {
     texto = fs.readFileSync(fichero, 'utf8');
   } catch { /* todavía no existe: se crea con el trozo */ }
 
-  if (texto.includes(DESDE)) {
+  if (ENTRE_MARCAS.test(texto)) {
     texto = texto.replace(ENTRE_MARCAS, () => trozo);
+  } else if (texto.includes(DESDE)) {
+    // Con la marca de inicio y sin la de final (revisión de F4, m1), lo nuestro
+    // llega hasta el final de ese párrafo: lo de detrás de la primera línea en
+    // blanco es de quien lo escribió, y no se toca.
+    const desde = texto.indexOf(DESDE);
+    const hueco = texto.indexOf('\n\n', desde);
+    const hasta = hueco < 0 ? texto.replace(/\n+$/, '').length : hueco;
+    texto = texto.slice(0, desde) + trozo + texto.slice(hasta);
   } else {
     texto += `${texto && !texto.endsWith('\n') ? '\n' : ''}\n${trozo}\n`;
   }
@@ -162,7 +181,15 @@ function nombrarLaHabilidad(quien, suyo) {
     return `${comoSeEscribe(suyo.siempre.fichero)} es de RSC y lo reescribe: no lo toco`;
   }
 
-  ponerElTrozo(en(...suyo.siempre.fichero), `${DESDE}\n${loQueDice}\n${HASTA}`);
+  // En una carpeta cuyo historial no creó la barra, un fichero suyo espera a su
+  // sí (C-4), como el `CLAUDE.md` de Claude (revisión de F4, m6). Uno que solo
+  // lleva lo de RSC, o que ya lleva lo nuestro, no es suyo.
+  const fichero = en(...suyo.siempre.fichero);
+  if (ajena && !ponerBloque && esDeAlguien(fichero) && !ENTRE_MARCAS.test(leerSiHay(fichero))) {
+    pendientes.push('el bloque de Cómo se trabaja aquí');
+    return `${comoSeEscribe(suyo.siempre.fichero)} (el trozo, pendiente: toca sus instrucciones, y se pide antes)`;
+  }
+  ponerElTrozo(fichero, `${DESDE}\n${loQueDice}\n${HASTA}`);
   return `${comoSeEscribe(suyo.siempre.fichero)} (apunta a la habilidad)`;
 }
 
@@ -185,6 +212,16 @@ function nombrarLaHabilidad(quien, suyo) {
 // espera a su sí (C-4): queda pendiente, y la barra lo ofrece con su botón.
 const FORMAS_DE_CLAUDE_MD = ['CLAUDE.md', path.join('.claude', 'CLAUDE.md'), 'CLAUDE.local.md'];
 
+const leerSiHay = (fichero) => {
+  try {
+    return fs.readFileSync(fichero, 'utf8');
+  } catch {
+    return '';
+  }
+};
+
+// Con cualquier `CLAUDE.md`, aquí o más arriba, aunque esté vacío, Claude no lee
+// el `AGENTS.md` de la carpeta.
 function hayUnClaudeMd(desde) {
   let dir = desde;
   for (;;) {
@@ -193,6 +230,15 @@ function hayUnClaudeMd(desde) {
     if (arriba === dir) return false;
     dir = arriba;
   }
+}
+
+const llevaLoDeRsc = (fichero) => leerSiHay(fichero).includes('<!-- rsc-suggest:start -->');
+
+// La `description` de la cabecera de un comando, o null.
+function descripcionDe(texto) {
+  const cabecera = (texto.match(/^---\r?\n([\s\S]*?)\r?\n---/) || [])[1] || '';
+  const linea = cabecera.match(/^description:\s*(.+?)\s*$/m);
+  return linea ? linea[1].replace(/^["']|["']$/g, '') : null;
 }
 
 function esDeAlguien(fichero) {
@@ -215,9 +261,12 @@ function ponerLoDeSiempre(quien, suyo) {
     pendientes.push('el bloque de Cómo se trabaja aquí');
     return 'CLAUDE.md (el bloque, pendiente: toca sus instrucciones, y se pide antes)';
   }
-  const conAgents = viejo
-    ? viejo[0].includes('@AGENTS.md')
-    : (!hayUnClaudeMd(destino) && esDeAlguien(en('AGENTS.md')));
+  // La primera vez se decide por lo que hay; después, el `CLAUDE.md` ya es el
+  // nuestro, y se mantiene lo decidido. Salvo que ese `AGENTS.md` ya no sea de
+  // nadie o lleve lo de RSC: si después se engancha Codex, RSC mete ahí su trozo,
+  // y el import lo traería dos veces (revisión de F4, m7; `agents-md-shadow.js`).
+  const conAgents = (viejo ? viejo[0].includes('@AGENTS.md') : !hayUnClaudeMd(destino))
+    && esDeAlguien(en('AGENTS.md')) && !llevaLoDeRsc(en('AGENTS.md'));
   const lineas = [`@${comoSeEscribe(suyo.habilidades)}/executive-lab/siempre.md`, ...(conAgents ? ['@AGENTS.md'] : [])];
   ponerElTrozo(fichero, [DESDE, ...lineas, HASTA].join('\n'));
   return `CLAUDE.md (se carga siempre.md en cada conversación${conAgents ? ', y su AGENTS.md' : ''})`;
@@ -414,5 +463,5 @@ if (fs.existsSync(declaracion)) {
 
 console.log(`Raíles puestos en ${destino}\n`);
 hechos.forEach((h) => console.log(`  · ${h}`));
-if (pendientes.length) console.log(`\nPendiente, hasta que se diga que sí: ${pendientes.join(', ')}.`);
+if (pendientes.length) console.log(`\nPendiente, hasta que se diga que sí: ${[...new Set(pendientes)].join(', ')}.`);
 console.log('\nAbre una conversación nueva para que se carguen.');

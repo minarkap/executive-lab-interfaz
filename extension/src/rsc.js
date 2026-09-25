@@ -18,10 +18,20 @@ const VERSION_DE_RESPALDO = '2.0.5';
 // Cómo es una versión frente a la de la clase: 'igual', 'vieja' o 'nueva'. Por
 // sus números y no como texto (B5): comparada como texto, la 2.0.13 salía
 // distinta de la 2.0.5 y se tomaba por anterior, y el arranque la bajaba.
+//
+// Y 'rara' si no son tres números (revisión de F4, m2): «2.0» salía más nueva y
+// «latest», más vieja. RSC siempre escribe los tres, así que una rara es una
+// escrita a mano, y se pone como la de la clase igual que una vieja.
+const TRES_NUMEROS = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+][0-9A-Za-z.-]+)?$/;
+
 function comoEsLaVersion(version) {
   if (!version) return null;
-  const numeros = (v) => String(v).replace(/^[^\d]*/, '').split(/[.-]/).slice(0, 3).map((n) => Number.parseInt(n, 10) || 0);
+  const numeros = (v) => {
+    const partes = String(v).trim().match(TRES_NUMEROS);
+    return partes ? partes.slice(1, 4).map(Number) : null;
+  };
   const [a, b] = [numeros(version), numeros(VERSION_DE_RESPALDO)];
+  if (!a) return 'rara';
   for (let i = 0; i < 3; i += 1) {
     if (a[i] !== b[i]) return a[i] < b[i] ? 'vieja' : 'nueva';
   }
@@ -101,8 +111,14 @@ async function retomar() {
 // identificador que no existe (comprobado el 17-09-2026 con `add --help`). Por
 // eso no se cree a su código de salida: se mira si la habilidad ha aparecido
 // de verdad en el disco.
+//
+// En una carpeta montada con un arnés más nuevo que el de la clase no se añade
+// nada (revisión de F4, I2): el `add` de la clase deja su versión en la carpeta,
+// y la bajaría sin decirlo; con una habilidad que solo trae la nueva, falla y
+// borra su base. Primero se pone como la de la clase, con su botón.
 async function anadir(id) {
   if (!/^[a-z0-9-]{2,40}$/.test(id)) return { ok: false };
+  if (comoEsLaVersion(proyecto.versionDelCatalogo()) === 'nueva') return { ok: false, masNueva: true };
 
   // Para el asistente con el que se habla, y no para el primero declarado (E2).
   const quien = require('./donde').paraQuien();

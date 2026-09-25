@@ -290,4 +290,20 @@ function laRama(parte) {
   };
 }
 
-module.exports = { elegirRama, loQueFaltaPorPreguntar, PASOS, PREGUNTAS, VALORES, CON_TAMANO };
+// Una carpeta montada con un arnés más nuevo que el de la clase, con algo en el
+// plan aceptado que la de la clase no trae (B5; revisión de F4, I1). Su `sync`
+// no puede con ello: lo vuelve a pedir a su catálogo y falla a medias, después
+// de borrar su base. Así que se vuelve a montar con la de la clase y las
+// respuestas de entonces, y lo que cambia en el plan se enseña antes de
+// firmarlo (A12). Medido con el paquete: queda la de la clase, se va lo que solo
+// trae la nueva, y lo añadido después que la clase sí trae se conserva.
+function comoLaDeLaClase(parte) {
+  return {
+    rama: 'comoLaDeLaClase',
+    preguntar: loQueFaltaPorPreguntar(parte).filter((id) => id !== 'nombres'),
+    pasos: pasos('montarElArnes', ...loNuestro),
+    porQue: 'la carpeta se montó con un arnés más nuevo, y su plan lleva lo que el de la clase no trae', // diccionario: interno
+  };
+}
+
+module.exports = { elegirRama, comoLaDeLaClase, loQueFaltaPorPreguntar, PASOS, PREGUNTAS, VALORES, CON_TAMANO };

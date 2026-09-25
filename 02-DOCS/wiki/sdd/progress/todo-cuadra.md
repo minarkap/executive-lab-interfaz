@@ -688,3 +688,19 @@ Solo se añade.
   `humo` 267, `humo+` 273, `contrato` 12, las tres empresas enteras, diccionario limpio y PowerShell
   sin pegas. Treinta mutaciones, y mueren todas. Decisión 121, worklog, 0.37.0 y commit. La revisión
   con ojos frescos de F5 corre sobre ese commit; la de F4, que ya llegó, se arregla detrás.
+- **Revisión de F4** 25-09 · Cuatro importantes y doce menores, comprobados uno a uno y aceptados
+  todos ([verificación de F4](../verifications/todo-cuadra-F4-2026-09-25.md#lo-que-encontró-la-revisión-con-ojos-frescos)).
+  En un commit propio, detrás del de F5:
+  - I1: con lo que la clase no trae en el plan aceptado, «Ponerla como la de la clase» vuelve a montar
+    con la de la clase (`rumbo.comoLaDeLaClase`); si solo está en lo declarado, `sync`, y si falla,
+    todo como estaba. Medido con el paquete: la 2.0.5, sin la nueva y con la añadida después.
+  - I2: en una carpeta más nueva no se añade nada hasta ponerla como la de la clase.
+  - I3 y m6: lo de siempre se mira y se pone donde lo lee cada asistente declarado
+    (`sitios.dondeVaLoDeSiempre`), y en una carpeta de alguien espera a su sí con cualquiera.
+  - I4 y m7: el import de `@AGENTS.md`, con pruebas, y se quita si ese `AGENTS.md` lleva lo de RSC.
+  - m1 (bloque sin final), m2 (versiones raras), m3 (diccionario), m4 y m12 (regla 7), m5 (botón del
+    bloque), m8 (un comando suyo no se pisa), m9 y m10 (sin catálogo y el error de RSC), m11 (C-23).
+  - Diez pruebas nuevas, en rojo primero, y una del arnés de verdad; veintidós mutaciones, y mueren
+    todas. Dos sobrevivían a la primera versión de las pruebas, y se añadieron sus casos.
+
+  Verde: `humo` 275, `humo+` 282, `contrato` 12.

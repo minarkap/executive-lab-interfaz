@@ -577,28 +577,67 @@ async function apuntarLosEnganches(salida) {
 }
 
 // Una carpeta montada con un arnés más nuevo que el de la clase, puesta como la
-// de la clase (B5, C-10). Lo declarado que la de la clase no trae se quita de la
-// declaración antes, porque con ello dentro su `sync` falla a medias; se nombra
-// en la pantalla y solo se hace con el sí. Después, `sync` con el de dentro.
+// de la clase (B5, C-10). Lo que la de la clase no trae se nombra en la pantalla
+// y solo se quita con el sí. Se mira lo declarado y el plan aceptado, que es de
+// donde `sync` saca la lista (revisión de F4, I1), y `null` si no se puede leer
+// el catálogo de la clase: sin saber qué se quita, no se quita nada (m9). Los
+// agentes no: uno que la de la clase no conoce no rompe su `sync` (medido).
 function loQueNoTraeLaClase() {
   const deLaClase = rsc.habilidadesDeLaClase();
-  if (!deLaClase) return [];
-  return ((proyecto.declaracion() || {}).skills || []).filter((id) => !deLaClase.has(id));
+  if (!deLaClase) return null;
+  const declaracion = proyecto.declaracion() || {};
+  const delPlan = (((declaracion.onboarding || {}).plan || {}).policy || {}).skills || [];
+  const sobran = [...new Set([...(declaracion.skills || []), ...delPlan])].filter((id) => !deLaClase.has(id)).sort();
+  return { sobran, enElPlan: sobran.filter((id) => delPlan.includes(id)) };
 }
 
+// Con lo que sobra solo en lo declarado: se quita de ahí y `sync` con el de
+// dentro. Si falla, la declaración vuelve a como estaba, y lo que dijo RSC va al
+// registro (m10).
 async function ponerComoLaDeLaClase(sobran = []) {
   const ruta = proyecto.ruta('.rsc.json');
-  if (sobran.length) {
-    try {
-      const declaracion = JSON.parse(fs.readFileSync(ruta, 'utf8'));
+  let comoEstaba;
+  try {
+    comoEstaba = fs.readFileSync(ruta, 'utf8');
+    if (sobran.length) {
+      const declaracion = JSON.parse(comoEstaba);
       declaracion.skills = (declaracion.skills || []).filter((id) => !sobran.includes(id));
       fs.writeFileSync(ruta, `${JSON.stringify(declaracion, null, 2)}\n`);
-    } catch {
-      return { ok: false };
     }
+  } catch (error) {
+    return { ok: false, detalle: error.message };
   }
   const hecho = await rsc.sincronizar();
-  return { ok: hecho.codigo === 0 };
+  if (hecho.codigo === 0) return { ok: true };
+  try {
+    fs.writeFileSync(ruta, comoEstaba);
+  } catch { /* lo que se pueda: el fallo ya se cuenta */ }
+  return { ok: false, detalle: String(hecho.salida || '').trim().split('\n').slice(-3).join(' · ') };
+}
+
+// Con lo que sobra en el plan aceptado: volver a montar con la de la clase, por
+// el mismo camino que el arranque (`rumbo.comoLaDeLaClase`).
+async function volverAMontarComoLaDeLaClase(contexto, salida) {
+  if (enMarcha) return { ok: false, cancelado: true };
+  enMarcha = true;
+  try {
+    const visto = await terreno.reconocer();
+    const parte = { ...visto, git: { ...visto.git, sigueSinCopias: Boolean(loQueDecidio(contexto).get(CLAVE_SIN_GIT)) } };
+    const plan = rumbo.comoLaDeLaClase(parte);
+    salida.appendLine(`[arrancar] ${plan.rama}: ${plan.porQue}`); // diccionario: interno
+    const respuestas = await entrevistar(plan, parte);
+    if (!respuestas) return { ok: false, cancelado: true };
+    return await hacerLosPasos(plan, parte, respuestas, contexto, salida);
+  } finally {
+    enMarcha = false;
+  }
+}
+
+// Lo de siempre, pedido con su botón (C-4): el sí ya se ha dado, y se trata como
+// carpeta de alguien solo si lo es. Se pasaba siempre como de alguien, y el
+// freno se quedaba esperando también en una nuestra (revisión de F4, m5).
+async function ponerElBloque(contexto) {
+  return ponerLosRailes(contexto, { ajena: await sinSuSi(null), ponerBloque: true });
 }
 
 // Preparar la carpeta también para otro asistente (E1): el `sync --target` del
@@ -1212,7 +1251,7 @@ function primerMensaje(hecho, { comoSeLlama, conWeb = '', conFreno = false }) {
 module.exports = {
   arrancar, entrevistar, ponerLosRailes, flagsDelMontaje, loQueLlevaLaCarpeta, primerMensaje,
   confirmarLaCarpeta, confirmarDentroDeOtro, crearUnaCarpetaDentro, comoSeDiceQueNo, ponerLasCopias, apuntarLosEnganches,
-  loQueNoTraeLaClase, ponerComoLaDeLaClase, prepararTambienPara,
+  loQueNoTraeLaClase, ponerComoLaDeLaClase, volverAMontarComoLaDeLaClase, prepararTambienPara, ponerElBloque,
   COMO_SE_ENTREGA, hayFreno, PIEZAS_DEL_PLAN, comoSeDiceLoQueCambia,
   COMO_SE_HACE, COMO_SE_PREGUNTA, DE_QUE_VA, QUE_LLEVA, CUANTAS_PERSONAS, QUE_VAS_A_CONSTRUIR,
   COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO,

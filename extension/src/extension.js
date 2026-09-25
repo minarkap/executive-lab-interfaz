@@ -335,8 +335,14 @@ ${cabecera}
   // invoca, que con Claude es escribir `/su-identificador`.
   async aprenderCapacidad(id, nombre) {
     this.enviar({ tipo: 'esperando', que: `Añadiendo ${nombre}…` });
-    const { ok } = await rsc.anadir(id);
+    const { ok, masNueva } = await rsc.anadir(id);
     await this.refrescar(true);
+    if (masNueva) {
+      return this.enviar({
+        tipo: 'aviso',
+        texto: 'Esta carpeta se montó con una versión del arnés más nueva que la de tu clase. Antes de añadir nada, pulsa «Ponerla como la de la clase» en Qué falta por montar.',
+      });
+    }
     this.enviar({
       tipo: 'aviso',
       texto: ok
@@ -1253,27 +1259,38 @@ ${cabecera}
 
   // El botón del bloque de `CLAUDE.md` pendiente (C-4). Toca un fichero suyo,
   // así que antes se pregunta con la frase de cuando se monta sobre lo de alguien.
+  // Ajustar lo de siempre no es montar el arnés: se pregunta con el nombre del
+  // botón, y vale para cualquier asistente (revisión de F4, m5).
   async ponerElBloque() {
-    const si = 'Sí, móntalo encima';
+    const si = 'Ajustarlo ahora';
     const elegido = await vscode.window.showInformationMessage(
-      'Aquí ya hay cosas tuyas. Para montar el arnés voy a tocar esto: Cómo se trabaja aquí. No borro nada tuyo.',
+      'Aquí ya hay cosas tuyas. Voy a tocar esto: Cómo se trabaja aquí. No borro nada tuyo.',
       { modal: true },
       si,
       'No, déjalo',
     );
     if (elegido !== si) return this.enviar({ tipo: 'aviso', texto: 'No he tocado nada. Cuando quieras, el botón sigue aquí.' });
-    const ok = await arrancar.ponerLosRailes(this.contexto, { ajena: true, ponerBloque: true }) && terreno.tieneElBloque();
-    this.salida.appendLine(`[railes] el bloque de CLAUDE.md: ${ok}`); // diccionario: interno
+    const ok = await arrancar.ponerElBloque(this.contexto) && terreno.tieneElBloque();
+    this.salida.appendLine(`[railes] lo de siempre, a mano: ${ok}`); // diccionario: interno
     await this.refrescar(true);
+    const conClaude = donde.paraQuien() === 'claude';
     return this.enviar(ok
-      ? { tipo: 'aviso', texto: 'Ya está. Cierra la conversación con Claude y ábrela otra vez para que lo coja.' }
+      ? { tipo: 'aviso', texto: conClaude ? 'Ya está. Cierra la conversación con Claude y ábrela otra vez para que lo coja.' : 'Ya está.' }
       : { tipo: 'aviso', texto: 'No he podido ponerlo. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
   }
 
   // Una carpeta montada con un arnés más nuevo que el de la clase (B5, C-10). No
   // se baja sin pulsar, y antes se nombra lo que la de la clase no trae.
   async ponerComoLaDeLaClase() {
-    const sobran = arrancar.loQueNoTraeLaClase();
+    const noSePudo = { tipo: 'aviso', texto: 'No he podido ponerla como la de la clase. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true };
+    // Sin poder leer el catálogo de la clase no se sabe qué se quita, y sin
+    // nombrarlo no se quita nada (C-10; revisión de F4, m9).
+    const queSobra = arrancar.loQueNoTraeLaClase();
+    if (!queSobra) {
+      this.salida.appendLine('[version] no se puede leer el catálogo de la clase'); // diccionario: interno
+      return this.enviar(noSePudo);
+    }
+    const { sobran, enElPlan } = queSobra;
     if (sobran.length) {
       const lista = sobran.map((id) => `«${nombres.comoSeLlama('habilidades', id, {}).nombre}»`);
       const dicha = lista.length < 2 ? lista.join('') : `${lista.slice(0, -1).join(', ')} y ${lista[lista.length - 1]}`;
@@ -1286,12 +1303,22 @@ ${cabecera}
       if (elegido !== si) return this.enviar({ tipo: 'aviso', texto: 'No he tocado nada. Cuando quieras, el botón sigue aquí.' });
     }
     this.enviar({ tipo: 'esperando', que: 'Poniéndola como la de la clase…' });
-    const { ok } = await arrancar.ponerComoLaDeLaClase(sobran);
-    this.salida.appendLine(`[version] como la de la clase: ${ok}${sobran.length ? `, sin ${sobran.join(', ')}` : ''}`); // diccionario: interno
+    // Con lo que sobra en el plan aceptado, su `sync` no puede: se vuelve a
+    // montar con la de la clase, y lo que cambia en el plan se enseña antes de
+    // firmarlo (revisión de F4, I1).
+    const hecho = enElPlan.length
+      ? await arrancar.volverAMontarComoLaDeLaClase(this.contexto, this.salida)
+      : await arrancar.ponerComoLaDeLaClase(sobran);
+    const { ok } = hecho;
+    this.salida.appendLine(`[version] como la de la clase: ${ok}${sobran.length ? `, sin ${sobran.join(', ')}` : ''}${hecho.detalle ? ` · ${hecho.detalle}` : ''}`); // diccionario: interno
+    if (hecho.cancelado) {
+      await this.refrescar(true);
+      return this.enviar({ tipo: 'aviso', texto: 'No he tocado nada. Cuando quieras, el botón sigue aquí.' });
+    }
     await this.refrescar(true);
     return this.enviar(ok
       ? { tipo: 'aviso', texto: donde.paraQuien() === 'claude' ? 'Ya está. Cierra la conversación con Claude y ábrela otra vez para que lo coja.' : 'Ya está.' }
-      : { tipo: 'aviso', texto: 'No he podido ponerla como la de la clase. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
+      : noSePudo);
   }
 
   // Las copias de una carpeta que se montó sin ellas. Si falta git, se pone

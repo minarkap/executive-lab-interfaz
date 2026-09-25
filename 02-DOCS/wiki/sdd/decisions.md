@@ -188,3 +188,19 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
 - **No se adelanta la activación de la barra a `*`** (I3): cambiaría cómo arranca todo y no se puede
   medir aquí. En su lugar, se apunta si Claude ya estaba en marcha, y la pieza lo dice. Se propone con
   la medida de T032 (3).
+
+## 2026-09-25 · todo-cuadra · revisión de F4
+
+- **Una carpeta más nueva que la clase, con lo suyo en el plan aceptado, se vuelve a montar con la de
+  la clase** (I1), y no se toca el plan del recibo, que va con su huella. Es el mismo camino que el
+  arranque, con la firma de siempre (A12). Medido con el paquete: RSC conserva lo añadido después que
+  la clase trae, así que no hay que devolverlo a mano.
+- **En esa carpeta, «Añadir» no añade** hasta ponerla como la de la clase (I2): el `add` de la clase
+  le bajaría la versión sin decirlo.
+- **Lo que el asistente lee siempre se decide en una sola función de la tabla** (`dondeVaLoDeSiempre`),
+  que usan los raíles para ponerlo y la barra para mirarlo (I3, m6): así los dos miran lo mismo.
+- **El import de `@AGENTS.md` se decide la primera vez por si existe un `CLAUDE.md`**, aunque esté
+  vacío, y después se mantiene, salvo que ese `AGENTS.md` lleve lo de RSC (I4, m7). Decidirlo por su
+  contenido no veía un `CLAUDE.md` suyo vacío.
+- **Un comando es nuestro si su `description` es la nuestra** (m8): es lo que conserva uno nuestro de
+  otro día, y lo que no tiene uno suyo con el mismo nombre.

@@ -2132,6 +2132,12 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.ok(regla.length > 100, 'no encuentro la regla 7 en siempre.md');
 
     const ficheros = [path.join(R, 'targets', 'commands.js')];
+    // Y lo que RSC escribe en sus propios mensajes, que el asistente también lee:
+    // su «Recover with» manda correr `onboard` con `@latest` (revisión de F4, m12).
+    const recorrer = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory()
+      ? recorrer(path.join(dir, e.name))
+      : (/\.(m?js)$/.test(e.name) ? [path.join(dir, e.name)] : [])));
+    ficheros.push(...recorrer(path.join(R, 'scripts')), ...recorrer(path.join(R, 'targets')));
     for (const id of fs.readdirSync(path.join(R, 'skills'))) {
       const skill = path.join(R, 'skills', id, 'SKILL.md');
       if (!fs.existsSync(skill) || !/^profiles:\s*\[[^\]]*\bcore\b/m.test(fs.readFileSync(skill, 'utf8'))) continue;
@@ -2153,6 +2159,10 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     const sinCubrir = [...verbos.keys()].filter((v) => !regla.includes(`\`${v}\``));
     assert.deepEqual(sinCubrir, [], `la regla 7 no nombra: ${sinCubrir.map((v) => `${v} (${[...verbos.get(v)].join(', ')})`).join(' · ')}`);
     assert.match(regla, /@latest/, 'la regla no dice nada de @latest');
+    // Y para añadir una, lo que hay en la pantalla (revisión de F4, m4): no hay
+    // ningún botón «Añadir», sino las sugerencias del catálogo, que se pulsan.
+    assert.doesNotMatch(regla, /\*Añadir\*/, 'manda pulsar un botón que no existe');
+    assert.match(regla, /\*Sugerencias del catálogo\*/, 'no dice dónde está lo que se pulsa');
     return `${verbos.size} verbos en ${ficheros.length} ficheros, todos en la regla`;
   });
 
@@ -3866,6 +3876,84 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     ponerLosRailesEn(codex);
     assert.ok(!fs.existsSync(path.join(codex, 'CLAUDE.md')), 'con Codex se escribe un CLAUDE.md');
     return 'una vez · lo suyo intacto · su AGENTS.md, importado · con Codex, nada';
+  });
+
+  await comprobar('el AGENTS.md de alguien se importa mientras Claude no tenga otro, ni lleve lo de RSC', () => {
+    // Revisión de F4, I4 y m7. Cuatro casos que ninguna prueba miraba: (a) en la
+    // segunda pasada el import se sostenía solo porque se copiaba del bloque de
+    // antes; (b) un AGENTS.md que solo lleva lo de RSC no se importa, porque RSC
+    // ya lo da con su enganche y saldría dos veces; (c) con un CLAUDE.md suyo,
+    // Claude no leía su AGENTS.md, y no se le hace leer; (d) si después se
+    // engancha Codex, RSC mete su trozo en ese AGENTS.md, y el import lo traería
+    // dos veces (`targets/agents-md-shadow.js` lo dice: nunca `@AGENTS.md`).
+    const leer = (c, f = 'CLAUDE.md') => fs.readFileSync(path.join(c, f), 'utf8');
+    const SUYO = '# Cómo trabajamos\n\nLos presupuestos, en euros.\n';
+    const TROZO_DE_RSC = '<!-- rsc-suggest:start -->\n# rsc-suggest\n<!-- rsc-suggest:end -->\n';
+
+    const a = conEnganchesDeRsc('agents-dos-veces-');
+    fs.writeFileSync(path.join(a, 'AGENTS.md'), SUYO);
+    ponerLosRailesEn(a);
+    ponerLosRailesEn(a);
+    assert.match(leer(a), /^@AGENTS\.md$/m, 'en la segunda pasada, Claude deja de leer su AGENTS.md');
+
+    const b = conEnganchesDeRsc('agents-solo-rsc-');
+    fs.writeFileSync(path.join(b, 'AGENTS.md'), `\n\n${TROZO_DE_RSC}`);
+    ponerLosRailesEn(b);
+    assert.doesNotMatch(leer(b), /@AGENTS\.md/, 'un AGENTS.md que solo lleva lo de RSC, importado: sale dos veces');
+
+    // Con que exista, aunque esté vacío: Claude Code no lee AGENTS.md si hay uno.
+    for (const [forma, suyo] of [['CLAUDE.md', '# Lo mío\n'], [path.join('.claude', 'CLAUDE.md'), '# Lo mío\n'], [path.join('.claude', 'CLAUDE.md'), '']]) {
+      const c = conEnganchesDeRsc('agents-con-claude-md-');
+      fs.writeFileSync(path.join(c, 'AGENTS.md'), SUYO);
+      fs.mkdirSync(path.dirname(path.join(c, forma)), { recursive: true });
+      fs.writeFileSync(path.join(c, forma), suyo);
+      ponerLosRailesEn(c);
+      ponerLosRailesEn(c);
+      assert.doesNotMatch(leer(c), /@AGENTS\.md/, `con su ${forma}, Claude empieza a leer un AGENTS.md que no leía`);
+    }
+
+    const d = conEnganchesDeRsc('agents-luego-codex-');
+    fs.writeFileSync(path.join(d, 'AGENTS.md'), SUYO);
+    ponerLosRailesEn(d);
+    fs.appendFileSync(path.join(d, 'AGENTS.md'), `\n\n${TROZO_DE_RSC}`);
+    ponerLosRailesEn(d);
+    assert.doesNotMatch(leer(d), /@AGENTS\.md/, 'con lo de RSC dentro, lo de RSC llega dos veces');
+    return 'dos pasadas · solo lo de RSC · con su CLAUDE.md · y con Codex después';
+  });
+
+  await comprobar('un bloque sin su final se arregla, sin comerse lo que hay detrás', () => {
+    // Revisión de F4, m1: con la marca de inicio y sin la de final, el reemplazo
+    // no encontraba nada, y se decía «se carga siempre.md» sin haberlo puesto.
+    const leer = (c) => fs.readFileSync(path.join(c, 'CLAUDE.md'), 'utf8');
+    const roto = conEnganchesDeRsc('bloque-sin-final-');
+    fs.writeFileSync(path.join(roto, 'CLAUDE.md'), '# Lo mío\n\n<!-- executive-lab:start -->\n@.claude/skills/executive-lab/SKILL.md\n\nY esto también es mío.\n');
+    ponerLosRailesEn(roto);
+    const texto = leer(roto);
+    assert.match(texto, BLOQUE_DE_CLAUDE, 'un bloque sin su final se da por puesto');
+    assert.ok(texto.startsWith('# Lo mío\n'), 'se ha tocado lo de delante');
+    assert.match(texto, /\n\nY esto también es mío\.\n$/, 'se ha comido lo de detrás');
+    assert.equal(texto.match(/executive-lab:start/g).length, 1, 'y quedan dos bloques');
+    assert.doesNotMatch(texto, /@\.claude\/skills\/executive-lab\/SKILL\.md/, 'y lo de dentro del roto se queda');
+    return 'arreglado, y lo suyo en su sitio';
+  });
+
+  await comprobar('con Claude, un bloque de Codex de antes en su AGENTS.md no deja los raíles viejos', () => {
+    // Revisión de F4, I3. Se miraban los bloques de CLAUDE.md y de AGENTS.md fuera
+    // quien fuera el asistente, y con Claude los raíles no reescriben AGENTS.md:
+    // una carpeta que usó Codex con la barra de antes y pasó a Claude se quedaba
+    // «de una versión anterior» para siempre, con un botón que no cambiaba nada.
+    // Ahora se mira lo de cada asistente declarado.
+    const carpeta = conEnganchesDeRsc('agents-viejo-con-claude-');
+    fs.writeFileSync(path.join(carpeta, 'AGENTS.md'), '\n<!-- executive-lab:start -->\nLéete `.codex/rsc/executive-lab/SKILL.md` antes de hacer nada.\n<!-- executive-lab:end -->\n');
+    ponerLosRailesEn(carpeta);
+    vscode.guion.raiz = carpeta;
+    try {
+      const railes = cargar('terreno').comoEstanLosRailes(RAIZ);
+      assert.ok(railes.habilidadPropia && railes.alDia, 'con Claude, un bloque de Codex de antes deja los raíles viejos para siempre');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return 'al día';
   });
 
   await comprobar('otroMontaje no lo cuenta', () => {
@@ -6610,10 +6698,12 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       const sinSi = await conRespuestas({}, () => proveedor.ponerElBloque());
       const pregunta = sinSi.vistas.find((v) => v.aviso && /^Aquí ya hay cosas tuyas/.test(v.pregunta));
       assert.ok(pregunta, 'el botón no pregunta antes de tocar lo suyo');
-      assert.match(pregunta.pregunta, /voy a tocar esto: Cómo se trabaja aquí\. No borro nada tuyo\./);
+      // Ajustar un bloque no es montar el arnés (revisión de F4, m5).
+      assert.equal(pregunta.pregunta, 'Aquí ya hay cosas tuyas. Voy a tocar esto: Cómo se trabaja aquí. No borro nada tuyo.');
+      assert.deepEqual(pregunta.opciones, ['Ajustarlo ahora', 'No, déjalo']);
       assert.equal(fs.readFileSync(path.join(carpeta, 'CLAUDE.md'), 'utf8'), LO_SUYO, 'sin el sí, se ha tocado');
 
-      await conRespuestas({ 'Aquí ya hay cosas tuyas': 'Sí, móntalo encima' }, () => proveedor.ponerElBloque());
+      await conRespuestas({ 'Aquí ya hay cosas tuyas': 'Ajustarlo ahora' }, () => proveedor.ponerElBloque());
       const ahora = fs.readFileSync(path.join(carpeta, 'CLAUDE.md'), 'utf8');
       assert.ok(ahora.startsWith(LO_SUYO), 'se ha tocado lo suyo');
       assert.match(ahora, BLOQUE_DE_CLAUDE, 'con el sí no se pone el bloque');
@@ -6624,6 +6714,94 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       proveedor.refrescar = antes.refrescar;
       vscode.guion.raiz = empresa;
     }
+  });
+
+  await comprobar('con Codex, en una carpeta con historial ajeno, su AGENTS.md espera a su sí', async () => {
+    // Revisión de F4, m6. C-4 se aplicaba al CLAUDE.md de Claude y no al
+    // AGENTS.md de Codex: los raíles escribían en el suyo sin preguntar, y si
+    // faltaba el bloque, «Lo que pone la barra» decía «Puesto».
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-historial-ajeno-'));
+    fs.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets: ['codex'], skills: [] }));
+    fs.mkdirSync(path.join(carpeta, '02-DOCS', 'wiki', 'harness'), { recursive: true });
+    fs.writeFileSync(path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'user-profile.md'), '---\narnes: Contabilidad\ntechnical_level: non-technical\n---\n');
+    const SUYO = '# Cómo trabajamos\n\nLos presupuestos, en euros.\n';
+    fs.writeFileSync(path.join(carpeta, 'AGENTS.md'), SUYO);
+    ponerLosRailesEn(carpeta, '--ajena');
+    assert.equal(fs.readFileSync(path.join(carpeta, 'AGENTS.md'), 'utf8'), SUYO, 'se ha tocado su AGENTS.md sin su sí');
+
+    vscode.guion.raiz = carpeta;
+    try {
+      const pieza = (await cargar('terreno').radiografia()).piezas.find((p) => p.nombre === 'Lo que pone la barra');
+      assert.equal(pieza.estado, 'aMedias', `dice «${pieza.detalle}» sin el bloque`);
+      assert.deepEqual(pieza.arreglo, { como: 'solo', etiqueta: 'Ajustarlo ahora', accion: { tipo: 'ponerElBloque' } });
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+
+    ponerLosRailesEn(carpeta, '--ajena', '--poner-bloque');
+    const ahora = fs.readFileSync(path.join(carpeta, 'AGENTS.md'), 'utf8');
+    assert.ok(ahora.startsWith(SUYO), 'se ha tocado lo suyo');
+    assert.match(ahora, /\.codex\/rsc\/executive-lab\/siempre\.md/, 'con su sí, no se pone');
+
+    // Un AGENTS.md que solo lleva lo de RSC no es de nadie: no espera a ningún sí.
+    const deRsc = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-agents-de-rsc-'));
+    fs.writeFileSync(path.join(deRsc, '.rsc.json'), JSON.stringify({ version: 1, targets: ['codex'], skills: [] }));
+    fs.writeFileSync(path.join(deRsc, 'AGENTS.md'), '\n\n<!-- rsc-suggest:start -->\n# rsc-suggest\n<!-- rsc-suggest:end -->\n');
+    ponerLosRailesEn(deRsc, '--ajena');
+    assert.match(fs.readFileSync(path.join(deRsc, 'AGENTS.md'), 'utf8'), /\.codex\/rsc\/executive-lab\/siempre\.md/, 'lo de RSC se toma por suyo, y espera');
+    return 'sin su sí, intacto · con él, el bloque · con solo lo de RSC, sin esperar';
+  });
+
+  await comprobar('el botón del bloque, en una carpeta nuestra, pone también lo demás', async () => {
+    // Revisión de F4, m5: se pasaba siempre como carpeta de alguien, y lo que
+    // allí espera a su sí —el freno— se quedaba sin poner también en una nuestra.
+    const proveedor = vscode.registrado.proveedor;
+    const carpeta = conEnganchesDeRsc('bloque-carpeta-nuestra-');
+    vscode.guion.raiz = carpeta;
+    const antes = { enviar: proveedor.enviar, refrescar: proveedor.refrescar };
+    const enviados = [];
+    proveedor.enviar = (m) => enviados.push(m);
+    proveedor.refrescar = async () => {};
+    try {
+      await conRespuestas({ 'Aquí ya hay cosas tuyas': 'Ajustarlo ahora' }, () => proveedor.ponerElBloque());
+      assert.ok(elFrenoNuestro(carpeta), 'en una carpeta nuestra, el freno se queda esperando un sí');
+      assert.match(fs.readFileSync(path.join(carpeta, 'CLAUDE.md'), 'utf8'), BLOQUE_DE_CLAUDE);
+      return enviados.pop().texto;
+    } finally {
+      proveedor.enviar = antes.enviar;
+      proveedor.refrescar = antes.refrescar;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('un comando suyo que se llama como uno de los raíles no se pisa', () => {
+    // Revisión de F4, m8. Los cuatro comandos se copiaban siempre: un
+    // `guardar.md` suyo se pisaba en cada pasada, también en la carpeta de
+    // alguien, y con D6 dejaba los raíles «de una versión anterior» para siempre.
+    // Es nuestro si dice lo mismo que el nuestro en su `description`.
+    const leer = (c, n) => fs.readFileSync(path.join(c, '.claude', 'commands', n), 'utf8');
+    const carpeta = conEnganchesDeRsc('comando-suyo-');
+    fs.mkdirSync(path.join(carpeta, '.claude', 'commands'), { recursive: true });
+    const SUYO = '---\ndescription: Guardar las facturas en la carpeta del trimestre\n---\nGuárdalas por fecha.\n';
+    fs.writeFileSync(path.join(carpeta, '.claude', 'commands', 'guardar.md'), SUYO);
+    ponerLosRailesEn(carpeta);
+    assert.equal(leer(carpeta, 'guardar.md'), SUYO, 'se ha pisado su comando');
+    assert.ok(fs.existsSync(path.join(carpeta, '.claude', 'commands', 'seguir.md')), 'y los demás no se ponen');
+    vscode.guion.raiz = carpeta;
+    try {
+      assert.ok(cargar('terreno').comoEstanLosRailes(RAIZ).alDia, 'con un comando suyo, los raíles son viejos para siempre');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+
+    // Uno nuestro de otro día, en cambio, se pone al día.
+    const vieja = conEnganchesDeRsc('comando-nuestro-viejo-');
+    ponerLosRailesEn(vieja);
+    const hoy = leer(vieja, 'guardar.md');
+    fs.writeFileSync(path.join(vieja, '.claude', 'commands', 'guardar.md'), `${hoy}\nLo que decía la semana pasada.\n`);
+    ponerLosRailesEn(vieja);
+    assert.equal(leer(vieja, 'guardar.md'), hoy, 'uno nuestro de antes no se pone al día');
+    return 'el suyo, intacto · el nuestro de antes, al día';
   });
 
   // ── De quién es el historial ─────────────────────────────────────────────
@@ -7029,6 +7207,10 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(rscM.comoEsLaVersion('2.0.5'), 'igual');
     assert.equal(rscM.comoEsLaVersion('2.0.13'), 'nueva', 'la 2.0.13 no es más nueva que la 2.0.5: se compara como texto');
     assert.equal(rscM.comoEsLaVersion('2.1.0'), 'nueva');
+    // Lo que no es una versión de verdad no se compara a medias (revisión de F4,
+    // m2): «2.0» salía más nueva, y «latest», más vieja.
+    for (const rara of ['2.0', '2', 'latest', 'x.y.z']) assert.equal(rscM.comoEsLaVersion(rara), 'rara', `«${rara}» se compara como si fuera una versión`);
+    assert.equal(rscM.comoEsLaVersion('v2.0.13'), 'nueva');
 
     const conVersion = (version) => {
       const r = conEnganches();
@@ -7082,6 +7264,105 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     } finally {
       rscM.correr = antes.correr;
       rscM.sincronizar = antes.sincronizar;
+      proveedor.enviar = antes.enviar;
+      proveedor.refrescar = antes.refrescar;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('ponerla como la de la clase no se queda a medias', async () => {
+    // Revisión de F4, I1, m9 y m10. Tres fallos del botón:
+    //   · con lo que la clase no trae en el plan aceptado, su `sync` lo vuelve a
+    //     pedir a su catálogo y falla a medias, después de borrar su base (medido
+    //     con el paquete). Ahí se vuelve a montar con la de la clase;
+    //   · si el `sync` fallaba, la declaración se quedaba cambiada, y el error de
+    //     RSC no llegaba al informe de «Algo va mal»;
+    //   · sin poder leer el catálogo de la clase, sincronizaba sin nombrar nada.
+    const rscM = cargar('rsc');
+    const arrancarM = cargar('arrancar');
+    const proveedor = vscode.registrado.proveedor;
+    const conLaNueva = ({ enElPlan }) => {
+      const r = conEnganches();
+      const d = JSON.parse(fs.readFileSync(path.join(r, '.rsc.json'), 'utf8'));
+      if (enElPlan) d.onboarding.plan.policy = { skills: ['bro', 'solo-en-la-nueva'] };
+      fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ ...d, catalogVersion: '2.0.13', skills: ['bro', 'solo-en-la-nueva'] }, null, 2));
+      return r;
+    };
+    const antes = { sincronizar: rscM.sincronizar, volver: arrancarM.volverAMontarComoLaDeLaClase, enviar: proveedor.enviar, refrescar: proveedor.refrescar };
+    const llamadas = [];
+    const enviados = [];
+    proveedor.enviar = (m) => enviados.push(m);
+    proveedor.refrescar = async () => {};
+    arrancarM.volverAMontarComoLaDeLaClase = async () => { llamadas.push('volver a montar'); return { ok: true }; };
+    const siAlBoton = { 'Se quitarán estas habilidades': 'Ponerla como la de la clase' };
+    try {
+      // En el plan aceptado: se vuelve a montar con la de la clase, sin su sync.
+      vscode.guion.raiz = conLaNueva({ enElPlan: true });
+      rscM.sincronizar = async () => { llamadas.push('sync'); return { codigo: 0, salida: '' }; };
+      assert.deepEqual(arrancarM.loQueNoTraeLaClase(), { sobran: ['solo-en-la-nueva'], enElPlan: ['solo-en-la-nueva'] });
+      await conRespuestas(siAlBoton, () => proveedor.ponerComoLaDeLaClase());
+      assert.deepEqual(llamadas, ['volver a montar'], `con lo que falta en el plan aceptado se hace esto: ${llamadas.join(', ')}`);
+
+      // Solo en lo declarado: su sync, y si falla, la declaración como estaba y
+      // el error de RSC en el registro.
+      llamadas.length = 0;
+      const soloDeclarada = conLaNueva({ enElPlan: false });
+      vscode.guion.raiz = soloDeclarada;
+      const comoEstaba = fs.readFileSync(path.join(soloDeclarada, '.rsc.json'), 'utf8');
+      rscM.sincronizar = async () => { llamadas.push('sync'); return { codigo: 1, salida: 'Error: ENOENT: no such file or directory, lstat solo-en-la-nueva' }; };
+      await conRespuestas(siAlBoton, () => proveedor.ponerComoLaDeLaClase());
+      assert.deepEqual(llamadas, ['sync']);
+      assert.equal(fs.readFileSync(path.join(soloDeclarada, '.rsc.json'), 'utf8'), comoEstaba, 'si el sync falla, la declaración se queda cambiada');
+      assert.match(enviados.pop().texto, /No he podido ponerla como la de la clase/);
+      assert.ok(vscode.registrado.mensajes.some((l) => /ENOENT/.test(l)), 'el error de RSC no llega al registro');
+
+      // Sin poder leer el catálogo de la clase: ni se toca ni se sincroniza.
+      llamadas.length = 0;
+      rscM.saberDondeEstamos(path.join(os.tmpdir(), 'no-hay-barra-aqui'));
+      assert.equal(arrancarM.loQueNoTraeLaClase(), null, 'sin catálogo, se dice que no sobra nada');
+      await conRespuestas(siAlBoton, () => proveedor.ponerComoLaDeLaClase());
+      assert.deepEqual(llamadas, [], 'sin saber qué se quita, se sincroniza igual');
+      assert.equal(fs.readFileSync(path.join(soloDeclarada, '.rsc.json'), 'utf8'), comoEstaba);
+      assert.match(enviados.pop().texto, /No he podido ponerla como la de la clase/);
+      return 'en el plan, se vuelve a montar · si falla, como estaba · sin catálogo, nada';
+    } finally {
+      rscM.saberDondeEstamos(RAIZ);
+      rscM.sincronizar = antes.sincronizar;
+      arrancarM.volverAMontarComoLaDeLaClase = antes.volver;
+      proveedor.enviar = antes.enviar;
+      proveedor.refrescar = antes.refrescar;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('añadir en una carpeta más nueva que la clase no le baja la versión', async () => {
+    // Revisión de F4, I2. «Añadir» corre el `add` del arnés de la clase, que deja
+    // su versión en la carpeta: en una montada con una más nueva, la bajaba sin
+    // decir nada, y con una habilidad que solo trae la nueva, fallaba y borraba
+    // su base. Ahí no se añade: se dice, y se manda al botón que la pone como la
+    // de la clase.
+    const rscM = cargar('rsc');
+    const proveedor = vscode.registrado.proveedor;
+    const r = conEnganches();
+    const d = JSON.parse(fs.readFileSync(path.join(r, '.rsc.json'), 'utf8'));
+    fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ ...d, catalogVersion: '2.0.13' }));
+    const antes = { correr: rscM.correr, enviar: proveedor.enviar, refrescar: proveedor.refrescar };
+    const pedidos = [];
+    const enviados = [];
+    rscM.correr = async (args) => { pedidos.push(args.join(' ')); return { codigo: 0, salida: '' }; };
+    proveedor.enviar = (m) => enviados.push(m);
+    proveedor.refrescar = async () => {};
+    vscode.guion.raiz = r;
+    try {
+      await proveedor.aprenderCapacidad('bookkeeping', 'Contabilidad');
+      assert.ok(!pedidos.some((p) => p.startsWith('add')), `se añade con el arnés de la clase: ${pedidos.join(' · ')}`);
+      const dicho = enviados.pop();
+      assert.match(dicho.texto, /más nueva que la de tu clase/, 'no se dice por qué no');
+      assert.match(dicho.texto, /«Ponerla como la de la clase»/, 'y no se dice qué hacer');
+      assert.equal(JSON.parse(fs.readFileSync(path.join(r, '.rsc.json'), 'utf8')).catalogVersion, '2.0.13');
+      return dicho.texto.slice(0, 70);
+    } finally {
+      rscM.correr = antes.correr;
       proveedor.enviar = antes.enviar;
       proveedor.refrescar = antes.refrescar;
       vscode.guion.raiz = empresa;
@@ -8347,6 +8628,70 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
         asistentesM.saberDondeGuardar(null);
         vscode.guion.raiz = empresa;
         vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+      }
+    });
+    await comprobar('una carpeta de una versión más nueva, con lo suyo en el plan, se pone como la de la clase', async () => {
+      // Revisión de F4, I1, con el arnés de verdad. Montada con la de la clase, se
+      // deja como la deja una más nueva: su versión, y en el plan aceptado una
+      // habilidad que la de la clase no trae (como hizo el revisor). Y otra que
+      // se añadió después y la clase sí tiene. El `sync` de la clase fallaba a
+      // medias; volver a montar con ella deja la de la clase y conserva la añadida.
+      const cp = require('node:child_process');
+      const rscM = cargar('rsc');
+      const r = fs.mkdtempSync(path.join(os.tmpdir(), 'mas-nueva-que-la-clase-'));
+      cp.spawnSync('git', ['init', '-q', '.'], { cwd: r });
+      const flags = ['--technical-level', 'non-technical', '--accompaniment', 'L3',
+        '--project-kind', 'operations', '--goal', 'Organizar el papeleo', '--target', 'claude'];
+      let montado = false;
+      vscode.guion.raiz = r;
+      try {
+        const plan = await rscM.correr(['onboard', ...flags], { tiempoMaximo: 600000 });
+        const linea = (plan.salida.match(/^Accept exactly this plan: npx @ericrisco\/rsc@\S+ onboard (.+)$/m) || [])[1];
+        if (linea) {
+          const hecho = await rscM.correr(['onboard', ...linea.trim().split(/\s+/)], { tiempoMaximo: 900000 });
+          montado = /RSC_ONBOARDING_READY/.test(hecho.salida);
+        }
+        if (montado) await rscM.correr(['add', 'bookkeeping', '--target', 'claude'], { tiempoMaximo: 180000 });
+      } finally {
+        vscode.guion.raiz = empresa;
+      }
+      if (!montado) return 'SALTADA';
+      cp.spawnSync(process.execPath, [path.join(RAIZ, 'media', 'railes', 'aplicar.js'), r], { encoding: 'utf8' });
+
+      // Como la deja una versión más nueva.
+      const leerJson = (...p) => JSON.parse(fs.readFileSync(path.join(r, ...p), 'utf8'));
+      const escribirJson = (datos, ...p) => fs.writeFileSync(path.join(r, ...p), `${JSON.stringify(datos, null, 2)}\n`);
+      fs.mkdirSync(path.join(r, '.rsc', 'skills', 'solo-en-la-nueva'), { recursive: true });
+      fs.writeFileSync(path.join(r, '.rsc', 'skills', 'solo-en-la-nueva', 'SKILL.md'), '---\nname: solo-en-la-nueva\ndescription: x\n---\n# nueva\n');
+      fs.symlinkSync(path.join('..', '..', '.rsc', 'skills', 'solo-en-la-nueva'), path.join(r, '.claude', 'skills', 'solo-en-la-nueva'));
+      const d = leerJson('.rsc.json');
+      d.catalogVersion = '2.0.13';
+      d.skills = [...new Set([...d.skills, 'solo-en-la-nueva'])].sort();
+      d.onboarding.plan.policy.skills = [...d.onboarding.plan.policy.skills, 'solo-en-la-nueva'].sort();
+      escribirJson(d, '.rsc.json');
+      const estado = leerJson('.claude', 'skills', '.rsc-state.json');
+      estado.skills['solo-en-la-nueva'] = { files: [], base: '.rsc/skills/solo-en-la-nueva' };
+      escribirJson(estado, '.claude', 'skills', '.rsc-state.json');
+      const bases = leerJson('.rsc', '.base-versions.json');
+      bases['solo-en-la-nueva'] = '2.0.13';
+      escribirJson(bases, '.rsc', '.base-versions.json');
+
+      vscode.guion.raiz = r;
+      try {
+        assert.deepEqual(cargar('arrancar').loQueNoTraeLaClase(), { sobran: ['solo-en-la-nueva'], enElPlan: ['solo-en-la-nueva'] });
+        const contexto = { extensionPath: RAIZ, workspaceState: { get: () => undefined, update: async () => {} } };
+        const { hecho } = await conRespuestas({ 'El arnés quiere cambiar lo que tiene montado': 'Sí, acéptalo' },
+          () => cargar('arrancar').volverAMontarComoLaDeLaClase(contexto, { appendLine: () => {} }));
+        assert.equal(hecho.ok, true, JSON.stringify(hecho).slice(0, 300));
+        const ahora = leerJson('.rsc.json');
+        assert.equal(ahora.catalogVersion, rscM.VERSION_DE_RESPALDO, 'no queda como la de la clase');
+        assert.ok(!ahora.skills.includes('solo-en-la-nueva') && !ahora.onboarding.plan.policy.skills.includes('solo-en-la-nueva'), 'sigue la que la clase no trae');
+        assert.ok(ahora.skills.includes('bookkeeping'), 'se pierde la que se añadió después');
+        assert.ok(fs.existsSync(path.join(r, '.rsc', 'skills', 'bookkeeping', 'SKILL.md')), 'y su base');
+        assert.ok(fs.existsSync(path.join(r, '.claude', 'skills', 'executive-lab', 'siempre.md')), 'y los raíles');
+        return `la ${ahora.catalogVersion}, sin la nueva y con la añadida`;
+      } finally {
+        vscode.guion.raiz = empresa;
       }
     });
   } else {

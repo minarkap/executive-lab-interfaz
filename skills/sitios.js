@@ -194,4 +194,22 @@ function paraQuien(declaracion) {
 
 const sitiosDe = (quien) => SITIOS[quien] || null;
 
-module.exports = { SITIOS, paraQuien, sitiosDe };
+// Dónde dejan los raíles lo que ese asistente tiene que leer siempre, que no es
+// siempre su fichero de siempre de la tabla (D1, E3). Lo usan los raíles para
+// ponerlo y la barra para ver si está, y así los dos miran lo mismo:
+//   · Claude, el bloque de `CLAUDE.md` que importa `siempre.md`. No sale de la
+//     tabla, que es copia de la de RSC, y para RSC Claude no tiene fichero
+//     compartido;
+//   · con las habilidades en un fichero suelto (Cursor), el `.mdc` nuestro;
+//   · con un fichero de siempre compartido, el trozo entre marcas, ahí.
+// Y null si no hay dónde.
+function dondeVaLoDeSiempre(quien) {
+  const suyo = sitiosDe(quien);
+  if (!suyo) return null;
+  if (quien === 'claude') return ['CLAUDE.md'];
+  if (suyo.habilidadEnUnFichero) return [...suyo.habilidades, `executive-lab${suyo.habilidadEnUnFichero}`];
+  if (suyo.siempre && suyo.siempre.compartido) return suyo.siempre.fichero;
+  return null;
+}
+
+module.exports = { SITIOS, paraQuien, sitiosDe, dondeVaLoDeSiempre };

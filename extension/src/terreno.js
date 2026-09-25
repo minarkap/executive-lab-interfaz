@@ -389,7 +389,7 @@ function mirar() {
     conEstadoDeRsc: fs.existsSync(donde.ficheroDeEstado() || ''),
     // Montada con un catálogo más viejo que el que trae la barra dentro. Uno
     // más nuevo no es atrasado (B5): se dice aparte, y no se baja sin pulsar.
-    versionAtrasada: rsc.comoEsLaVersion(declaracion && declaracion.catalogVersion) === 'vieja',
+    versionAtrasada: ['vieja', 'rara'].includes(rsc.comoEsLaVersion(declaracion && declaracion.catalogVersion)),
     versionMasNueva: rsc.comoEsLaVersion(declaracion && declaracion.catalogVersion) === 'nueva',
     otroMontaje: otroMontaje(),
     railes: comoEstanLosRailes(),
@@ -443,26 +443,51 @@ function losComandosSonLosDeHoy(carpetaDeLaExtension) {
   if (!nuestros || !suyos || !fs.existsSync(nuestros)) return true;
   try {
     // Con el nombre que les da cada asistente: `guardar.prompt.md` en Copilot (E3).
+    // Uno suyo que se llama como uno nuestro no es nuestro de antes: los raíles no
+    // lo pisan (revisión de F4, m8), así que tampoco cuenta como viejo. Es nuestro
+    // si su `description` es la nuestra, como en `aplicar.js`.
+    const descripcion = (texto) => {
+      const cabecera = (texto.match(/^---\r?\n([\s\S]*?)\r?\n---/) || [])[1] || '';
+      const linea = cabecera.match(/^description:\s*(.+?)\s*$/m);
+      return linea ? linea[1].replace(/^["']|["']$/g, '') : null;
+    };
     return fs.readdirSync(nuestros).every((fichero) => {
       const aqui = path.join(suyos, fichero.replace(/\.md$/, donde.acabaUnComando()));
-      return fs.existsSync(aqui) && fs.readFileSync(path.join(nuestros, fichero), 'utf8') === fs.readFileSync(aqui, 'utf8');
+      if (!fs.existsSync(aqui)) return false;
+      const [nuestro, suyo] = [fs.readFileSync(path.join(nuestros, fichero), 'utf8'), fs.readFileSync(aqui, 'utf8')];
+      return nuestro === suyo || descripcion(nuestro) !== descripcion(suyo);
     });
   } catch {
     return true;
   }
 }
 
-function losBloquesSonLosDeHoy() {
-  return ['CLAUDE.md', 'AGENTS.md'].every((nombre) => {
-    let texto = '';
+// Lo de siempre se mira donde lo ponen los raíles para cada asistente declarado,
+// y en ningún otro sitio (revisión de F4, I3): se miraban `CLAUDE.md` y
+// `AGENTS.md` fuera quien fuera el asistente, y con Claude los raíles no
+// reescriben `AGENTS.md`. Una carpeta que usó Codex con la barra de antes y pasó
+// a Claude se quedaba «de una versión anterior» para siempre.
+const NUESTRO = /<!-- executive-lab:start -->[\s\S]*?<!-- executive-lab:end -->/;
+const NOMBRA_SIEMPRE = /\/executive-lab\/siempre\.md/;
+
+function loDeSiempreDeCadaUno() {
+  const declaracion = proyecto.declaracion();
+  const declarados = declaracion && Array.isArray(declaracion.targets) && declaracion.targets.length
+    ? declaracion.targets
+    : [sitios.paraQuien(declaracion)];
+  return declarados.map((quien) => sitios.dondeVaLoDeSiempre(quien)).filter(Boolean).map((partes) => {
+    let texto = null;
     try {
-      texto = fs.readFileSync(proyecto.ruta(nombre), 'utf8');
-    } catch {
-      return true;
-    }
-    const bloque = texto.match(/<!-- executive-lab:start -->[\s\S]*?<!-- executive-lab:end -->/);
-    return !bloque || /\/executive-lab\/siempre\.md/.test(bloque[0]);
+      texto = fs.readFileSync(proyecto.ruta(...partes), 'utf8');
+    } catch { /* no está */ }
+    // El `.mdc` de Cursor es entero nuestro: no lleva marcas.
+    const bloque = texto === null ? null : (partes[partes.length - 1].startsWith('executive-lab.') ? [texto] : texto.match(NUESTRO));
+    return { texto, bloque };
   });
+}
+
+function losBloquesSonLosDeHoy() {
+  return loDeSiempreDeCadaUno().every(({ bloque }) => !bloque || NOMBRA_SIEMPRE.test(bloque[0]));
 }
 
 // Dónde vive la barra, para poder comparar sus raíles con los de la carpeta.
@@ -1055,10 +1080,11 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
     // Puestos pero viejos es un tercer estado, y el que más engaña: se ve
     // igual que «Puesto» y el asistente está leyendo las reglas de otro día.
     const viejos = railes && !parte.railes.alDia;
-    // Y con Claude, sin el bloque de `CLAUDE.md` que carga lo que vale siempre
-    // (D1): en una carpeta cuyo historial no creó la barra, reponer los raíles
-    // no lo pone sin su sí (C-4), y el botón lo pregunta.
-    const sinBloque = railes && !viejos && donde.paraQuien() === 'claude' && !tieneElBloque();
+    // Y sin lo que vale siempre donde lo lee cada asistente (D1): en una carpeta
+    // cuyo historial no creó la barra, reponer los raíles no lo pone sin su sí
+    // (C-4), y el botón lo pregunta. Con Claude y con los demás (revisión de F4,
+    // m6).
+    const sinBloque = railes && !viejos && !tieneElBloque();
     const bien = railes && !viejos && !sinBloque;
     piezas.push({
       nombre: 'Lo que pone la barra',
@@ -1081,13 +1107,10 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
 
 // Si el `CLAUDE.md` de la carpeta ya trae nuestro bloque, el que importa
 // `siempre.md` en cada conversación.
+// Lo de siempre, puesto para todos los declarados: el bloque de `CLAUDE.md` con
+// Claude, y el trozo de su fichero con los demás (revisión de F4, m6).
 function tieneElBloque() {
-  try {
-    return /<!-- executive-lab:start -->[\s\S]*?\/executive-lab\/siempre\.md[\s\S]*?<!-- executive-lab:end -->/
-      .test(fs.readFileSync(proyecto.ruta('CLAUDE.md'), 'utf8'));
-  } catch {
-    return false;
-  }
+  return loDeSiempreDeCadaUno().every(({ bloque }) => Boolean(bloque) && NOMBRA_SIEMPRE.test(bloque[0]));
 }
 
 // Qué freno ante órdenes peligrosas está enganchado aquí: el nuestro (los
