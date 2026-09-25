@@ -596,3 +596,95 @@ Solo se añade.
   (3), no hecha; C2 y C4 están probados con un entorno que se le da a la función, y lo de verdad es lo
   que mide T032; C3 no se deshace con el módulo de un instalador de antes hasta F7. Van en un commit
   propio, porque F4 ya estaba encima; el trabajo de F5 se apartó en un *stash*.
+
+## F5
+
+- **T047 ✓** 25-09 · Una sola respuesta a «qué asistente» (E2):
+  - **rojo**, con la función puesta como hoy: «con dos declarados y uno instalado, todas las
+    pantallas coinciden». Con Claude y Codex declarados y solo Codex en el ordenador, la barra miraba
+    en `.claude/` y le hablaba a Codex.
+  - **verde**: `asistentes.conQuien()`, y de ella tiran `elDeAhora` (el puente, la brújula, la
+    radiografía, «Las reglas»), `donde.paraQuien` (dónde se mira, y con ello `saberes.comoSePide`) y
+    `rsc.anadir`. El orden: el elegido en esta carpeta si el arnés está montado para él (llega con
+    T048), el primero declarado que esté instalado, el primero declarado, y sin nada declarado, el
+    instalado o Claude. Lo declarado va antes que lo instalado: hablar con uno sin su arnés es hablar
+    sin sus habilidades.
+  - Mutación: dos (dónde, por el primero declarado; con quién, por cualquiera instalado), y mueren
+    las dos.
+
+  Verde: `humo` 254.
+- **Corrección a T047** 25-09 · La segunda mutación sobrevivía a la prueba de T047 (la mataban
+  otras cinco): no tenía el caso que separa lo declarado de lo instalado. Añadido (solo Codex
+  declarado, solo Claude instalado: manda Codex), y ahora también la mata esta.
+- **T048 ✓** 25-09 · Con quién se habla, guardado aparte de `targets` (E1):
+  - **rojo**: «tras un sync que ordena, la elección sigue»: elegir reescribía el orden de `targets`
+    en `.rsc.json`, que RSC vuelve a ordenar en cada escritura.
+  - **verde**: la elección va en el estado del espacio de trabajo (`executiveLab.conQuien`), que la
+    barra le da a `asistentes` al abrirse. `conQuien()` la usa si el arnés está montado para ese
+    asistente. Con uno ya declarado, `elegir` apunta la elección y no toca la declaración; ahora es
+    asíncrona, y el botón la espera. Con uno sin montar, sigue como antes hasta T049.
+  - La prueba de «cambiar de asistente» espera ahora a `elegir`: sin eso fallaba a medias y dejaba la
+    declaración cambiada para la siguiente.
+  - Mutación: dos (la elección no se lee; elegir reescribe `targets`), y mueren las dos.
+
+  Verde: `humo` 264.
+- **T050 ✓** 25-09 · Raíles para todos los asistentes declarados (E2):
+  - **rojo**: «con claude y codex declarados, los dos tienen raíles»: Codex se quedaba sin ellos.
+  - **verde**: `aplicar.js` pone lo de cada asistente para cada declarado —la habilidad, los
+    comandos, el trozo que la nombra, el bloque de `CLAUDE.md` y el freno— y lo de la carpeta una vez:
+    los avisos callados, el perfil y `ownSkills`. Un asistente que no está en la tabla no recibe nada
+    y se dice; si no queda ninguno conocido, se para, como antes.
+  - Con varios de la familia de `AGENTS.md` a la vez, el último nombraría su copia en el bloque: la
+    barra solo ofrece Claude y Codex, que no lo comparten. Queda para T051.
+  - Mutación: solo para el primero, y muere.
+
+  Verde: `humo` 265.
+- **T049 ✓** 25-09 · Cambiar a un asistente sin montar lo prepara para él (E1):
+  - **rojo**: «cambiar a un asistente sin montar lo prepara para él, con sus raíles» (reescrita: la
+    de antes, «cambiar de asistente dice qué deja de verse», consagraba el fallo). Con Codex sin
+    montar, se daba por cambiado sin preparar nada.
+  - **verde**: `asistentes.elegir(id, { montar })`. Con uno sin montar corre `montar`, que es
+    `arrancar.prepararTambienPara`: el `sync --target` del arnés de dentro, que suma y no quita, y
+    después los raíles, que ya se ponen para todos (T050). Solo si sale bien **y** el asistente queda
+    declarado se apunta la elección; si no, «No he podido prepararla para {nombre}. Pulsa «Algo va
+    mal» y pásale el código a tu tutor.», y no se cambia nada. Fuera el camino que reescribía
+    `targets` y decía que algo «deja de verse». El botón enseña «Preparando esta carpeta para
+    {nombre}…» mientras tanto, y la pista de antes de pulsar dice que la prepara. Frases compuestas
+    con las del diccionario, apuntadas en su fila.
+  - **humo+** nuevo: «de Claude a Codex deja .codex/rsc con las 32 y la nuestra», con el paquete: la
+    declaración suma a Codex sin quitar a Claude, `catalogVersion` sigue en la de la clase, Codex tiene
+    las mismas 32 que Claude y la nuestra con `siempre.md`, `AGENTS.md` la nombra, y lo de Claude y su
+    `CLAUDE.md` siguen igual.
+  - Mutación: siete (sin preparar se cambia igual; sin mirar lo declarado; sin el `sync`; sin los
+    raíles; un `sync` que falla se da por bueno; sin el aviso de los frenos; con uno ya montado se
+    vuelve a montar). Dos sobrevivían a la primera versión de la prueba: faltaban el caso de un arnés
+    que termina bien sin declararlo y el de `prepararTambienPara` con un `sync` que falla. Añadidos, y
+    mueren las siete.
+
+  Verde: `humo` 265.
+- **T051 ✓** 25-09 · `compartido` y los formatos de los demás asistentes (E3):
+  - **rojo**, tres pruebas: la de la tabla, que ahora compara también `compartido` (sale del
+    adaptador de RSC: el de markdown mete su trozo entre marcas, el de Cursor reescribe su fichero) y
+    los formatos (`skillExt`, `ext` e `invocationSuffix` del paquete); «una carpeta montada fuera se
+    lee en el formato de su asistente»; y «los raíles se ponen en el formato de cada asistente».
+  - **verde**: en `sitios.js`, `compartido: true` para Windsurf, Cline, Roo, Continue y Kiro, y tres
+    campos nuevos, copiados de los suyos: `habilidadEnUnFichero` (Cursor, `.mdc`), `comandoAcabaEn`
+    (Copilot, `.prompt.md`) y `comandoSePideCon` (Cline, `.md`). La barra los lee con cuatro
+    funciones de `donde`, y de ellas tiran `rsc.habilidadesEnDisco` (con Cursor, los `.mdc` menos el
+    fichero de siempre de RSC; la carpeta ya no parece un clon), `acciones`, el buscador, la cabecera
+    de una habilidad y el «al día» de los comandos. Los raíles ponen los comandos con el nombre de
+    cada asistente, y con Cursor dejan `.cursor/rules/executive-lab.mdc`, que es donde RSC busca la
+    propia, que se aplica siempre y apunta a la habilidad con la misma frase que el bloque de Codex.
+  - **Corrección a T047**: con un arnés montado fuera solo para asistentes que la barra no ofrece,
+    `conQuien()` caía en Claude y la barra miraba en `.claude/`. `donde.paraQuien` mira entonces en
+    lo del primero declarado, como antes de T047, y nunca en lo de Claude.
+  - Mutación: catorce (cada campo de la tabla, `compartido` de Windsurf y de Kiro, mirar en lo de
+    Claude, el fichero de siempre de RSC como habilidad, el sufijo al pedir, la cabecera, el
+    buscador, el «al día», el nombre de los comandos, el `.mdc` de Cursor y su `alwaysApply`), y
+    mueren las catorce.
+
+  Verde: `humo` 267.
+- **T052 ✓** 25-09 · Verificación de F5 ([verificación](../verifications/todo-cuadra-F5-2026-09-25.md)):
+  `humo` 267, `humo+` 273, `contrato` 12, las tres empresas enteras, diccionario limpio y PowerShell
+  sin pegas. Treinta mutaciones, y mueren todas. Decisión 121, worklog, 0.37.0 y commit. La revisión
+  con ojos frescos de F5 corre sobre ese commit; la de F4, que ya llegó, se arregla detrás.

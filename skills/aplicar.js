@@ -59,48 +59,55 @@ function copiarCarpeta(desde, hasta) {
   }
 }
 
-// 0. Para qué asistente se montó esta carpeta.
+// 0. Para qué asistentes se montó esta carpeta: para todos los declarados (E2).
 //
-// Un asistente que no esté en la tabla no se trata como Claude: se para. Poner
-// los raíles de Claude en el arnés de otro es peor que no ponerlos, porque
-// desde fuera se ve igual que si estuvieran puestos.
+// Se ponían solo para el primero, y con dos el otro se quedaba sin raíles. Un
+// asistente que no esté en la tabla no se trata como Claude: no se le pone
+// nada, y si no queda ninguno que se sepa dónde mira, se para. Poner los raíles
+// de Claude en el arnés de otro es peor que no ponerlos, porque desde fuera se
+// ve igual que si estuvieran puestos.
 let declaracionLeida = null;
 try {
   declaracionLeida = JSON.parse(fs.readFileSync(path.join(destino, '.rsc.json'), 'utf8'));
 } catch { /* sin declaración: Claude, que es lo que monta nuestro instalador */ }
 
-const quien = sitios.paraQuien(declaracionLeida);
-const suyo = sitios.sitiosDe(quien);
-if (!suyo) {
-  console.error(`Esta carpeta dice estar montada para "${quien}", que no sé dónde mira.`);
+const declarados = declaracionLeida && Array.isArray(declaracionLeida.targets) && declaracionLeida.targets.length
+  ? declaracionLeida.targets
+  : [sitios.paraQuien(declaracionLeida)];
+const quienes = declarados.filter((q) => sitios.sitiosDe(q));
+const raros = declarados.filter((q) => !sitios.sitiosDe(q));
+if (!quienes.length) {
+  console.error(`Esta carpeta dice estar montada para "${raros.join('", "')}", que no sé dónde mira.`);
   console.error('No pongo nada: unos raíles en la carpeta equivocada se ven igual que unos puestos.');
   process.exit(1);
 }
+for (const raro of raros) hechos.push(`sin raíles para "${raro}": no sé dónde mira`);
 
 const en = (...partes) => path.join(destino, ...partes);
 const comoSeEscribe = (partes) => partes.join('/');
 
-// 1. La habilidad.
-const raizDeHabilidades = suyo.habilidades;
-copiarCarpeta(path.join(origen, 'executive-lab'), en(...raizDeHabilidades, 'executive-lab'));
-hechos.push(`${comoSeEscribe(raizDeHabilidades)}/executive-lab/`);
-
-// 2. Los comandos.
+// 1 y 2. La habilidad y los comandos, donde mire cada uno.
 //
-// Y aquí no hay para todos: RSC solo escribe comandos para ocho asistentes, y
-// Codex no es uno. No es que estén en otro sitio — con Codex no hay ninguno
-// que leer, nunca. Así que se dice, en vez de dejarlos en una carpeta muerta.
-// La barra ya sabe explicar ese hueco (`donde.puedeTenerBotones`).
-if (suyo.comandos) {
+// Y comandos no hay para todos: RSC solo escribe comandos para ocho
+// asistentes, y Codex no es uno. No es que estén en otro sitio — con Codex no
+// hay ninguno que leer, nunca. Así que se dice, en vez de dejarlos en una
+// carpeta muerta. La barra ya sabe explicar ese hueco (`donde.puedeTenerBotones`).
+function ponerLaHabilidadYLosComandos(quien, suyo) {
+  copiarCarpeta(path.join(origen, 'executive-lab'), en(...suyo.habilidades, 'executive-lab'));
+  hechos.push(`${comoSeEscribe(suyo.habilidades)}/executive-lab/`);
+  if (!suyo.comandos) {
+    hechos.push(`sin comandos: ${quien} no tiene dónde guardarlos, y no me los invento`);
+    return;
+  }
   const comandos = en(...suyo.comandos);
   fs.mkdirSync(comandos, { recursive: true });
+  // Con el nombre que les da ese asistente: Copilot solo lee `.prompt.md` (E3).
   const cuantos = fs.readdirSync(path.join(origen, 'comandos'));
   for (const fichero of cuantos) {
-    fs.copyFileSync(path.join(origen, 'comandos', fichero), path.join(comandos, fichero));
+    const suNombre = fichero.replace(/\.md$/, suyo.comandoAcabaEn || '.md');
+    fs.copyFileSync(path.join(origen, 'comandos', fichero), path.join(comandos, suNombre));
   }
   hechos.push(`${comoSeEscribe(suyo.comandos)}/ (${cuantos.length} comandos)`);
-} else {
-  hechos.push(`sin comandos: ${quien} no tiene dónde guardarlos, y no me los invento`);
 }
 
 // 3. Que el asistente sepa que la habilidad está ahí.
@@ -136,19 +143,29 @@ function ponerElTrozo(fichero, trozo) {
   fs.writeFileSync(fichero, texto);
 }
 
-function nombrarLaHabilidad() {
+function nombrarLaHabilidad(quien, suyo) {
   if (!suyo.siempre) return `${quien} encuentra la habilidad solo`;
+
+  const dir = `${comoSeEscribe(suyo.habilidades)}/executive-lab`;
+  const loQueDice = `Léete \`${dir}/siempre.md\` y \`${dir}/SKILL.md\` antes de hacer nada y respeta lo que digan: es la habilidad siempre activa de esta carpeta.`;
+
+  // Con Cursor, una habilidad es un fichero suelto —`<id>.mdc`, que es donde RSC
+  // busca la propia— y su fichero de siempre lo reescribe RSC entero (E3). La
+  // nuestra va en el suyo, que se aplica siempre y nombra lo demás.
+  if (suyo.habilidadEnUnFichero) {
+    const suyaEn = `${comoSeEscribe(suyo.habilidades)}/executive-lab${suyo.habilidadEnUnFichero}`;
+    fs.writeFileSync(en(...suyo.habilidades, `executive-lab${suyo.habilidadEnUnFichero}`),
+      `---\ndescription: Executive Lab, la habilidad siempre activa de esta carpeta\nalwaysApply: true\n---\n${loQueDice}\n`);
+    return `${suyaEn} (se aplica siempre y apunta a la habilidad)`;
+  }
   if (!suyo.siempre.compartido) {
     return `${comoSeEscribe(suyo.siempre.fichero)} es de RSC y lo reescribe: no lo toco`;
   }
 
-  const dir = `${comoSeEscribe(raizDeHabilidades)}/executive-lab`;
-  ponerElTrozo(en(...suyo.siempre.fichero),
-    `${DESDE}\nLéete \`${dir}/siempre.md\` y \`${dir}/SKILL.md\` antes de hacer nada y respeta lo que digan: es la habilidad siempre activa de esta carpeta.\n${HASTA}`);
+  ponerElTrozo(en(...suyo.siempre.fichero), `${DESDE}\n${loQueDice}\n${HASTA}`);
   return `${comoSeEscribe(suyo.siempre.fichero)} (apunta a la habilidad)`;
 }
 
-hechos.push(nombrarLaHabilidad());
 
 // 3b. Y con Claude, lo que vale siempre, en cada conversación (D1).
 //
@@ -189,7 +206,7 @@ function esDeAlguien(fichero) {
   }
 }
 
-function ponerLoDeSiempre() {
+function ponerLoDeSiempre(quien, suyo) {
   if (quien !== 'claude') return null;
   const fichero = en('CLAUDE.md');
   const antes = fs.existsSync(fichero) ? fs.readFileSync(fichero, 'utf8') : null;
@@ -201,13 +218,11 @@ function ponerLoDeSiempre() {
   const conAgents = viejo
     ? viejo[0].includes('@AGENTS.md')
     : (!hayUnClaudeMd(destino) && esDeAlguien(en('AGENTS.md')));
-  const lineas = [`@${comoSeEscribe(raizDeHabilidades)}/executive-lab/siempre.md`, ...(conAgents ? ['@AGENTS.md'] : [])];
+  const lineas = [`@${comoSeEscribe(suyo.habilidades)}/executive-lab/siempre.md`, ...(conAgents ? ['@AGENTS.md'] : [])];
   ponerElTrozo(fichero, [DESDE, ...lineas, HASTA].join('\n'));
   return `CLAUDE.md (se carga siempre.md en cada conversación${conAgents ? ', y su AGENTS.md' : ''})`;
 }
 
-const loDeSiempre = ponerLoDeSiempre();
-if (loDeSiempre) hechos.push(loDeSiempre);
 
 // 4. Callar los avisos del arnés que mandan al alumno a una terminal.
 //
@@ -279,11 +294,10 @@ hechos.push(callarLosAvisos());
 // `frenos`). Y en una carpeta cuyo historial no creó la barra no se pone en
 // silencio, porque toca sus ajustes (C-4, P4): queda pendiente, y la barra lo
 // ofrece con su botón, que es `--poner-freno`.
-const ORDEN_DEL_FRENO = 'node "${CLAUDE_PROJECT_DIR}/' + comoSeEscribe(raizDeHabilidades) + '/executive-lab/freno.mjs" "${CLAUDE_PROJECT_DIR}"';
-const ENTRADA_DEL_FRENO = { matcher: 'Bash', hooks: [{ type: 'command', command: ORDEN_DEL_FRENO }] };
-
-function engancharElFreno() {
+function engancharElFreno(quien, suyo) {
   if (!suyo.frenos || !suyo.ajustes) return `sin freno: ${quien} no tiene dónde engancharlo`;
+  const ORDEN_DEL_FRENO = 'node "${CLAUDE_PROJECT_DIR}/' + comoSeEscribe(suyo.habilidades) + '/executive-lab/freno.mjs" "${CLAUDE_PROJECT_DIR}"';
+  const ENTRADA_DEL_FRENO = { matcher: 'Bash', hooks: [{ type: 'command', command: ORDEN_DEL_FRENO }] };
   const fichero = en(...suyo.ajustes);
   const dondeVa = comoSeEscribe(suyo.ajustes);
 
@@ -321,7 +335,17 @@ function engancharElFreno() {
   return `${dondeVa} (el freno ante órdenes peligrosas, enganchado)`;
 }
 
-hechos.push(engancharElFreno());
+// Lo de cada asistente, para cada uno. Va aquí, detrás de lo que se define
+// arriba, y antes del perfil y de la declaración, que son de la carpeta y van
+// una vez.
+for (const quien of quienes) {
+  const suyo = sitios.sitiosDe(quien);
+  ponerLaHabilidadYLosComandos(quien, suyo);
+  hechos.push(nombrarLaHabilidad(quien, suyo));
+  const loDeSiempre = ponerLoDeSiempre(quien, suyo);
+  if (loDeSiempre) hechos.push(loDeSiempre);
+  hechos.push(engancharElFreno(quien, suyo));
+}
 
 // 5. El perfil del arnés.
 //

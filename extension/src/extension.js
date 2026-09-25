@@ -954,7 +954,14 @@ ${cabecera}
   }
 
   async elegirAsistente(cual) {
-    const { ok, mensaje } = asistentes.elegir(cual);
+    const nombre = (asistentes.porId(cual) || {}).nombre || cual;
+    const { ok, mensaje } = await asistentes.elegir(cual, {
+      // Si la carpeta no está montada para él, se prepara también para él (E1).
+      montar: async (id) => {
+        this.enviar({ tipo: 'esperando', que: `Preparando esta carpeta para ${nombre}…` });
+        return arrancar.prepararTambienPara(id, this.contexto);
+      },
+    });
     await this.verAsistente({ texto: mensaje, malo: !ok });
     if (ok) await this.refrescar(true);
   }
@@ -1662,6 +1669,8 @@ function activate(contexto) {
     contexto.globalStorageUri && contexto.globalStorageUri.fsPath,
   );
   rsc.saberDondeEstamos(contexto.extensionPath);
+  // Con qué asistente se habla en esta carpeta, elegido aquí (E1).
+  asistentes.saberDondeGuardar(contexto.workspaceState);
   buscador.saberDondeEstamos(contexto.extensionPath);
 
   // El relevo de Node, antes de que se abra el chat del asistente: así su

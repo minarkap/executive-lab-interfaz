@@ -442,8 +442,9 @@ function losComandosSonLosDeHoy(carpetaDeLaExtension) {
   const suyos = donde.carpetaDeComandos();
   if (!nuestros || !suyos || !fs.existsSync(nuestros)) return true;
   try {
+    // Con el nombre que les da cada asistente: `guardar.prompt.md` en Copilot (E3).
     return fs.readdirSync(nuestros).every((fichero) => {
-      const aqui = path.join(suyos, fichero);
+      const aqui = path.join(suyos, fichero.replace(/\.md$/, donde.acabaUnComando()));
       return fs.existsSync(aqui) && fs.readFileSync(path.join(nuestros, fichero), 'utf8') === fs.readFileSync(aqui, 'utf8');
     });
   } catch {

@@ -986,7 +986,7 @@ function pantallaAsistente({ ahora, cuales = [], aviso: avisoLocal }) {
             : 'Puesto en este ordenador. Los botones abren su barra y te dejan el texto copiado, porque no admite que se lo pasen.')
           : 'No está en este ordenador. Díselo a tu tutor.')}</p>
         ${a.instalado && a.id !== ahora && !a.delArnes
-          ? '<p class="pista">Esta carpeta no se montó para él: al cambiar, tus habilidades y tus agentes dejan de verse hasta que se los vuelvas a pedir.</p>'
+          ? '<p class="pista">Esta carpeta no se montó para él: al cambiar, la preparo también para él.</p>'
           : ''}
         ${a.instalado && a.id !== ahora
           ? boton({ etiqueta: `Hablar con ${a.nombre}`, icono: '▸', pequeno: true, accion: { tipo: 'elegirAsistente', cual: a.id } })

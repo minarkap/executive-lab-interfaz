@@ -3737,3 +3737,54 @@ en la carpeta del alumno no está, y con Codex mandaba crear comandos que Codex 
   números, se dice, y «Ponerla como la de la clase» nombra antes lo que se pierde.
 
 0.36.0. 253 comprobaciones, 258 con el arnés de verdad, y 12 de contrato.
+
+## 121. Cambiar de asistente lo deja montado
+
+**Fecha:** 25 de septiembre de 2026 · **Estado:** hecho · **Cadena SDD** `todo-cuadra`, fase F5
+
+Cambiar de asistente solo reordenaba `targets` en `.rsc.json`. RSC los vuelve a ordenar en cada
+escritura, así que la elección se deshacía en el siguiente `sync` o `add`. Para el asistente nuevo no
+se montaba nada: lo declarado no cuadraba con lo instalado, y el mensaje decía que las habilidades
+«dejaban de verse». La barra, además, contestaba a «qué asistente» de dos formas, y los raíles solo se
+ponían para el primero declarado.
+
+### Una sola respuesta, y guardada aparte (E1, E2)
+
+- **`asistentes.conQuien()` decide con quién se habla**, y de ahí salen dónde mira la barra, cómo se
+  pide una habilidad y `rsc.anadir`. El orden: el que se eligió en esta carpeta, si el arnés está
+  montado para él; el primero declarado que esté instalado; el primero declarado; y sin nada
+  declarado, el que esté instalado, o Claude. Lo declarado va antes que lo instalado: hablar con un
+  asistente para el que no se montó el arnés es hablar sin sus habilidades.
+- **La elección se guarda en el estado del espacio de trabajo** (`executiveLab.conQuien`), no en
+  `targets`, que queda como lo deja RSC.
+- **Montado fuera solo para asistentes que la barra no ofrece**, la barra habla con Claude pero mira
+  en lo del primero declarado. En lo de Claude, nunca.
+
+### Cambiar a uno sin montar lo prepara para él (E1)
+
+- Con el `sync --target` del arnés de dentro, que suma ese asistente a lo declarado sin quitar al
+  que había. Medido con el paquete: de Claude a Codex, sus 32 habilidades en `.codex/rsc/`, y las de
+  Claude donde estaban. Después, los raíles.
+- **Solo si sale bien y el asistente queda declarado se cambia.** Si no: «No he podido prepararla
+  para {nombre}. Pulsa «Algo va mal» y pásale el código a tu tutor.», y todo sigue como estaba.
+- El aviso de que Codex no trae frenos se mantiene: es el único momento en que alguien decide
+  quedarse sin el que para una orden peligrosa.
+
+### Raíles para todos, y en el formato de cada uno (E2, E3)
+
+- **`aplicar.js` pone los raíles para cada asistente declarado.** Lo que es de la carpeta, una vez:
+  los avisos callados, el perfil y `ownSkills`.
+- **`compartido` sale del adaptador de RSC**: el de markdown mete su trozo entre marcas y deja lo
+  demás, también en los `rsc-suggest.md` de Windsurf, Cline, Roo, Continue y Kiro, que se daban por
+  suyos. El de Cursor reescribe su fichero entero.
+- **Tres formatos que no son los de Claude**, copiados de los suyos y comparados por prueba con el
+  paquete:
+  - con Cursor, cada habilidad es un fichero `.mdc`, y la nuestra va en
+    `.cursor/rules/executive-lab.mdc`, que es donde RSC busca la propia; se aplica siempre y apunta
+    a la habilidad;
+  - con Copilot, los comandos acaban en `.prompt.md`;
+  - con Cline, se piden con su `.md` detrás.
+
+La barra solo ofrece Claude y Codex. Lo demás es para leer bien una carpeta montada fuera.
+
+0.37.0. 267 comprobaciones, 273 con el arnés de verdad, y 12 de contrato.

@@ -59,7 +59,9 @@ function comoSePide(id) {
 function loQueDiceSuCabecera(id, raizDeHabilidades) {
   if (!raizDeHabilidades) return { nombre: '', queHace: '' };
 
-  const campos = frontmatter.leer(path.join(raizDeHabilidades, id, 'SKILL.md'));
+  // Con Cursor, la habilidad es un fichero `<id>.mdc` y no una carpeta (E3).
+  const ext = donde.habilidadEnUnFichero();
+  const campos = frontmatter.leer(ext ? path.join(raizDeHabilidades, `${id}${ext}`) : path.join(raizDeHabilidades, id, 'SKILL.md'));
   const frase = typeof campos.description === 'string' ? campos.description.trim() : '';
 
   // La descripción de una habilidad está escrita **para el asistente**: empieza

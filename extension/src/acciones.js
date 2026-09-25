@@ -27,19 +27,21 @@ function acciones() {
 
   const encontradas = [];
   for (const fichero of fs.readdirSync(carpeta)) {
-    if (!fichero.endsWith('.md')) continue;
+    // Cada asistente los escribe a su manera: `.prompt.md` en Copilot, y en
+    // Cline se piden con su `.md` detrás (E3).
+    const comando = donde.elComando(fichero);
+    if (!comando) continue;
 
     const campos = frontmatter.leer(path.join(carpeta, fichero));
     const etiqueta = typeof campos.boton === 'string' ? campos.boton.trim() : '';
     if (!etiqueta) continue;
 
-    const nombre = fichero.replace(/\.md$/, '');
     encontradas.push({
-      nombre,
+      nombre: comando.nombre,
       etiqueta,
       icono: typeof campos.icono === 'string' ? campos.icono : '▸',
       grupo: ORDEN_DE_GRUPOS.includes(campos.grupo) ? campos.grupo : 'aprendido',
-      prompt: `/${nombre}`,
+      prompt: comando.prompt,
     });
   }
 
@@ -73,9 +75,10 @@ function todos() {
 
   const encontrados = [];
   for (const fichero of fs.readdirSync(carpeta)) {
-    if (!fichero.endsWith('.md')) continue;
+    const comando = donde.elComando(fichero);
+    if (!comando) continue;
 
-    const nombre = fichero.replace(/\.md$/, '');
+    const { nombre } = comando;
     const campos = frontmatter.leer(path.join(carpeta, fichero));
     const etiqueta = typeof campos.boton === 'string' ? campos.boton.trim() : '';
 
@@ -97,7 +100,7 @@ function todos() {
       icono: typeof campos.icono === 'string' ? campos.icono : '▸',
       esBoton: Boolean(etiqueta),
       delArnes: dicho.deFuera,
-      prompt: `/${nombre}`,
+      prompt: comando.prompt,
     });
   }
 

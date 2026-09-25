@@ -1106,31 +1106,76 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'el aviso, solo en el que no es del arnés';
   });
 
-  await comprobar('cambiar de asistente dice qué deja de verse', () => {
-    // Cambiar de asistente no remonta el arnés: las habilidades y los ayudantes
-    // se quedan en la carpeta del anterior, y cada uno mira solo la suya. El
-    // mensaje era «Hecho, a partir de ahora los botones hablan con X» y punto,
-    // así que el alumno pulsaba, veía desaparecer sus habilidades y creía que
-    // había roto algo. No se ha borrado nada: hay que decir eso.
-    const asistentes = cargar('asistentes');
+  await comprobar('cambiar a un asistente sin montar lo prepara para él, con sus raíles', async () => {
+    // E1. Cambiar de asistente solo reordenaba `targets`: no se montaba nada para
+    // el nuevo, sus habilidades y sus agentes «dejaban de verse», y lo declarado
+    // no cuadraba con lo instalado. Ahora se prepara también para él, con el arnés
+    // de dentro (`sync --target`, que suma y no quita al de antes), y se le ponen
+    // sus raíles. Medido con el paquete: con Codex, sus 32 habilidades en
+    // `.codex/rsc/` y las de Claude, donde estaban.
     const fs2 = require('node:fs');
-    const declaracion = path.join(empresa, '.rsc.json');
-    const antes = fs2.readFileSync(declaracion, 'utf8');
+    const rscM = cargar('rsc');
+    const asistentesM = cargar('asistentes');
+    const r = fs2.mkdtempSync(path.join(os.tmpdir(), 'cambiar-asistente-'));
+    const poner = (rel, txt) => {
+      fs2.mkdirSync(path.dirname(path.join(r, rel)), { recursive: true });
+      fs2.writeFileSync(path.join(r, rel), txt);
+    };
+    poner('.rsc.json', JSON.stringify({ version: 1, catalogVersion: '2.0.5', targets: ['claude'], skills: ['bro'], ownSkills: [] }, null, 2));
+    poner('.claude/skills/bro/SKILL.md', '# bro\n');
+    const antes = rscM.correr;
+    const pedidos = [];
+    const conSync = (como) => async (args) => {
+      pedidos.push(args.join(' '));
+      if (args[0] !== 'sync') return { codigo: 0, salida: '' };
+      if (como === 'falla') return { codigo: 1, salida: 'no se pudo' };
+      if (como === 'noLoDeclara') return { codigo: 0, salida: '' };
+      const d = JSON.parse(fs2.readFileSync(path.join(r, '.rsc.json'), 'utf8'));
+      poner('.rsc.json', JSON.stringify({ ...d, targets: ['claude', 'codex'] }, null, 2));
+      poner('.codex/rsc/bro/SKILL.md', '# bro\n');
+      return { codigo: 0, salida: 'Synced codex: bro' };
+    };
+    const memoria = new Map();
+    asistentesM.saberDondeGuardar({ get: (k) => memoria.get(k), update: async (k, v) => memoria.set(k, v) });
+    vscode.guion.raiz = r;
     vscode.guion.extensionesInstaladas = ['anthropic.claude-code', 'openai.chatgpt'];
+    const montar = (id) => cargar('arrancar').prepararTambienPara(id, { extensionPath: RAIZ });
+    try {
+      // Si no se puede preparar, no se cambia nada.
+      rscM.correr = conSync('falla');
+      const mal = await asistentesM.elegir('codex', { montar });
+      assert.equal(mal.ok, false, 'sin preparar, se da por cambiado');
+      assert.match(mal.mensaje, /No he podido prepararla para Codex/);
+      assert.equal(asistentesM.conQuien().id, 'claude', 'sin preparar, se cambia igual');
+      assert.equal(await montar('codex'), false, 'un arnés que no pudo prepararla se da por bueno, y se ponen los raíles');
 
-    const { ok, mensaje } = asistentes.elegir('codex');
-    assert.equal(ok, true);
-    assert.match(mensaje, /habla[n]? con Codex/, 'dice a quién le habla ahora');
-    assert.match(mensaje, /deja de verse/, 'y qué deja de verse al cambiar');
-    assert.match(mensaje, /no se ha borrado/i, 'sin dar a entender que se pierde');
-    // Y lo que se pierde sin estar en ninguna carpeta: los frenos. Es el único
-    // momento en que alguien decide quedarse sin el que para una orden peligrosa,
-    // así que es el único momento en que se puede decir y que sirva de algo.
-    assert.match(mensaje, /no trae frenos/, 'y que ahí se queda sin frenos');
+      // Y si el arnés termina sin sumarlo a lo declarado, tampoco: los botones
+      // no le hablarían, y el mensaje diría que sí.
+      rscM.correr = conSync('noLoDeclara');
+      const aMedias = await asistentesM.elegir('codex', { montar });
+      assert.equal(aMedias.ok, false, 'sin quedar declarado, se da por cambiado');
+      assert.equal(asistentesM.conQuien().id, 'claude');
 
-    fs2.writeFileSync(declaracion, antes);
-    vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
-    return mensaje.slice(0, 60);
+      rscM.correr = conSync('bien');
+      const { ok, mensaje } = await asistentesM.elegir('codex', { montar });
+      assert.equal(ok, true, mensaje);
+      assert.ok(pedidos.includes('sync --target codex'), `no se prepara con el arnés de dentro: ${pedidos.join(' · ')}`);
+      assert.match(mensaje, /habla[n]? con Codex/, 'dice a quién le habla ahora');
+      assert.doesNotMatch(mensaje, /deja de verse/, 'dice que algo deja de verse, y está montado');
+      // Lo que se pierde sin estar en ninguna carpeta: los frenos. Es el único
+      // momento en que alguien decide quedarse sin el que para una orden
+      // peligrosa, así que es el único en que decirlo sirve de algo.
+      assert.match(mensaje, /no trae frenos/, 'no dice que ahí se queda sin frenos');
+      assert.ok(fs2.existsSync(path.join(r, '.codex', 'rsc', 'executive-lab', 'siempre.md')), 'Codex, sin sus raíles');
+      assert.equal(asistentesM.conQuien().id, 'codex');
+      assert.deepEqual(JSON.parse(fs2.readFileSync(path.join(r, '.rsc.json'), 'utf8')).targets, ['claude', 'codex'], 'la declaración no es la que deja el arnés');
+      return mensaje.slice(0, 60);
+    } finally {
+      rscM.correr = antes;
+      asistentesM.saberDondeGuardar(null);
+      vscode.guion.raiz = empresa;
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    }
   });
 
   await comprobar('el asistente sale de lo que declara el arnés', () => {
@@ -1138,6 +1183,75 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(asistentes.elDeAhora().id, 'claude');
     assert.deepEqual(asistentes.losDelArnes().map((a) => a.id), ['claude']);
     return 'claude';
+  });
+
+  await comprobar('con dos declarados y uno instalado, todas las pantallas coinciden', () => {
+    // E2. La barra contestaba a «qué asistente» de dos formas: dónde mira, por el
+    // primero declarado (`donde`, `saberes.comoSePide`, `rsc.anadir`), y con quién
+    // habla, por el primero instalado (`elDeAhora`). Con los dos declarados, que
+    // RSC ordena (claude, codex), y solo Codex en el ordenador, buscaba las
+    // habilidades en la carpeta de Claude y le hablaba a Codex.
+    const fs2 = require('node:fs');
+    const declaracion = path.join(empresa, '.rsc.json');
+    const antes = fs2.readFileSync(declaracion, 'utf8');
+    fs2.writeFileSync(declaracion, JSON.stringify({ ...JSON.parse(antes), targets: ['claude', 'codex'] }, null, 2));
+    vscode.guion.extensionesInstaladas = ['openai.chatgpt'];
+    try {
+      assert.equal(cargar('asistentes').conQuien().id, 'codex', 'con quién se habla');
+      assert.equal(cargar('asistentes').elDeAhora().id, 'codex');
+      assert.equal(cargar('donde').paraQuien(), 'codex', 'dónde mira la barra, y a quién le añade una habilidad');
+      assert.equal(cargar('donde').carpetaDeHabilidades(), path.join(empresa, '.codex', 'rsc'), 'mira en la carpeta de Claude');
+      assert.match(cargar('saberes').comoSePide('bro'), /Usa la habilidad/, 'dice cómo se pide con Claude');
+      assert.equal(cargar('asistentes').comoEstamos().ahora, 'codex', 'la pantalla del asistente dice otro');
+      // Con solo Codex declarado y solo Claude instalado, manda lo declarado:
+      // hablar con Claude aquí sería hablar sin sus habilidades.
+      fs2.writeFileSync(declaracion, JSON.stringify({ ...JSON.parse(antes), targets: ['codex'] }, null, 2));
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+      assert.equal(cargar('asistentes').conQuien().id, 'codex', 'manda lo instalado antes que lo declarado');
+      assert.equal(cargar('donde').paraQuien(), 'codex');
+      fs2.writeFileSync(declaracion, JSON.stringify({ ...JSON.parse(antes), targets: ['claude', 'codex'] }, null, 2));
+      // Y con ninguno de los dos instalado, se queda con el primero declarado,
+      // para decir qué falta, en todas igual.
+      vscode.guion.extensionesInstaladas = [];
+      assert.equal(cargar('asistentes').conQuien().id, 'claude');
+      assert.equal(cargar('donde').paraQuien(), 'claude');
+      return 'Codex en todas · sin ninguno, el primero declarado en todas';
+    } finally {
+      fs2.writeFileSync(declaracion, antes);
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    }
+  });
+
+  await comprobar('tras un sync que ordena, la elección sigue', async () => {
+    // E1. Elegir asistente reordenaba `targets` en `.rsc.json`, y RSC los ordena
+    // en cada escritura: el siguiente `sync` o `add` deshacía la elección. Ahora
+    // va en el estado del espacio de trabajo, que es de esta carpeta y de este
+    // ordenador, y `targets` queda como lo deja RSC.
+    const fs2 = require('node:fs');
+    const asistentesM = cargar('asistentes');
+    const declaracion = path.join(empresa, '.rsc.json');
+    const antes = fs2.readFileSync(declaracion, 'utf8');
+    const conLosDos = JSON.stringify({ ...JSON.parse(antes), targets: ['claude', 'codex'] }, null, 2);
+    fs2.writeFileSync(declaracion, conLosDos);
+    vscode.guion.extensionesInstaladas = ['anthropic.claude-code', 'openai.chatgpt'];
+    const memoria = new Map();
+    asistentesM.saberDondeGuardar({ get: (k) => memoria.get(k), update: async (k, v) => memoria.set(k, v) });
+    try {
+      assert.equal(asistentesM.conQuien().id, 'claude', 'sin elegir, el primero declarado');
+      const { ok } = await asistentesM.elegir('codex');
+      assert.equal(ok, true);
+      assert.equal(asistentesM.conQuien().id, 'codex', 'la elección no manda');
+      assert.equal(fs2.readFileSync(declaracion, 'utf8'), conLosDos, 'se ha reescrito targets');
+      // Un sync de RSC reescribe la declaración con los targets ordenados.
+      fs2.writeFileSync(declaracion, `${JSON.stringify({ ...JSON.parse(conLosDos), targets: ['claude', 'codex'] }, null, 2)}\n`);
+      assert.equal(asistentesM.conQuien().id, 'codex', 'tras el sync, la elección se pierde');
+      assert.equal(cargar('donde').paraQuien(), 'codex');
+      return 'Codex elegido, y sigue tras el sync';
+    } finally {
+      asistentesM.saberDondeGuardar(null);
+      fs2.writeFileSync(declaracion, antes);
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    }
   });
 
   // ---------------------------------------------- el disfraz y su interruptor
@@ -3148,11 +3262,125 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       if (fila.siempre) assert.equal(comoEscribimos(fila.siempre.fichero), enganches[quien], `lo que lee siempre ${quien}`);
     }
 
+    // Y cómo lo escribe (E3), que no basta con la carpeta. `compartido` sale del
+    // adaptador de RSC: el de markdown mete su trozo entre marcas y deja lo demás
+    // (`_md-block.js`), y el de Cursor reescribe su fichero entero. Los formatos,
+    // de sus extensiones: una habilidad en un fichero `.mdc` (Cursor), comandos
+    // `.prompt.md` (Copilot) y comandos que se piden con `.md` detrás (Cline).
+    const adaptador = filas('index.js', 'const SPEC = {', 'adapter');
+    const enUnFichero = filas('index.js', 'const SPEC = {', 'skillExt');
+    const extDeComandos = filas('commands.js', 'const COMMAND_TARGETS = Object.freeze({', 'ext');
+    const sufijo = filas('commands.js', 'const COMMAND_TARGETS = Object.freeze({', 'invocationSuffix');
+    assert.equal(adaptador.cursor, 'cursor', 'se han leído sus adaptadores de verdad');
+    for (const [quien, fila] of Object.entries(nuestra)) {
+      if (fila.siempre) assert.equal(fila.siempre.compartido, adaptador[quien] === 'md', `si el fichero de siempre de ${quien} es compartido`);
+      assert.equal(fila.habilidadEnUnFichero || null, enUnFichero[quien] || null, `cómo guarda ${quien} una habilidad`);
+      if (fila.comandos) {
+        assert.equal(fila.comandoAcabaEn || '.md', extDeComandos[quien], `cómo acaba un comando de ${quien}`);
+        assert.equal(fila.comandoSePideCon || '', sufijo[quien] || '', `cómo se pide un comando de ${quien}`);
+      }
+    }
+
     // Y lo de Codex, que es de lo que vive media auditoría, dicho aparte.
     assert.equal(comandos.codex, undefined, 'RSC no le escribe botones a Codex');
     assert.equal(habilidades.codex, '.codex/rsc');
     assert.equal(ayudantes.codex, '.codex/agents');
     return `${Object.keys(nuestra).length} asistentes, todos cuadran con los suyos`;
+  });
+
+  await comprobar('una carpeta montada fuera se lee en el formato de su asistente', () => {
+    // E3. La barra leía todas las carpetas como las de Claude: habilidades en
+    // carpetas con su SKILL.md, y comandos `.md` que se piden con `/nombre`.
+    // Cursor guarda cada habilidad en un fichero `.mdc`: no veía ninguna, y la
+    // carpeta parecía un clon. Con Copilot, `informe.prompt.md` se pedía como
+    // `/informe.prompt`; con Cline, que los pide con `.md` detrás, como `/informe`.
+    const fs2 = require('node:fs');
+    const montada = (targets, ficheros) => {
+      const r = fs2.mkdtempSync(path.join(os.tmpdir(), 'montada-fuera-'));
+      const todo = {
+        '.rsc.json': JSON.stringify({ version: 1, catalogVersion: '2.0.5', targets, skills: ['bro', 'orient'] }),
+        '.rsc/skills/bro/SKILL.md': '# bro\n',
+        ...ficheros,
+      };
+      for (const [rel, txt] of Object.entries(todo)) {
+        fs2.mkdirSync(path.dirname(path.join(r, rel)), { recursive: true });
+        fs2.writeFileSync(path.join(r, rel), txt);
+      }
+      return r;
+    };
+    const conBoton = '---\nboton: Hacer el informe\n---\nHaz el informe con las cifras del trimestre.\n';
+    try {
+      vscode.guion.raiz = montada(['cursor'], {
+        '.cursor/rules/bro.mdc': '---\ndescription: rsc skill bro\nalwaysApply: false\n---\n# bro\n',
+        '.cursor/rules/orient.mdc': '---\ndescription: rsc skill orient\nalwaysApply: false\n---\n# orient\n',
+        '.cursor/rules/rsc-suggest.mdc': '---\ndescription: rsc auto-suggest\nalwaysApply: true\n---\n',
+        '.cursor/rules/mi-regla.mdc': '---\ndescription: Escribir los correos como la casa.\nalwaysApply: false\n---\n',
+      });
+      // Montado fuera y solo para Cursor: se mira en lo de Cursor, nunca en lo de
+      // Claude, aunque sea Claude con quien habla la barra.
+      assert.equal(cargar('donde').paraQuien(), 'cursor', 'en un arnés de Cursor se mira en lo de otro');
+      assert.deepEqual(cargar('rsc').habilidadesEnDisco().sort(), ['bro', 'mi-regla', 'orient'], 'con Cursor no se ven sus habilidades');
+      assert.notEqual(cargar('terreno').mirarYClasificar().estado, 'clonado', 'y la carpeta parece un clon');
+      const suya = cargar('saberes').queSabe(RAIZ).otras.find((h) => h.id === 'mi-regla');
+      assert.match((suya || {}).frase || '', /Escribir los correos como la casa/, 'y lo que dice su cabecera no se lee');
+
+      vscode.guion.raiz = montada(['copilot'], { '.github/prompts/informe.prompt.md': conBoton });
+      assert.deepEqual(cargar('acciones').acciones().map((a) => [a.nombre, a.prompt]), [['informe', '/informe']], 'con Copilot, el comando se pide mal');
+      assert.deepEqual(cargar('acciones').todos().map((a) => a.nombre), ['informe']);
+      const buscarM = cargar('buscar');
+      buscarM.olvidar();
+      const hallado = buscarM.buscar('trimestre');
+      assert.ok(hallado.grupos.some((g) => g.aciertos.some((x) => x.titulo === 'Hacer el informe')), 'y lo que dice el comando no se encuentra');
+
+      vscode.guion.raiz = montada(['cline'], { '.clinerules/workflows/informe.md': conBoton });
+      assert.deepEqual(cargar('acciones').acciones().map((a) => a.prompt), ['/informe.md'], 'con Cline, el comando se pide sin su .md');
+      return 'Cursor, Copilot y Cline, cada uno en lo suyo';
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('los raíles se ponen en el formato de cada asistente', () => {
+    // E3, del lado de los raíles. Con Copilot, los comandos acaban en
+    // `.prompt.md`: puestos como `.md`, Copilot no los ve, y la barra los daba
+    // por viejos en cada apertura. Con Cursor, una habilidad es un fichero `.mdc`
+    // (RSC busca la propia en `.cursor/rules/executive-lab.mdc`), y su fichero de
+    // siempre lo reescribe RSC entero: sin uno nuestro, Cursor no se entera de los
+    // raíles. Y los de la familia de markdown con su propio fichero de siempre
+    // (Windsurf, Cline, Roo, Continue, Kiro) lo comparten: RSC mete su trozo entre
+    // marcas y deja lo demás, así que ahí también se nombra la habilidad.
+    const fs2 = require('node:fs');
+    const cp = require('node:child_process');
+    const aplicar = path.join(RAIZ, 'media', 'railes', 'aplicar.js');
+    const poner = (targets) => {
+      const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'railes-formato-'));
+      fs2.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets }));
+      const { status } = cp.spawnSync(process.execPath, [aplicar, carpeta], { encoding: 'utf8' });
+      assert.equal(status, 0, `los raíles de ${targets} no se ponen`);
+      return { carpeta, hay: (...p) => fs2.existsSync(path.join(carpeta, ...p)), leer: (...p) => fs2.readFileSync(path.join(carpeta, ...p), 'utf8') };
+    };
+
+    const copilot = poner(['copilot']);
+    assert.ok(copilot.hay('.github', 'prompts', 'guardar.prompt.md'), 'con Copilot, los comandos no acaban en .prompt.md');
+    assert.ok(!copilot.hay('.github', 'prompts', 'guardar.md'), 'y quedan donde Copilot no los ve');
+    vscode.guion.raiz = copilot.carpeta;
+    try {
+      const railes = cargar('terreno').comoEstanLosRailes(RAIZ);
+      assert.ok(railes.habilidadPropia && railes.alDia, 'con Copilot, recién puestos y ya se dan por viejos');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+
+    const cursor = poner(['cursor']);
+    assert.ok(cursor.hay('.cursor', 'rules', 'executive-lab.mdc'), 'con Cursor, sin su fichero .mdc');
+    const mdc = cursor.leer('.cursor', 'rules', 'executive-lab.mdc');
+    assert.match(mdc, /^---\n[\s\S]*alwaysApply: true[\s\S]*?\n---\n/, 'y no se aplica siempre');
+    assert.match(mdc, /\.cursor\/rules\/executive-lab\/siempre\.md/, 'y no nombra lo de siempre');
+    assert.ok(!cursor.hay('.cursor', 'rules', 'rsc-suggest.mdc'), 'y se escribe en el fichero de RSC');
+
+    const windsurf = poner(['windsurf']);
+    assert.match(windsurf.leer('.windsurf', 'rules', 'rsc-suggest.md'), /\.windsurf\/rsc\/executive-lab\/siempre\.md/, 'con Windsurf, nadie le nombra la habilidad');
+    return 'Copilot, Cursor y Windsurf, cada uno en su formato';
   });
 
   await comprobar('los raíles se ponen donde mira el asistente de esa carpeta', () => {
@@ -3216,6 +3444,28 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.ok(!raro.hay('.claude'), 'y desde luego no se cae en la de Claude');
 
     return 'Claude en la suya · Codex en la suya · desconocido, ninguna';
+  });
+
+  await comprobar('con claude y codex declarados, los dos tienen raíles', () => {
+    // E2. Los raíles se ponían solo para el primero declarado: con los dos, el
+    // otro se quedaba sin la habilidad que fija el español, sin lo que vale
+    // siempre y, si era Claude, sin el freno.
+    const cp = require('node:child_process');
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'railes-dos-'));
+    fs.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude', 'codex'], skills: [] }));
+    const hecho = cp.spawnSync(process.execPath, [path.join(RAIZ, 'media', 'railes', 'aplicar.js'), carpeta], { encoding: 'utf8' });
+    assert.equal(hecho.status, 0, hecho.stderr);
+    const hay = (...p) => fs.existsSync(path.join(carpeta, ...p));
+    const leer = (...p) => fs.readFileSync(path.join(carpeta, ...p), 'utf8');
+    assert.ok(hay('.claude', 'skills', 'executive-lab', 'siempre.md'), 'Claude, sin raíles');
+    assert.ok(hay('.claude', 'commands', 'guardar.md'), 'Claude, sin sus comandos');
+    assert.match(leer('CLAUDE.md'), /@\.claude\/skills\/executive-lab\/siempre\.md/, 'Claude, sin el bloque');
+    assert.match(leer('.claude', 'settings.json'), /executive-lab\/freno\.mjs/, 'Claude, sin el freno');
+    assert.ok(hay('.codex', 'rsc', 'executive-lab', 'siempre.md'), 'Codex, sin raíles');
+    assert.match(leer('AGENTS.md'), /\.codex\/rsc\/executive-lab\/siempre\.md/, 'Codex, sin lo que le nombra la habilidad');
+    // Y lo que es de la carpeta, una vez.
+    assert.equal((leer('.rsc.json').match(/executive-lab/g) || []).length, 1, 'declarada dos veces en ownSkills');
+    return 'los dos, cada uno en lo suyo';
   });
 
   await comprobar('los raíles apagan el guardián de gitmoji con su porqué', () => {
@@ -8032,6 +8282,72 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
         vscode.guion.raiz = empresa;
       }
       return 'montado con RSC, raíles puestos, y lo que no hay se dice';
+    });
+    await comprobar('de Claude a Codex deja .codex/rsc con las 32 y la nuestra', async () => {
+      // E1, con el arnés de verdad: una carpeta montada para Claude, y el alumno
+      // pasa a Codex. Se prepara también para él con el `sync --target` del arnés
+      // de dentro, y lo de Claude se queda donde estaba.
+      const cp = require('node:child_process');
+      const rscM = cargar('rsc');
+      const asistentesM = cargar('asistentes');
+      const r = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-a-codex-'));
+      cp.spawnSync('git', ['init', '-q', '.'], { cwd: r });
+      const flags = ['--technical-level', 'non-technical', '--accompaniment', 'L3',
+        '--project-kind', 'operations', '--goal', 'Organizar el papeleo', '--target', 'claude'];
+      let montado = false;
+      vscode.guion.raiz = r;
+      try {
+        const plan = await rscM.correr(['onboard', ...flags], { tiempoMaximo: 600000 });
+        const linea = (plan.salida.match(/^Accept exactly this plan: npx @ericrisco\/rsc@\S+ onboard (.+)$/m) || [])[1];
+        if (linea) {
+          const hecho = await rscM.correr(['onboard', ...linea.trim().split(/\s+/)], { tiempoMaximo: 900000 });
+          montado = /RSC_ONBOARDING_READY/.test(hecho.salida);
+        }
+      } finally {
+        vscode.guion.raiz = empresa;
+      }
+      if (!montado) return 'SALTADA';
+      cp.spawnSync(process.execPath, [path.join(RAIZ, 'media', 'railes', 'aplicar.js'), r], { encoding: 'utf8' });
+
+      const habilidades = (carpeta) => fs.existsSync(carpeta)
+        ? fs.readdirSync(carpeta).filter((n) => fs.existsSync(path.join(carpeta, n, 'SKILL.md'))).sort()
+        : [];
+      const deClaude = habilidades(path.join(r, '.claude', 'skills'));
+      assert.ok(deClaude.includes('executive-lab') && deClaude.length > 30, `el montaje de Claude no es el de siempre: ${deClaude.length}`);
+
+      const memoria = new Map();
+      asistentesM.saberDondeGuardar({ get: (k) => memoria.get(k), update: async (k, v) => memoria.set(k, v) });
+      vscode.guion.raiz = r;
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code', 'openai.chatgpt'];
+      try {
+        const { ok, mensaje } = await asistentesM.elegir('codex', {
+          montar: (id) => cargar('arrancar').prepararTambienPara(id, { extensionPath: RAIZ }),
+        });
+        assert.equal(ok, true, mensaje);
+        assert.equal(asistentesM.conQuien().id, 'codex');
+
+        const d = JSON.parse(fs.readFileSync(path.join(r, '.rsc.json'), 'utf8'));
+        assert.deepEqual([...d.targets].sort(), ['claude', 'codex'], 'lo declarado tiene que sumar a Codex sin quitar a Claude');
+        assert.equal(d.catalogVersion, rscM.VERSION_DE_RESPALDO, 'la versión de la carpeta tiene que seguir siendo la de la clase');
+
+        // Las del arnés, las 32, y la nuestra, con sus raíles.
+        const deCodex = habilidades(path.join(r, '.codex', 'rsc'));
+        const delArnes = deCodex.filter((n) => n !== 'executive-lab');
+        assert.equal(delArnes.length, 32, `las del arnés en .codex/rsc: ${delArnes.length}`);
+        assert.deepEqual(delArnes, deClaude.filter((n) => n !== 'executive-lab'), 'Codex no tiene las mismas que Claude');
+        assert.ok(deCodex.includes('executive-lab'), 'falta la nuestra en .codex/rsc');
+        assert.ok(fs.existsSync(path.join(r, '.codex', 'rsc', 'executive-lab', 'siempre.md')), 'y sin lo de siempre');
+        assert.match(fs.readFileSync(path.join(r, 'AGENTS.md'), 'utf8'), /executive-lab\/siempre\.md/, 'y AGENTS.md no la nombra');
+
+        // Lo de Claude, donde estaba.
+        assert.deepEqual(habilidades(path.join(r, '.claude', 'skills')), deClaude, 'lo de Claude no se ha quedado donde estaba');
+        assert.match(fs.readFileSync(path.join(r, 'CLAUDE.md'), 'utf8'), /@\.claude\/skills\/executive-lab\/siempre\.md/, 'y Claude pierde lo de siempre');
+        return `${delArnes.length} y la nuestra, y Claude igual`;
+      } finally {
+        asistentesM.saberDondeGuardar(null);
+        vscode.guion.raiz = empresa;
+        vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+      }
     });
   } else {
     console.log('  · el wizard no se ha probado (añade --con-arnes: tarda minutos)');

@@ -559,3 +559,17 @@ Decisión 120 en `docs/decisiones.md`. Fase F4 de la cadena SDD `todo-cuadra`.
 - **Una carpeta con una versión más nueva que la de la clase se dice**, y no se baja sin pulsar.
 
 0.36.0. 253 comprobaciones, 258 con el arnés de verdad, y 12 de contrato.
+
+## Cambiar de asistente lo deja montado — 25 de septiembre de 2026
+
+Decisión 121 en `docs/decisiones.md`. Fase F5 de la cadena SDD `todo-cuadra`.
+
+- **Una sola respuesta a «qué asistente»**, y la elección guardada aparte de lo que declara el arnés,
+  que RSC reordena.
+- **Cambiar a uno sin montar lo prepara para él** con el arnés de dentro, y lo del otro se queda
+  donde estaba. Si no sale, no se cambia nada.
+- **Raíles para todos los asistentes declarados**, y en el formato de cada uno. La barra lee bien una
+  carpeta montada fuera para Cursor, Copilot o Cline, y nunca mira en lo de Claude si el arnés no es
+  de Claude.
+
+0.37.0. 267 comprobaciones, 273 con el arnés de verdad, y 12 de contrato.

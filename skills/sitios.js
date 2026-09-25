@@ -40,7 +40,17 @@
 // hace. `compartido` dice si ese fichero es un documento de la casa —donde RSC
 // mete su trozo entre marcas y deja el resto en paz, y donde nosotros podemos
 // meter el nuestro igual— o un fichero propio de RSC, que reescribe entero en
-// cada `sync` y donde escribir sería escribir en agua.
+// cada `sync` y donde escribir sería escribir en agua. Lo decide su adaptador
+// (`targets/index.js`): el de markdown (`_md-block.js`) mete su trozo entre
+// marcas, también en los `rsc-suggest.md` de Windsurf, Cline, Roo, Continue y
+// Kiro, que se daban por suyos y no lo son; el de Cursor reescribe el suyo.
+//
+// Y tres formatos que no son los de Claude (E3), copiados de los suyos:
+// `habilidadEnUnFichero` es la extensión de una habilidad que no es una carpeta
+// con su SKILL.md sino un fichero suelto (Cursor: `<id>.mdc`, su `skillExt`);
+// `comandoAcabaEn`, la de un comando cuando no es `.md` (Copilot:
+// `.prompt.md`, su `ext`); y `comandoSePideCon`, lo que va detrás de su nombre
+// al pedirlo (Cline: `/informe.md`, su `invocationSuffix`).
 //
 // `frenos` dice si RSC le engancha a ese asistente las piezas que se ejecutan
 // solas: los tres guardianes y la familia de `session-start`. **Solo a Claude**
@@ -79,6 +89,7 @@ const SITIOS = {
     ajustes: null,
     agentes: ['.cursor', 'agents'],
     siempre: { fichero: ['.cursor', 'rules', 'rsc-suggest.mdc'], compartido: false },
+    habilidadEnUnFichero: '.mdc',
   },
   opencode: {
     habilidades: ['.opencode', 'rsc'],
@@ -93,27 +104,29 @@ const SITIOS = {
     ajustes: null,
     agentes: ['.github', 'agents'],
     siempre: { fichero: ['.github', 'copilot-instructions.md'], compartido: true },
+    comandoAcabaEn: '.prompt.md',
   },
   windsurf: {
     habilidades: ['.windsurf', 'rsc'],
     comandos: ['.windsurf', 'workflows'],
     ajustes: null,
     agentes: null,
-    siempre: { fichero: ['.windsurf', 'rules', 'rsc-suggest.md'], compartido: false },
+    siempre: { fichero: ['.windsurf', 'rules', 'rsc-suggest.md'], compartido: true },
   },
   cline: {
     habilidades: ['.clinerules', 'rsc'],
     comandos: ['.clinerules', 'workflows'],
     ajustes: null,
     agentes: null,
-    siempre: { fichero: ['.clinerules', 'rsc-suggest.md'], compartido: false },
+    siempre: { fichero: ['.clinerules', 'rsc-suggest.md'], compartido: true },
+    comandoSePideCon: '.md',
   },
   roo: {
     habilidades: ['.roo', 'rsc'],
     comandos: ['.roo', 'commands'],
     ajustes: null,
     agentes: null,
-    siempre: { fichero: ['.roo', 'rules', 'rsc-suggest.md'], compartido: false },
+    siempre: { fichero: ['.roo', 'rules', 'rsc-suggest.md'], compartido: true },
   },
   // Gemini escribe sus botones en TOML, que no es lo que sabemos leer. Se
   // declara para no tratarlo como desconocido, pero sin carpeta de botones.
@@ -151,7 +164,7 @@ const SITIOS = {
   },
   continue: {
     habilidades: ['.continue', 'rsc'], comandos: null, ajustes: null, agentes: null,
-    siempre: { fichero: ['.continue', 'rules', 'rsc-suggest.md'], compartido: false },
+    siempre: { fichero: ['.continue', 'rules', 'rsc-suggest.md'], compartido: true },
   },
   junie: {
     habilidades: ['.junie', 'rsc'], comandos: null, ajustes: null, agentes: ['.junie', 'agents'],
@@ -159,7 +172,7 @@ const SITIOS = {
   },
   kiro: {
     habilidades: ['.kiro', 'rsc'], comandos: null, ajustes: null, agentes: ['.kiro', 'agents'],
-    siempre: { fichero: ['.kiro', 'steering', 'rsc-suggest.md'], compartido: false },
+    siempre: { fichero: ['.kiro', 'steering', 'rsc-suggest.md'], compartido: true },
   },
   aider: {
     habilidades: ['.aider', 'rsc'], comandos: null, ajustes: null, agentes: null,

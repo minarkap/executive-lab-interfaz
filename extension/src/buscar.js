@@ -117,9 +117,10 @@ function armarElIndice() {
 
   // 2. Lo que puede hacer: los mismos botones que enseña la pantalla
   // principal, descubiertos por acciones.js para no tener dos criterios.
-  const comandos = require('./donde').carpetaDeComandos();
+  const donde = require('./donde');
   for (const accion of acciones()) {
-    const crudo = comandos ? leerSiCabe(path.join(comandos, `${accion.nombre}.md`)) : null;
+    const fichero = donde.ficheroDelComando(accion.nombre);
+    const crudo = fichero ? leerSiCabe(fichero) : null;
     cosas.push(cosa('hacer', accion.etiqueta, (crudo || '').replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, ''),
       { tipo: 'pedir', prompt: accion.prompt }, { icono: accion.icono }));
   }

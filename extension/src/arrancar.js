@@ -601,6 +601,16 @@ async function ponerComoLaDeLaClase(sobran = []) {
   return { ok: hecho.codigo === 0 };
 }
 
+// Preparar la carpeta también para otro asistente (E1): el `sync --target` del
+// arnés de dentro, que suma ese asistente a los declarados y no quita al que
+// había (medido con el paquete: con Codex, sus 32 habilidades en `.codex/rsc/`,
+// y las de Claude donde estaban), y después los raíles, que se ponen para todos.
+async function prepararTambienPara(id, contexto) {
+  const hecho = await rsc.correr(['sync', '--target', id], { tiempoMaximo: 300000 });
+  if (hecho.codigo !== 0) return false;
+  return ponerLosRailes(contexto, { ajena: await sinSuSi(null) });
+}
+
 // Hace falta para que "Guardar copia de seguridad" tenga dónde guardar, y para
 // que la memoria del arnés se ancle a una rama.
 //
@@ -1202,7 +1212,7 @@ function primerMensaje(hecho, { comoSeLlama, conWeb = '', conFreno = false }) {
 module.exports = {
   arrancar, entrevistar, ponerLosRailes, flagsDelMontaje, loQueLlevaLaCarpeta, primerMensaje,
   confirmarLaCarpeta, confirmarDentroDeOtro, crearUnaCarpetaDentro, comoSeDiceQueNo, ponerLasCopias, apuntarLosEnganches,
-  loQueNoTraeLaClase, ponerComoLaDeLaClase,
+  loQueNoTraeLaClase, ponerComoLaDeLaClase, prepararTambienPara,
   COMO_SE_ENTREGA, hayFreno, PIEZAS_DEL_PLAN, comoSeDiceLoQueCambia,
   COMO_SE_HACE, COMO_SE_PREGUNTA, DE_QUE_VA, QUE_LLEVA, CUANTAS_PERSONAS, QUE_VAS_A_CONSTRUIR,
   COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO,

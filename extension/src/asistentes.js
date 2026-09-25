@@ -74,13 +74,45 @@ function losDelArnes() {
   return targets.map(porId).filter(Boolean);
 }
 
-// Con cuál se habla en esta ventana. Manda el arnés; entre varios, el que esté
-// instalado; si ninguno lo está, el primero que declaró, para poder decirle al
-// alumno qué le falta en vez de callarnos.
-function elDeAhora() {
-  const delArnes = losDelArnes();
-  return delArnes.find(estaInstalado) || ASISTENTES.find(estaInstalado) || delArnes[0] || ASISTENTES[0];
+// ── Una sola respuesta a «con qué asistente» (E2) ────────────────────────
+//
+// La barra contestaba de dos formas: dónde mira —el primero declarado, en
+// `donde`, `saberes.comoSePide` y `rsc.anadir`— y con quién habla —el primero
+// instalado, aquí—. Con los dos declarados y solo Codex en el ordenador,
+// buscaba las habilidades en la carpeta de Claude y le hablaba a Codex. Ahora
+// todo tira de esta función, por este orden:
+//
+//   1. el que se eligió en esta carpeta, si el arnés está montado para él;
+//   2. el primero declarado que esté instalado;
+//   3. el primero declarado, aunque no esté, para poder decir qué falta;
+//   4. sin nada declarado, el que esté instalado, y si no, Claude.
+//
+// Hablar con uno para el que no está montado el arnés sería hablar sin sus
+// habilidades, así que lo declarado va antes que lo instalado.
+//
+// La elección va en el estado del espacio de trabajo, que es de esta carpeta y
+// de este ordenador, y no en el orden de `targets`: RSC los ordena en cada
+// escritura, así que un `sync` o un `add` la deshacían (E1).
+const CLAVE_DE_LA_ELECCION = 'executiveLab.conQuien';
+let estado = null;
+const saberDondeGuardar = (workspaceState) => { estado = workspaceState || null; };
+
+function laEleccion() {
+  try {
+    return estado ? estado.get(CLAVE_DE_LA_ELECCION) || null : null;
+  } catch {
+    return null;
+  }
 }
+
+function conQuien() {
+  const declarados = losDelArnes();
+  const elegido = porId(laEleccion());
+  if (elegido && declarados.some((a) => a.id === elegido.id)) return elegido;
+  return declarados.find(estaInstalado) || declarados[0] || ASISTENTES.find(estaInstalado) || ASISTENTES[0];
+}
+
+const elDeAhora = () => conQuien();
 
 // Lo que hay que enseñar para poder elegir: cuál manda ahora, cuáles están
 // puestos en este ordenador y cuáles declaró el arnés.
@@ -103,69 +135,56 @@ function comoEstamos() {
   };
 }
 
-// Cambiar con cuál se habla. Se escribe en `.rsc.json`, que es donde el arnés
-// lo guarda, respetando todo lo demás del fichero.
+// Cambiar con cuál se habla (E1).
 //
-// Ojo con lo que esto NO hace: no reinstala el arnés para el otro asistente.
-// Las habilidades, los ayudantes y los raíles se quedan en la carpeta del
-// anterior, y cada asistente solo mira la suya. O sea que al cambiar, la barra
-// se queda a cero de todo eso hasta que alguien lo vuelva a montar.
+// Se reordenaba `targets` en `.rsc.json`, y eso ni duraba —RSC los ordena en
+// cada escritura— ni montaba nada: las habilidades y los agentes del otro
+// «dejaban de verse», y lo declarado no cuadraba con lo instalado. Ahora:
 //
-// Aquí decía «por eso la pantalla lo dice» y la pantalla no lo decía: el
-// mensaje era «Hecho. A partir de ahora los botones hablan con X» y punto. Un
-// alumno que pulsa y ve desaparecer sus habilidades cree que ha roto algo.
-function elegir(id) {
+//   · con uno para el que ya está montado, se apunta la elección y ya;
+//   · con uno para el que no, se prepara también para él —`montar`, que es el
+//     `sync --target` del arnés de dentro y sus raíles— y solo si sale bien se
+//     apunta. Si no, no se cambia nada.
+async function elegir(id, { montar } = {}) {
   const cual = porId(id);
   if (!cual) return { ok: false, mensaje: 'Ese no es uno de los dos.' };
   if (!estaInstalado(cual)) return { ok: false, mensaje: `${cual.nombre} no está en este ordenador. Díselo a tu tutor.` };
 
-  const ruta = proyecto.ruta('.rsc.json');
   const declaracion = proyecto.declaracion();
-  if (!ruta || !declaracion) return { ok: false, mensaje: 'Esta carpeta todavía no está preparada.' };
+  if (!declaracion) return { ok: false, mensaje: 'Esta carpeta todavía no está preparada.' };
 
-  const antes = Array.isArray(declaracion.targets) ? declaracion.targets : [];
-  const targets = [id, ...antes.filter((t) => t !== id)];
-
-  // Lo que se queda atrás, contado antes de cambiar nada: si esta carpeta tenía
-  // habilidades o ayudantes montados para el otro, dejan de verse. No se
-  // pierden —siguen en su carpeta— pero desaparecen de la barra, y eso hay que
-  // decirlo con el nombre de lo que desaparece.
-  const donde = require('./donde');
-  const fs = require('node:fs');
-  const cuantasHay = (carpeta) => {
-    try {
-      return carpeta && fs.existsSync(carpeta)
-        ? fs.readdirSync(carpeta).filter((n) => !n.startsWith('.')).length
-        : 0;
-    } catch {
-      return 0;
-    }
+  const noSePudo = { ok: false, mensaje: `No he podido prepararla para ${cual.nombre}. Pulsa «Algo va mal» y pásale el código a tu tutor.` };
+  const declarados = () => {
+    const d = proyecto.declaracion() || {};
+    return Array.isArray(d.targets) ? d.targets : [];
   };
-  const seQuedan = [
-    [cuantasHay(donde.carpetaDeHabilidades()), 'habilidades'],
-    [cuantasHay(donde.carpetaDeAgentes()), 'ayudantes'],
-  ].filter(([cuantas]) => cuantas > 0);
+  if (!declarados().includes(id)) {
+    if (typeof montar !== 'function') return noSePudo;
+    let montado = false;
+    try {
+      montado = await montar(id);
+    } catch {
+      montado = false;
+    }
+    if (!montado || !declarados().includes(id)) return noSePudo;
+  }
 
   try {
-    fs.writeFileSync(ruta, `${JSON.stringify({ ...declaracion, targets }, null, 2)}\n`);
+    if (estado) await estado.update(CLAVE_DE_LA_ELECCION, id);
   } catch {
     return { ok: false, mensaje: 'No he podido guardarlo. Prueba con "Algo va mal".' };
   }
 
-  const aviso = seQuedan.length
-    ? ` Lo que tenías montado para el otro (${seQuedan.map(([c, q]) => `${c} ${q}`).join(' y ')}) deja de verse: no se ha borrado, pero ${cual.nombre} no mira en esa carpeta. Pídeselo y te lo vuelve a montar.`
-    : '';
-
-  // Y lo que se pierde sin estar en ninguna carpeta: los frenos. RSC solo se los
-  // engancha a Claude, así que al pasar a otro asistente desaparece el que para
-  // una orden peligrosa — y ese es el que protege a quien no es técnico. No se
-  // puede arreglar desde aquí, pero callarlo es peor: esto se pulsa una vez y
-  // nadie vuelve a mirar Las reglas para enterarse.
+  // Lo que se pierde sin estar en ninguna carpeta: los frenos. RSC solo se los
+  // engancha a Claude, y los raíles también, así que al pasar a otro asistente
+  // desaparece el que para una orden peligrosa, y ese es el que protege a quien
+  // no es técnico. No se puede arreglar desde aquí, pero callarlo es peor: esto
+  // se pulsa una vez, y nadie vuelve a mirar Las reglas para enterarse.
+  const donde = require('./donde');
   const sinFrenos = (donde.SITIOS[id] || {}).frenos
     ? ''
     : ` Y ${cual.nombre} no trae frenos: el que para una orden peligrosa solo se le engancha a Claude.`;
-
-  return { ok: true, mensaje: `Hecho. A partir de ahora los botones hablan con ${cual.nombre}.${aviso}${sinFrenos}` };
+  return { ok: true, mensaje: `Hecho. A partir de ahora los botones hablan con ${cual.nombre}.${sinFrenos}` };
 }
 
-module.exports = { ASISTENTES, elDeAhora, losDelArnes, estaInstalado, porId, comoEstamos, elegir };
+module.exports = { ASISTENTES, saberDondeGuardar, conQuien, elDeAhora, losDelArnes, estaInstalado, porId, comoEstamos, elegir };

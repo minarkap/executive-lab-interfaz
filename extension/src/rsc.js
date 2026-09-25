@@ -104,7 +104,8 @@ async function retomar() {
 async function anadir(id) {
   if (!/^[a-z0-9-]{2,40}$/.test(id)) return { ok: false };
 
-  const quien = ((proyecto.declaracion() || {}).targets || ['claude'])[0];
+  // Para el asistente con el que se habla, y no para el primero declarado (E2).
+  const quien = require('./donde').paraQuien();
   await correr(['add', id, '--target', quien], { tiempoMaximo: 180000 });
   return { ok: habilidadesPuestas().includes(id) };
 }
@@ -115,13 +116,23 @@ async function anadir(id) {
 // unión con lo declarado en `.rsc.json`, y con esa unión un repositorio clonado
 // es indetectable — lo declarado tapa lo que falta. Para saber si hay que
 // traerlas hay que mirar el disco a secas.
+//
+// Con Cursor, cada habilidad es un fichero `<id>.mdc` en la carpeta de sus
+// reglas, y ahí también está el fichero de siempre de RSC, que no es una
+// habilidad (E3).
 function habilidadesEnDisco() {
-  const carpeta = require('./donde').carpetaDeHabilidades();
+  const donde = require('./donde');
+  const carpeta = donde.carpetaDeHabilidades();
   if (!carpeta || !fs.existsSync(carpeta)) return [];
+  const ext = donde.habilidadEnUnFichero();
   try {
-    return fs.readdirSync(carpeta, { withFileTypes: true })
-      .filter((e) => (e.isDirectory() || e.isSymbolicLink()) && !e.name.startsWith('.'))
-      .map((e) => e.name);
+    const entradas = fs.readdirSync(carpeta, { withFileTypes: true }).filter((e) => !e.name.startsWith('.'));
+    if (!ext) return entradas.filter((e) => e.isDirectory() || e.isSymbolicLink()).map((e) => e.name);
+    const siempre = ((donde.SITIOS[donde.paraQuien()] || {}).siempre || {}).fichero;
+    const deRsc = siempre ? siempre[siempre.length - 1] : null;
+    return entradas
+      .filter((e) => (e.isFile() || e.isSymbolicLink()) && e.name.endsWith(ext) && e.name !== deRsc)
+      .map((e) => e.name.slice(0, -ext.length));
   } catch {
     return [];
   }

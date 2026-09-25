@@ -31,7 +31,19 @@ const SITIOS = sitios.SITIOS;
 
 // Para cuál se montó esta carpeta. Lo dice `.rsc.json`; sin él, Claude, que es
 // lo que monta nuestro instalador.
-const paraQuien = () => sitios.paraQuien(proyecto.declaracion());
+// De quién son las carpetas en que se mira: del asistente con el que se habla,
+// que decide una sola función (E2). Se carga tarde: `asistentes` también usa esto.
+//
+// Salvo en un arnés montado fuera para asistentes que la barra no ofrece (E3):
+// con uno solo para Cursor, la barra habla con Claude, pero lo montado está en
+// lo de Cursor. Ahí se mira en lo del primero declarado; en lo de Claude, nunca.
+const paraQuien = () => {
+  const conQuien = require('./asistentes').conQuien().id;
+  const declarados = (proyecto.declaracion() || {}).targets;
+  return Array.isArray(declarados) && declarados.length && !declarados.includes(conQuien)
+    ? declarados[0]
+    : conQuien;
+};
 
 // Un asistente que RSC sabe montar y que no está en la tabla no se trata como
 // Claude: se queda sin carpetas. Nunca se devuelve una ruta de Claude para un
@@ -66,6 +78,32 @@ const carpetaDeComandos = () => carpetaDe('comandos');
 const carpetaDeAgentes = () => carpetaDe('agentes');
 const ficheroDeAjustes = () => carpetaDe('ajustes');
 
+// Cada asistente escribe las cosas a su manera (E3). Una habilidad es una
+// carpeta con su SKILL.md, o un fichero suelto (Cursor: `<id>.mdc`); un comando
+// es `<nombre>.md`, o `<nombre>.prompt.md` (Copilot), y se pide con `/nombre`, o
+// con `/nombre.md` (Cline). Leerlas todas como las de Claude no veía ninguna
+// habilidad de Cursor y pedía mal los comandos de los otros dos.
+const habilidadEnUnFichero = () => susSitios().habilidadEnUnFichero || null;
+const ficheroDeLaHabilidad = (id) => {
+  const carpeta = carpetaDeHabilidades();
+  if (!carpeta) return null;
+  const ext = habilidadEnUnFichero();
+  return ext ? path.join(carpeta, `${id}${ext}`) : path.join(carpeta, id, 'SKILL.md');
+};
+const acabaUnComando = () => susSitios().comandoAcabaEn || '.md';
+// De un fichero de la carpeta de comandos, el comando y cómo se pide; o null si
+// no es uno de este asistente.
+const elComando = (fichero) => {
+  const ext = acabaUnComando();
+  if (!fichero.endsWith(ext) || fichero.length === ext.length) return null;
+  const nombre = fichero.slice(0, -ext.length);
+  return { nombre, prompt: `/${nombre}${susSitios().comandoSePideCon || ''}` };
+};
+const ficheroDelComando = (nombre) => {
+  const carpeta = carpetaDeComandos();
+  return carpeta ? path.join(carpeta, `${nombre}${acabaUnComando()}`) : null;
+};
+
 // ¿Este asistente llega a tener botones? Sirve para poder decir "aquí no hay
 // botones porque este asistente no los tiene" en vez de dejar el hueco.
 const puedeTenerBotones = () => Boolean(susSitios().comandos);
@@ -80,5 +118,5 @@ const puedeTenerFrenos = () => Boolean(susSitios().frenos);
 module.exports = {
   SITIOS, paraQuien, carpetaDeHabilidades, carpetaDeComandos, carpetaDeAgentes, ficheroDeAjustes,
   carpetaDeOtro, ficheroDeEstado, ficheroDeEstadoDe, puedeTenerBotones, puedeTenerAjustes,
-  puedeTenerFrenos,
+  puedeTenerFrenos, habilidadEnUnFichero, ficheroDeLaHabilidad, acabaUnComando, elComando, ficheroDelComando,
 };
