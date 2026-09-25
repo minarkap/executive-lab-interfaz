@@ -580,3 +580,19 @@ Solo se añade.
 
   Decisión 120, su resumen, el worklog `2026-09-25-todo-cuadra-F4-los-railes.md` y la barra a
   0.36.0. La revisión de F3 sigue corriendo; la de F4, después.
+- **Revisión de F3 ✓** 25-09 · La primera se colgó sin entregar nada; la segunda, sobre una
+  exportación del commit: *changes-needed*, con 0 críticos, 3 importantes y 5 menores. Todos
+  comprobados y aceptados:
+  - **I1**: poner el freno quitaba el grupo entero, con el enganche de la persona si iba en el mismo;
+  - **I2**: cinco mutaciones vivas (el envoltorio con media mitad del de RSC, la activación sin relevo,
+    el `sync` que falla callado, y toda carpeta tratada como de alguien);
+  - **I3**: con Claude en marcha antes que la barra, la pieza decía «Listo»;
+  - y M1 a M5: el botón que decía «Ya está» sin haberlo puesto, el módulo de un instalador de antes
+    callado, el freno pendiente ofrecido estando apagado, tres definiciones del freno de RSC, y el
+    relevo reescrito a trozos.
+
+  Nueve pruebas nuevas y dos cambiadas, en rojo primero; doce mutaciones, y mueren todas. `humo` 262,
+  `humo+` 267 y `contrato` 12. Y se corrige lo que decía el informe: T032 queda bloqueada en (2) y
+  (3), no hecha; C2 y C4 están probados con un entorno que se le da a la función, y lo de verdad es lo
+  que mide T032; C3 no se deshace con el módulo de un instalador de antes hasta F7. Van en un commit
+  propio, porque F4 ya estaba encima; el trabajo de F5 se apartó en un *stash*.

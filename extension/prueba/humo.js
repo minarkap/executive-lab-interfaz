@@ -1433,7 +1433,11 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
   // ------------------------------------------------------------- el arranque
   await comprobar('los comandos registrados son los del manifiesto', () => {
     vscode.registrado.comandos.length = 0;
+    // Al abrirse, el relevo y el aviso de versión apagado: de esa llamada salen C2
+    // y C4, y nada la miraba (revisión de F3, I2).
+    delete process.env.RSC_NO_UPDATE_CHECK;
     cargar('extension').activate(contexto);
+    assert.equal(process.env.RSC_NO_UPDATE_CHECK, '1', 'al abrirse, la barra no apaga el aviso de versión');
     const manifiesto = require(path.join(RAIZ, 'package.json')).contributes.commands.map((c) => c.command).sort();
     assert.deepEqual(vscode.registrado.comandos.sort(), manifiesto);
     assert.ok(vscode.registrado.vistas.includes('executiveLab.panel'));
@@ -3411,6 +3415,122 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     }
   });
 
+  // ── Lo que encontró la revisión de F3 ─────────────────────────────────
+
+  await comprobar('enganchar el freno no se lleva lo de la persona que comparte su grupo', () => {
+    // Revisión de F3, I1 (P4). Al poner el freno se quitaba el grupo entero de
+    // PreToolUse donde estaba el nuestro, y un enganche de la persona en ese
+    // mismo grupo desaparecía, también con --ajena, en cada reposición.
+    const SUYO = './mi-comprobacion-de-facturas.sh';
+    for (const banderas of [[], ['--ajena']]) {
+      const carpeta = conEnganchesDeRsc('freno-grupo-compartido-');
+      const f = path.join(carpeta, '.claude', 'settings.json');
+      const ajustes = JSON.parse(fs.readFileSync(f, 'utf8'));
+      ajustes.hooks.PreToolUse = [{ matcher: 'Bash', hooks: [
+        { type: 'command', command: 'node "${CLAUDE_PROJECT_DIR}/.claude/skills/executive-lab/freno.mjs"' },
+        { type: 'command', command: SUYO },
+      ] }];
+      fs.writeFileSync(f, `${JSON.stringify(ajustes, null, 2)}\n`);
+      ponerLosRailesEn(carpeta, ...banderas);
+      const ordenes = antesDeCadaOrden(carpeta);
+      assert.ok(ordenes.includes(SUYO), `se ha llevado su enganche (${banderas.join(' ') || 'sin banderas'})`);
+      assert.equal(ordenes.filter((o) => o.includes('/executive-lab/freno.mjs')).length, 1, 'el freno sale dos veces, o ninguna');
+      assert.ok(elFrenoNuestro(carpeta).endsWith('"${CLAUDE_PROJECT_DIR}"'), 'el freno se queda con la orden de antes');
+    }
+    return 'lo suyo se queda, y el freno, una vez y al día';
+  });
+
+  await comprobar('el freno de RSC solo manda si está puesto de verdad: fichero y enganche', () => {
+    // Revisión de F3, I2. El envoltorio se aparta si el de RSC está en .rsc/ y
+    // enganchado. Nada miraba las dos mitades por separado. Con el fichero y sin
+    // enganche, no frena nadie más; con el enganche y sin el fichero (un clon, que
+    // no trae .rsc/), el arranque de RSC no deniega: frena el nuestro.
+    const conUnaMitad = (conFichero, conEnganche) => {
+      const carpeta = conEnganchesDeRsc('freno-una-mitad-', conEnganche ? [ORDEN_DEL_FRENO_DE_RSC] : []);
+      if (conFichero) {
+        fs.mkdirSync(path.join(carpeta, '.rsc'), { recursive: true });
+        fs.copyFileSync(path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'targets', 'danger-guard.mjs'), path.join(carpeta, '.rsc', 'danger-guard.mjs'));
+      }
+      ponerLosRailesEn(carpeta);
+      return carpeta;
+    };
+    for (const [conFichero, conEnganche, que] of [[true, false, 'con el fichero y sin enganche'], [false, true, 'con el enganche y sin el fichero']]) {
+      const carpeta = conUnaMitad(conFichero, conEnganche);
+      fs.rmSync(path.join(carpeta, '.rsc', '.no-danger-guard'), { force: true });
+      assert.ok(deniega(pasarPor(elFrenoNuestro(carpeta), carpeta, 'rm -rf ./informes')), `${que}, no frena nadie`);
+    }
+    return 'media mitad no cuenta: frena el nuestro';
+  });
+
+  await comprobar('Ponerlo ahora no dice que está puesto si no lo está', async () => {
+    // Revisión de F3, M1 (P3). aplicar.js sale con 0 aunque no pueda leer los
+    // ajustes, y el botón decía «Ya está» con la pieza todavía pendiente.
+    const proveedor = vscode.registrado.proveedor;
+    const carpeta = conEnganchesDeRsc('freno-ajustes-rotos-');
+    ponerLosRailesEn(carpeta);
+    fs.writeFileSync(path.join(carpeta, '.claude', 'settings.json'), '{"hooks": {},}\n');
+    vscode.guion.raiz = carpeta;
+    const antes = { enviar: proveedor.enviar, refrescar: proveedor.refrescar };
+    const enviados = [];
+    proveedor.enviar = (m) => enviados.push(m);
+    proveedor.refrescar = async () => {};
+    try {
+      await proveedor.ponerElFreno();
+      const dicho = enviados.pop();
+      assert.equal(dicho.malo, true, `dice «${dicho.texto}» sin haberlo puesto`);
+      return 'sin poder, lo dice';
+    } finally {
+      proveedor.enviar = antes.enviar;
+      proveedor.refrescar = antes.refrescar;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('el freno apagado o con un perfil técnico no se ofrece, y apagado es apagado', async () => {
+    // Revisión de F3, M3. La pieza pendiente se ofrecía aunque la persona lo
+    // hubiera apagado (.rsc/.no-danger-guard) o su perfil dijera que es técnica,
+    // y Las reglas ponía «pendiente» por delante de «apagado».
+    const carpeta = conEnganchesDeRsc('freno-pendiente-apagado-');
+    ponerLosRailesEn(carpeta, '--ajena');
+    vscode.guion.raiz = carpeta;
+    try {
+      const pieza = async () => (await cargar('terreno').radiografia()).piezas.find((p) => p.nombre === 'Freno ante órdenes peligrosas');
+      assert.ok(await pieza(), 'sin apagar, no se ofrece: la prueba no mira nada');
+      fs.writeFileSync(path.join(carpeta, '.rsc', '.no-danger-guard'), '');
+      assert.equal(await pieza(), undefined, 'apagado por la persona, se ofrece igual');
+      delete require.cache[require.resolve(path.join(RAIZ, 'src', 'trato.js'))];
+      assert.equal(cargar('reglas').losGuardianes().find((g) => g.id === 'danger-guard').estado, 'apagado', 'Las reglas lo da por pendiente');
+      fs.rmSync(path.join(carpeta, '.rsc', '.no-danger-guard'));
+      fs.writeFileSync(path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'user-profile.md'), '---\ntechnical_level: technical\n---\n');
+      delete require.cache[require.resolve(path.join(RAIZ, 'src', 'trato.js'))];
+      assert.equal(await pieza(), undefined, 'con un perfil técnico, que no frena, se ofrece igual');
+      return 'apagado o técnico, no se ofrece';
+    } finally {
+      vscode.guion.raiz = empresa;
+      delete require.cache[require.resolve(path.join(RAIZ, 'src', 'trato.js'))];
+    }
+  });
+
+  await comprobar('Las reglas no dan por puesto el freno de RSC sin su enganche', () => {
+    // Revisión de F3, M4. Había tres definiciones de «el freno de RSC está
+    // puesto»: el envoltorio y la radiografía pedían fichero y enganche, y Las
+    // reglas solo el fichero, así que decían «Lo pone el arnés» con el nuestro
+    // frenando.
+    const carpeta = conEnganchesDeRsc('freno-reglas-mitad-');
+    fs.mkdirSync(path.join(carpeta, '.rsc'), { recursive: true });
+    fs.writeFileSync(path.join(carpeta, '.rsc', 'danger-guard.mjs'), '// el de RSC, sin enganchar\n');
+    ponerLosRailesEn(carpeta);
+    vscode.guion.raiz = carpeta;
+    try {
+      delete require.cache[require.resolve(path.join(RAIZ, 'src', 'trato.js'))];
+      const freno = cargar('reglas').losGuardianes().find((g) => g.id === 'danger-guard');
+      assert.equal(freno.deQuien, 'Lo pone Executive Lab: el arnés no lo trae en esta clase de proyecto.', 'dice que frena el del arnés, sin enganche');
+      return 'sin enganche, frena el nuestro, y se dice';
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+  });
+
   await comprobar('con codeHooks false y el freno propio, Las reglas lo lista armado y dice su origen', async () => {
     // C1. «Las reglas» nombraba el freno solo si lo ponía RSC, así que en una
     // carpeta de operaciones (sin la cadena SDD, `codeHooks: false`) no salía,
@@ -3433,8 +3553,12 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       assert.match(pintada, /Lo pone Executive Lab: el arnés no lo trae en esta clase de proyecto\./, 'la pantalla no dice de quién es');
       assert.equal(cargar('arrancar').hayFreno(), true, 'el primer mensaje diría que no hay freno');
 
-      // Con el de RSC puesto, el que frena es el suyo.
+      // Con el de RSC puesto —su fichero y su enganche, como lo deja RSC—, el que
+      // frena es el suyo.
       fs.writeFileSync(path.join(carpeta, '.rsc', 'danger-guard.mjs'), '// el de RSC\n');
+      const conElDeRsc = JSON.parse(fs.readFileSync(path.join(carpeta, '.claude', 'settings.json'), 'utf8'));
+      conElDeRsc.hooks.PreToolUse.push({ matcher: 'Bash', hooks: [{ type: 'command', command: ORDEN_DEL_FRENO_DE_RSC }] });
+      fs.writeFileSync(path.join(carpeta, '.claude', 'settings.json'), `${JSON.stringify(conElDeRsc, null, 2)}\n`);
       assert.equal(cargar('reglas').losGuardianes().find((g) => g.id === 'danger-guard').deQuien, 'Lo pone el arnés.');
 
       // Y sin enganchar todavía (C-4), no dice que está puesto, ni de quién es.
@@ -6447,6 +6571,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       const enHead = gitEn(vacia, 'show', 'HEAD:.claude/settings.json');
       assert.ok(!enHead.includes(app), 'la ruta de este ordenador ha entrado en el punto de partida');
       assert.match(enHead, /"command": "node /, 'el punto de partida no lleva la orden del arnés');
+      // Y con su freno, que en una carpeta nueva se pone sin preguntar (revisión de F3, I2).
+      assert.match(enHead, /executive-lab\/freno\.mjs/, 'una carpeta nueva se queda sin freno');
       assert.equal(fs.readFileSync(path.join(vacia, '.claude', 'settings.json'), 'utf8').trim(), enHead,
         'en disco no es lo que hay en el repositorio');
       assert.equal(gitEn(vacia, 'ls-files', '-v', '--', '.claude/settings.json').slice(0, 1), 'H',
@@ -6554,6 +6680,92 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       proveedor.refrescar = antes.refrescar;
       proveedor.contexto.globalStorageUri = antes.almacen;
       relevoM.ponerAlActivar({ carpeta: null });
+    }
+  });
+
+  await comprobar('si el sync de después de arreglar falla, se dice', async () => {
+    // Revisión de F3, I2. Tras cada `repair` va un `sync` (C6), y «si el sync
+    // falla, se dice» no lo miraba nada.
+    const rscM = cargar('rsc');
+    const bien = await rscM.yDespuesElPlan({ codigo: 0, salida: 'Repaired' }, async () => ({ codigo: 0, salida: 'Synced' }));
+    assert.equal(bien.codigo, 0);
+    const mal = await rscM.yDespuesElPlan({ codigo: 0, salida: 'Repaired' }, async () => ({ codigo: 1, salida: 'no se pudo' }));
+    assert.equal(mal.codigo, 1, 'el fallo del sync se traga');
+    assert.match(mal.salida, /Repaired[\s\S]*no se pudo/, 'el informe no dice qué pasó');
+    const sinArreglar = await rscM.yDespuesElPlan({ codigo: 2, salida: 'x' }, async () => { throw new Error('se sincroniza sin haber arreglado'); });
+    assert.equal(sinArreglar.codigo, 2);
+    return 'el fallo del sync llega, y sin arreglo no se sincroniza';
+  });
+
+  await comprobar('el relevo no se reescribe si ya está bien, y cuando se escribe es de golpe', () => {
+    // Revisión de F3, M5. Se reescribía en cada apertura de la barra, a trozos: un
+    // enganche que arrancara en otra ventana justo entonces corría un guion vacío,
+    // salía con 0, y el freno dejaba pasar la orden.
+    const relevo = cargar('relevo');
+    const carpeta = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'relevo-una-vez-')), 'relevo');
+    relevo.asegurar({ carpeta, ejecutable: process.execPath, env: { PATH: '/usr/bin:/bin' } });
+    const escrito = fs.readFileSync(path.join(carpeta, 'node'), 'utf8');
+    const antes = { escribir: fs.writeFileSync, renombrar: fs.renameSync };
+    const tocados = [];
+    fs.writeFileSync = (f, ...r) => { tocados.push(`escribe ${path.basename(String(f))}`); return antes.escribir.call(fs, f, ...r); };
+    fs.renameSync = (a, b) => { tocados.push(`renombra ${path.basename(String(b))}`); return antes.renombrar.call(fs, a, b); };
+    try {
+      relevo.asegurar({ carpeta, ejecutable: process.execPath, env: { PATH: '/usr/bin:/bin' } });
+      assert.deepEqual(tocados, [], `se reescribe sin haber cambiado: ${tocados.join(', ')}`);
+      relevo.asegurar({ carpeta, ejecutable: '/otro/sitio/code', env: { PATH: '/usr/bin:/bin' } });
+      assert.ok(tocados.includes('renombra node'), `no se escribe de golpe: ${tocados.join(', ')}`);
+      assert.ok(!tocados.includes('escribe node'), 'se escribe encima del que corre');
+    } finally {
+      fs.writeFileSync = antes.escribir;
+      fs.renameSync = antes.renombrar;
+    }
+    assert.notEqual(fs.readFileSync(path.join(carpeta, 'node'), 'utf8'), escrito, 'con otro ejecutable no se cambia');
+    return 'igual, no se toca; distinto, de golpe';
+  });
+
+  await comprobar('con Claude abierto antes que la barra, la pieza pide abrir la conversación otra vez', async () => {
+    // Revisión de F3, I3. Si el asistente ya estaba en marcha cuando la barra
+    // puso el relevo, su proceso no lo ve, y la pieza decía «Listo».
+    const relevoM = cargar('relevo');
+    const r = conEnganches();
+    vscode.guion.raiz = r;
+    const carpeta = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'relevo-tarde-')), 'relevo');
+    try {
+      assert.equal(relevoM.ponerAlActivar({ carpeta, ejecutable: process.execPath, env: { PATH: '' }, yaHabiaAsistente: true }).modo, 'relevoVSCode');
+      const pieza = (await cargar('terreno').radiografia()).piezas.find((p) => p.nombre === 'Lo que el arnés hace solo');
+      assert.equal(pieza.estado, 'aMedias', `dice «${pieza.detalle}» con el asistente abierto de antes`);
+      assert.equal(pieza.detalle, 'Cierra la conversación con Claude y ábrela otra vez para que lo coja.');
+      assert.equal(pieza.arreglo.accion.tipo, 'arreglarElRelevo');
+      // Con el asistente abierto después, o con un node del sistema, nada que decir.
+      relevoM.ponerAlActivar({ carpeta, ejecutable: process.execPath, env: { PATH: '' }, yaHabiaAsistente: false });
+      assert.equal((await cargar('terreno').radiografia()).piezas.find((p) => p.nombre === 'Lo que el arnés hace solo').detalle, 'Listo');
+      return 'abierto antes, se dice; después, Listo';
+    } finally {
+      relevoM.ponerAlActivar({ carpeta: null });
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('con el módulo de un instalador de antes, deshacer las rutas no se calla', async () => {
+    // Revisión de F3, M2 (P3). El `enganches.js` de un instalador anterior manda
+    // sobre el del paquete (G2, que arregla F7) y no sabe deshacer: el paso decía
+    // «no hacía falta» y no apuntaba nada para «Algo va mal».
+    const app = fs.mkdtempSync(path.join(os.tmpdir(), 'app-de-antes-'));
+    fs.writeFileSync(path.join(app, 'enganches.js'), 'module.exports = { fijarElNodeDeLosEnganches() { return 0; } };\n');
+    const antesApp = process.env.EXECUTIVE_LAB_HOME;
+    process.env.EXECUTIVE_LAB_HOME = app;
+    const r = conEnganches();
+    vscode.guion.raiz = r;
+    const dicho = [];
+    try {
+      const hecho = await cargar('arrancar').apuntarLosEnganches({ appendLine: (l) => dicho.push(l) });
+      assert.equal(hecho, false);
+      assert.ok(dicho.some((l) => /instalador de antes/.test(l)), `no se apunta nada: ${dicho.join(' | ') || '(nada)'}`);
+      return 'se apunta para «Algo va mal»';
+    } finally {
+      if (antesApp === undefined) delete process.env.EXECUTIVE_LAB_HOME;
+      else process.env.EXECUTIVE_LAB_HOME = antesApp;
+      vscode.guion.raiz = empresa;
     }
   });
 

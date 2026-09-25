@@ -1233,7 +1233,10 @@ ${cabecera}
   // en sus ajustes. Claude lo coge al abrir la conversación otra vez, porque lee
   // los enganches al empezar.
   async ponerElFreno() {
-    const ok = await arrancar.ponerLosRailes(this.contexto, { ajena: true, ponerFreno: true });
+    // Los raíles salen con 0 aunque no puedan leer los ajustes: se mira que haya
+    // quedado enganchado de verdad antes de decir que sí (revisión de F3, M1).
+    const ok = await arrancar.ponerLosRailes(this.contexto, { ajena: true, ponerFreno: true })
+      && terreno.comoEstaElFreno().nuestro;
     this.salida.appendLine(`[railes] el freno: ${ok}`); // diccionario: interno
     await this.refrescar(true);
     return this.enviar(ok
@@ -1252,7 +1255,7 @@ ${cabecera}
       'No, déjalo',
     );
     if (elegido !== si) return this.enviar({ tipo: 'aviso', texto: 'No he tocado nada. Cuando quieras, el botón sigue aquí.' });
-    const ok = await arrancar.ponerLosRailes(this.contexto, { ajena: true, ponerBloque: true });
+    const ok = await arrancar.ponerLosRailes(this.contexto, { ajena: true, ponerBloque: true }) && terreno.tieneElBloque();
     this.salida.appendLine(`[railes] el bloque de CLAUDE.md: ${ok}`); // diccionario: interno
     await this.refrescar(true);
     return this.enviar(ok
@@ -1664,7 +1667,14 @@ function activate(contexto) {
   // El relevo de Node, antes de que se abra el chat del asistente: así su
   // proceso y los enganches del arnés lo heredan (C2). Vive en el almacén de
   // la barra, fuera de la carpeta del alumno.
-  const elRelevo = relevo.ponerAlActivar({ carpeta: dondeVaElRelevo(contexto), ejecutable: entorno.node() });
+  // Si Claude ya estaba en marcha, su proceso no ve lo que se ponga ahora: se
+  // apunta, y la pieza pide abrir la conversación otra vez (revisión de F3, I3).
+  const claude = vscode.extensions.getExtension('anthropic.claude-code');
+  const elRelevo = relevo.ponerAlActivar({
+    carpeta: dondeVaElRelevo(contexto),
+    ejecutable: entorno.node(),
+    yaHabiaAsistente: Boolean(claude && claude.isActive),
+  });
   salida.appendLine(`[relevo] ${elRelevo.modo}${elRelevo.carpeta ? ` en ${elRelevo.carpeta}` : ''}${elRelevo.error ? `: ${elRelevo.error}` : ''}`); // diccionario: interno
   // Para poder comparar los raíles de la carpeta con los que trae la barra.
   terreno.saberDondeEstamos(contexto.extensionPath);

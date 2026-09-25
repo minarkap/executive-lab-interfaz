@@ -371,9 +371,9 @@ const arreglarEnSeco = () => correr(['repair', '--dry-run'], { tiempoMaximo: 120
 // había dependía de qué orden corrió la barra la última vez. Así que detrás de
 // cada `repair` que sale bien va un `sync`, que aplica el plan que alguien
 // aceptó. Si el `sync` falla, se dice ese fallo.
-async function yDespuesElPlan(reparado) {
+async function yDespuesElPlan(reparado, sincronizarlo = sincronizar) {
   if (reparado.codigo !== 0) return reparado;
-  const sincronizado = await sincronizar();
+  const sincronizado = await sincronizarlo();
   if (sincronizado.codigo === 0) return reparado;
   return { ...sincronizado, salida: [reparado.salida, sincronizado.salida].filter(Boolean).join('\n') };
 }
@@ -389,5 +389,5 @@ module.exports = {
   comoEstaDeSalud, queHayQueArreglar, queRecomienda, comoAcaboElMontaje, leerElPlanEnSeco, cambiosDePolitica,
   queGuardianes, queCopiasDelArnes, queFaltaEnDisco, LOS_GUARDIANES,
   olvidarLaContinuacion,
-  paquete, VERSION_DE_RESPALDO, comoEsLaVersion, habilidadesDeLaClase, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
+  paquete, VERSION_DE_RESPALDO, comoEsLaVersion, habilidadesDeLaClase, yDespuesElPlan, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
 };

@@ -1,7 +1,7 @@
 ---
 type: verification
 title: Verificación — todo-cuadra, F3 (frenos y enganches)
-description: La batería de F3, criterio por criterio, con lo observado, las treinta mutaciones y lo que queda por medir en un VS Code de verdad.
+description: La batería de F3, criterio por criterio, con lo observado, las treinta mutaciones, lo que queda por medir en un VS Code de verdad, y lo que encontró la revisión y cómo se arregló.
 timestamp: 2026-09-25T22:00:00Z
 topic: sdd
 spec: 02-DOCS/wiki/sdd/specs/todo-cuadra.md
@@ -110,4 +110,57 @@ Quedan con Jose, con su orden, y no bloquean:
 
 ## Lo que encontró la revisión con ojos frescos
 
-Corre sobre el commit de F3. Lo que encuentre se arregla antes de cerrar F4.
+La primera vez se colgó en una orden larga y no entregó nada. La segunda corrió sobre una exportación
+del commit, sin tocar el repositorio: `humo` 242, `contrato` 12, el diccionario, PowerShell y las tres
+empresas, igual que lo dicho; `cmp` de las dos copias del freno, 0; el ajuste de este repositorio, con
+`H` e igual a HEAD. No corrió `humo+`, porque creía que usa la red. Veredicto: *changes-needed*, con 0
+críticos, 3 importantes y 5 menores.
+
+Cada hallazgo se comprobó antes de aceptarlo, y se aceptaron todos. Como F4 ya estaba encima, los
+arreglos van en un commit propio, con el trabajo de F5 apartado.
+
+| Hallazgo | Qué se hizo |
+|---|---|
+| **Importante, I1 (P4).** Al poner el freno se quitaba el grupo entero de PreToolUse donde estaba el nuestro; un enganche de la persona en ese mismo grupo desaparecía, también con `--ajena`, en cada reposición | Se mira orden a orden: se quitan solo las nuestras, un grupo se deja si le queda algo, y el nuestro va en el suyo. Prueba nueva, «enganchar el freno no se lleva lo de la persona que comparte su grupo», con y sin `--ajena` |
+| **Importante, I2.** Cinco mutaciones sobrevivían: el envoltorio apartándose con solo el fichero de RSC o con solo su enganche; la activación sin poner el relevo; el `sync` que falla después de arreglar, callado; y toda carpeta tratada como de alguien | Una prueba por cada una: «el freno de RSC solo manda si está puesto de verdad: fichero y enganche» (con el enganche y sin el fichero, que es un clon, el arranque de RSC no deniega); la de los comandos del manifiesto mira que al abrirse la barra se apague el aviso de versión; «si el sync de después de arreglar falla, se dice»; y la del montaje mira que una carpeta nueva quede con su freno. Mueren las cinco |
+| **Importante, I3.** Si Claude arranca antes que la barra —una conversación que se restaura al abrir—, su proceso no ve el relevo ni el aviso apagado, y la pieza decía «Listo» | Al abrirse, la barra mira si la extensión de Claude ya estaba activa; si lo estaba y hizo falta el relevo, la pieza dice «Cierra la conversación con Claude y ábrela otra vez para que lo coja.» con «Arreglarlo». Prueba nueva. Adelantar la activación de la barra (`*` en vez de `onStartupFinished`) cambiaría cómo arranca todo y no se puede medir aquí: queda como propuesta con la medida de T032 (3) |
+| Menor, M1 (P3). «Ponerlo ahora» decía «Ya está» aunque los raíles no pudieran leer los ajustes, porque salen con 0 | El botón mira que el freno haya quedado enganchado, y el del bloque de `CLAUDE.md` igual. Prueba nueva, con unos ajustes rotos |
+| Menor, M2 (P3). Con el módulo de un instalador de antes, deshacer las rutas fallaba sin apuntar nada | Se apunta para «Algo va mal». Prueba nueva, con una app de mentira. Arreglarlo del todo es G2, en F7 |
+| Menor, M3. La pieza del freno pendiente se ofrecía con el freno apagado por la persona o con un perfil técnico, y «Las reglas» ponía «pendiente» por delante de «apagado» | No se ofrece en esos dos casos, y apagado va primero. Prueba nueva |
+| Menor, M4. Tres definiciones de «el freno de RSC está puesto»: «Las reglas» pedía solo el fichero | Las tres piden fichero y enganche, como el envoltorio. Prueba nueva. La prueba de T036 ponía solo el fichero para «con el de RSC puesto»; ahora pone los dos |
+| Menor, M5. El relevo se reescribía en cada apertura, a trozos: un enganche de otra ventana podía correr un guion vacío y dejar pasar la orden | Se escribe solo si cambia, y de golpe (a un fichero aparte que después ocupa su sitio). Prueba nueva |
+
+Y lo que el revisor señaló del informe, que se corrige aquí:
+
+- **T032 (2) no se hizo**, y la elección del relevo se tomó con (1) sola. Es verdad: (2) baja unos
+  900 MB fuera del proyecto y espera el sí de Jose. T032 queda bloqueada en (2) y (3), no hecha.
+- **C2 y C4** están probados dándole un entorno a la función, no en un VS Code de verdad: que el proceso
+  del asistente herede el PATH y `RSC_NO_UPDATE_CHECK` es justo lo que mide T032 (2) y (3).
+- **C3**, en un ordenador con un instalador de los de antes, no se deshace: manda su `enganches.js`
+  viejo (G2), y ahora al menos se apunta. Lo arregla F7.
+- **C5**, a medias: `.no-git` y `.no-harness` siguen saliendo por su identificador, a la espera de los
+  nombres de Jose.
+- Sin contar, lo que dicen `instalador/mac/instalar.js` y `probar.sh` de las rutas absolutas: son del
+  instalador, que no se toca sin Jose.
+
+### Mutación de los arreglos
+
+| Mutación | Se pone roja |
+|---|---|
+| R1 · el freno se quita por grupos | lo de la persona que comparte su grupo |
+| R2 · el botón no mira si quedó puesto | Ponerlo ahora no dice que está puesto |
+| R3 · apagado, se ofrece igual | el freno apagado o con un perfil técnico |
+| R4 · pendiente antes que apagado | el freno apagado o con un perfil técnico |
+| R5 · el de RSC, solo por su fichero | Las reglas, sin su enganche |
+| R6 · el `sync` que falla, callado | si el sync de después de arreglar falla |
+| R7 · el relevo, siempre reescrito | el relevo no se reescribe si ya está bien |
+| R8 · el asistente de antes, sin decir | con Claude abierto antes que la barra |
+| R9 · al abrirse, sin relevo | los comandos del manifiesto |
+| R10 · el nuestro se aparta con solo el fichero | fichero y enganche |
+| R11 · el nuestro se aparta con solo el enganche | fichero y enganche |
+| R12 · toda carpeta, como si fuera de alguien | tras montar, el ajuste versionado |
+
+Mueren las doce, y entre ellas las cinco que sobrevivían al revisor (R6, R9, R10, R11 y R12).
+
+La batería, con los arreglos y sobre F4: `humo` 262, `humo+` 267, `contrato` 12, las tres empresas,
+y el diccionario y PowerShell limpios.

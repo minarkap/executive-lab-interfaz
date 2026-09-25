@@ -176,3 +176,15 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
 - **«Ponerla como la de la clase» quita de la declaración lo que la de la clase no trae antes de
   sincronizar** (T019): con ello dentro, el `sync` de la 2.0.5 falla a medias. Se nombra antes y solo
   se hace con el sí (C-10).
+
+## 2026-09-25 · todo-cuadra · revisión de F3
+
+- **Los arreglos de la revisión de F3 van en un commit propio**, y no enmendando el de F3: F4 ya estaba
+  encima, y enmendar pedía reescribir la historia de la rama.
+- **El freno se engancha y se quita orden a orden**, nunca por grupos (I1): un grupo de PreToolUse puede
+  llevar órdenes de la persona.
+- **El freno de RSC cuenta como puesto con su fichero y su enganche**, en los tres sitios que lo miran
+  (M4). Con uno solo, frena el nuestro.
+- **No se adelanta la activación de la barra a `*`** (I3): cambiaría cómo arranca todo y no se puede
+  medir aquí. En su lugar, se apunta si Claude ya estaba en marcha, y la pieza lo dice. Se propone con
+  la medida de T032 (3).

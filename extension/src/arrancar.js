@@ -560,8 +560,12 @@ async function apuntarLosEnganches(salida) {
   try {
     const { devolverElNodeASecas } = require(donde);
     // La copia que dejó un instalador de antes no lo trae, y hoy manda sobre la
-    // del paquete (G2, que arregla F7). Mientras, no se hace nada.
-    if (typeof devolverElNodeASecas !== 'function') return false;
+    // del paquete (G2, que arregla F7). Mientras, no se hace nada, pero se apunta
+    // para «Algo va mal» (revisión de F3, M2).
+    if (typeof devolverElNodeASecas !== 'function') {
+      salida.appendLine(`[arrancar] los enganches no se revisan: el módulo es de un instalador de antes (${donde})`); // diccionario: interno
+      return false;
+    }
     const hecho = devolverElNodeASecas(raiz, {
       git: (await git.hay()) ? entorno.git() : null,
       anotar: (que) => salida.appendLine(`[arrancar] ${que}`),

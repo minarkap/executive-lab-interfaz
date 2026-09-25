@@ -177,6 +177,10 @@ function loApagado() {
 // de RSC y el nuestro se aparta, así que el que cuenta es ese. El nuestro puede
 // estar sin enganchar: en una carpeta cuyo historial no creó la barra, se espera
 // a su sí (C-4).
+function elDeRscEstaPuesto() {
+  return hayEnRsc('danger-guard.mjs') && (leer('.claude', 'settings.json') || '').includes('.rsc/danger-guard.');
+}
+
 function comoEstaElNuestro() {
   if (!donde.puedeTenerFrenos()) return { enganchado: false, pendiente: false };
   const habilidades = donde.carpetaDeHabilidades();
@@ -201,7 +205,9 @@ function losGuardianes() {
     .filter((g) => hayEnRsc(g.fichero) || conElNuestro(g))
     .map((g) => {
       const dicho = nombres.comoSeLlama('guardianes', g.id, {});
-      const deRsc = hayEnRsc(g.fichero);
+      // El de RSC frena si está su fichero y además enganchado, como lo mira el
+      // envoltorio (revisión de F3, M4). Con uno de los dos solo, frena el nuestro.
+      const deRsc = g.id === 'danger-guard' ? elDeRscEstaPuesto() : hayEnRsc(g.fichero);
       const pendiente = !deRsc && conElNuestro(g) && !nuestro.enganchado;
       const apagado = hayEnRsc(g.interruptor);
       const contigoNo = Boolean(g.soloSiNoEsTecnico && eresTecnico);
@@ -209,13 +215,14 @@ function losGuardianes() {
         id: g.id,
         nombre: dicho.nombre,
         queHace: dicho.queHace,
-        estado: pendiente ? 'pendiente' : (apagado ? 'apagado' : (contigoNo ? 'noAplica' : 'armado')),
+        // Apagado va primero: es lo que decidió la persona (revisión de F3, M3).
+        estado: apagado ? 'apagado' : (pendiente ? 'pendiente' : (contigoNo ? 'noAplica' : 'armado')),
         // Por qué no actúa, cuando no actúa. Sin esto, «no actúa» parece una
         // avería y es una decisión.
-        porQue: pendiente
-          ? 'Todavía no: toca los ajustes de Claude de esta carpeta'
-          : (apagado
-            ? 'Apagado aquí, a propósito'
+        porQue: apagado
+          ? 'Apagado aquí, a propósito'
+          : (pendiente
+            ? 'Todavía no: toca los ajustes de Claude de esta carpeta'
             : (contigoNo ? 'Contigo no actúa: tu perfil dice que eres técnico' : '')),
         // De quién es, junto a lo que hace. Solo el de órdenes peligrosas puede
         // ser de los dos, y sin enganchar todavía no es de nadie.

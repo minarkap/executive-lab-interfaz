@@ -689,7 +689,11 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
   // Si lo que el arnés hace solo tiene con qué arrancar (C2): lo decide el
   // relevo al abrirse la barra (`relevo.js`).
   const conEnganches = conArnes && hayEnganchesConNode();
-  const arrancan = conEnganches && require('./relevo').comoEsta().modo !== 'ninguno';
+  const elRelevo = require('./relevo').comoEsta();
+  const arrancan = conEnganches && elRelevo.modo !== 'ninguno';
+  // Con el relevo puesto después de que el asistente arrancara, su proceso no lo
+  // ve hasta que se abre la conversación otra vez (revisión de F3, I3).
+  const tarde = arrancan && Boolean(elRelevo.tarde);
 
   // Si en esta carpeta hay historial de verdad.
   const conHistorial = proyecto.existe('.git');
@@ -745,8 +749,8 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
     // que nada lo diga. Con Codex no hay enganches, y la línea no sale.
     ...(conEnganches ? [conArreglo({
       nombre: 'Lo que el arnés hace solo',
-      estado: arrancan ? 'si' : 'no',
-      detalle: arrancan ? 'Listo' : 'No arranca en este ordenador',
+      estado: tarde ? 'aMedias' : (arrancan ? 'si' : 'no'),
+      detalle: tarde ? 'Cierra la conversación con Claude y ábrela otra vez para que lo coja.' : (arrancan ? 'Listo' : 'No arranca en este ordenador'),
     }, { como: 'solo', etiqueta: 'Arreglarlo', accion: { tipo: 'arreglarElRelevo' } })] : []),
     // ── Lo que cuelga del arnés, mientras no hay arnés ────────────────────
     //
@@ -830,7 +834,10 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
   // El freno propio, pendiente (C1, C-4). En una carpeta cuyo historial no creó
   // la barra, reponer los raíles no lo engancha solo, porque toca sus ajustes:
   // se ofrece aquí, con su botón. Si el de RSC está puesto, ya frena ese.
-  if (conArnes && donde.puedeTenerFrenos() && parte.railes.habilidadPropia) {
+  // Si la persona lo apagó, o su perfil dice que es técnica —y entonces no frena—,
+  // no se ofrece (revisión de F3, M3).
+  const apagadoOTecnico = proyecto.existe('.rsc', '.no-danger-guard') || require('./trato').comoEstamos().palabras === 'technical';
+  if (conArnes && donde.puedeTenerFrenos() && parte.railes.habilidadPropia && !apagadoOTecnico) {
     const freno = comoEstaElFreno();
     if (!freno.nuestro && !freno.deRsc) {
       piezas.push({
@@ -1166,5 +1173,5 @@ function fechaDelPlan() {
 module.exports = {
   queCarpetaEs, comoEsEstaCarpeta, MARCA_DEL_HISTORIAL,
   queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia, fechaDelPlan,
-  laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos, comoEstaElFreno, tieneTexto,
+  laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos, comoEstaElFreno, tieneTexto, tieneElBloque,
 };

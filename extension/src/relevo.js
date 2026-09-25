@@ -55,18 +55,32 @@ function nodeDelPath(env = process.env, plataforma = process.platform) {
 // comilla simple se escribe cerrando, escapándola y abriendo otra vez.
 const entreComillas = (texto) => `'${String(texto).replace(/'/g, "'\\''")}'`;
 
+// Se escribe solo si cambia, y de golpe: a un fichero aparte que después ocupa
+// su sitio. Reescribirlo en cada apertura, a trozos, dejaba un instante en que un
+// enganche de otra ventana corría un guion vacío, salía con 0, y el freno dejaba
+// pasar la orden (revisión de F3, M5).
+function dejarDeGolpe(fichero, texto, modo) {
+  try {
+    if (fs.readFileSync(fichero, 'utf8') === texto) return;
+  } catch {
+    // no estaba
+  }
+  const nuevo = `${fichero}.nuevo`;
+  fs.writeFileSync(nuevo, texto, modo ? { mode: modo } : undefined);
+  if (modo) fs.chmodSync(nuevo, modo);
+  fs.renameSync(nuevo, fichero);
+}
+
 function escribirElRelevo(carpeta, ejecutable, plataforma) {
   fs.mkdirSync(carpeta, { recursive: true });
-  const sh = path.join(carpeta, 'node');
-  fs.writeFileSync(sh, [
+  dejarDeGolpe(path.join(carpeta, 'node'), [
     '#!/bin/sh',
     '# El relevo de Node de Executive Lab: el Node que trae VS Code, para los enganches del arnés.', // diccionario: interno
     `ELECTRON_RUN_AS_NODE=1 exec ${entreComillas(ejecutable)} "$@"`,
     '',
-  ].join('\n'));
-  fs.chmodSync(sh, 0o755);
+  ].join('\n'), 0o755);
   if (plataforma === 'win32') {
-    fs.writeFileSync(path.join(carpeta, 'node.cmd'), [
+    dejarDeGolpe(path.join(carpeta, 'node.cmd'), [
       '@echo off',
       'set ELECTRON_RUN_AS_NODE=1',
       `"${ejecutable}" %*`,
@@ -115,9 +129,13 @@ function callarElAvisoDeVersion(env = process.env) {
 // solo». Si todavía no se ha puesto, se mira sin escribir nada: sin carpeta
 // para el relevo, `asegurar` solo lee el PATH.
 let ultimo = null;
+//
+// `yaHabiaAsistente`: el asistente ya estaba en marcha cuando se puso el relevo,
+// así que su proceso no lo ve hasta que se abra la conversación otra vez.
 function ponerAlActivar(opciones = {}) {
   callarElAvisoDeVersion(opciones.env);
-  ultimo = asegurar(opciones);
+  const puesto = asegurar(opciones);
+  ultimo = { ...puesto, tarde: puesto.modo === 'relevoVSCode' && Boolean(opciones.yaHabiaAsistente) };
   return ultimo;
 }
 const comoEsta = () => ultimo || asegurar({ carpeta: null });

@@ -296,18 +296,26 @@ function engancharElFreno() {
     }
   }
   const antes = ajustes.hooks && Array.isArray(ajustes.hooks.PreToolUse) ? ajustes.hooks.PreToolUse : [];
-  const esElNuestro = (entrada) => JSON.stringify(entrada).includes('/executive-lab/freno.mjs');
-  const puestos = antes.filter(esElNuestro);
-  if (puestos.length === 1 && JSON.stringify(puestos[0]) === JSON.stringify(ENTRADA_DEL_FRENO)) {
+  // Se mira orden a orden, no grupo a grupo: un enganche de la persona puede ir
+  // en el mismo grupo que el nuestro, y quitar el grupo entero se lo llevaba
+  // (revisión de F3, I1).
+  const esLaNuestra = (orden) => Boolean(orden) && typeof orden.command === 'string' && orden.command.includes('/executive-lab/freno.mjs');
+  const nuestras = antes.flatMap((grupo) => (Array.isArray(grupo.hooks) ? grupo.hooks : []).filter(esLaNuestra));
+  const soloLaDeHoy = antes.length && antes.filter((grupo) => (grupo.hooks || []).some(esLaNuestra))
+    .every((grupo) => JSON.stringify(grupo) === JSON.stringify(ENTRADA_DEL_FRENO));
+  if (nuestras.length === 1 && soloLaDeHoy) {
     return `${dondeVa} (el freno ya estaba enganchado)`;
   }
-  if (ajena && !ponerFreno && !puestos.length) {
+  if (ajena && !ponerFreno && !nuestras.length) {
     pendientes.push('el freno ante órdenes peligrosas');
     return `${dondeVa} (el freno, pendiente: toca sus ajustes, y se pide antes)`;
   }
 
+  const sinLasNuestras = antes
+    .map((grupo) => (Array.isArray(grupo.hooks) ? { ...grupo, hooks: grupo.hooks.filter((o) => !esLaNuestra(o)) } : grupo))
+    .filter((grupo) => !Array.isArray(grupo.hooks) || grupo.hooks.length);
   ajustes.hooks = ajustes.hooks || {};
-  ajustes.hooks.PreToolUse = [...antes.filter((e) => !esElNuestro(e)), ENTRADA_DEL_FRENO];
+  ajustes.hooks.PreToolUse = [...sinLasNuestras, ENTRADA_DEL_FRENO];
   fs.mkdirSync(path.dirname(fichero), { recursive: true });
   fs.writeFileSync(fichero, `${JSON.stringify(ajustes, null, 2)}\n`);
   return `${dondeVa} (el freno ante órdenes peligrosas, enganchado)`;
