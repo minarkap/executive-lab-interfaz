@@ -253,6 +253,9 @@
     }
   },
   "_patrones": [
+    "Los comandos por lenguaje de RSC (`targets/commands.js`), `<habilidad>-review` y",
+    "`<habilidad>-build`, van igual (G5), pero solo para los que RSC apunta en su estado:",
+    "uno del alumno que acabe igual es suyo.",
     "Los agentes por lenguaje de RSC (`targets/agent-catalog.js`) son dos familias con",
     "el mismo molde: `<lenguaje>-reviewer` y `<lenguaje>-build-resolver`. Hay más de",
     "veinte y salen nuevos con cada versión, así que en vez de una fila por cada uno",
@@ -260,6 +263,18 @@
     "nombre de verdad (cpp → C++, mle → ML en producción); si no, humanizado."
   ],
   "patrones": {
+    "comandos": [
+      {
+        "sufijo": "-review",
+        "nombre": "Revisar el código de {resto}",
+        "queHace": "Le pasa al revisor de {resto} los cambios, para que señale fallos sin tocar nada."
+      },
+      {
+        "sufijo": "-build",
+        "nombre": "Arreglar la compilación de {resto}",
+        "queHace": "Le pasa al arreglador de {resto} la compilación rota, para que la deje pasando con el cambio mínimo."
+      }
+    ],
     "ayudantes": [
       {
         "sufijo": "-build-resolver",

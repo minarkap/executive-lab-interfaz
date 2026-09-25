@@ -83,6 +83,11 @@ function montar(raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-falsa-')))
 
   // --- una herramienta, como la deja el protocolo de harness ---
   escribir(raiz, '01-TOOLS/_TEMPLATE/README.md', '# <TOOL_NAME>\n\n| Script | Qué hace | Ejemplo |\n|---|---|---|\n| `<verb_object>.sh` | <descripción> | `./<verb_object>.sh <args>` |\n');
+  // La plantilla entera, como la deja RSC: el suelo pide sus ficheros (G7).
+  escribir(raiz, '01-TOOLS/_TEMPLATE/.env.example', '# <TOOL_NAME>\n<TOOL>_API_KEY=\n');
+  escribir(raiz, '01-TOOLS/_TEMPLATE/CREDENTIALS.md', '# <TOOL_NAME> — credenciales\n');
+  escribir(raiz, '01-TOOLS/_TEMPLATE/.gitignore', '.env\nkeys/\nout/\n');
+  escribir(raiz, '01-TOOLS/_TEMPLATE/test_connection.sh', '#!/usr/bin/env bash\necho "OK"\n');
   escribir(raiz, '01-TOOLS/HOLDED/.env.example', '# HOLDED\n# Generate at: https://app.holded.com/api\n\nHOLDED_API_KEY=\nHOLDED_ENV=test\n');
   escribir(raiz, '01-TOOLS/HOLDED/.env', 'HOLDED_API_KEY=abcd1234efgh5678\nHOLDED_ENV=test\n');
   escribir(raiz, '01-TOOLS/HOLDED/CREDENTIALS.md', `# Credenciales — Holded
@@ -194,7 +199,16 @@ Una fuente leída.
 
 ## [{YYYY-MM-DD}] ingest | {primary article title}
 `);
-  escribir(raiz, '02-DOCS/wiki/gaps.md', '# Knowledge Gaps\n\n- Cómo se calculan los recargos por demora\n- Qué condiciones tiene el contrato marco con Talleres Ruiz\n- {Topic wanted but missing}\n');
+  // Como lo escribe RSC (`wiki-gaps-template.md`): un bloque por pregunta, con su
+  // estado. Una contestada no cuenta, y el ejemplo de la plantilla tampoco (G6).
+  const hueco = (fecha, concepto, estado) => `## [${fecha}] gap | ${concepto}\n\nSource: una consulta sin respuesta\n\nSuggested topic: facturacion\n\nStatus: ${estado}\n`;
+  escribir(raiz, '02-DOCS/wiki/gaps.md', [
+    '# Knowledge Gaps\n\nAppend-only log of wanted-but-missing topics.\n',
+    '```markdown\n## [YYYY-MM-DD] gap | {concept}\n\nStatus: open\n```\n',
+    hueco('2026-09-18', 'Cómo se calculan los recargos por demora', 'open'),
+    hueco('2026-09-19', 'Qué condiciones tiene el contrato marco con Talleres Ruiz', 'open'),
+    hueco('2026-09-17', 'Los plazos de cobro', '[FILLED 2026-09-20]'),
+  ].join('\n'));
   escribirSiFalta(raiz, '02-DOCS/wiki/harness/user-profile.md', `---
 technical_level: non-technical
 accompaniment: L3

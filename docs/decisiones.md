@@ -3843,3 +3843,36 @@ Windows sin Python.
 índice. Un fichero de claves añadido con `git add` y sin copia todavía también se deja fuera, y se saca
 del índice. Y se tapan también los ficheros de acceso, y un `.env` con finales de Windows se arregla al
 guardar una clave.
+
+## 123. Lo que se enseña es lo que hay
+
+**Fecha:** 26 de septiembre de 2026 · **Estado:** hecho · **Cadena SDD** `todo-cuadra`, fase F7
+
+«Resolver una incidencia» reventaba siempre. Los ordenadores con un instalador de antes corrían el
+arnés y los módulos de ese instalador. «Algo va mal» daba por sano un arnés roto, y lo que faltaba
+se pintaba con rutas. Una habilidad declarada y no instalada salía con botón. Los comandos por
+lenguaje del arnés salían sin nombre y como del alumno. «Preguntas sin contestar» no salía nunca. Y
+la barra decía «Listo» con la plantilla de conexiones a medias.
+
+### Los mensajes del panel y lo que corre (G1, G2)
+
+- **Cada tipo que manda el panel se despacha**: una prueba los despacha todos, con lo que tiene efectos
+  de verdad fingido, y mira que no reviente ninguno. Encontró el único que faltaba: `encargos` sin
+  importar.
+- **Primero el arnés y los módulos que viajan en el `.vsix`.** El arnés de la carpeta de la app, solo si
+  es de la misma versión, que se lee del arnés de dentro. Los módulos de la app, los últimos. El
+  informe de «Algo va mal» dice cuáles corren.
+
+### Lo que dice el diagnóstico, y lo que se enseña (G3–G7)
+
+- **La salud, por `doctor --json`**: nada falta y los enganches pueden correr. Su código de salida es
+  0 siempre. Lo que falta se lee en las tres formas que escribe RSC y se nombra en español.
+- **Instalado es lo que está en disco**, no lo declarado, para `queSabe`, el contador y «Añadir».
+- **Los comandos por lenguaje** (`<habilidad>-review`, `<habilidad>-build`) se nombran con una regla por
+  familia. Son del arnés los que el arnés apunta en su estado.
+- **Las preguntas sin contestar, como las apunta RSC**: en bloques con su estado, y fuera las
+  contestadas. Fuera del conocimiento, el andamio de RSC y lo archivado.
+- **El suelo, como lo pide RSC**: la plantilla de conexiones con sus cinco ficheros, leídos de la del
+  arnés de dentro.
+
+0.39.0. 297 comprobaciones, 304 con el arnés de verdad, y 13 de contrato.

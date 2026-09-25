@@ -103,7 +103,10 @@ function paraQueEs() {
 
 function queSabe(carpetaDeLaExtension, corpus = '') {
   const catalogo = consejos.capacidades(carpetaDeLaExtension);
-  const puestas = rsc.habilidadesPuestas();
+  // Lo que hay en disco, no lo declarado: una declarada que no está —la de un
+  // clon, la de un «Añadir» a medias— salía como instalada, con un botón que no
+  // responde (G4). Lo que falta lo dice «Qué falta por montar».
+  const puestas = rsc.habilidadesEnDisco();
   const propias = lasSuyas();
   const raiz = donde.carpetaDeHabilidades();
   const enCatalogo = (id) => catalogo.some((c) => c.id === id);

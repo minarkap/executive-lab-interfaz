@@ -32,10 +32,25 @@ function existe(...partes) {
 
 // El "suelo" que RSC exige para dar por bueno un arnés instalado. Si falta
 // alguna de estas tres piezas, el onboarding se aplicó a medias.
+//
+// La de conexiones no es solo la carpeta de la plantilla: son sus ficheros, como
+// los pide RSC (`missingHarnessFloor`, en `onboarding-apply.js`). Con uno de
+// menos, la barra decía «Listo» y RSC «incompleto» (G7). Se leen de la
+// plantilla del arnés que viaja dentro, como hace RSC con la suya; `gitignore`
+// viaja sin punto, porque npm no empaqueta un `.gitignore`.
+function ficherosDeLaPlantilla() {
+  try {
+    const plantilla = path.join(__dirname, '..', 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'skills', 'harness', 'assets', '_TEMPLATE');
+    return fs.readdirSync(plantilla).map((asset) => (asset === 'gitignore' ? '.gitignore' : asset));
+  } catch {
+    return [];
+  }
+}
+
 function sueloDelArnes() {
   return {
     declaracion: existe('.rsc.json'),
-    conexiones: existe('01-TOOLS', '_TEMPLATE'),
+    conexiones: existe('01-TOOLS', '_TEMPLATE') && ficherosDeLaPlantilla().every((fichero) => existe('01-TOOLS', '_TEMPLATE', fichero)),
     conocimiento: existe('02-DOCS', 'wiki', 'harness'),
   };
 }

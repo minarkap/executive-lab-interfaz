@@ -69,9 +69,23 @@ function acciones() {
 // dos objetos no se conocían: para renombrar algo había que tocar código en dos
 // sitios. Ahora es una tabla y esto solo la consulta (ver `nombres.js`).
 
+// Los comandos que el arnés dice que son suyos: los apunta en su estado
+// (`.rsc-state.json` → `commands`). Con eso, uno por lenguaje —`fastapi-review`—
+// se nombra y se pone entre los del arnés, y uno del alumno que acabe igual
+// sigue siendo suyo (G5).
+function losDelArnes() {
+  try {
+    const estado = JSON.parse(fs.readFileSync(donde.ficheroDeEstado(), 'utf8'));
+    return new Set(Array.isArray(estado.commands) ? estado.commands : []);
+  } catch {
+    return new Set();
+  }
+}
+
 function todos() {
   const carpeta = donde.carpetaDeComandos();
   if (!carpeta || !fs.existsSync(carpeta)) return [];
+  const deRsc = losDelArnes();
 
   const encontrados = [];
   for (const fichero of fs.readdirSync(carpeta)) {
@@ -91,7 +105,7 @@ function todos() {
     const dicho = nombres.comoSeLlama('comandos', nombre, {
       nombre: etiqueta,
       queHace: nombres.enEspanol(suya) ? suya : '',
-    });
+    }, { patrones: deRsc.has(nombre) });
 
     encontrados.push({
       nombre,
@@ -99,7 +113,7 @@ function todos() {
       queHace: dicho.queHace,
       icono: typeof campos.icono === 'string' ? campos.icono : '▸',
       esBoton: Boolean(etiqueta),
-      delArnes: dicho.deFuera,
+      delArnes: dicho.deFuera || deRsc.has(nombre),
       prompt: comando.prompt,
     });
   }

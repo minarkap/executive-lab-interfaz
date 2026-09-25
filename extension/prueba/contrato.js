@@ -406,6 +406,21 @@ async function main() {
     return 'arreglado, y con los frenos que dice el plan';
   });
 
+  await comprobar('instalar una habilidad desde la barra deja catalogVersion en 2.0.5', async () => {
+    // G4, D2 y T062, con el arnés de verdad: «Añadir» usa el de la clase, la pone
+    // en disco, y la carpeta sigue en la versión de la clase.
+    const carpeta = carpetaConGit('contrato-anadir-');
+    vscode.guion.raiz = carpeta;
+    const montado = await arrancar.COMO_SE_HACE.montarElArnes({ respuestas: { ...MONTAJE, kind: 'operations', objetivo: 'Organizar el papeleo' } });
+    assert.equal(montado.ok, true, montado.detalle);
+    const hecho = await rscM.anadir('bookkeeping');
+    assert.equal(hecho.ok, true, 'no se añade');
+    assert.ok(fs.existsSync(path.join(carpeta, '.claude', 'skills', 'bookkeeping', 'SKILL.md')), 'y no está en disco');
+    const d = JSON.parse(fs.readFileSync(path.join(carpeta, '.rsc.json'), 'utf8'));
+    assert.equal(d.catalogVersion, rscM.VERSION_DE_RESPALDO, `la carpeta pasa a la ${d.catalogVersion}`);
+    return `bookkeeping, y la ${d.catalogVersion}`;
+  });
+
   vscode.guion.raiz = null;
   console.log(`\n${pasadas} comprobaciones pasadas${process.exitCode ? ' — y alguna ha fallado' : ''}`);
 }

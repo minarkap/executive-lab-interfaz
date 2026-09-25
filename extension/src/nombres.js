@@ -115,8 +115,11 @@ function dePatron(montón, id) {
 //   montón   'comandos' | 'habilidades' | 'ayudantes'
 //   id       el identificador de verdad: `revisar-la-barra`, `bro`
 //   suyo     lo que diga su propio fichero: { nombre, queHace }
-function comoSeLlama(montón, id, suyo = {}) {
-  const fila = deLaTabla(montón, id) || dePatron(montón, id);
+//
+//   patrones  si se prueban las reglas por familia: con los comandos, solo para
+//             los que RSC apunta en su estado (G5)
+function comoSeLlama(montón, id, suyo = {}, { patrones = true } = {}) {
+  const fila = deLaTabla(montón, id) || (patrones ? dePatron(montón, id) : null);
   const nombrePropio = typeof suyo.nombre === 'string' ? suyo.nombre.trim() : '';
   const frasePropia = typeof suyo.queHace === 'string' ? suyo.queHace.trim() : '';
 

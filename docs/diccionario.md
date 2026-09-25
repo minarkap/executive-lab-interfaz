@@ -160,6 +160,7 @@ jerga por goteo.
 | guardar en git con una credencial suelta que git no seguía (F1: se deja fuera de la copia), al terminar de guardar | «Copia guardada. Había {N} cambios. No he metido «{.env}» en la copia: es un fichero de claves de acceso y no debe salir de este ordenador.» · con otros ficheros: «…es un fichero de acceso…» · con varios: «No he metido «{a}», «{b}» y «{c}» en la copia: son ficheros de acceso y no deben salir de este ordenador.» · botón Ponerlo en su sitio · con varios: Ponerlos en su sitio |
 | la prueba de una conexión falla porque una clave se escribió sin comillas y la prueba la lee mal (F3; las que guarda la barra ya van bien) | «Una clave de esta conexión tiene caracteres que la prueba lee mal. Pégala otra vez y guárdala: ahora la guardo bien.» |
 | una consulta o la prueba de una conexión que necesita Python, y en el ordenador no hay (F4) | «Esta consulta necesita Python, y en este ordenador no está.» · la prueba: «Esta prueba necesita Python, y en este ordenador no está.» · botón Pedírselo al asistente |
+| los comandos por lenguaje que monta el arnés, `<habilidad>-review` y `<habilidad>-build` (G5), entre los del arnés | Revisar el código de {FastAPI} · Arreglar la compilación de {Go} |
 | abrir otra carpeta | Elegir una carpeta (la primera vez) · Cambiar de proyecto |
 | quitar el disfraz en esta ventana | Ver el editor completo |
 | poner el disfraz en esta ventana | Volver al modo sencillo |

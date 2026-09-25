@@ -51,6 +51,9 @@ async function revisar({ lineas = [], carpetaAparte = null } = {}) {
   const suelo = proyecto.sueloDelArnes();
 
   const doctor = await rsc.revisar();
+  // Para decidir, el mismo diagnóstico para máquina: el de texto sale con 0 pase
+  // lo que pase (G3).
+  const entero = rsc.estaEntero(rsc.comoEstaDeSalud(await rsc.salud()));
   const reparacion = await rsc.arreglarEnSeco();
 
   // Las tres cosas por las que alguien se atasca hoy, y que el informe no
@@ -75,6 +78,10 @@ async function revisar({ lineas = [], carpetaAparte = null } = {}) {
     `Fecha: ${new Date().toISOString()}`,
     `Sistema: ${process.platform} ${process.arch}`,
     `Catálogo: ${rsc.paquete()}`,
+    // Qué arnés y qué módulos comunes corren de verdad: los de un instalador de
+    // antes ya no mandan (G2), y si algo raro pasa, aquí se ve.
+    `Arnés en uso: ${rsc.queArnes() || '(ninguno)'}`, // diccionario: interno
+    `Módulos comunes: ${path.dirname(require('./entorno').moduloComun('historial') || '(ninguno)')}`, // diccionario: interno
     '',
     'Piezas del ordenador:',
     `  git:                     ${hayGit ? 'sí' : 'NO — sin esto no funciona nada'}`, // diccionario: interno
@@ -121,7 +128,7 @@ async function revisar({ lineas = [], carpetaAparte = null } = {}) {
   // arreglarlo solos, lo que importa es que el tutor reciba el código.
   // Sin git no está sano por mucho que el doctor del arnés diga que sí: es la
   // pieza de la que cuelga todo lo demás.
-  const sano = doctor.codigo === 0 && proyecto.arnesCompleto() && hayGit;
+  const sano = entero === true && proyecto.arnesCompleto() && hayGit;
   const hayQueTocarAlgo = /repair|fix|missing|dangling/i.test(reparacion.salida || '');
 
   return { codigo, fichero, sano, hayQueTocarAlgo, faltaGit: !hayGit, informe };

@@ -137,18 +137,41 @@ function bash() {
   return binarioDelSistema(dondeViveBash(), ES_WINDOWS ? 'bash.exe' : 'bash');
 }
 
-// El punto de entrada del arnés: el instalador lo deja preinstalado con la
-// versión fijada, así que no hace falta npx (lento y frágil en Windows). Para
-// una máquina de desarrollo, se admite también el node_modules del proyecto.
+// El punto de entrada del arnés, con la versión fijada, sin npx (lento y frágil
+// en Windows). Primero el que viaja dentro de la extensión (G2): los
+// instaladores de antes de la decisión 27 dejaban el suyo en la carpeta de la
+// app, nada lo borra, y ponerlo delante hacía correr un RSC viejo en esos
+// ordenadores. El de la app, solo si es de la misma versión que el de la
+// extensión; y para una máquina de desarrollo, el node_modules del proyecto.
+// La versión de la clase, de donde sale para todo el .vsix: lo que pide el
+// `package.json` del arnés que viaja dentro. Escrita aquí sería un sitio más que
+// mantener (P7).
+function versionDeLaClase() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'media', 'harness', 'package.json'), 'utf8')).dependencies['@ericrisco/rsc'] || null;
+  } catch {
+    return null;
+  }
+}
+
+function versionDe(entrada) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(path.dirname(entrada), '..', 'package.json'), 'utf8')).version || null;
+  } catch {
+    return null;
+  }
+}
+
 function entradaDelArnes(raizDelProyecto, carpetaDeLaExtension) {
   const app = carpetaDeLaApp();
   const relativa = path.join('node_modules', '@ericrisco', 'rsc', 'scripts', 'rsc.js');
+  const deLaApp = app && path.join(app, 'harness', relativa);
   return primeroQueExista(
     [
-      app && path.join(app, 'harness', relativa),
       // Dentro de la propia extensión: así se instala desde el marketplace y
       // funciona, sin instalador de escritorio y sin npm.
       carpetaDeLaExtension && path.join(carpetaDeLaExtension, 'media', 'harness', relativa),
+      deLaApp && versionDe(deLaApp) && versionDe(deLaApp) === versionDeLaClase() ? deLaApp : null,
       raizDelProyecto && path.join(raizDelProyecto, relativa),
     ],
     null,
@@ -165,17 +188,19 @@ function entradaDelArnes(raizDelProyecto, carpetaDeLaExtension) {
 // catorce kilobytes, y la biblioteca gorda ya no hace falta porque git es
 // obligatorio y lo pone el sistema.
 //
-// El orden importa, y la copia va la última a propósito: el fichero de
-// instalador/comun/ es la fuente, y si la copia fuera antes, quien desarrolla
-// esto estaría ejecutando la del último empaquetado sin enterarse. En una
-// instalación de verdad no hay repositorio al lado, así que gana la copia.
+// El orden importa. La fuente de instalador/comun/ va antes que la copia: si no,
+// quien desarrolla esto estaría ejecutando la del último empaquetado sin
+// enterarse. En una instalación de verdad no hay repositorio al lado, así que
+// gana la copia. Y la de la carpeta de la app, la última (G2): la dejaba un
+// instalador de antes, y ponerla delante hacía correr un `historial` o unos
+// `enganches` viejos.
 function moduloComun(nombre) {
   const app = carpetaDeLaApp();
   return primeroQueExista(
     [
-      app && path.join(app, `${nombre}.js`),
       path.join(__dirname, '..', '..', 'instalador', 'comun', `${nombre}.js`),
       path.join(__dirname, '..', 'media', 'comun', `${nombre}.js`),
+      app && path.join(app, `${nombre}.js`),
     ],
     null,
   );

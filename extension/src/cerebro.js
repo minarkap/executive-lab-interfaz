@@ -55,8 +55,10 @@ function tituloDe(rutaRelativa) {
 // un hecho. Lo que sí es un hecho son las carpetas.
 //
 // `harness` y `brand` quedan fuera, como en todo lo demás: son de la máquina y
-// de la marca, no de lo que sabe esta empresa.
-const NO_SON_TEMAS = new Set(['harness', 'brand', 'sdd']);
+// de la marca, no de lo que sabe esta empresa. Y las carpetas de trabajo de RSC,
+// su andamio: las fichas de cada cambio (`ftd`), sus decisiones, su diseño, su
+// pila técnica y sus informes (G6).
+const NO_SON_TEMAS = new Set(['harness', 'brand', 'sdd', 'ftd', 'decisions', 'design', 'stack', 'reports']);
 
 function delDisco() {
   const wiki = proyecto.ruta(...WIKI);
@@ -120,6 +122,8 @@ function delIndice() {
     if (!fila) continue;
     const [, titulo, ruta, resumen, fecha] = fila;
     if (ES_PLANTILLA(titulo) || ES_PLANTILLA(ruta)) continue;
+    // Lo archivado: RSC le pone `[Archived]` delante del resumen (G6).
+    if (/^\s*\[(Archived|Archivado)\]/i.test(resumen) || /^\[Archivado\]/i.test(titulo)) continue;
 
     actual.articulos.push({
       titulo: titulo.replace(/^\[Archivado\]\s*/i, '').trim(),
@@ -285,15 +289,28 @@ function aprendidoUltimamente(cuantas = 5) {
   return entradas;
 }
 
+// Las preguntas que RSC apunta, como las apunta (`wiki-gaps-template.md`, G6):
+// un bloque `## [fecha] gap | concepto` con su `Status:`, abierto hasta que se
+// marca `[FILLED fecha]`. Solo se leían viñetas, y no salía ninguna. Las
+// viñetas se siguen leyendo, que alguien puede escribirlas a mano.
 function loQueAunNoSabe(cuantos = 5) {
   const texto = leer(...WIKI, 'gaps.md');
   if (!texto) return [];
 
-  return texto.split('\n')
+  // El ejemplo de la plantilla lleva `{concept}`, y eso no cuenta (ES_PLANTILLA).
+  const abiertas = [];
+  for (const bloque of texto.split(/^(?=## )/m)) {
+    const cabecera = bloque.match(/^##\s+\[[^\]]*\]\s*gap\s*\|\s*(.+?)\s*$/m);
+    if (!cabecera) continue;
+    const estado = (bloque.match(/^Status:\s*(.+?)\s*$/m) || [])[1] || 'open';
+    if (/FILLED/i.test(cabecera[1]) || !/^open$/i.test(estado)) continue;
+    if (!ES_PLANTILLA(cabecera[1])) abiertas.push(cabecera[1]);
+  }
+  const vinetas = texto.split('\n')
     .map((l) => l.match(/^[-*]\s+(.+?)\s*$/))
     .filter((m) => m && !ES_PLANTILLA(m[1]))
-    .slice(0, cuantos)
     .map((m) => m[1]);
+  return [...abiertas, ...vinetas].slice(0, cuantos);
 }
 
 // El panel humano que RSC regenera solo en cada pasada de mantenimiento.

@@ -1015,7 +1015,8 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
       piezas.push({
         nombre: 'Lo que debería estar puesto',
         estado: 'no',
-        detalle: `${falta.length} cosa(s) declaradas que no están: ${falta.slice(0, 3).map((f) => f.id).join(', ')}`, // diccionario: interno
+        // Por sus nombres, no por lo que escribe el arnés (G3).
+        detalle: `${falta.length} cosa(s) declaradas que no están: ${falta.slice(0, 3).map((f) => `«${require('./nombres').comoSeLlama({ habilidad: 'habilidades', agente: 'ayudantes', comando: 'comandos' }[f.que], f.id, {}).nombre}»`).join(', ')}`, // diccionario: interno
         arreglo: { como: 'solo', etiqueta: 'Traerlas ahora', accion: { tipo: 'arreglar' } },
       });
     }

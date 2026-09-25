@@ -21,6 +21,8 @@ const puente = require('./puente');
 const acciones = require('./acciones');
 const conexiones = require('./conexiones');
 const sueltas = require('./sueltas');
+// Los encargos con su diagnóstico: «Resolver una incidencia» los usaba sin traerlos, y reventaba siempre (G1).
+const encargos = require('./encargos');
 const cerebro = require('./cerebro');
 const buscador = require('./buscar');
 const consejos = require('./consejos');
@@ -244,7 +246,8 @@ ${cabecera}
       puedeTenerBotones: donde.puedeTenerBotones(),
       // Cuántos hay de cada cosa, para que el rótulo de su fila lo diga.
       comandos: acciones.todos().length,
-      habilidades: rsc.habilidadesPuestas().length,
+      // Las que hay en disco, como en Habilidades (G4).
+      habilidades: rsc.habilidadesEnDisco().length,
       // El apartado de SDD sale solo si esa carpeta construye algo.
       hayProyectos: proyectos.hayAlgo(),
       // Los ayudantes tampoco salen hasta que hay uno.

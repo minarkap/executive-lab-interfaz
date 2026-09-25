@@ -128,7 +128,8 @@ async function anadir(id) {
   const declarados = ((proyecto.declaracion() || {}).targets || []).filter((q) => sitios.sitiosDe(q));
   const para = declarados.length ? declarados : [require('./donde').paraQuien()];
   await module.exports.correr(['add', id, '--target', para.join(',')], { tiempoMaximo: 180000 });
-  return { ok: habilidadesPuestas().includes(id) };
+  // En disco, no declarada: una que el arnés declaró y no puso no se da por añadida (G4).
+  return { ok: habilidadesEnDisco().includes(id) };
 }
 
 // Las habilidades que están **en disco, en este ordenador**.
@@ -257,14 +258,33 @@ function queCopiasDelArnes(informe) {
 // Lo que el arnés declara y no está en disco. Con esto en rojo, la barra pinta
 // botones que no responden — y era el caso que no se podía distinguir sin
 // mirar aquí.
+// Con la forma que escribe `scripts/doctor.js` de la 2.0.5 (G3): las habilidades
+// como «id:ruta» —una por fichero que falta, y en Windows la ruta lleva sus dos
+// puntos—, y los agentes y los comandos como objetos con su `id`. Tomarlas por
+// nombres pintaba rutas y «[object Object]».
 function queFaltaEnDisco(informe) {
   if (!informe) return null;
-  const falta = [
-    ...(informe.missing || []).map((id) => ({ id, que: 'habilidad' })),
-    ...(informe.missingAgents || []).map((id) => ({ id, que: 'agente' })),
-    ...(informe.missingCommands || []).map((id) => ({ id, que: 'comando' })),
-  ];
+  const idDe = (cosa) => (cosa && typeof cosa === 'object' ? cosa.id : String(cosa || '').split(':')[0]);
+  const falta = [];
+  const poner = (lista, que) => {
+    for (const cosa of lista || []) {
+      const id = idDe(cosa);
+      if (id && !falta.some((f) => f.id === id && f.que === que)) falta.push({ id, que });
+    }
+  };
+  poner(informe.missing, 'habilidad');
+  poner(informe.missingAgents, 'agente');
+  poner(informe.missingCommands, 'comando');
   return falta;
+}
+
+// Si el arnés dice que está entero: nada de lo declarado falta y sus enganches
+// pueden correr. `doctor` sale con 0 pase lo que pase, así que su código no dice
+// nada (G3). `null` si no se sabe.
+function estaEntero(informe) {
+  if (!informe) return null;
+  const falta = queFaltaEnDisco(informe);
+  return falta.length === 0 && informe.hookWired !== false;
 }
 
 // Lo que `reassess` recomienda, leído. Es de solo lectura, así que esto no
@@ -438,11 +458,15 @@ function loQueTocaElSync(salida, raiz) {
     .filter(Boolean);
 }
 
+// Qué arnés corre de verdad, para el informe de «Algo va mal» (G2).
+const queArnes = () => entorno.entradaDelArnes(proyecto.raiz(), carpetaDeLaExtension);
+
 module.exports = {
   loQueTocaElSync,
+  queArnes,
   correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar, arreglarSolo,
   comoEstaDeSalud, queHayQueArreglar, queRecomienda, comoAcaboElMontaje, leerElPlanEnSeco, cambiosDePolitica,
-  queGuardianes, queCopiasDelArnes, queFaltaEnDisco, LOS_GUARDIANES,
+  queGuardianes, queCopiasDelArnes, queFaltaEnDisco, estaEntero, LOS_GUARDIANES,
   olvidarLaContinuacion,
   paquete, VERSION_DE_RESPALDO, comoEsLaVersion, habilidadesDeLaClase, yDespuesElPlan, saberDondeEstamos, habilidadesPuestas, habilidadesEnDisco, anadir,
 };

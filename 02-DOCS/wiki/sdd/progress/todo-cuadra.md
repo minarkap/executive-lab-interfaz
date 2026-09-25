@@ -811,6 +811,47 @@ Solo se añade.
   `humo` 287, `humo+` 294, `contrato` 12, las tres empresas enteras, diccionario limpio y PowerShell
   sin pegas. Treinta y cuatro mutaciones, y mueren todas. Decisión 122, worklog, 0.38.0 y commit. La
   revisión con ojos frescos de F6 corre sobre ese commit.
+- **T059 ✓** 26-09 · Cada mensaje del panel se despacha (G1, I2):
+  - **rojo**: «todo tipo que manda el panel se despacha sin excepción» despacha los setenta tipos que
+    manda el panel, con lo que tiene efectos de verdad fingido, y mira que no se apunte un fallo de
+    programa: salía `[resolverIncidencia] ReferenceError: encargos is not defined`, y solo ese.
+  - **verde**: `extension.js` importa `encargos`. La parte estática ya cuadraba: todo tipo del panel
+    tiene su ruta.
+  - Mutación: quitar el import es el rojo de arriba.
+
+  Verde: `humo` 288.
+- **T060 ✓** 26-09 · El arnés y los módulos del `.vsix`, primero (G2):
+  - **rojo**: «con una app antigua con la 1.4.1, gana la del .vsix».
+  - **verde**: `entradaDelArnes` pone primero el que viaja dentro de la extensión; el de la carpeta de
+    la app, solo si es de la misma versión, que se lee del `package.json` del arnés de dentro (sin
+    escribirla en un sitio más, P7). `moduloComun` deja el de la app el último. El informe de «Algo va
+    mal» dice qué arnés y qué módulos corren.
+  - Se reescribió la prueba de la revisión de F3 que contaba con que mandara el módulo de un instalador
+    de antes: ahora mira que se use el del paquete y que la ruta se devuelva a `node`.
+  - Mutación: cuatro, y mueren todas.
+
+  Verde: `humo` 289.
+- **T061 ✓** 26-09 · La salud por `doctor --json`, y lo que falta por su nombre (G3):
+  - **rojo**: «con un informe real de doctor, faltan nombres y no rutas», con las formas que escribe
+    `scripts/doctor.js` de la 2.0.5.
+  - **verde**: `queFaltaEnDisco` lee las habilidades como `id:ruta` (también con los dos puntos de una
+    ruta de Windows) y los agentes y comandos como objetos, sin repetir. La radiografía dice sus
+    nombres, y «Algo va mal» decide la salud con `rsc.estaEntero` (nada falta y los enganches pueden
+    correr), no por el código de `doctor`, que es 0 siempre.
+  - Mutación: seis, y mueren todas.
+
+  Verde: `humo` 290.
+- **T062 ✓** 26-09 · Lo instalado es lo que hay en disco (G4):
+  - **rojo**: «declarada y no en disco no sale como instalada».
+  - **verde**: `queSabe` y el contador de la pantalla principal cuentan lo que hay en disco, y
+    `anadir` se da por hecho si la habilidad está en disco, no si está declarada. Las sugerencias
+    siguen sin ofrecer lo declarado. La prueba de los cuatro montones montaba «instaladas» solo
+    declarándolas: ahora las pone en disco.
+  - **contrato** nuevo: «instalar una habilidad desde la barra deja catalogVersion en 2.0.5», con el
+    arnés de dentro.
+  - Mutación: dos, y mueren las dos.
+
+  Verde: `humo` 291, `contrato` 13.
 - **Revisión de F6** 26-09 · Un crítico, dos importantes y dos menores, comprobados y aceptados
   ([verificación de F6](../verifications/todo-cuadra-F6-2026-09-25.md#lo-que-encontró-la-revisión-con-ojos-frescos)).
   En un commit propio, con F7 (T059–T062 hechos, T063 en rojo) apartado en un `stash`:
@@ -822,3 +863,38 @@ Solo se añade.
   - Tres pruebas nuevas, en rojo primero; ocho mutaciones, y mueren todas.
 
   Verde: `humo` 290, `humo+` 297, `contrato` 12.
+- **T063 ✓** 26-09 · Los comandos por lenguaje, con nombre y del arnés (G5):
+  - **rojo**: «los comandos por lenguaje del paquete tienen nombre y son del arnés», que lee de
+    `targets/commands.js` los dos sufijos (`-review`, `-build`).
+  - **verde**: una regla por familia en `nombres.json`, como la de los agentes («Revisar el código de
+    {Lenguaje}», «Arreglar la compilación de {Lenguaje}», las del vocabulario aprobado). Del arnés es
+    lo que el arnés apunta en su estado (`commands` de `.rsc-state.json`), y la regla solo se usa con
+    esos: uno del alumno que acabe igual sigue siendo suyo.
+  - Mutación: tres; una sobrevivía, porque la regla ya ponía entre los del arnés los de por lenguaje:
+    se añadió uno que el arnés apunta y que nadie nombra. Mueren las tres.
+
+  Verde: `humo` 295.
+- **T064 ✓** 26-09 · Las preguntas sin contestar, como las apunta RSC (G6):
+  - **rojo**: «dos abiertas y una FILLED dan dos», con bloques `## [fecha] gap | concepto` y su
+    `Status:`; y con el andamio de RSC y un artículo archivado.
+  - **verde**: la barra lee los bloques abiertos y deja fuera los `[FILLED …]` (y sigue leyendo
+    viñetas escritas a mano). No son conocimiento de la empresa las carpetas de trabajo de RSC (`ftd`,
+    `decisions`, `design`, `stack`, `reports`) ni lo que el índice marca `[Archived]`. El fixture de la
+    empresa de mentira escribe las preguntas como RSC.
+  - Mutación: cuatro, y mueren todas.
+
+  Verde: `humo` 296.
+- **T065 ✓** 26-09 · El suelo, como lo pide RSC (G7):
+  - **rojo**: «falta un fichero de la plantilla y no se dice Listo».
+  - **verde**: el suelo de conexiones pide la carpeta de la plantilla y sus ficheros, leídos de la
+    plantilla del arnés que viaja dentro, como hace RSC (`gitignore` viaja sin punto). Son cinco, y uno
+    es `.env.example`, oculto: la empresa de mentira no lo tenía, y se le puso. Los fixtures que
+    montaban la plantilla con su `README.md` y nada más ponen ahora la plantilla entera. La
+    constitución ya la miraba `faltanLosInnegociables` (T1.4).
+  - Mutación: una (el suelo, solo la carpeta), y muere.
+
+  Verde: `humo` 297.
+- **T066 ✓** 26-09 · Verificación de F7 ([verificación](../verifications/todo-cuadra-F7-2026-09-26.md)):
+  `humo` 297, `humo+` 304, `contrato` 13, las tres empresas enteras, diccionario limpio y PowerShell
+  sin pegas. Veintiuna mutaciones, y mueren todas. Decisión 123, worklog, 0.39.0 y commit. La revisión
+  con ojos frescos de F7 corre sobre ese commit.

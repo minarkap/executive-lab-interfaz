@@ -586,3 +586,15 @@ Decisión 122 en `docs/decisiones.md`. Fase F6 de la cadena SDD `todo-cuadra`.
   dice que falta en vez de lanzarse a ciegas.
 
 0.38.0. 287 comprobaciones, 294 con el arnés de verdad, y 12 de contrato.
+
+## Lo que se enseña es lo que hay — 26 de septiembre de 2026
+
+Decisión 123 en `docs/decisiones.md`. Fase F7 de la cadena SDD `todo-cuadra`.
+
+- **Todo botón del panel llega a su sitio**, y «Resolver una incidencia» ya no revienta.
+- **Corre el arnés de la barra**, no el de un instalador de antes.
+- **«Algo va mal» dice que está mal cuando el arnés lo dice**, y lo que falta sale por su nombre.
+- **Lo instalado es lo que está en disco**; los comandos del arnés, con nombre y en su sitio; las
+  preguntas sin contestar, por fin; y «Listo» solo cuando el arnés también lo daría por listo.
+
+0.39.0. 297 comprobaciones, 304 con el arnés de verdad, y 13 de contrato.
