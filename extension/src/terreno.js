@@ -406,13 +406,19 @@ function mirar() {
 // credenciales, todas las carpetas de antes siguen sin conocerlo.
 //
 // Se compara el contenido, no una fecha ni un número: es lo único que no
-// miente cuando alguien edita el fichero a mano. Barato — un fichero.
+// miente cuando alguien edita el fichero a mano. Y de todos los ficheros de la
+// habilidad, no solo de SKILL.md: el freno y su copia fijada (C1) llegaron
+// después, y con SKILL.md igual se daban por puestos sin estar. Barato: cuatro
+// ficheros.
 function laHabilidadEsLaDeHoy(carpetaDeLaExtension, puesta) {
-  const nuestra = carpetaDeLaExtension
-    && path.join(carpetaDeLaExtension, 'media', 'railes', 'executive-lab', 'SKILL.md');
-  if (!nuestra || !fs.existsSync(nuestra) || !fs.existsSync(puesta)) return true;
+  const nuestra = carpetaDeLaExtension && path.join(carpetaDeLaExtension, 'media', 'railes', 'executive-lab');
+  if (!nuestra || !fs.existsSync(path.join(nuestra, 'SKILL.md')) || !fs.existsSync(puesta)) return true;
+  const suya = path.dirname(puesta);
   try {
-    return fs.readFileSync(nuestra, 'utf8') === fs.readFileSync(puesta, 'utf8');
+    return fs.readdirSync(nuestra).every((fichero) => {
+      const aqui = path.join(suya, fichero);
+      return fs.existsSync(aqui) && fs.readFileSync(path.join(nuestra, fichero), 'utf8') === fs.readFileSync(aqui, 'utf8');
+    });
   } catch {
     // Sin poder leer uno de los dos no se afirma que esté viejo: decirlo mal
     // manda a alguien a rehacer algo que estaba bien.
@@ -641,6 +647,11 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
   const conQuien = asistentes.elDeAhora();
   const loTiene = conQuien ? asistentes.estaInstalado(conQuien) : false;
 
+  // Si lo que el arnés hace solo tiene con qué arrancar (C2): lo decide el
+  // relevo al abrirse la barra (`relevo.js`).
+  const conEnganches = conArnes && hayEnganchesConNode();
+  const arrancan = conEnganches && require('./relevo').comoEsta().modo !== 'ninguno';
+
   // Si en esta carpeta hay historial de verdad.
   const conHistorial = proyecto.existe('.git');
 
@@ -690,6 +701,14 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
         ? conQuien.nombre
         : `${conQuien ? conQuien.nombre : 'Ninguno'}, y no lo tienes puesto en este ordenador`,
     }, { como: 'persona', etiqueta: 'Ver tu asistente', accion: { tipo: 'verAsistente' } }),
+    // Abrir cada conversación con lo suyo, los frenos, la memoria: con Claude
+    // son enganches que arrancan con `node`, y sin ninguno no corre nada sin
+    // que nada lo diga. Con Codex no hay enganches, y la línea no sale.
+    ...(conEnganches ? [conArreglo({
+      nombre: 'Lo que el arnés hace solo',
+      estado: arrancan ? 'si' : 'no',
+      detalle: arrancan ? 'Listo' : 'No arranca en este ordenador',
+    }, { como: 'solo', etiqueta: 'Arreglarlo', accion: { tipo: 'arreglarElRelevo' } })] : []),
     // ── Lo que cuelga del arnés, mientras no hay arnés ────────────────────
     //
     // Sin arnés montado, «no tienes conexiones» y «no ha aprendido nada» no son
@@ -767,6 +786,21 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
       detalle: 'Faltan, y el arnés los pide para lo que vas a construir',
       arreglo: comoEncargo(encargos.levantarElSuelo([proyecto.INNEGOCIABLES.join('/')])),
     });
+  }
+
+  // El freno propio, pendiente (C1, C-4). En una carpeta cuyo historial no creó
+  // la barra, reponer los raíles no lo engancha solo, porque toca sus ajustes:
+  // se ofrece aquí, con su botón. Si el de RSC está puesto, ya frena ese.
+  if (conArnes && donde.puedeTenerFrenos() && parte.railes.habilidadPropia) {
+    const freno = comoEstaElFreno();
+    if (!freno.nuestro && !freno.deRsc) {
+      piezas.push({
+        nombre: 'Freno ante órdenes peligrosas',
+        estado: 'no',
+        detalle: 'Todavía no: toca los ajustes de Claude de esta carpeta',
+        arreglo: { como: 'solo', etiqueta: 'Ponerlo ahora', accion: { tipo: 'ponerElFreno' } },
+      });
+    }
   }
 
   // Lo que el repositorio declara y no está en esta máquina. Es lo que RSC
@@ -981,6 +1015,43 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
   return { queEs: hay.tipo, piezas, listo: piezas.every((p) => p.estado === 'si' || p.estado === 'noAplica') };
 }
 
+// Qué freno ante órdenes peligrosas está enganchado aquí: el nuestro (los
+// raíles), el de RSC (cuando el plan practica la cadena SDD), los dos o ninguno.
+function comoEstaElFreno() {
+  let ajustes = '';
+  try {
+    ajustes = fs.readFileSync(proyecto.ruta('.claude', 'settings.json'), 'utf8');
+  } catch {
+    // sin ajustes, sin frenos
+  }
+  return {
+    nuestro: ajustes.includes('/executive-lab/freno.mjs'),
+    deRsc: ajustes.includes('.rsc/danger-guard.') && proyecto.existe('.rsc', 'danger-guard.mjs'),
+  };
+}
+
+// Si esta carpeta tiene enganches que arrancan con `node`: los de Claude, en
+// `.claude/settings.json`. RSC no escribe ninguno para Codex.
+const ORDEN_CON_NODE = /^(?:node|"[^"]*node(?:\.exe)?"|\S*[\\/]node(?:\.exe)?)\s/i;
+
+function hayEnganchesConNode() {
+  let datos;
+  try {
+    datos = JSON.parse(fs.readFileSync(proyecto.ruta('.claude', 'settings.json'), 'utf8'));
+  } catch {
+    return false;
+  }
+  const ordenes = [];
+  const recorrer = (nodo) => {
+    if (Array.isArray(nodo)) return nodo.forEach(recorrer);
+    if (!nodo || typeof nodo !== 'object') return undefined;
+    if (typeof nodo.command === 'string') ordenes.push(nodo.command.trim());
+    return Object.values(nodo).forEach(recorrer);
+  };
+  recorrer(datos && datos.hooks);
+  return ordenes.some((o) => ORDEN_CON_NODE.test(o));
+}
+
 // La revisión más reciente de `02-DOCS/audits/`. RSC las nombra
 // `audit-AAAA-MM-DD-HHMM.html`, así que la más nueva es la última por nombre.
 const REVISIONES = ['02-DOCS', 'audits'];
@@ -1028,5 +1099,5 @@ function fechaDelPlan() {
 module.exports = {
   queCarpetaEs, comoEsEstaCarpeta, MARCA_DEL_HISTORIAL,
   queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia, fechaDelPlan,
-  laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos,
+  laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos, comoEstaElFreno,
 };

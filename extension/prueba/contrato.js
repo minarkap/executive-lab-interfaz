@@ -364,6 +364,48 @@ async function main() {
     return `${piezas} piezas que entran o salen, todas con su nombre`;
   });
 
+  // ── El freno propio sobrevive a RSC ─────────────────────────────────────
+  //
+  // C1: el freno propio es un enganche nuestro, sin `.rsc/` en la orden, porque
+  // RSC quita todo lo que lleva esa aguja cuando reescribe los suyos. Se monta
+  // de verdad una carpeta de operaciones, que no trae el freno de RSC, se ponen
+  // los raíles y se corre `sync`.
+  await comprobar('un sync de RSC no quita el freno propio', async () => {
+    const carpeta = carpetaConGit('contrato-freno-');
+    vscode.guion.raiz = carpeta;
+    const montado = await arrancar.COMO_SE_HACE.montarElArnes({ respuestas: { ...MONTAJE, kind: 'operations', objetivo: 'Organizar el papeleo' } });
+    assert.equal(montado.ok, true, montado.detalle);
+    assert.ok(!fs.existsSync(path.join(carpeta, '.rsc', 'danger-guard.mjs')), 'RSC ha puesto su freno en operations: la prueba no mira el caso');
+    assert.ok(await arrancar.ponerLosRailes({ extensionPath: RAIZ }), 'los raíles no se ponen');
+    const conFreno = () => fs.readFileSync(path.join(carpeta, '.claude', 'settings.json'), 'utf8').includes('.claude/skills/executive-lab/freno.mjs');
+    assert.ok(conFreno(), 'los raíles no enganchan el freno');
+    const sincronizado = await rscM.sincronizar();
+    assert.equal(sincronizado.codigo, 0, loQueDijo(sincronizado));
+    assert.ok(conFreno(), 'el sync de RSC ha quitado el freno');
+    return 'montado, con raíles, sincronizado, y el freno sigue';
+  });
+
+  // ── Arreglar no decide los frenos ───────────────────────────────────────
+  //
+  // C6, medido con el paquete: con algo roto, `repair --yes` vuelve a instalar
+  // sin la política del plan y engancha los cuatro frenos de RSC en una carpeta
+  // de operaciones, que el plan no pide; el siguiente `sync` los quitaba. Qué
+  // frenos había dependía de qué orden de RSC corrió la barra la última vez.
+  await comprobar('tras arreglar en una carpeta operations no quedan frenos de RSC', async () => {
+    const carpeta = carpetaConGit('contrato-arreglar-');
+    vscode.guion.raiz = carpeta;
+    const montado = await arrancar.COMO_SE_HACE.montarElArnes({ respuestas: { ...MONTAJE, kind: 'operations', objetivo: 'Organizar el papeleo' } });
+    assert.equal(montado.ok, true, montado.detalle);
+    fs.rmSync(path.join(carpeta, '.claude', 'skills', 'bro'), { recursive: true, force: true });
+    const hecho = await arrancar.COMO_SE_HACE.arreglarLoRoto({ salida: { appendLine() {} } });
+    assert.equal(hecho.ok, true, hecho.detalle);
+    assert.ok(fs.existsSync(path.join(carpeta, '.claude', 'skills', 'bro')), 'no se ha arreglado lo roto: la prueba no mira nada');
+    const frenos = fs.readdirSync(path.join(carpeta, '.rsc')).filter((n) => /-(guard|gate)\.mjs$/.test(n));
+    assert.deepEqual(frenos, [], `quedan frenos de RSC que el plan no pide: ${frenos.join(', ')}`);
+    assert.ok(!fs.readFileSync(path.join(carpeta, '.claude', 'settings.json'), 'utf8').includes('.rsc/danger-guard.'), 'y quedan enganchados');
+    return 'arreglado, y con los frenos que dice el plan';
+  });
+
   vscode.guion.raiz = null;
   console.log(`\n${pasadas} comprobaciones pasadas${process.exitCode ? ' — y alguna ha fallado' : ''}`);
 }

@@ -527,4 +527,21 @@ Decisión 118 en `docs/decisiones.md`, que revisa la 28. Fase F2 de la cadena SD
 - El clon real se reconoce, «Seguir sin copias» se respeta, y el primer mensaje pide el perfil y dice
   si hay freno.
 
-0.34.0. 227 comprobaciones, 232 con el arnés de verdad, y 9 de contrato.
+- La revisión encontró dos críticos y cuatro importantes, arreglados en el mismo commit.
+
+0.34.0. 231 comprobaciones, 236 con el arnés de verdad, y 10 de contrato.
+
+## Frenos y enganches que no dependen de nada — 25 de septiembre de 2026
+
+Decisión 119 en `docs/decisiones.md`. Fase F3 de la cadena SDD `todo-cuadra`.
+
+- **El freno ante órdenes peligrosas, siempre con Claude**: donde RSC no pone el suyo, los raíles
+  enganchan una copia fijada del suyo. En una carpeta cuyo historial es de alguien, se ofrece con un
+  botón. «Las reglas» dice de quién es.
+- **Sin Node, un relevo del de VS Code**, fuera de la carpeta del alumno. Ninguna ruta de este
+  ordenador en el ajuste que viaja en git, y la marca que paraba los `git pull`, quitada.
+- El aviso de versión nueva del arnés, apagado. `repair` ya no pone frenos que el plan no pide. Lo
+  apagado se nombra una vez y en español.
+- Pendiente: medirlo en un VS Code de verdad y en Windows.
+
+0.35.0. 242 comprobaciones, 247 con el arnés de verdad, y 12 de contrato.

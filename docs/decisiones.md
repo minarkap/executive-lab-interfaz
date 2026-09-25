@@ -3626,3 +3626,75 @@ escribe por su cuenta. Lo que pide la persona, con el botón o al asistente, es 
   como suyo (B12). En una carpeta empezada, se sugiere seguir con lo que hay (A5).
 
 0.34.0. 227 comprobaciones, 232 con el arnés de verdad, y 9 de contrato.
+
+La revisión con ojos frescos encontró dos críticos y cuatro importantes, arreglados en el mismo commit:
+la carpeta personal con restos de un montaje se completaba, la pantalla del plan que cambia salía en
+inglés, el historial se creaba antes del sí en una carpeta de alguien, las carpetas del sistema de
+macOS pasaban la guarda, una prueba fingía una clave que RSC no da, y renombrar escribía a través de
+un enlace. Con ellos: 231 comprobaciones, 236 con el arnés de verdad y 10 de contrato. El detalle, en
+la verificación de F2.
+
+## 119. Frenos y enganches que no dependen de nada
+
+**Fecha:** 25 de septiembre de 2026 · **Estado:** hecho, con dos medidas pendientes con Jose ·
+**Cadena SDD** `todo-cuadra`, fase F3 · **Aplica las decisiones 1 y 4 de Jose**
+
+La mayoría de las carpetas de alumno no tenían freno ante órdenes peligrosas, y la barra decía que
+sí. Sin Node en el ordenador no corría ningún enganche. La ruta del Node de cada máquina viajaba en
+git, con una marca que paraba los `git pull`. Y qué frenos había dependía de qué orden de RSC corrió
+la barra la última vez.
+
+### El freno, siempre (decisión 1 de Jose)
+
+RSC 2.0.5 solo engancha su freno cuando el plan practica la cadena SDD. Con «Llevar el día a día»,
+«Crear cosas», «Estudiar un tema» o algo pequeño que construir, nada paraba un `rm -rf` (C1).
+
+- **Los raíles enganchan el suyo, copiado byte a byte**: `freno-rsc-2.0.5.mjs` es su
+  `danger-guard.mjs`, con la MIT de Eric al lado, su mismo interruptor (`.rsc/.no-danger-guard`) y su
+  misma regla de nivel técnico. Una prueba lo compara con el del paquete y lo pide por su versión
+  (P7).
+- **Un envoltorio decide al ejecutarse**: si el de RSC está puesto y enganchado, manda ese y el nuestro
+  calla; si no, frena el nuestro. Decidirlo al montar dependería de la última orden de RSC.
+- **La orden no lleva `.rsc/`**, porque RSC quita todo enganche con esa aguja cuando reescribe los
+  suyos. Medido: un `sync` de verdad no lo quita.
+- **Solo con Claude**: con Codex no hay dónde engancharlo, y la pantalla no lo promete.
+- **En una carpeta cuyo historial no creó la barra, no se engancha en silencio** (C-4, P4). Al montar
+  encima de lo que había, el sí ya se dio con el resumen. Al reponer los raíles solos, se queda
+  pendiente y «Qué falta por montar» lo ofrece con «Ponerlo ahora».
+- **«Las reglas» dice qué freno hay y de quién es**: «Lo pone Executive Lab: el arnés no lo trae en
+  esta clase de proyecto.» o «Lo pone el arnés.». El primer mensaje dice que hay freno cuando frena el
+  nuestro.
+
+### Los enganches encuentran `node` (decisión 4 de Jose)
+
+- **El relevo**: si no hay un `node` en el PATH, la barra deja en su almacén un `node` que llama al
+  de VS Code (`ELECTRON_RUN_AS_NODE=1` dentro del relevo, nunca en el entorno de todos) y antepone su
+  carpeta al PATH, antes de abrir el chat (C2). Se eligió el relevo y no el plan B (bajar el Node
+  oficial), porque lo que queda por medir es si el proceso del asistente hereda el PATH, y el plan B
+  también escribe fuera y necesita red.
+- **Ninguna ruta en el ajuste que viaja en git** (C3, F5). Lo que escribió una barra de antes se
+  deshace al montar y al abrir: las órdenes del arnés y las nuestras vuelven a `node`, en las demás
+  solo la ruta del Node de Executive Lab, y la marca `--skip-worktree` se quita cuando no queda
+  ninguna. Se hace solo con un git que se pueda usar, porque en un Mac sin las herramientas de Apple
+  `git` a secas abre su diálogo. En este repositorio había catorce órdenes con la ruta de la app de
+  Jose; ahora el ajuste es igual que en HEAD.
+- **«Lo que el arnés hace solo»**, pieza nueva: «Listo», o «No arranca en este ordenador» con
+  «Arreglarlo», que vuelve a poner el relevo y pide cerrar y abrir la conversación.
+
+### Lo demás
+
+- **El aviso de versión nueva del arnés, apagado** (C4): la barra pone `RSC_NO_UPDATE_CHECK` donde lo
+  heredan los enganches. En una clase la versión es la de la clase.
+- **`repair` no decide los frenos** (C6). Medido: con algo roto, en una carpeta de operaciones
+  engancha los cuatro de RSC y `sync` los quita. Ahora, detrás de cada `repair` va un `sync`.
+- **Lo apagado se nombra una vez y en español** (C5), con los interruptores como los escribe RSC, y
+  la memoria apagada (`memory: false`) sale apagada. Tres interruptores (`.no-git`, `.no-harness` y
+  el aviso de versión) esperan nombre de Jose, porque no están en el diccionario.
+- Los raíles «al día» miran todos los ficheros de la habilidad, no solo `SKILL.md`; si no, el freno
+  no llegaba a las carpetas que ya estaban montadas.
+
+**Pendiente con Jose**: medirlo en un VS Code de verdad (`npm run probar-en-vscode`, unos 900 MB en
+`~/.cache`) y en una sesión de Claude abierta desde la barra en un Mac sin `node`. Y el relevo en
+Windows.
+
+0.35.0. 242 comprobaciones, 247 con el arnés de verdad, y 12 de contrato.

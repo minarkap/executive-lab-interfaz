@@ -51,6 +51,8 @@ const lecciones = require('./lecciones');
 const marca = require('./marca');
 const web = require('./web');
 const rastro = require('./rastro');
+const entorno = require('./entorno');
+const relevo = require('./relevo');
 
 // Lo que la barra recuerda de esta carpeta, y que nadie más ve: las últimas
 // peticiones (para detectar la que se repite) y los consejos que el alumno
@@ -380,6 +382,8 @@ ${cabecera}
       arrancar: () => this.arrancar(),
       instalarGit: () => this.instalarGit(),
       ponerCopias: () => this.ponerCopias(),
+      arreglarElRelevo: () => this.arreglarElRelevo(),
+      ponerElFreno: () => this.ponerElFreno(),
       conectarGitHub: () => this.conectarGitHub(),
       verCopiaFuera: () => this.verCopiaFuera(),
       verRadiografia: () => this.verRadiografia(),
@@ -802,8 +806,11 @@ ${cabecera}
   // que es lo mismo que hace `repair` y va sin preguntar — pero se dice.
   async ponerLosRailesAlDia(callado = false) {
     if (!callado) this.enviar({ tipo: 'esperando', que: 'Poniendo al día lo que la barra deja escrito…' });
-    const ok = await arrancar.ponerLosRailes(this.contexto);
-    this.salida.appendLine(`[railes] al día: ${ok}`); // diccionario: interno
+    // En una carpeta cuyo historial no creó la barra, lo que toca ficheros suyos
+    // no se repone en silencio: se ofrece con su botón (C-4).
+    const ajena = !(await terreno.podemosGuardarElPuntoDePartida());
+    const ok = await arrancar.ponerLosRailes(this.contexto, { ajena });
+    this.salida.appendLine(`[railes] al día: ${ok}${ajena ? ' (historial de alguien: lo suyo, pendiente)' : ''}`); // diccionario: interno
     await this.refrescar(true);
     if (!ok) {
       this.enviar({ tipo: 'aviso', texto: 'No he podido ponerlo al día. Prueba con "Algo va mal".', malo: true });
@@ -1207,6 +1214,30 @@ ${cabecera}
     return Boolean(this.contexto.workspaceState && this.contexto.workspaceState.get('executiveLab.sigueSinCopias'));
   }
 
+  // El botón de «Lo que el arnés hace solo» (C2): el relevo, otra vez. El
+  // proceso de Claude que ya estaba abierto no lo ve, porque el PATH se hereda
+  // al arrancar, así que se dice que se abra la conversación de nuevo.
+  async arreglarElRelevo() {
+    const puesto = relevo.ponerAlActivar({ carpeta: dondeVaElRelevo(this.contexto), ejecutable: entorno.node() });
+    this.salida.appendLine(`[relevo] ${puesto.modo}${puesto.error ? `: ${puesto.error}` : ''}`); // diccionario: interno
+    await this.refrescar(true);
+    return this.enviar(puesto.modo === 'ninguno'
+      ? { tipo: 'aviso', texto: 'No he podido arreglarlo. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true }
+      : { tipo: 'aviso', texto: 'Cierra la conversación con Claude y ábrela otra vez para que lo coja.' });
+  }
+
+  // El botón del freno pendiente (C-4): con el sí de quien lo pulsa, se engancha
+  // en sus ajustes. Claude lo coge al abrir la conversación otra vez, porque lee
+  // los enganches al empezar.
+  async ponerElFreno() {
+    const ok = await arrancar.ponerLosRailes(this.contexto, { ajena: true, ponerFreno: true });
+    this.salida.appendLine(`[railes] el freno: ${ok}`); // diccionario: interno
+    await this.refrescar(true);
+    return this.enviar(ok
+      ? { tipo: 'aviso', texto: 'Ya está. Cierra la conversación con Claude y ábrela otra vez para que lo coja.' }
+      : { tipo: 'aviso', texto: 'No he podido ponerlo. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
+  }
+
   // Las copias de una carpeta que se montó sin ellas. Si falta git, se pone
   // antes, con el mismo botón de siempre.
   async ponerCopias() {
@@ -1571,6 +1602,9 @@ function guardarSolo(panel, salida) {
   return { dispose: () => clearInterval(reloj) };
 }
 
+// El relevo vive en el almacén de la barra, fuera de la carpeta del alumno (P8).
+const dondeVaElRelevo = (contexto) => (contexto.globalStorageUri ? path.join(contexto.globalStorageUri.fsPath, 'relevo') : null);
+
 function activate(contexto) {
   // El canal se envuelve para que todo lo que apuntemos por dentro acabe
   // también en el informe de "Algo va mal": ver rastro.js.
@@ -1580,6 +1614,12 @@ function activate(contexto) {
   );
   rsc.saberDondeEstamos(contexto.extensionPath);
   buscador.saberDondeEstamos(contexto.extensionPath);
+
+  // El relevo de Node, antes de que se abra el chat del asistente: así su
+  // proceso y los enganches del arnés lo heredan (C2). Vive en el almacén de
+  // la barra, fuera de la carpeta del alumno.
+  const elRelevo = relevo.ponerAlActivar({ carpeta: dondeVaElRelevo(contexto), ejecutable: entorno.node() });
+  salida.appendLine(`[relevo] ${elRelevo.modo}${elRelevo.carpeta ? ` en ${elRelevo.carpeta}` : ''}${elRelevo.error ? `: ${elRelevo.error}` : ''}`); // diccionario: interno
   // Para poder comparar los raíles de la carpeta con los que trae la barra.
   terreno.saberDondeEstamos(contexto.extensionPath);
   const panel = new Panel(contexto, salida);
@@ -1659,6 +1699,10 @@ function activate(contexto) {
   // sale bien no hay nada que contarle a nadie, y si sale mal la lista de
   // piezas lo dice con su botón.
   setTimeout(() => {
+    // Lo que una barra anterior dejó escrito en los enganches —la ruta del Node
+    // de este ordenador, y la marca que la escondía de git— se deshace al abrir.
+    // Es nuestro, y deshacerlo no es decidir (C3, decisión 119).
+    arrancar.apuntarLosEnganches(salida).catch((e) => salida.appendLine(`[enganches] ${e.message}`)); // diccionario: interno
     if (terreno.comoEstanLosRailes().alDia) return;
     salida.appendLine('[railes] los de esta carpeta son de una versión anterior: se reponen'); // diccionario: interno
     panel.ponerLosRailesAlDia(true).catch((e) => salida.appendLine(`[railes] ${e.message}`)); // diccionario: interno

@@ -553,7 +553,7 @@ function pantallaSaberes(datos) {
 // Lo que se comprueba solo. Tres estados y tres marcas, porque significan
 // cosas distintas: armado te puede parar, apagado es una decisión de aquí, y
 // «contigo no actúa» es una tercera cosa que sin decirla parece una avería.
-const MARCA_GUARDIAN = { armado: '●', apagado: '○', noAplica: '·' };
+const MARCA_GUARDIAN = { armado: '●', apagado: '○', noAplica: '·', pendiente: '○' };
 
 function pantallaReglas({
   innegociables = [], deLaCasa = [], guardianes = [], automatismos = [], hay = {}, cual = 'claude',
@@ -618,7 +618,7 @@ function pantallaReglas({
             <span class="pieza-nombre">${texto(g.nombre)}</span>
             <span class="pieza-detalle">${texto(g.porQue || 'Puesto')}</span>
           </div>
-          ${g.queHace ? `<p class="detalle">${texto(g.queHace)}</p>` : ''}`).join('')}
+          ${g.queHace || g.deQuien ? `<p class="detalle">${texto([g.queHace, g.deQuien].filter(Boolean).join(' '))}</p>` : ''}`).join('')}
         ${/* Y lo que el arnés hace solo sin parar nada: la brújula al empezar,
               el aviso del diario al cerrar, la memoria entre conversaciones…
               Es lo que un alumno ve pasar sin saber qué es, y no se nombraba en

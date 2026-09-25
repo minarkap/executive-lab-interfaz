@@ -1,39 +1,48 @@
-// Que los enganches del arnés encuentren nuestro Node.
+// Los enganches del arnés, como los escribe el arnés: llamando a `node` por su
+// nombre.
 //
-// Lo usan preparar.js (instalación de Windows) y el wizard de la extensión
-// (macOS, donde las preguntas se hacen dentro del panel). Está aquí para que
-// haya una sola versión de la misma costura.
+// Lo usa la extensión, al montar y al abrir una carpeta. Vive en comun/ porque
+// también lo usaba el instalador, y es la misma costura.
+//
+// ── Lo que se hacía antes, y por qué se deshace ──────────────────────────
+//
+// RSC escribe sus enganches como `node …`, y en el ordenador de un alumno puede
+// no haber ningún `node` en el PATH. Hasta la decisión 119, este módulo los
+// reescribía con la ruta completa del Node de la app en `.claude/settings.json`.
+// Ese fichero viaja en git, porque es la costura del arnés, y de ahí salía todo:
+//
+//   · cada clon heredaba la ruta del ordenador de otro, que en el suyo no
+//     existe, y el arnés se quedaba sin enganches sin que nada lo dijera;
+//   · la ruta entraba en el punto de partida, que se guarda justo después;
+//   · el siguiente `sync` de RSC la devolvía a `node`, y el siguiente montaje
+//     volvía a escribirla: iba y venía;
+//   · se reescribían también órdenes `node` que no eran del arnés;
+//   · y para que git no la contara como un cambio se le puso una marca
+//     (`--skip-worktree`, 2b139bc). Con ella, un `git pull` que trajera cambios
+//     de ese fichero se paraba, y lo que el arnés cambiara ahí no entraba en
+//     ninguna copia.
+//
+// Ahora a `node` lo encuentra el relevo de la barra (`extension/src/relevo.js`),
+// por el PATH, y no hace falta escribir ninguna ruta en ningún fichero. Lo que
+// queda es deshacer lo que se escribió.
+//
+// ── Qué vuelve a `node`, y qué no ────────────────────────────────────────
+//
+//   · En las órdenes del arnés (las que corren algo de `.rsc/` o su arranque,
+//     `.claude/rsc-bootstrap.mjs`) y en las nuestras
+//     (`.claude/skills/executive-lab/`), cualquier ruta a un node: el arnés las
+//     escribe con `node` a secas, y su próximo `sync` haría lo mismo.
+//   · En cualquier otra orden, solo la ruta del Node de Executive Lab, que solo
+//     pudo ponerla la barra. La que alguien puso a mano en una orden suya se
+//     respeta.
+//   · Lo que no es node no se toca nunca.
 
 const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
-// Los enganches del arnés llaman a `node` por su nombre, y en el ordenador de
-// un alumno no hay ningún node en el PATH: el nuestro vive dentro de la carpeta
-// de la app. En Windows el instalador lo añade al PATH del usuario, pero en
-// macOS ya no hay symlinks en /usr/local/bin que valgan —eso pedía contraseña
-// de administrador— así que aquí se deja escrita la ruta completa.
-//
-// Es un cinturón. El otro (una línea en el arranque del shell) lo pone el
-// instalador, y hace falta porque un `sync` o un `repair` del arnés pueden
-// volver a escribir estos ficheros con "node" a secas.
-// ── Y la ruta de OTRO ordenador también hay que arreglarla ───────────────
-//
-// Esto solo reescribía los enganches que empiezan por `node` a secas. Pero en
-// cuanto uno se arregla, el fichero queda con una ruta absoluta — y
-// `.claude/settings.json` viaja en git, porque es la costura del arnés y RSC
-// la quiere versionada.
-//
-// Consecuencia: quien clonaba el proyecto de un compañero se llevaba los
-// enganches apuntando al Mac de ese compañero, a una ruta que en su ordenador
-// no existe. Y esto no volvía a tocarlos nunca, porque ya no empezaban por
-// `node`. El arnés se quedaba sin su cuerpo siempre-activo, sin brújula y sin
-// frenos, y nada lo decía: la forma de fallar que este proyecto no se permite
-// (P3).
-//
-// Así que se mira qué hay delante y se arregla en dos casos: `node` a secas, y
-// una ruta a un node **que no existe en este ordenador**. Una ruta que sí
-// existe se respeta: puede ser el node bueno de esa máquina, puesto a mano.
+// El programa con que empieza la orden: `node` a secas, una ruta entre
+// comillas, o una ruta sin ellas.
 const ENTRECOMILLADO = /^"([^"]+)"\s/;
 const RUTA_SUELTA = /^(\S*node(?:\.exe)?)\s/i;
 
@@ -44,78 +53,59 @@ function elNodeDeLaOrden(orden) {
     return { ruta: conComillas[1], largo: conComillas[0].length - 1, aSecas: false };
   }
   const sinComillas = orden.match(RUTA_SUELTA);
-  if (sinComillas && sinComillas[1].includes(path.sep)) {
+  if (sinComillas && /[\\/]/.test(sinComillas[1])) {
     return { ruta: sinComillas[1], largo: sinComillas[1].length, aSecas: false };
   }
   return null;
 }
 
-// ── Y que git deje de contar como cambio lo que es de esta máquina ───────
-//
-// Arreglar la ruta deja el fichero distinto del que hay en el repositorio, y
-// `.claude/settings.json` está versionado. Así que en cada ordenador sale
-// **siempre como modificado**, para siempre, y el botón de guardar de la barra
-// hace `add -A`: tarde o temprano alguien sube la ruta de su casa y se la lleva
-// el siguiente.
-//
-// No se arregla eligiendo una ruta mejor: no la hay. El node bueno está en un
-// sitio distinto en cada ordenador, y por eso este módulo existe. Lo que se
-// puede es decirle a git, **en cada clon y solo ahí**, que ese fichero ya está
-// como tiene que estar: `--skip-worktree`. El repositorio conserva la forma
-// portable (`node` a secas), cada máquina conserva la suya, y nadie pisa a
-// nadie.
-//
-// Es una marca local: no viaja, no se hereda al clonar, y la pone aquí cada
-// instalación por su cuenta — que es justo lo que pedía el problema.
-//
-// Tres cosas que NO se hacen a propósito:
-//
-//   · Si no hay git, o la carpeta no es un repositorio, o el fichero no está
-//     versionado (el caso de casi todos los alumnos): no hay nada que esconder.
-//   · Si el fichero **no difiere** del repositorio, tampoco se marca. Esconder
-//     por adelantado un fichero que está bien es esconder el próximo cambio de
-//     verdad.
-//   · No se toca `.gitignore` ni se saca el fichero del repositorio: RSC lo
-//     quiere versionado, y un clon sin él se queda sin enganches.
-//
-// El precio, dicho: mientras la marca está puesta, un `git pull` que traiga un
-// cambio de ese fichero se para y hay que quitarla a mano
-// (`git update-index --no-skip-worktree .claude/settings.json`). Se para
-// ruidosamente, que es como este proyecto prefiere fallar.
-function queGitNoLoVea(destino, fichero, anotar = () => {}) {
+// Las órdenes del arnés y las nuestras, por lo que corren.
+const DEL_ARNES = /\/\.rsc\/|\.claude\/rsc-bootstrap\.mjs|\.claude\/skills\/executive-lab\//;
+
+// La ruta del Node que trae Executive Lab, en cualquier ordenador: la de su app
+// (`…/ExecutiveLab/runtime/`, en Mac y en Windows), la antigua de /usr/local, y
+// la que declara quien lo prueba (`EXECUTIVE_LAB_HOME`).
+function esElNuestro(texto) {
+  const normal = String(texto).replace(/\\/g, '/').toLowerCase();
+  if (/\/executivelab\/runtime\//.test(normal) || /\/executive-lab\/runtime\//.test(normal)) return true;
+  const declarada = process.env.EXECUTIVE_LAB_HOME;
+  return Boolean(declarada) && normal.includes(`${path.join(declarada, 'runtime').replace(/\\/g, '/').toLowerCase()}/`);
+}
+
+// Todas las órdenes del fichero, estén donde estén.
+function lasOrdenes(nodo, cada) {
+  if (Array.isArray(nodo)) return nodo.forEach((n) => lasOrdenes(n, cada));
+  if (!nodo || typeof nodo !== 'object') return undefined;
+  if (typeof nodo.command === 'string') cada(nodo);
+  return Object.values(nodo).forEach((n) => lasOrdenes(n, cada));
+}
+
+// La marca de 2b139bc, fuera. Solo con un git que se pueda usar: en un Mac sin
+// las herramientas de Apple, `git` a secas abre su diálogo, así que quien llama
+// dice cuál, o ninguno.
+function quitarLaMarca(destino, fichero, git, anotar) {
   const rel = path.relative(destino, fichero).split(path.sep).join('/');
-  const git = (...args) => execFileSync('git', ['-C', destino, ...args], {
+  const correr = (...args) => execFileSync(git, ['-C', destino, ...args], {
     stdio: ['ignore', 'pipe', 'ignore'],
     encoding: 'utf8',
+    timeout: 10000,
+    windowsHide: true,
   });
-
   try {
-    git('rev-parse', '--is-inside-work-tree');
-    git('ls-files', '--error-unmatch', '--', rel);
+    // `S` es la marca; en minúscula, la misma con otra encima que no es nuestra.
+    if (!/^[Ss] /.test(correr('ls-files', '-v', '--', rel))) return false;
+    correr('update-index', '--no-skip-worktree', '--', rel);
   } catch {
-    return false;
+    return false; // sin repositorio, o con el fichero fuera de él
   }
-
-  try {
-    // Sale bien = no difiere del repositorio. Nada que esconder.
-    git('diff', '--quiet', 'HEAD', '--', rel);
-    return false;
-  } catch { /* difiere: lleva la ruta de este ordenador */ }
-
-  try {
-    git('update-index', '--skip-worktree', '--', rel);
-  } catch {
-    return false;
-  }
-  anotar(`git deja de contar ${rel} como un cambio tuyo: lleva la ruta de este ordenador.`);
+  anotar(`git vuelve a ver ${rel}: ya no lleva la ruta de este ordenador.`);
   return true;
 }
 
-function fijarElNodeDeLosEnganches(destino, node = process.execPath, anotar = () => {}) {
-  const citado = /\s/.test(node) ? `"${node}"` : node;
-  let tocados = 0;
-  let heredados = 0;
-  let escondidos = 0;
+// `git`: el git con el que quitar la marca, o null para no tocar git.
+function devolverElNodeASecas(destino, { git = null, anotar = () => {} } = {}) {
+  let devueltos = 0;
+  let desmarcados = 0;
 
   for (const nombre of ['settings.json', 'settings.local.json']) {
     const fichero = path.join(destino, '.claude', nombre);
@@ -129,39 +119,32 @@ function fijarElNodeDeLosEnganches(destino, node = process.execPath, anotar = ()
       continue;
     }
 
-    let cambiado = false;
-    const recorrer = (nodo) => {
-      if (Array.isArray(nodo)) return nodo.forEach(recorrer);
-      if (!nodo || typeof nodo !== 'object') return;
-      if (typeof nodo.command === 'string') {
-        const suyo = elNodeDeLaOrden(nodo.command);
-        // Una ruta que existe en este ordenador se respeta, sea la nuestra o
-        // la que alguien puso a mano. Lo que se arregla es `node` a secas —que
-        // aquí puede no existir— y la ruta heredada de otra máquina.
-        const hayQueTocarlo = suyo && (suyo.aSecas || !fs.existsSync(suyo.ruta));
-        if (hayQueTocarlo) {
-          if (!suyo.aSecas) heredados += 1;
-          nodo.command = `${citado}${nodo.command.slice(suyo.largo)}`;
-          cambiado = true;
-        }
-      }
-      return Object.values(nodo).forEach(recorrer);
-    };
-    recorrer(datos);
-
-    if (cambiado) {
+    let aqui = 0;
+    lasOrdenes(datos, (enganche) => {
+      const suyo = elNodeDeLaOrden(enganche.command);
+      if (!suyo || suyo.aSecas) return;
+      if (!DEL_ARNES.test(enganche.command) && !esElNuestro(suyo.ruta)) return;
+      enganche.command = `node${enganche.command.slice(suyo.largo)}`;
+      aqui += 1;
+    });
+    if (aqui) {
       fs.writeFileSync(fichero, `${JSON.stringify(datos, null, 2)}\n`);
-      tocados += 1;
+      devueltos += aqui;
     }
 
-    // Arreglado el fichero, queda que git no lo cuente como un cambio de nadie.
-    if (queGitNoLoVea(destino, fichero, anotar)) escondidos += 1;
+    // Sin ninguna ruta nuestra, la marca que la escondía sobra. Si queda una
+    // en una orden que no se sabe leer, la marca se queda: quitarla la subiría.
+    let quedan = 0;
+    lasOrdenes(datos, (enganche) => { if (esElNuestro(enganche.command)) quedan += 1; });
+    if (quedan) {
+      anotar(`AVISO: en ${nombre} queda ${quedan} orden(es) con la ruta de este ordenador que no sé devolver.`);
+    } else if (git && quitarLaMarca(destino, fichero, git, anotar)) {
+      desmarcados += 1;
+    }
   }
 
-  anotar(`Enganches apuntando a ${node}: ${tocados} fichero(s)`
-    + (heredados ? `; ${heredados} venían de otro ordenador y no habrían funcionado aquí` : '')
-    + (escondidos ? `; ${escondidos} ya no lo cuenta git como cambio tuyo` : ''));
-  return tocados;
+  if (devueltos) anotar(`Enganches devueltos a node: ${devueltos}. Los encuentra el relevo de la barra.`);
+  return { devueltos, desmarcados };
 }
 
-module.exports = { fijarElNodeDeLosEnganches, queGitNoLoVea };
+module.exports = { devolverElNodeASecas, elNodeDeLaOrden };

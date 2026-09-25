@@ -3,6 +3,9 @@
 //
 //   node aplicar.js "~/Documentos/Mi Empresa IA"
 //   node aplicar.js <carpeta> --forzar     (vuelve a poner los diales aunque ya estuvieran)
+//   node aplicar.js <carpeta> --ajena      (su historial es de alguien: lo que toca ficheros suyos
+//                                           se queda pendiente, y la barra lo ofrece con su botón)
+//   node aplicar.js <carpeta> --ajena --poner-freno   (ese botón: el freno, con su sí)
 //
 // RSC trata esto como una "own skill": vive en el repo del alumno, funciona
 // para quien clone sin ejecutar nada, y RSC nunca la instala, actualiza ni
@@ -26,6 +29,8 @@ const sitios = require('./sitios');
 
 const [, , destinoBruto, ...banderas] = process.argv;
 const forzar = banderas.includes('--forzar');
+const ajena = banderas.includes('--ajena');
+const ponerFreno = banderas.includes('--poner-freno');
 
 if (!destinoBruto) {
   console.error('Dime en qué carpeta. Ejemplo:\n  node aplicar.js "~/Documentos/Mi Empresa IA"');
@@ -40,6 +45,7 @@ if (!fs.existsSync(destino)) {
 
 const origen = __dirname;
 const hechos = [];
+const pendientes = [];
 
 function copiarCarpeta(desde, hasta) {
   fs.mkdirSync(hasta, { recursive: true });
@@ -190,6 +196,58 @@ function callarLosAvisos() {
 
 hechos.push(callarLosAvisos());
 
+// 4b. El freno ante órdenes peligrosas (C1, decisión 1 de Jose).
+//
+// RSC solo engancha el suyo cuando el plan practica la cadena SDD, y en el resto
+// de carpetas de alumno nada paraba un `rm -rf`. La habilidad trae el
+// envoltorio y la copia fijada del de RSC (`freno.mjs` y `freno-rsc-2.0.5.mjs`,
+// copiados en el paso 1); aquí se engancha antes de cada orden.
+//
+// La orden no lleva `.rsc/`: RSC quita todo enganche con esa aguja cuando
+// reescribe los suyos, y esta tiene que sobrevivir a un `sync`. De ese fichero
+// no se toca nada más: se añade una entrada, y si ya está como debe, ni se
+// reescribe.
+//
+// Solo donde hay dónde: con Codex no hay enganches (`sitios.js`, columna
+// `frenos`). Y en una carpeta cuyo historial no creó la barra no se pone en
+// silencio, porque toca sus ajustes (C-4, P4): queda pendiente, y la barra lo
+// ofrece con su botón, que es `--poner-freno`.
+const ORDEN_DEL_FRENO = 'node "${CLAUDE_PROJECT_DIR}/' + comoSeEscribe(raizDeHabilidades) + '/executive-lab/freno.mjs" "${CLAUDE_PROJECT_DIR}"';
+const ENTRADA_DEL_FRENO = { matcher: 'Bash', hooks: [{ type: 'command', command: ORDEN_DEL_FRENO }] };
+
+function engancharElFreno() {
+  if (!suyo.frenos || !suyo.ajustes) return `sin freno: ${quien} no tiene dónde engancharlo`;
+  const fichero = en(...suyo.ajustes);
+  const dondeVa = comoSeEscribe(suyo.ajustes);
+
+  let ajustes = {};
+  if (fs.existsSync(fichero)) {
+    try {
+      ajustes = JSON.parse(fs.readFileSync(fichero, 'utf8'));
+    } catch {
+      return `${dondeVa} no se puede leer: el freno no se engancha`;
+    }
+  }
+  const antes = ajustes.hooks && Array.isArray(ajustes.hooks.PreToolUse) ? ajustes.hooks.PreToolUse : [];
+  const esElNuestro = (entrada) => JSON.stringify(entrada).includes('/executive-lab/freno.mjs');
+  const puestos = antes.filter(esElNuestro);
+  if (puestos.length === 1 && JSON.stringify(puestos[0]) === JSON.stringify(ENTRADA_DEL_FRENO)) {
+    return `${dondeVa} (el freno ya estaba enganchado)`;
+  }
+  if (ajena && !ponerFreno && !puestos.length) {
+    pendientes.push('el freno ante órdenes peligrosas');
+    return `${dondeVa} (el freno, pendiente: toca sus ajustes, y se pide antes)`;
+  }
+
+  ajustes.hooks = ajustes.hooks || {};
+  ajustes.hooks.PreToolUse = [...antes.filter((e) => !esElNuestro(e)), ENTRADA_DEL_FRENO];
+  fs.mkdirSync(path.dirname(fichero), { recursive: true });
+  fs.writeFileSync(fichero, `${JSON.stringify(ajustes, null, 2)}\n`);
+  return `${dondeVa} (el freno ante órdenes peligrosas, enganchado)`;
+}
+
+hechos.push(engancharElFreno());
+
 // 5. El perfil del arnés.
 //
 // Aquí NO se tocan `technical_level` ni `accompaniment`: los pregunta RSC en su
@@ -257,4 +315,5 @@ if (fs.existsSync(declaracion)) {
 
 console.log(`Raíles puestos en ${destino}\n`);
 hechos.forEach((h) => console.log(`  · ${h}`));
+if (pendientes.length) console.log(`\nPendiente, hasta que se diga que sí: ${pendientes.join(', ')}.`);
 console.log('\nAbre una conversación nueva para que se carguen.');

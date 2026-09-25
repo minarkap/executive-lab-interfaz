@@ -1,0 +1,125 @@
+// El relevo de Node: que los enganches del arnés encuentren un `node` aunque en
+// el ordenador no haya ninguno (C2, decisión 4 de Jose).
+//
+// ── Por qué existe ──────────────────────────────────────────────────────
+//
+// RSC escribe sus enganches como `node …`, y Claude Code los corre con `sh -c`
+// (Git Bash en Windows). Si no encuentra `node`, según su propia documentación
+// es un error que no bloquea: la orden sigue, sin freno, sin brújula al
+// empezar y sin memoria, y en cada orden sale un aviso de error. El README
+// decía «No hace falta Node», y para los enganches no era verdad.
+//
+// La barra ya corre RSC con el Node que trae VS Code (su binario con
+// `ELECTRON_RUN_AS_NODE=1`). El relevo hace lo mismo para los enganches: un
+// `node` pequeño que llama a ese.
+//
+// ── Lo que toca y lo que no ─────────────────────────────────────────────
+//
+//   · Vive en el almacén de la extensión, fuera de la carpeta del alumno (P8).
+//   · Del anfitrión, que comparten todas las extensiones, toca dos cosas: el
+//     PATH, solo si no hay ya un `node`, y el interruptor del aviso de versión
+//     de RSC (abajo), que no lee nadie más. `ELECTRON_RUN_AS_NODE` va dentro del
+//     relevo, nunca en ese entorno: ahí convertiría en Node a cualquier Electron
+//     que se lanzara después.
+//   · Se pone al activar la barra, antes de que se abra el chat, para que el
+//     proceso del asistente y sus enganches lo hereden. Si el asistente ya
+//     estaba abierto, lo coge al abrirlo otra vez.
+//
+// Lo que no se ha medido aquí, y queda con su prueba en pendientes: en un VS
+// Code de verdad, que el proceso del asistente herede el PATH; y en Windows,
+// el relevo en Git Bash y en PowerShell.
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const clavePath = (env) => Object.keys(env).find((k) => k.toLowerCase() === 'path') || 'PATH';
+
+// El `node` que encontraría un enganche en este PATH, o null. Se mira el disco
+// y no se lanza `which`: esto corre al activar la barra.
+function nodeDelPath(env = process.env, plataforma = process.platform) {
+  const nombres = plataforma === 'win32' ? ['node.exe', 'node.cmd'] : ['node'];
+  for (const dir of String(env[clavePath(env)] || '').split(path.delimiter).filter(Boolean)) {
+    for (const nombre of nombres) {
+      const candidato = path.join(dir, nombre);
+      try {
+        if (fs.statSync(candidato).isFile()) return candidato;
+      } catch {
+        // no está aquí
+      }
+    }
+  }
+  return null;
+}
+
+// Entre comillas simples para `sh`: dentro no se interpreta nada, y una
+// comilla simple se escribe cerrando, escapándola y abriendo otra vez.
+const entreComillas = (texto) => `'${String(texto).replace(/'/g, "'\\''")}'`;
+
+function escribirElRelevo(carpeta, ejecutable, plataforma) {
+  fs.mkdirSync(carpeta, { recursive: true });
+  const sh = path.join(carpeta, 'node');
+  fs.writeFileSync(sh, [
+    '#!/bin/sh',
+    '# El relevo de Node de Executive Lab: el Node que trae VS Code, para los enganches del arnés.', // diccionario: interno
+    `ELECTRON_RUN_AS_NODE=1 exec ${entreComillas(ejecutable)} "$@"`,
+    '',
+  ].join('\n'));
+  fs.chmodSync(sh, 0o755);
+  if (plataforma === 'win32') {
+    fs.writeFileSync(path.join(carpeta, 'node.cmd'), [
+      '@echo off',
+      'set ELECTRON_RUN_AS_NODE=1',
+      `"${ejecutable}" %*`,
+      '',
+    ].join('\r\n'));
+  }
+}
+
+// Qué hay para los enganches, y dónde. Pone el relevo solo si hace falta.
+//
+//   nodeDelSistema  ya hay un `node` de verdad en el PATH: no se toca nada
+//   relevoVSCode    el relevo está puesto y va el primero del PATH
+//   ninguno         no se ha podido poner, y la pieza lo dice con su botón
+function asegurar({ carpeta, ejecutable = process.execPath, env = process.env, plataforma = process.platform } = {}) {
+  const encontrado = nodeDelPath(env, plataforma);
+  const esElNuestro = Boolean(carpeta) && Boolean(encontrado) && path.dirname(encontrado) === carpeta;
+  if (encontrado && !esElNuestro) return { modo: 'nodeDelSistema', carpeta: null, node: encontrado };
+  if (!carpeta || !ejecutable) return { modo: 'ninguno', carpeta: null };
+
+  try {
+    escribirElRelevo(carpeta, ejecutable, plataforma);
+  } catch (error) {
+    return { modo: 'ninguno', carpeta: null, error: error.message };
+  }
+
+  const clave = clavePath(env);
+  const partes = String(env[clave] || '').split(path.delimiter).filter(Boolean);
+  if (partes[0] !== carpeta) env[clave] = [carpeta, ...partes.filter((d) => d !== carpeta)].join(path.delimiter);
+  return { modo: 'relevoVSCode', carpeta };
+}
+
+// ── Y el aviso de versión nueva, apagado (C4) ────────────────────────────
+//
+// El arranque de cada conversación de RSC mira en npm si hay una versión más
+// nueva y, si la hay, le dice al asistente que ofrezca
+// `npx @ericrisco/rsc@latest`. En una clase la versión es la de la clase (P7):
+// ofrecer otra es pedirle al alumno que se salga de ella, y detrás vienen la
+// regla 7 y la versión que va y viene. RSC solo lo apaga con
+// `RSC_NO_UPDATE_CHECK` en el entorno del enganche, así que va donde el
+// enganche lo hereda, como el PATH. Si ya venía puesto, se respeta.
+function callarElAvisoDeVersion(env = process.env) {
+  if (!env.RSC_NO_UPDATE_CHECK) env.RSC_NO_UPDATE_CHECK = '1';
+}
+
+// Lo que se puso al activar la barra, para la pieza «Lo que el arnés hace
+// solo». Si todavía no se ha puesto, se mira sin escribir nada: sin carpeta
+// para el relevo, `asegurar` solo lee el PATH.
+let ultimo = null;
+function ponerAlActivar(opciones = {}) {
+  callarElAvisoDeVersion(opciones.env);
+  ultimo = asegurar(opciones);
+  return ultimo;
+}
+const comoEsta = () => ultimo || asegurar({ carpeta: null });
+
+module.exports = { nodeDelPath, asegurar, escribirElRelevo, ponerAlActivar, comoEsta, callarElAvisoDeVersion };

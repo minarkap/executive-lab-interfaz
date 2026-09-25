@@ -496,11 +496,22 @@ const loQueSeRenombro = (renombrados = []) => renombrados
 // Los raíles viajan dentro de la extensión: mismo `aplicar.js` que usa el
 // instalador, así que no hay dos versiones de lo que significa "poner los
 // raíles".
-async function ponerLosRailes(contexto) {
+// `ajena`: el historial de esta carpeta no lo creó la barra, y lo que toca
+// ficheros suyos se queda pendiente (C-4). `ponerFreno`: el sí al freno.
+async function ponerLosRailes(contexto, { ajena = false, ponerFreno = false } = {}) {
   const aplicar = path.join(contexto.extensionPath, 'media', 'railes', 'aplicar.js');
   if (!fs.existsSync(aplicar)) return false;
-  const { codigo } = await procesos.node([aplicar, proyecto.raiz()], { tiempoMaximo: 60000 });
+  const banderas = [...(ajena ? ['--ajena'] : []), ...(ponerFreno ? ['--poner-freno'] : [])];
+  const { codigo } = await procesos.node([aplicar, proyecto.raiz(), ...banderas], { tiempoMaximo: 60000 });
   return codigo === 0;
+}
+
+// Si lo que toca ficheros de esta persona tiene que esperar a su sí (C-4): el
+// historial no lo creó la barra, y en este montaje no se enseñó qué se tocaba.
+// Al montar encima de lo que había, ese sí ya se dio con el resumen (B4).
+async function sinSuSi(parte) {
+  if (parte && ['empezada', 'otroArnes'].includes(parte.estado)) return false;
+  return !(await terreno.podemosGuardarElPuntoDePartida());
 }
 
 // Los nombres van al frontmatter del perfil del arnés, junto a los diales:
@@ -530,25 +541,31 @@ function ponerEnElPerfil(campos) {
   return true;
 }
 
-// Los enganches que RSC deja escritos llaman a `node` por su nombre, y en el
-// ordenador de un alumno puede no haber ninguno en el PATH. `enganches.js` decía
-// que esto lo hacía el wizard de la extensión; no era verdad, solo lo hacía el
-// instalador, así que en el camino sin instalador los enganches se quedaban
-// apuntando a un node que podía no existir.
+// Los enganches que RSC deja escritos llaman a `node` por su nombre, y así se
+// quedan: a ese `node` lo encuentra el relevo de la barra, por el PATH
+// (`relevo.js`, C2).
 //
-// Solo se reescribe cuando tenemos un node de verdad. Si el que hay es el de
-// VS Code, su binario necesita que se le diga que haga de Node y escribir su
-// ruta a secas rompería el enganche en vez de arreglarlo: en ese caso se deja
-// `node`, que funciona si esa persona tiene uno instalado.
-function apuntarLosEnganches(salida) {
-  if (entorno.usaElNodeDeVsCode()) return false;
-
+// Hasta la decisión 119 aquí se escribía la ruta del Node de este ordenador en
+// `.claude/settings.json`, que viaja en git: entraba en el punto de partida,
+// cada clon heredaba la de otro, y la marca que la escondía de git paraba los
+// `git pull` (C3, F5). Ahora se deshace lo que se escribió, al montar y al
+// abrir la carpeta. La marca se quita solo con un git que se pueda usar: en un
+// Mac sin las herramientas de Apple, `git` a secas abre su diálogo.
+async function apuntarLosEnganches(salida) {
+  const raiz = proyecto.raiz();
   const donde = entorno.moduloComun('enganches');
-  if (!donde) return false;
+  if (!raiz || !donde) return false;
 
   try {
-    const { fijarElNodeDeLosEnganches } = require(donde);
-    return fijarElNodeDeLosEnganches(proyecto.raiz(), entorno.node(), (que) => salida.appendLine(`[arrancar] ${que}`)) > 0;
+    const { devolverElNodeASecas } = require(donde);
+    // La copia que dejó un instalador de antes no lo trae, y hoy manda sobre la
+    // del paquete (G2, que arregla F7). Mientras, no se hace nada.
+    if (typeof devolverElNodeASecas !== 'function') return false;
+    const hecho = devolverElNodeASecas(raiz, {
+      git: (await git.hay()) ? entorno.git() : null,
+      anotar: (que) => salida.appendLine(`[arrancar] ${que}`),
+    });
+    return hecho.devueltos > 0 || hecho.desmarcados > 0;
   } catch {
     return false;
   }
@@ -730,12 +747,12 @@ const COMO_SE_HACE = {
   },
 
   arreglarLoRoto: ({ salida }) => arreglarLoQueSePuedaSolo(salida),
-  ponerLosRailes: async ({ contexto }) => ({ ok: await ponerLosRailes(contexto) }),
+  ponerLosRailes: async ({ contexto, parte }) => ({ ok: await ponerLosRailes(contexto, { ajena: await sinSuSi(parte) }) }),
   ponerLosNombres: ({ respuestas }) => {
     const campos = { ...(respuestas.nombres || {}), alcance: respuestas.alcance, personas: respuestas.personas };
     return { ok: Object.values(campos).some(Boolean) ? ponerEnElPerfil(campos) : true };
   },
-  apuntarLosEnganches: ({ salida }) => ({ ok: true, detalle: apuntarLosEnganches(salida) ? 'apuntados' : 'no hacía falta' }),
+  apuntarLosEnganches: async ({ salida }) => ({ ok: true, detalle: (await apuntarLosEnganches(salida)) ? 'devueltos a node' : 'no hacía falta' }),
 
   puntoDePartida: async () => {
     // El historial de alguien no se escribe. Se comprueba aquí y no solo en
@@ -1154,7 +1171,7 @@ function primerMensaje(hecho, { comoSeLlama, conWeb = '', conFreno = false }) {
 
 module.exports = {
   arrancar, entrevistar, ponerLosRailes, flagsDelMontaje, loQueLlevaLaCarpeta, primerMensaje,
-  confirmarLaCarpeta, confirmarDentroDeOtro, crearUnaCarpetaDentro, comoSeDiceQueNo, ponerLasCopias,
+  confirmarLaCarpeta, confirmarDentroDeOtro, crearUnaCarpetaDentro, comoSeDiceQueNo, ponerLasCopias, apuntarLosEnganches,
   COMO_SE_ENTREGA, hayFreno, PIEZAS_DEL_PLAN, comoSeDiceLoQueCambia,
   COMO_SE_HACE, COMO_SE_PREGUNTA, DE_QUE_VA, QUE_LLEVA, CUANTAS_PERSONAS, QUE_VAS_A_CONSTRUIR,
   COMO_TE_MANEJAS, CUANTO_TE_EXPLICO, OBJETIVOS_POR_TIPO,

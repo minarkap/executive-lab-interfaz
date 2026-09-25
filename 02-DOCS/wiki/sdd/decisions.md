@@ -139,3 +139,25 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
   (C1). Uno con su `.rsc.json` sigue funcionando, como antes de la guarda.
 - **Quince menores quedan anotados para el cierre** (F9), con su sitio en la verificación de F2. No
   cambian lo que se promete, o tocan cosas que otras fases rehacen.
+
+## 2026-09-25 · todo-cuadra · implement, F3 (T032–T038)
+
+- **El relevo, y no el plan B** (T032): con la prueba del relevo en verde, lo que queda por medir es
+  si el proceso del asistente hereda el PATH del anfitrión. El plan B, bajar el Node oficial, escribe
+  fuera igual y necesita red. Si la medida en un VS Code de verdad sale mal, se pasa al plan B.
+- **Ninguna ruta, en vez de una ruta mejor** (T033). Lo que se deshace se decide por lo que corre la
+  orden (`.rsc/`, el arranque de RSC, lo nuestro) o por la ruta del Node de Executive Lab. Una ruta
+  que alguien puso a mano en una orden suya se respeta. La marca `--skip-worktree` se quita solo con
+  un git que no abra el diálogo de Apple, y se queda si queda una ruta nuestra que no se sabe leer.
+- **`RSC_NO_UPDATE_CHECK`, en el entorno del anfitrión y no dentro del relevo** (T034): con un
+  `node` del sistema no hay relevo, y el aviso seguiría. Solo lo lee RSC.
+- **El freno, siempre enganchado, y decide al ejecutarse** (T035). Si hay dos, manda el de RSC. En
+  una carpeta de alguien no se engancha al reponer los raíles solos (C-4), pero sí al montar encima de
+  lo que había, porque el sí ya se dio con el resumen. La pieza pendiente se dice con frases que ya
+  estaban en el diccionario.
+- **Los raíles «al día» miran todos los ficheros de la habilidad** (T035), no solo `SKILL.md`. Es la
+  parte de D6 que el freno necesitaba; los comandos y los bloques siguen en T045.
+- **`sync` detrás de cada `repair`** (T038), en `rsc.js`, que es por donde pasan los dos que lo
+  corren (el montaje y «Algo va mal»).
+- **Tres interruptores sin nombre esperan a Jose** (T037): `.no-git`, `.no-harness` y el aviso de
+  versión. P2 no deja pintar un nombre que no está en el diccionario.

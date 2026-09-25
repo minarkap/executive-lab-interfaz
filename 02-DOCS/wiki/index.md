@@ -27,6 +27,7 @@ timestamp: 2026-09-24T15:50:00Z
 | Progreso · todo-cuadra | [sdd/progress/todo-cuadra.md](sdd/progress/todo-cuadra.md) |
 | Verificación F1 · todo-cuadra | [sdd/verifications/todo-cuadra-F1-2026-09-25.md](sdd/verifications/todo-cuadra-F1-2026-09-25.md) |
 | Verificación F2 · todo-cuadra | [sdd/verifications/todo-cuadra-F2-2026-09-25.md](sdd/verifications/todo-cuadra-F2-2026-09-25.md) |
+| Verificación F3 · todo-cuadra | [sdd/verifications/todo-cuadra-F3-2026-09-25.md](sdd/verifications/todo-cuadra-F3-2026-09-25.md) |
 | Spec · credenciales que no son variables | [sdd/specs/credenciales-que-no-son-variables.md](sdd/specs/credenciales-que-no-son-variables.md) |
 | Plan · credenciales que no son variables | [sdd/plans/credenciales-que-no-son-variables.md](sdd/plans/credenciales-que-no-son-variables.md) |
 | Verificaciones | [sdd/verifications/](sdd/verifications/) |

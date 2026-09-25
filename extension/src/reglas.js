@@ -75,20 +75,28 @@ const AUTOMATISMOS = [
   { id: 'session-start', fichero: 'session-start.mjs' },
   { id: 'worklog-checkpoint', fichero: 'worklog-checkpoint.mjs' },
   { id: 'userprompt-gate', fichero: 'userprompt-gate.mjs', interruptor: '.no-feature-gate' },
-  { id: 'worktree-reaper', fichero: 'worktree-reaper.mjs', interruptor: '.no-worktree-cleanup' },
-  { id: 'session-memory', fichero: 'session-memory.mjs' },
+  // Estas dos las monta RSC para cualquier asistente: la recogida es un enganche
+  // de git, y la memoria tiene su sitio también con Codex (`targets/memory.js`).
+  { id: 'worktree-reaper', fichero: 'worktree-reaper.mjs', interruptor: '.no-worktree-cleanup', paraTodos: true },
+  { id: 'session-memory', fichero: 'session-memory.mjs', paraTodos: true },
   { id: 'audit', fichero: 'session-start.mjs', interruptor: '.no-audit' },
   { id: 'scope-check', fichero: 'session-start.mjs', interruptor: '.no-scope-check' },
   { id: 'claudemd-check', fichero: 'session-start.mjs', interruptor: '.no-claudemd-check' },
   { id: 'context7', interruptor: '.no-context7' },
 ];
 
+// La memoria no tiene interruptor: se apaga en la declaración, con
+// `memory: false` (`targets/memory.js`, `memoryEnabledForProject`). Salía
+// activa estando apagada (C5).
+const memoriaApagada = () => (proyecto.declaracion() || {}).memory === false;
+const estaApagado = (a) => Boolean(a.interruptor && hayEnRsc(a.interruptor)) || (a.id === 'session-memory' && memoriaApagada());
+
 function losAutomatismos() {
   return AUTOMATISMOS
     .filter((a) => hayEnRsc(a.fichero || a.interruptor))
     .map((a) => {
       const dicho = nombres.comoSeLlama('automatismos', a.id, {});
-      const apagado = Boolean(a.interruptor && hayEnRsc(a.interruptor));
+      const apagado = estaApagado(a);
       return {
         id: a.id,
         nombre: dicho.nombre,
@@ -106,7 +114,14 @@ function losAutomatismos() {
 // mira cada pieza al arrancar). La radiografía leía solo la primera y la
 // enseñaba con el identificador en clave. Ahora se unen, sin repetir, y cada
 // uno se nombra por su fila de guardián o de automatismo.
-const OPT_OUT_A_PIEZA = { gitmoji: 'gitmoji-guard' };
+//
+// En `optOuts` RSC escribe los mismos interruptores sin el `.no-`
+// (`install-apply.js`, `localDecisions`), así que cada uno se traduce a la pieza
+// que apaga su propio interruptor. Se sabía solo el de gitmoji, y `feature-gate`
+// o `worktree-cleanup` salían en clave, y además de con su nombre (C5).
+const OPT_OUT_A_PIEZA = Object.fromEntries([...GUARDIANES, ...AUTOMATISMOS]
+  .filter((p) => p.interruptor)
+  .map((p) => [p.interruptor.replace(/^\.no-/, ''), p.id]));
 
 // ── Y lo que aquí no puede estar puesto tampoco está apagado ─────────────
 //
@@ -124,7 +139,14 @@ const OPT_OUT_A_PIEZA = { gitmoji: 'gitmoji-guard' };
 // Se mira por la clase de pieza y no por si está su fichero en `.rsc/`, porque
 // `.rsc/` es de esta máquina y no viaja: en un clon no habría ni un interruptor,
 // y lo que la declaración dice que se apagó sí tiene que seguir contándose.
-const puedeEstarAqui = (pieza) => donde.puedeTenerFrenos() || !pieza || !pieza.fichero;
+//
+// Lo que RSC monta para cualquier asistente cuenta con cualquiera, si está: la
+// recogida solo se monta cuando el plan gobierna el código, y un interruptor de
+// nuestros raíles sin su pieza sería otra vez contar lo que nadie decidió.
+const puedeEstarAqui = (pieza) => {
+  if (!pieza || !pieza.fichero || donde.puedeTenerFrenos()) return true;
+  return Boolean(pieza.paraTodos && hayEnRsc(pieza.fichero));
+};
 
 function loApagado() {
   const nombrar = (monton, id) => nombres.comoSeLlama(monton, id, {}).nombre;
@@ -134,7 +156,7 @@ function loApagado() {
   };
   for (const g of GUARDIANES) if (hayEnRsc(g.interruptor) && puedeEstarAqui(g)) meter(g.id, nombrar('guardianes', g.id));
   for (const a of AUTOMATISMOS) {
-    if (a.interruptor && hayEnRsc(a.interruptor) && puedeEstarAqui(a)) meter(a.id, nombrar('automatismos', a.id));
+    if (estaApagado(a) && puedeEstarAqui(a)) meter(a.id, nombrar('automatismos', a.id));
   }
 
   const declarados = (proyecto.declaracion() || {}).optOuts;
@@ -149,6 +171,20 @@ function loApagado() {
   return lista;
 }
 
+// El freno ante órdenes peligrosas puede venir de dos sitios (C1): el de RSC,
+// que solo se engancha cuando el plan practica la cadena SDD, y el nuestro, que
+// ponen los raíles con la misma copia (`freno.mjs`). Si están los dos, manda el
+// de RSC y el nuestro se aparta, así que el que cuenta es ese. El nuestro puede
+// estar sin enganchar: en una carpeta cuyo historial no creó la barra, se espera
+// a su sí (C-4).
+function comoEstaElNuestro() {
+  if (!donde.puedeTenerFrenos()) return { enganchado: false, pendiente: false };
+  const habilidades = donde.carpetaDeHabilidades();
+  const esta = Boolean(habilidades && fs.existsSync(require('node:path').join(habilidades, 'executive-lab', 'freno.mjs')));
+  const enganchado = (leer('.claude', 'settings.json') || '').includes('/executive-lab/freno.mjs');
+  return { enganchado: esta && enganchado, pendiente: esta && !enganchado };
+}
+
 // Qué guardianes hay montados y cuáles están actuando ahora mismo.
 //
 // Tres estados, y los tres significan cosas distintas para quien mira:
@@ -158,23 +194,33 @@ function loApagado() {
 //              actúa con quien no es técnico, y eso lo dice tu perfil)
 function losGuardianes() {
   const eresTecnico = trato.comoEstamos().palabras === 'technical';
+  const nuestro = comoEstaElNuestro();
+  const conElNuestro = (g) => g.id === 'danger-guard' && (nuestro.enganchado || nuestro.pendiente);
 
   return GUARDIANES
-    .filter((g) => hayEnRsc(g.fichero))
+    .filter((g) => hayEnRsc(g.fichero) || conElNuestro(g))
     .map((g) => {
       const dicho = nombres.comoSeLlama('guardianes', g.id, {});
+      const deRsc = hayEnRsc(g.fichero);
+      const pendiente = !deRsc && conElNuestro(g) && !nuestro.enganchado;
       const apagado = hayEnRsc(g.interruptor);
       const contigoNo = Boolean(g.soloSiNoEsTecnico && eresTecnico);
       return {
         id: g.id,
         nombre: dicho.nombre,
         queHace: dicho.queHace,
-        estado: apagado ? 'apagado' : (contigoNo ? 'noAplica' : 'armado'),
+        estado: pendiente ? 'pendiente' : (apagado ? 'apagado' : (contigoNo ? 'noAplica' : 'armado')),
         // Por qué no actúa, cuando no actúa. Sin esto, «no actúa» parece una
         // avería y es una decisión.
-        porQue: apagado
-          ? 'Apagado aquí, a propósito'
-          : (contigoNo ? 'Contigo no actúa: tu perfil dice que eres técnico' : ''),
+        porQue: pendiente
+          ? 'Todavía no: toca los ajustes de Claude de esta carpeta'
+          : (apagado
+            ? 'Apagado aquí, a propósito'
+            : (contigoNo ? 'Contigo no actúa: tu perfil dice que eres técnico' : '')),
+        // De quién es, junto a lo que hace. Solo el de órdenes peligrosas puede
+        // ser de los dos.
+        deQuien: g.id !== 'danger-guard' ? ''
+          : (deRsc ? 'Lo pone el arnés.' : 'Lo pone Executive Lab: el arnés no lo trae en esta clase de proyecto.'),
       };
     });
 }

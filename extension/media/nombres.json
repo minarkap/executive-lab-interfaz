@@ -340,8 +340,10 @@
     "lo normal y es bueno; lo que no puede ser es que nadie los nombre hasta que",
     "uno bloquea algo, que es justo el peor momento para enterarse.",
     "",
-    "`danger-guard` importa más que ninguno aquí: RSC lo activa SOLO con usuarios",
-    "no técnicos, o sea con todos los alumnos de esta barra, y con nadie más."
+    "`danger-guard` importa más que ninguno aquí, y RSC 2.0.5 solo lo engancha cuando",
+    "el plan practica la cadena SDD; ahí actúa con quien no es técnico. Donde RSC",
+    "no lo pone, lo ponen los raíles (`freno.mjs`, su misma copia), con la misma",
+    "regla (C1 de todo-cuadra). Lo dicen Las reglas, con su origen."
   ],
   "guardianes": {
     "danger-guard": {

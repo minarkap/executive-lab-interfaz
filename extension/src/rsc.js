@@ -337,11 +337,25 @@ const sincronizar = () => correr(['sync'], { tiempoMaximo: 300000 });
 // tiene que hacer una persona, por su huella.
 const reevaluar = () => correr(['reassess'], { tiempoMaximo: 60000 });
 const arreglarEnSeco = () => correr(['repair', '--dry-run'], { tiempoMaximo: 120000 });
-const arreglar = () => correr(['repair'], { tiempoMaximo: 180000 });
+
+// `repair` vuelve a instalar sin la política del plan aceptado: medido con el
+// paquete, en una carpeta de operaciones con algo roto engancha los cuatro frenos
+// de RSC, que ese plan no pide, y el siguiente `sync` los quita (C6). Qué frenos
+// había dependía de qué orden corrió la barra la última vez. Así que detrás de
+// cada `repair` que sale bien va un `sync`, que aplica el plan que alguien
+// aceptó. Si el `sync` falla, se dice ese fallo.
+async function yDespuesElPlan(reparado) {
+  if (reparado.codigo !== 0) return reparado;
+  const sincronizado = await sincronizar();
+  if (sincronizado.codigo === 0) return reparado;
+  return { ...sincronizado, salida: [reparado.salida, sincronizado.salida].filter(Boolean).join('\n') };
+}
+
+const arreglar = async () => yDespuesElPlan(await correr(['repair'], { tiempoMaximo: 180000 }));
 
 // Arreglar sin que nadie conteste. Solo se llama cuando `queHayQueArreglar()`
 // ha dicho que no hay nada que preguntar: ver arriba por qué.
-const arreglarSolo = () => correr(['repair', '--yes'], { tiempoMaximo: 180000 });
+const arreglarSolo = async () => yDespuesElPlan(await correr(['repair', '--yes'], { tiempoMaximo: 180000 }));
 
 module.exports = {
   correr, retomar, revisar, salud, sincronizar, reevaluar, arreglarEnSeco, arreglar, arreglarSolo,

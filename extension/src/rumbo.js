@@ -110,7 +110,7 @@ const PASOS = {
   arreglarLoRoto: { etiqueta: 'arreglando lo que se quedó a medias', escribe: true },
   ponerLosRailes: { etiqueta: 'poniendo los raíles', escribe: true },
   ponerLosNombres: { etiqueta: 'guardando los nombres', escribe: true },
-  apuntarLosEnganches: { etiqueta: 'apuntando lo de este ordenador', escribe: true },
+  apuntarLosEnganches: { etiqueta: 'dejando listo lo que el arnés hace solo', escribe: true },
   puntoDePartida: { etiqueta: 'guardando el punto de partida', escribe: true },
   ordenarLasClaves: { etiqueta: 'ordenando las claves que ya tenías', escribe: false },
   ordenarLaCarpeta: { etiqueta: 'poniendo en orden lo que ya hay', escribe: false },

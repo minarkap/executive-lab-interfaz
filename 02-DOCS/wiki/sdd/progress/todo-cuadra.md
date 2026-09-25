@@ -323,3 +323,143 @@ Solo se añade.
   el paquete. Once mutaciones: dos sobrevivían (R3 y R5b) y se afinaron las pruebas; R6 contra
   `contrato` sobrevive con razón. `humo` 231, `humo+` 236 y `contrato` 10. El trabajo de F3 (T032–T034)
   se apartó en un *stash* para arreglar esto sobre F2.
+
+## F3
+
+- **T032 ✓ (1) · ⏸ (2) y (3), con Jose** 25-09 · El experimento del relevo (C2, decisión 4 de Jose):
+  - **(1) rojo** con el módulo puesto como hoy, sin relevo («ninguno»), y **verde**: `relevo.js`,
+    nuevo. Si no hay un `node` en el PATH, deja en el almacén de la barra un `node` (un guion `sh`,
+    y un `node.cmd` en Windows) que llama al Node de VS Code con `ELECTRON_RUN_AS_NODE=1`, y antepone
+    su carpeta al PATH. `ELECTRON_RUN_AS_NODE` va dentro del relevo, nunca en el entorno del
+    anfitrión. Con un PATH sin `node`, un enganche corrido como los corre Claude Code (`sh -c 'node
+    …'`) funciona. Con un `node` de verdad, no se toca nada. `humo` 228.
+  - Se pone al activar la barra (`relevo.ponerAlActivar()`), antes de que se abra el chat.
+  - **(2) no se ha corrido:** `npm run probar-en-vscode` baja unos 900 MB de VS Code a
+    `~/.cache/executive-lab-vscode-test`, fuera del proyecto, y eso no se hace sin el sí de Jose.
+    Queda en pendientes con su orden, junto a (3): en una sesión de Claude abierta desde la barra,
+    que `which node` dé el relevo y que se deniegue un `rm -rf`.
+  - **Decisión (a), el relevo, y no el plan B.** Con (1) en verde, lo que queda por medir es si el
+    proceso del asistente hereda el PATH del anfitrión, y eso es cómo se comporta Node con
+    `process.env`, no una suposición sobre el relevo. El plan B —bajar el Node oficial— también
+    escribe fuera del proyecto y necesita red. Si (2) o (3) salen mal, se pasa al plan B.
+- **T033 ✓** 25-09 · Sin rutas en el ajuste que viaja en git, y la pieza de lo que el arnés hace
+  solo (C2, C3, F5):
+  - **rojo**, cinco. Dos reescriben las que daban por bueno el fallo: «un enganche que apunta al
+    ordenador de otro se arregla» (escribía nuestra ruta) y «el arreglo de cada máquina deja de
+    contar como un cambio suyo» (exigía la marca). Las nuevas: «tras montar, el ajuste versionado es
+    igual que en HEAD y sin marca», con un instalador de mentira delante (`EXECUTIVE_LAB_HOME`),
+    que es el caso en que se escribía la ruta, y roja porque entraba en el punto de partida; «sin
+    node y sin relevo posible, la pieza Lo que el arnés hace solo dice No arranca en este ordenador,
+    con su botón»; y «Arreglarlo pone el relevo y pide abrir otra vez la conversación».
+  - **verde**: `enganches.js` ya no escribe rutas. `devolverElNodeASecas()` devuelve a `node` las
+    órdenes del arnés (`.rsc/`, `rsc-bootstrap.mjs`) y las nuestras con cualquier ruta, y en las
+    demás solo la del Node de Executive Lab. La marca `--skip-worktree` se quita cuando no queda
+    ninguna ruta nuestra, y solo con un git que se pueda usar: en un Mac sin las herramientas de
+    Apple, `git` a secas abre su diálogo. Si queda una ruta en una orden que no se sabe leer, la
+    marca se queda. Se quitan `fijarElNodeDeLosEnganches` y `queGitNoLoVea`, que ya no usaba nadie
+    más: los instaladores no los llaman.
+  - Se deshace en el paso del montaje y al abrir la barra, como los raíles (decisión 108): es
+    nuestro, y deshacerlo no es decidir.
+  - La pieza sale solo si hay enganches que arrancan con `node` (Claude; con Codex no hay). Su botón
+    vuelve a poner el relevo y dice «Cierra la conversación con Claude y ábrela otra vez para que lo
+    coja.». Las frases, en el diccionario, con las aprobadas en la parada.
+  - **En este repositorio**, `.claude/settings.json` tenía la ruta del Node de la app de Jose en
+    catorce órdenes y la marca puesta. Deshecho con la función nueva: queda igual que en HEAD, byte a
+    byte, y `git ls-files -v .claude/settings.json` da `H`. El `node` del PATH (Homebrew) está.
+  - Mutación: diez, y mueren todas. La E6 sobrevivió la primera vez porque el mutante se curaba
+    solo (escribía la ruta y la función nueva la quitaba); rehecha como el comportamiento de antes,
+    muere.
+
+  Verde: `humo` 231, `contrato` 9, diccionario limpio.
+- **T034 ✓** 25-09 · El aviso de versión nueva del arnés, apagado (C4):
+  - **rojo**: «con una versión más nueva publicada, el arranque no ofrece actualizar». Corre el
+    `session-start.mjs` del paquete tal cual, con `RSC_LATEST=9.9.9` y una casa vacía (el guion
+    mira también la del usuario). Primero sin la barra, y sale el aviso: la prueba puede fallar.
+    Después, con el entorno que deja la barra al abrirse, y seguía saliendo.
+  - **verde**: `relevo.ponerAlActivar()` pone `RSC_NO_UPDATE_CHECK=1` en el entorno del anfitrión,
+    que es lo que heredan el proceso del asistente y sus enganches, como el PATH. Si ya venía
+    puesto, se respeta. Solo lo lee RSC. No va solo dentro del relevo: con un `node` del sistema no
+    hay relevo, y el aviso seguiría.
+  - Mutación: dos (no se llama al activar; se pone vacío), y mueren las dos.
+  - Queda con la misma prueba de T032 (2) y (3): que el proceso del asistente herede el entorno del
+    anfitrión en un VS Code de verdad.
+
+  Verde: `humo` 232.
+- **T035 ✓** 25-09 · El freno propio (C1, decisión 1 de Jose, C-4):
+  - **rojo**, cuatro nuevas y dos más: «el freno deniega en operations las seis órdenes de C1», «con
+    el freno de RSC puesto, el nuestro deja pasar», «con .no-danger-guard deja pasar» y «en una
+    carpeta con historial ajeno, reponer los raíles no engancha el freno sin su sí». La de P7 pide
+    la copia fijada en `skills/` y en `media/railes/`, igual a la del paquete. En `contrato.js`, «un
+    sync de RSC no quita el freno propio», con un montaje de operaciones de verdad.
+  - **verde**: en `skills/executive-lab/`, `freno.mjs` (el envoltorio: si el de RSC está en `.rsc/`
+    y enganchado, sale sin decir nada; si no, carga la copia), `freno-rsc-2.0.5.mjs` (`cmp` con el
+    `danger-guard.mjs` del paquete: 0, en las dos copias) y `LICENCIA-RSC.txt`, con la MIT de Eric
+    tal cual. `aplicar.js` lo engancha en PreToolUse(Bash) como `node
+    "${CLAUDE_PROJECT_DIR}/.claude/skills/executive-lab/freno.mjs" "${CLAUDE_PROJECT_DIR}"`, sin
+    `.rsc/` en la orden. Una sola vez, sin tocar lo demás, y solo con Claude.
+  - **C-4**: con `--ajena` queda pendiente, y con `--poner-freno`, que es el botón, se pone. Al
+    montar encima de lo que había no es ajena, porque el sí ya se dio con el resumen. Al reponer
+    los raíles solos, lo es si el historial no lo creó la barra. «Qué falta por montar» ofrece
+    «Freno ante órdenes peligrosas · Todavía no: toca los ajustes de Claude de esta carpeta ·
+    Ponerlo ahora», y no lo ofrece si frena el de RSC.
+  - Los raíles «al día» miran todos los ficheros de la habilidad y no solo `SKILL.md`: si no, el
+    freno no llegaba nunca a las carpetas que ya estaban montadas. Es la parte de D6 que esto
+    necesitaba; los comandos y los bloques siguen en T045.
+  - Mutación: once, y mueren todas.
+
+  Verde: `humo` 240, `contrato` 11, diccionario limpio (con la fila de la pieza pendiente, hecha de
+  frases que ya existían).
+- **T036 ✓** 25-09 · «Las reglas» dice qué freno hay y de quién es (C1):
+  - **rojo**: «con codeHooks false y el freno propio, Las reglas lo lista armado y dice su origen».
+    Primero, porque `nombres.json` seguía diciendo que RSC activa el freno «con todos los alumnos».
+  - **verde**: `reglas.losGuardianes()` cuenta el nuestro cuando está en la habilidad, y dice de
+    quién es el que frena: «Lo pone Executive Lab: el arnés no lo trae en esta clase de proyecto.» o
+    «Lo pone el arnés.». Si están los dos, manda el de RSC. Sin enganchar todavía (C-4), sale como
+    pendiente con «Todavía no: toca los ajustes de Claude de esta carpeta». La pantalla lo pone
+    detrás de lo que hace. `arrancar.hayFreno()` tira de ahí, así que el primer mensaje dice que hay
+    freno cuando frena el nuestro. El comentario de `nombres.json`, reescrito.
+  - Mutación: tres (siempre del arnés; solo lo de `.rsc/`; la pantalla sin el origen), y mueren las
+    tres.
+
+  Verde: `humo` 241, diccionario limpio.
+- **T037 ✓ (con tres nombres para Jose)** 25-09 · Los interruptores y los automatismos de «Las
+  reglas» (C5):
+  - **rojo**: «lo apagado se nombra sin repetir, y la memoria apagada sale apagada», con los
+    `optOuts` como los escribe RSC: uno por cada `.no-*`, sin el prefijo (`localDecisions`). Salía
+    «Feature gate» y «Worktree cleanup», además de sus nombres, y la memoria no.
+  - **verde**: `OPT_OUT_A_PIEZA` sale de las tablas de guardianes y automatismos, por su
+    interruptor. La memoria se da por apagada con `memory: false` en `.rsc.json`, como la lee RSC
+    (`memoryEnabledForProject`), en «Las reglas» y en «Lo que tiene apagado». La recogida de copias
+    de trabajo y la memoria las monta RSC para cualquier asistente, y cuentan con Codex si están.
+  - La prueba de antes usaba unos `optOuts` inventados (dos de cinco), y por eso no lo veía. Sigue
+    ahí, y la nueva va con los de verdad.
+  - **Sin pintar, a la espera de Jose (P2):** `.no-git`, `.no-harness` y el aviso de versión nueva,
+    que el plan pedía nombrar en la lista, no tienen nombre aprobado en el diccionario. Van al informe
+    con su propuesta: «El aviso de que falta git», «El arnés, apagado en esta carpeta» y «El aviso de
+    versión nueva». Hasta entonces, un interruptor que no se conoce se sigue nombrando por su
+    identificador, como antes.
+  - Mutación: tres, y mueren las tres.
+
+  Verde: `humo` 242.
+- **T038 ✓** 25-09 · `repair` ya no decide los frenos (C6):
+  - **medido** con el paquete, en el scratchpad: una carpeta de operaciones montada no tiene
+    frenos de RSC; con una habilidad borrada, `repair --yes` engancha los cuatro (`danger-guard`,
+    `gitmoji-guard`, `ship-guard` y `userprompt-gate`), y `sync` los quita.
+  - **rojo**: en `contrato.js`, «tras arreglar en una carpeta operations no quedan frenos de RSC»,
+    con ese mismo caso: montaje de verdad, una habilidad borrada y el paso `arreglarLoRoto` de la
+    barra. Quedaban los cuatro.
+  - **verde**: `rsc.arreglar()` y `rsc.arreglarSolo()` corren `sync` detrás de cada `repair` que
+    sale bien, así que manda el plan aceptado. Si el `sync` falla, se dice ese fallo. El freno propio
+    sobrevive a los dos: T035 lo mide.
+  - Mutación: quitar el `sync` es el rojo de arriba.
+
+  Verde: `contrato` 12, `humo` 242.
+- **T039 ✓** 25-09 · Verificación de F3, en `verifications/todo-cuadra-F3-2026-09-25.md`:
+  - la batería entera y `humo+`, en verde: `humo` 242, `humo+` 247, `contrato` 12, las tres
+    empresas, el diccionario y PowerShell;
+  - treinta mutaciones, y mueren todas (la E6, rehecha);
+  - pendientes con Jose, con su orden: T032 (2) y (3), el relevo en Windows y tres nombres del
+    diccionario.
+
+  Decisión 119, su resumen, el worklog `2026-09-25-todo-cuadra-F3-los-frenos.md`, la barra a 0.35.0
+  y el final de la 118 al día con su revisión.
