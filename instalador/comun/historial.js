@@ -221,8 +221,15 @@ function motorBinario(ejecutable) {
       // credencial y git no seguía. Con un pathspec que lo excluye, sin tocar el
       // `.gitignore` de nadie; una que ya estaba en git sigue, y eso lo decide
       // la persona.
-      const seguidos = new Set((await correr(dir, ['ls-files'])).salida.split('\n').map((l) => l.trim()).filter(Boolean));
+      //
+      // «Ya en git» es lo que está en la última copia, no en el índice (revisión
+      // de F6): un `.env` añadido con `git add` y sin copia todavía no lo está. Y
+      // el pathspec solo decide lo que se añade ahora: lo que ya estaba en el
+      // índice se saca de él, sin tocar el disco.
+      const enLaCopia = await correr(dir, ['ls-tree', '-r', '-z', '--name-only', 'HEAD']);
+      const seguidos = new Set(enLaCopia.codigo === 0 ? enLaCopia.salida.split('\0').filter(Boolean) : []);
       const fuera = excluir.filter((rel) => fs.existsSync(path.join(dir, rel)) && !seguidos.has(rel));
+      if (fuera.length) await exigir(dir, ['rm', '--cached', '-q', '--ignore-unmatch', '--', ...fuera]);
       await exigir(dir, ['add', '-A', '--', '.', ...fuera.map((rel) => `:(exclude,literal)${rel}`)]);
 
       // Se cuenta lo que va a entrar, no lo que cambió: si solo cambió lo que se

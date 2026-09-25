@@ -64,4 +64,26 @@ Treinta y cuatro, y mueren todas.
 
 ## Lo que encontró la revisión con ojos frescos
 
-Corre sobre el commit de F6.
+La hizo el revisor de seguridad, sobre una exportación de `f1dd1d6`, sin tocar el repositorio: la
+batería rápida y el diccionario, igual que lo dicho, y experimentos suyos con git de verdad, con un
+`.env` de Windows y con dos servidores locales para ver si la cabecera del token salía de su sitio (no
+sale: git la quita al seguir una redirección a otro sitio). Veredicto: *changes-needed*, con 1 crítico,
+2 importantes y 2 menores. Se comprobaron todos, y se aceptaron.
+
+| Hallazgo | Qué se hizo |
+|---|---|
+| **Crítico (F1).** El motor binario tomaba por «ya en git» lo que estaba en el índice (`git ls-files`), no en la última copia: un `.env` añadido con `git add` y sin copia todavía entraba en la copia sin decir nada, y el pathspec que excluye no lo saca del índice. El asistente puede hacer ese `git add`, y el guardado solo corre cada rato | «Ya en git» es lo que está en la última copia (`git ls-tree HEAD`), como en el motor de JavaScript, y lo que se deja fuera se saca también del índice, sin tocar el disco. Prueba nueva, con copia de antes y sin ninguna |
+| **Importante (F2).** El tapado sabía de los `.env` y no de los ficheros de acceso: un guion que hace `cat` de la cuenta de servicio de su herramienta la enseñaba entera | Se tapan también los campos secretos de los JSON de acceso y cada línea del cuerpo de una clave privada, en el `keys/` de cada herramienta y en los sueltos. Prueba nueva, con el JSON, la clave en claro y un `.pem` |
+| **Importante (F3).** Un `.env` con finales de Windows: bash deja el `\r` en el valor, la barra lo quitaba al leer, y la prueba fallaba sin que se supiera por qué | Al guardar una clave, el fichero queda con finales de Unix, y uno con finales de Windows se dice como «tiene caracteres que la prueba lee mal», también cuando la herramienta contesta que la clave no vale. Prueba nueva |
+| Menor. El plan decía `# executive-lab:inicio` y `fin`, y el código usa `start` y `end` | El plan, al día |
+| Menor. Una clave de menos de seis caracteres no se tapa | Se deja así, a sabiendas: está dicho en el código y en la decisión |
+
+### Mutación de los arreglos
+
+«Ya en git» por el índice · sin sacarla del índice · sin los ficheros de acceso · sin el cuerpo de la
+clave · sin los campos secretos · con los finales de Windows al guardar · sin verlos · un 401 tomado por
+clave que no vale. Ocho, y mueren todas. Una, la del cuerpo de la clave, sobrevivía, porque ese cuerpo ya
+salía por el campo `private_key`: se añadió un `.pem` a la prueba.
+
+La batería, con los arreglos y sobre F6: `humo` 290, `humo+` 297, `contrato` 12, las tres
+empresas, y el diccionario y PowerShell limpios.

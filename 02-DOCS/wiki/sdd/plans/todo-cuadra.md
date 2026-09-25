@@ -44,7 +44,7 @@ Las cumple cada tarea sin que se le diga, y son lo primero que mira quien revisa
   - nada suyo se borra, se mueve ni se renombra sin su sí;
   - su historial no se escribe;
   - en sus ficheros solo entran bloques aditivos entre marcas nuestras (`<!-- executive-lab:start -->` …
-    `<!-- executive-lab:end -->` en markdown, `# executive-lab:inicio` … `# executive-lab:fin` en
+    `<!-- executive-lab:end -->` en markdown, `# executive-lab:start` … `# executive-lab:end` en
     `.gitignore`), dichos antes.
 - **Determinista lo que se lee del disco (P5).** Lo que hay que entender se delega con un encargo de
   cuatro partes y `comprobar()` (decisión 89).

@@ -3838,3 +3838,8 @@ Pendiente, con Jose: una subida de verdad a GitHub con la cabecera, y una consul
 Windows sin Python.
 
 0.38.0. 287 comprobaciones, 294 con el arnés de verdad, y 12 de contrato.
+
+**Tras la revisión de F6** (26-09): «una que ya estaba en git» quiere decir en la última copia, no en el
+índice. Un fichero de claves añadido con `git add` y sin copia todavía también se deja fuera, y se saca
+del índice. Y se tapan también los ficheros de acceso, y un `.env` con finales de Windows se arregla al
+guardar una clave.

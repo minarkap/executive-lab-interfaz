@@ -227,3 +227,13 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
 - **La lista vive en un módulo de los raíles** (`no-entra-en-git.js`), que usan los raíles y la barra,
   como `sitios.js`: así los dos miran lo mismo.
 - **Sus marcas son comentarios de `.gitignore`**: una línea con `<!--` sería un patrón más.
+
+## 2026-09-26 · todo-cuadra · revisión de F6
+
+- **«Ya en git» es lo que está en la última copia, no en el índice**, en los dos motores (crítico): un
+  `.env` añadido con `git add` y sin copia todavía no está en git, y lo que se deja fuera se saca
+  también del índice. Así el guardado solo no puede meter una clave que otro dejó preparada.
+- **Se tapan también los ficheros de acceso**: los campos secretos de sus JSON y cada línea del cuerpo
+  de una clave privada, que salen igual la imprima un `cat` o un programa.
+- **Un `.env` queda con finales de Unix al guardar una clave**, y uno con finales de Windows se dice
+  como una clave que la prueba lee mal: bash deja el `\r` dentro del valor.

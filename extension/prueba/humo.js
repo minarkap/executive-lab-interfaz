@@ -271,6 +271,105 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     }
   });
 
+  await comprobar('una credencial que ya estaba en el índice tampoco entra en la copia', async () => {
+    // Revisión de F6, crítico. El motor binario tomaba por «ya en git» lo que
+    // estaba en el índice (\`git ls-files\`), no en la última copia: un \`.env\`
+    // añadido con \`git add\` y sin copia todavía —el asistente puede hacerlo, y
+    // el guardado solo corre cada rato— entraba en la copia sin decir nada. Y el
+    // pathspec que excluye no saca del índice lo que ya estaba en él.
+    const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
+    const guardar = cargar('guardar');
+    if (!(await guardar.hayGit())) return 'SALTADA: sin git';
+    const cp = require('node:child_process');
+    const enLaCopia = (d) => cp.execFileSync('git', ['ls-tree', '-r', '--name-only', 'HEAD'], { cwd: d, encoding: 'utf8' }).split('\n').filter(Boolean);
+    for (const conCopiaDeAntes of [true, false]) {
+      const d = fs.mkdtempSync(path.join(os.tmpdir(), 'en-el-indice-'));
+      assert.ok((await historial.iniciar(d)).ok);
+      if (conCopiaDeAntes) {
+        fs.writeFileSync(path.join(d, 'a.txt'), 'uno');
+        await historial.guardar(d, 'Primera');
+      }
+      fs.writeFileSync(path.join(d, '.env'), 'SECRETO=abcd1234efgh\n');
+      fs.writeFileSync(path.join(d, 'b.txt'), 'dos');
+      cp.execFileSync('git', ['add', '.env'], { cwd: d });
+      const hecho = await historial.guardar(d, 'Con la clave en el índice', { excluir: ['.env'], preferirBinario: true, recalcular: true });
+      assert.equal(hecho.ok, true, hecho.error);
+      assert.ok(!enLaCopia(d).includes('.env'), `${conCopiaDeAntes ? 'con' : 'sin'} copia de antes, una clave del índice entra en la copia`);
+      assert.deepEqual(hecho.excluidos, ['.env'], 'y no se dice');
+      assert.ok(fs.existsSync(path.join(d, '.env')), 'y se ha borrado del disco');
+    }
+    historial.queMotor({ recalcular: true, preferirBinario: true });
+    return 'fuera, con copia de antes y sin ella';
+  });
+
+  await comprobar('una consulta que imprime un fichero de acceso lo enseña tapado', async () => {
+    // Revisión de F6, importante. Se tapaban los valores de los \`.env\`, y no los
+    // de los ficheros de acceso: una cuenta de servicio de Google, que el propio
+    // inventario llama la credencial más peligrosa. Un guion que hace \`cat\` de la
+    // suya la enseñaba entera.
+    const fs2 = require('node:fs');
+    const carpeta = path.join(empresa, '01-TOOLS', 'HOLDED');
+    const readme = fs2.readFileSync(path.join(carpeta, 'README.md'), 'utf8');
+    const CUERPO = 'MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7';
+    const cuenta = {
+      type: 'service_account', project_id: 'mi-proyecto', private_key_id: 'b1c2d3e4f5a6b7c8d9e0',
+      private_key: `-----BEGIN PRIVATE KEY-----\n${CUERPO}\nOTRALINEADELACLAVEPRIVADA0123456789abcdef\n-----END PRIVATE KEY-----\n`,
+      client_email: 'robot@mi-proyecto.iam.gserviceaccount.com', client_secret: 'secreto-del-cliente-9876',
+    };
+    fs2.mkdirSync(path.join(carpeta, 'keys'), { recursive: true });
+    fs2.writeFileSync(path.join(carpeta, 'keys', 'service-account.json'), JSON.stringify(cuenta));
+    // Y un certificado, que no es JSON: su cuerpo, igual.
+    const DEL_PEM = 'MIIBVwIBADANBgkqhkiG9w0BAQEFAASCAUEwggE9AgEAAkEAq7';
+    fs2.writeFileSync(path.join(carpeta, 'keys', 'privada.pem'), `-----BEGIN RSA PRIVATE KEY-----\n${DEL_PEM}\n-----END RSA PRIVATE KEY-----\n`);
+    fs2.writeFileSync(path.join(carpeta, 'README.md'), `${readme}| \`ver_la_cuenta.sh\` | Enseña la cuenta | \`./ver_la_cuenta.sh\` |\n`);
+    fs2.writeFileSync(path.join(carpeta, 'ver_la_cuenta.sh'), '#!/usr/bin/env bash\ncat "$(dirname "$0")/keys/service-account.json"\necho\nnode -e "process.stdout.write(require(process.argv[1]).private_key)" "$(dirname "$0")/keys/service-account.json"\ncat "$(dirname "$0")/keys/privada.pem"\n', { mode: 0o755 });
+    try {
+      const hecho = await conexiones.ejecutar('HOLDED', 'ver_la_cuenta.sh');
+      assert.equal(hecho.ok, true, hecho.mensaje);
+      for (const trozo of [CUERPO, 'OTRALINEADELACLAVEPRIVADA0123456789abcdef', 'secreto-del-cliente-9876', 'b1c2d3e4f5a6b7c8d9e0', DEL_PEM]) {
+        assert.ok(!hecho.texto.includes(trozo), `se enseña «${trozo.slice(0, 20)}…» entero`);
+      }
+      assert.match(hecho.texto, /robot@mi-proyecto/, 'y se tapa lo que no es una clave');
+      return 'tapada, en JSON y en claro';
+    } finally {
+      fs2.writeFileSync(path.join(carpeta, 'README.md'), readme);
+      fs2.rmSync(path.join(carpeta, 'ver_la_cuenta.sh'));
+      fs2.rmSync(path.join(carpeta, 'keys'), { recursive: true, force: true });
+    }
+  });
+
+  await comprobar('un .env con finales de Windows se guarda y se diagnostica bien', async () => {
+    // Revisión de F6, importante. bash deja el \`\\r\` de un \`.env\` escrito en
+    // Windows dentro del valor, y la barra lo quitaba al leer: la prueba recibía
+    // «abc123\\r» y fallaba, y la barra no sabía decir por qué. Al guardar una
+    // clave, el fichero queda con finales de Unix; y uno con \`\\r\` se dice.
+    if (process.platform === 'win32') return 'SALTADA: bash de verdad';
+    const cp = require('node:child_process');
+    const fs2 = require('node:fs');
+    const carpeta = path.join(empresa, '01-TOOLS', 'WINDOWS');
+    fs2.mkdirSync(carpeta, { recursive: true });
+    try {
+      fs2.writeFileSync(path.join(carpeta, '.env'), 'WINDOWS_API_KEY=abc123\r\nWINDOWS_OTRA=1\r\n');
+      fs2.writeFileSync(path.join(carpeta, 'test_connection.sh'), '#!/usr/bin/env bash\nset -a; source "$(dirname "$0")/.env"; set +a\n[ "$WINDOWS_API_KEY" = "abc123" ] || { echo "no such file or directory: lo que fuera" >&2; exit 1; }\n', { mode: 0o755 });
+      const probado = await conexiones.probar('WINDOWS');
+      assert.equal(probado.ok, false);
+      assert.match(probado.mensaje, /tiene caracteres que la prueba lee mal/, `con finales de Windows, se dice otra cosa: ${probado.mensaje}`);
+      // Y si la herramienta contesta que la clave no vale, también es eso.
+      fs2.writeFileSync(path.join(carpeta, 'test_connection.sh'), '#!/usr/bin/env bash\nset -a; source "$(dirname "$0")/.env"; set +a\n[ "$WINDOWS_API_KEY" = "abc123" ] || { echo "HTTP 401 Unauthorized" >&2; exit 1; }\n', { mode: 0o755 });
+      assert.match((await conexiones.probar('WINDOWS')).mensaje, /tiene caracteres que la prueba lee mal/, 'con un 401, se dice que la clave no vale');
+
+      const hecho = conexiones.escribir('WINDOWS', 'WINDOWS_OTRA', '2');
+      assert.equal(hecho.ok, true, hecho.mensaje);
+      assert.ok(!fs2.readFileSync(path.join(carpeta, '.env'), 'utf8').includes('\r'), 'al guardar, se quedan los finales de Windows');
+      const llega = cp.execFileSync('bash', ['-c', 'set -a; source .env; printf %s "$WINDOWS_API_KEY"'], { cwd: carpeta, encoding: 'utf8' });
+      assert.equal(llega, 'abc123', 'y la prueba sigue recibiendo otra cosa');
+      assert.equal((await conexiones.probar('WINDOWS')).ok, true, 'y la prueba sigue fallando');
+      return 'dicho, y arreglado al guardar';
+    } finally {
+      fs2.rmSync(carpeta, { recursive: true, force: true });
+    }
+  });
+
   await comprobar('solo se ejecuta lo que la propia herramienta declara', async () => {
     // Esto corre scripts de verdad, sin pasar por el asistente y sin preguntar,
     // y vive en la carpeta de las credenciales. La lista blanca no sale del

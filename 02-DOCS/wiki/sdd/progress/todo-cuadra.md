@@ -811,3 +811,14 @@ Solo se añade.
   `humo` 287, `humo+` 294, `contrato` 12, las tres empresas enteras, diccionario limpio y PowerShell
   sin pegas. Treinta y cuatro mutaciones, y mueren todas. Decisión 122, worklog, 0.38.0 y commit. La
   revisión con ojos frescos de F6 corre sobre ese commit.
+- **Revisión de F6** 26-09 · Un crítico, dos importantes y dos menores, comprobados y aceptados
+  ([verificación de F6](../verifications/todo-cuadra-F6-2026-09-25.md#lo-que-encontró-la-revisión-con-ojos-frescos)).
+  En un commit propio, con F7 (T059–T062 hechos, T063 en rojo) apartado en un `stash`:
+  - el crítico: «ya en git» por la última copia y no por el índice, y lo que se deja fuera, sacado del
+    índice;
+  - los ficheros de acceso, tapados también;
+  - un `.env` con finales de Windows, arreglado al guardar y dicho al probar;
+  - el plan, con las marcas de verdad.
+  - Tres pruebas nuevas, en rojo primero; ocho mutaciones, y mueren todas.
+
+  Verde: `humo` 290, `humo+` 297, `contrato` 12.

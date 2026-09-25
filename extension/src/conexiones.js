@@ -418,7 +418,9 @@ function escribir(proveedorId, clave, valorBruto) {
   // «Guardar» y **no pasaba nada**, ni confirmación ni error. El silencio más
   // caro posible, y justo en la pantalla de las credenciales.
   try {
-    const lineas = fs.existsSync(base) ? fs.readFileSync(base, 'utf8').split('\n') : [];
+    // Con finales de Unix: bash deja el `\r` de un fichero escrito en Windows
+    // dentro de cada valor, y la prueba recibía otra clave (revisión de F6).
+    const lineas = fs.existsSync(base) ? fs.readFileSync(base, 'utf8').split(/\r?\n/) : [];
 
     let encontrada = false;
     const nuevas = lineas.map((linea) => {
@@ -511,11 +513,12 @@ const sinPython = (proveedorId, fichero, queEs) => ({
 // Se mira en el orden en que importa, y lo que no se reconoce no culpa a nadie.
 const ESTA_ROTA = [/traceback|syntaxerror|modulenotfounderror|command not found|no such file or directory|cannot find module|referenceerror/i,
   'La prueba de esta conexión está rota, y eso no es cosa tuya. Pídeselo al asistente.'];
+const NO_VALE = [/\b(401|403)\b|unauthorized|forbidden|invalid.{0,15}(key|token|credential)|authentication failed|bad credentials/i,
+  'La clave no vale. Sácala otra vez donde te la dieron y pégala entera.'];
 const PORQUE_FALLA = [
   [/getaddrinfo|could not resolve|name or service not known|enotfound|network is unreachable|no route to host|econnrefused|connection refused/i,
     'No he podido salir a internet. Mira que tengas conexión y vuelve a probar.'],
-  [/\b(401|403)\b|unauthorized|forbidden|invalid.{0,15}(key|token|credential)|authentication failed|bad credentials/i,
-    'La clave no vale. Sácala otra vez donde te la dieron y pégala entera.'],
+  NO_VALE,
   [/\b(429)\b|rate limit|too many requests/i,
     'La herramienta dice que le has pedido demasiadas cosas seguidas. Espera un rato y prueba otra vez.'],
   ESTA_ROTA,
@@ -533,6 +536,8 @@ function hayUnaClaveQueSeLeeMal(carpeta) {
     return false;
   }
   return texto.split('\n').some((linea) => {
+    // Un final de Windows: bash deja el `\r` dentro del valor (revisión de F6).
+    if (linea.endsWith('\r') && linea.includes('=') && !linea.trim().startsWith('#')) return true;
     const limpia = linea.trim();
     if (!limpia || limpia.startsWith('#') || !limpia.includes('=')) return false;
     const crudo = limpia.slice(limpia.indexOf('=') + 1).trim();
@@ -566,8 +571,9 @@ async function probar(proveedorId) {
   if (/tardado demasiado/i.test(error)) return { ok: false, mensaje: 'La herramienta no contesta. Prueba dentro de un rato.' };
 
   const porque = PORQUE_FALLA.find(([senal]) => senal.test(error));
-  // «Está rota» solo si sus claves se leen bien: si no, lo que falla es una clave.
-  if (porque === ESTA_ROTA && hayUnaClaveQueSeLeeMal(carpeta)) {
+  // «Está rota», «no vale» o no se sabe, solo si sus claves se leen bien: si no,
+  // lo que falla es una clave que bash lee de otra forma.
+  if ((porque === ESTA_ROTA || porque === NO_VALE || !porque) && hayUnaClaveQueSeLeeMal(carpeta)) {
     return { ok: false, mensaje: 'Una clave de esta conexión tiene caracteres que la prueba lee mal. Pégala otra vez y guárdala: ahora la guardo bien.' };
   }
   if (porque) return { ok: false, mensaje: porque[1] };
@@ -683,8 +689,63 @@ function valoresDeClaves() {
   try {
     for (const sitio of require('./sueltas').buscar()) deAqui(proyecto.ruta(sitio.donde));
   } catch { /* sin inventario, con las de las herramientas basta */ }
+
+  // Y los ficheros de acceso (revisión de F6): una cuenta de servicio o un
+  // certificado, en el `keys/` de su herramienta o sueltos. De cada uno, los
+  // campos que son secretos, y cada línea del cuerpo de una clave privada, que
+  // salen igual la imprima un `cat` del JSON (con `\n`) o en claro.
+  const ficheros = [];
+  for (const { id } of proveedores()) {
+    const llaves = carpetaDe(id) && path.join(carpetaDe(id), 'keys');
+    try {
+      for (const nombre of fs.readdirSync(llaves)) ficheros.push(path.join(llaves, nombre));
+    } catch { /* sin keys/ */ }
+  }
+  try {
+    for (const suelto of require('./sueltas').ficherosDeAcceso()) ficheros.push(proyecto.ruta(suelto.donde));
+  } catch { /* sin inventario, con los de las herramientas basta */ }
+  for (const fichero of ficheros) {
+    for (const valor of secretosDeUnFichero(fichero)) if (valor.length >= LARGO_DE_UNA_CLAVE) valores.add(valor);
+  }
   // Las largas primero: una clave puede llevar dentro otra más corta.
   return [...valores].sort((a, b) => b.length - a.length);
+}
+
+const CAMPOS_SECRETOS = /^(private_key|private_key_id|client_secret|refresh_token|access_token|token|password|api_key|secret)$/i;
+
+function cuerpoDeUnaClave(texto) {
+  const lineas = [];
+  for (const bloque of String(texto).matchAll(/-----BEGIN [^-]+-----([\s\S]*?)-----END [^-]+-----/g)) {
+    for (const linea of bloque[1].split(/\r?\n|\\n/)) {
+      const limpia = linea.trim();
+      if (limpia.length >= 16) lineas.push(limpia);
+    }
+  }
+  return lineas;
+}
+
+function secretosDeUnFichero(fichero) {
+  let texto;
+  try {
+    if (fs.statSync(fichero).size > 64 * 1024) return [];
+    texto = fs.readFileSync(fichero, 'utf8');
+  } catch {
+    return [];
+  }
+  const secretos = [...cuerpoDeUnaClave(texto)];
+  try {
+    const datos = JSON.parse(texto);
+    const recorrer = (cosa) => {
+      if (!cosa || typeof cosa !== 'object') return;
+      for (const [clave, valor] of Object.entries(cosa)) {
+        if (typeof valor === 'string' && CAMPOS_SECRETOS.test(clave)) {
+          secretos.push(valor, ...cuerpoDeUnaClave(valor));
+        } else if (valor && typeof valor === 'object') recorrer(valor);
+      }
+    };
+    recorrer(datos);
+  } catch { /* no es JSON: con el cuerpo de la clave basta */ }
+  return secretos;
 }
 
 function taparClaves(texto, valores = valoresDeClaves()) {
