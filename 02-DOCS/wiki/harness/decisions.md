@@ -598,3 +598,18 @@ Decisión 123 en `docs/decisiones.md`. Fase F7 de la cadena SDD `todo-cuadra`.
   preguntas sin contestar, por fin; y «Listo» solo cuando el arnés también lo daría por listo.
 
 0.39.0. 297 comprobaciones, 304 con el arnés de verdad, y 13 de contrato.
+
+## Los papeles dicen lo mismo que la barra — 26 de septiembre de 2026
+
+Decisión 124 en `docs/decisiones.md`. Fase F8 de la cadena SDD `todo-cuadra`.
+
+- **La pantalla dice cuántas preguntas hay**, contadas por `rumbo`, y los documentos ya no llevan números
+  que se quedan viejos.
+- **Una sola lista de palabras prohibidas**, que vigila también los nombres, el catálogo y los
+  instaladores.
+- **Nada en git está a la vez ignorado**, y la descripción de la confianza dice quién la apaga.
+- **Quien manda a «Algo va mal» dice qué hacer con el código**: pásaselo a tu tutor.
+- **Seis cosas más para Eric**, cada una con fichero y línea y un borrador de issue.
+- **Volver a montar ya no borra lo que el asistente apuntó en el perfil.**
+
+0.40.0. 314 comprobaciones, 321 con el arnés de verdad, y 13 de contrato.

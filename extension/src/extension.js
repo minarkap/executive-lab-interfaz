@@ -350,7 +350,7 @@ ${cabecera}
       tipo: 'aviso',
       texto: ok
         ? `${nombre} ya está puesta. Se pide con ${saberes.comoSePide(id)}.`
-        : 'No he podido añadirla. Prueba con "Algo va mal".',
+        : 'No he podido añadirla. Pulsa «Algo va mal» y pásale el código a tu tutor.',
       malo: !ok,
     });
   }
@@ -456,7 +456,7 @@ ${cabecera}
     } catch (error) {
       // Nada de excepciones en crudo: el alumno ve una frase y una salida.
       this.salida.appendLine(`[${mensaje.tipo}] ${error.stack || error.message}`);
-      this.enviar({ tipo: 'aviso', texto: 'Algo no ha ido bien. Prueba con "Algo va mal".', malo: true });
+      this.enviar({ tipo: 'aviso', texto: 'Algo no ha ido bien. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
     }
   }
 
@@ -468,7 +468,7 @@ ${cabecera}
     // apunta con nombre y apellidos, y se dice que algo va mal.
     if (typeof prompt !== 'string' || !prompt.trim()) {
       this.salida.appendLine(`[pedir] un botón ha mandado un texto que no vale: ${JSON.stringify(prompt)}`); // diccionario: interno
-      this.enviar({ tipo: 'aviso', texto: 'Ese botón está mal montado. Prueba con "Algo va mal".', malo: true });
+      this.enviar({ tipo: 'aviso', texto: 'Ese botón está mal montado. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
       return;
     }
 
@@ -825,7 +825,7 @@ ${cabecera}
     this.salida.appendLine(`[railes] al día: ${ok}${ajena ? ' (historial de alguien: lo suyo, pendiente)' : ''}`); // diccionario: interno
     await this.refrescar(true);
     if (!ok) {
-      this.enviar({ tipo: 'aviso', texto: 'No he podido ponerlo al día. Prueba con "Algo va mal".', malo: true });
+      this.enviar({ tipo: 'aviso', texto: 'No he podido ponerlo al día. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
     } else if (!callado) {
       this.enviar({ tipo: 'aviso', texto: 'Ya está al día. El asistente lee las reglas de ahora.' });
     }

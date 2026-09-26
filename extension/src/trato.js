@@ -122,7 +122,7 @@ function escribir(claves, valor) {
   try {
     fs.writeFileSync(ruta, nuevo);
   } catch {
-    return { ok: false, mensaje: 'No he podido guardarlo. Prueba con "Algo va mal".' };
+    return { ok: false, mensaje: 'No he podido guardarlo. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
   }
   return { ok: true };
 }

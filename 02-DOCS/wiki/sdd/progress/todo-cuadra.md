@@ -898,6 +898,78 @@ Solo se añade.
   `humo` 297, `humo+` 304, `contrato` 13, las tres empresas enteras, diccionario limpio y PowerShell
   sin pegas. Veintiuna mutaciones, y mueren todas. Decisión 123, worklog, 0.39.0 y commit. La revisión
   con ojos frescos de F7 corre sobre ese commit.
+- **T067 ✓** 26-09 · La documentación, al día (H1, A8):
+  - **rojo**: «el recuento de preguntas sale de rumbo», que mira también que el README, las notas de
+    `publicar.sh` y el README de la extensión no digan «cinco preguntas» ni «0.9.1».
+  - **verde**: `rumbo.cuantasPreguntas` cuenta cuántas veces se pregunta algo al preparar (de nueve a
+    doce en una carpeta vacía, según las respuestas), y la brújula lo dice en vez de «una sola cosa».
+    Los documentos ya no llevan ni el número de preguntas ni el de la release; dicen que no hace falta
+    instalar Node, con el relevo, y ya no mandan borrar `.rsc.json`. La prueba que esperaba «Puedo
+    montar tu empresa» (que además chocaba con la regla de no llamarlo empresa) espera la frase nueva.
+  - **Sin tocar, para Jose**: la versión del `.iss` y del `Info.plist` del instalador de Mac, y lo que
+    dicen `probar.ps1` y `COMO-PROBARLO.md` de MinGit y del arnés preinstalado. Son del instalador,
+    que se firma, y lo de Windows se mide allí.
+
+  Verde: `humo` 298.
+- **T068 ✓** 26-09 · Una sola lista de palabras prohibidas, y la prueba que salía siempre «SALTADA» (H2):
+  - **rojo**: «el comprobador del diccionario vigila también los nombres, el catálogo y los
+    instaladores». Siembra palabras en una copia: en `nombres.json`, `capacidades.json`, la ventana
+    de Mac, `instalar.js` y el asistente de Windows. Y siembra también lo que no es pantalla: una
+    nota `_…` de la tabla, el registro (`anotar`) y los comentarios de cada lenguaje. La prueba del
+    catálogo deja su lista propia de diez palabras.
+  - **verde**:
+    - El comprobador revisa también las dos tablas: solo los campos que se pintan, y los nombres de
+      los lenguajes.
+    - Revisa los pasos de `instalar.js`, sin lo que va al registro.
+    - Lee entera la ventana de Mac, porque un diálogo ocupa varias líneas.
+    - Revisa el asistente de Windows: `[Messages]`, `[CustomMessages]` y lo que va entre comillas.
+    - «Node.js» pasa como nombre propio, como dice la decisión; «node» a secas, no.
+    - Exporta `revisarTodo(base)` y `tieneUnaProhibida(texto)`, y la prueba del catálogo usa esa lista.
+    - La prueba de las capacidades mira el catálogo que viaja dentro del `.vsix`, y no el del
+      instalador, que solo existe al construirlo: ya no sale «SALTADA» (246 capacidades, todas reales).
+  - Como guion: «27 palabras prohibidas · 54 ficheros y 700 rótulos revisados», limpio.
+  - Mutación: quince, y mueren todas. Tres se repitieron: la primera vez las cortó el reposo del Mac
+    de madrugada, no la prueba (37 s de CPU en una hora y media de reloj).
+  - Sigue saltando, a propósito, la del motor de JavaScript de las copias: salta donde hay git.
+
+  Verde: `humo` 299.
+- **T071 ✓** 26-09 · Seis cosas más para Eric (H5):
+  - `docs/para-rsc.md` pasa de tres a nueve. Cada una va contra el paquete 2.0.5, con fichero y línea,
+    qué se ve, el rodeo que hemos puesto y lo que parece que falta:
+    - el freno que `init` promete y solo se engancha con SDD (C1);
+    - `repair` sin la política del plan (C6);
+    - `onboard`, que sustituye la habilidad del usuario con el mismo nombre (B4);
+    - el dial con dos nombres (D5);
+    - `doctor`, que sale siempre con 0 (G3);
+    - el perfil reescrito entero (B11).
+  - Al final, un borrador de issue por cada una, en inglés como el repositorio, para que Jose las abra.
+    No están miradas contra la 2.0.15.
+  - Al escribir la novena salió un hueco nuestro. Al volver a montar, la barra repone el dial, los
+    asistentes y lo suyo del perfil, pero no el cuerpo que va escribiendo `init`, que se pierde al
+    subir de versión. Va como T078.
+- **T069 ✓** 26-09 · Nada en git que esté a la vez ignorado, y la descripción de la confianza, verdadera (H3):
+  - **rojo**: «nada de lo que está en git está a la vez ignorado», que pasa `git ls-files -ci
+    --exclude-standard` en el repositorio. Salían cuatro comandos de RSC (`checkpoint`, `learn`,
+    `resume-session` y `save-session`): estaban en git desde antes de que el `.gitignore` los nombrara.
+  - **verde**: `git rm --cached` de los cuatro, que siguen en disco. `git ls-files -ci` sale vacío.
+  - La descripción de `untrustedWorkspaces` decía que el disfraz apagaba la confianza y que la barra
+    solo hace cosas al pulsar un botón. Las dos cosas eran falsas. La confianza la apaga el instalador;
+    la extensión no la toca, porque es un ajuste de todo el programa. Y al abrirse, la barra repone
+    sus raíles y sus enganches, y guarda sola si está puesto. La descripción lo dice así.
+  - Mutación: volver a meter uno de los cuatro en git, y la prueba se pone roja.
+
+  Verde: `humo` 300.
+- **T070 ✓** 26-09 · Quien manda a «Algo va mal» dice qué hacer con el código (H4):
+  - **rojo**: «quien manda a «Algo va mal» dice también qué hacer después». Salían trece «Prueba con
+    "Algo va mal"» y dos «Pulsa "Algo va mal"» sin el paso siguiente (`arrancar.js` y `guardar.js`).
+  - **verde**: los quince dicen «Pulsa «Algo va mal» y pásale el código a tu tutor.», la frase del
+    diccionario. Y la marca descartada ya no dice «Prueba con uno más claro»: dice «Hace falta uno más
+    claro o más oscuro», así que `grep -rn "Prueba con" extension/src extension/media/panel.js` sale
+    vacío. Las dos frases entran en el diccionario.
+  - Mutación: devolver un mensaje a «Prueba con» y otro a «Pulsa» sin el paso siguiente, y la prueba
+    se pone roja con los dos.
+
+  Verde: `humo` 301.
 - **Revisión de F7** 26-09 · Tres importantes y nueve menores, comprobados y aceptados
   ([verificación de F7](../verifications/todo-cuadra-F7-2026-09-26.md#lo-que-encontró-la-revisión-con-ojos-frescos)).
   El revisor se cortó tres veces por la red, con el Mac dormido de madrugada, y se retomó donde estaba.
@@ -915,3 +987,29 @@ Solo se añade.
     añadió y la mata.
 
   Verde: `humo` 308, `humo+` 315, `contrato` 13.
+- **T078 ✓** 26-09 · Volver a montar ya no borra lo que el asistente apuntó en el perfil (B11):
+  - Salió al escribir T071. RSC reescribe el perfil entero al aceptar un plan: tres campos en la
+    cabecera, «# User profile» y «Goal:». Lo que `init` va apuntando ahí se perdía al subir de versión.
+  - **rojo**: «volver a montar no borra lo que el asistente apuntó en el perfil» y «lo devuelto al
+    perfil lleva el dial que se acaba de elegir». Van con un RSC fingido que reescribe el perfil como el
+    de verdad, y acaban una en «listo» y otra en «suelo a medias».
+  - **verde**: se lee el perfil antes de montar y se devuelve después. Vuelven los campos de la
+    cabecera que RSC ya no escribe y el cuerpo, sin el título ni el objetivo, que son del plan nuevo. El
+    dial y las palabras de lo devuelto quedan como los acaba de escribir RSC, porque el asistente y
+    «Cómo te habla» leen primero `accompaniment_level`.
+  - Por el camino, dos correcciones:
+    - la guarda contra duplicados comparaba lo devuelto ya con el dial nuevo, y un RSC que conserve el
+      cuerpo lo traería con el de antes: se compara tal cual estaba;
+    - la prueba miraba `language: es`, que escriben también los raíles, y por eso la mutación «sin la
+      cabecera» seguía verde: ahora mira `sector`, que no escribe nadie más.
+  - Mutación: ocho, y mueren todas.
+
+  Verde: `humo` 314.
+- **T067, mutación** 26-09 · Cuatro: el recuento fijo, sin la web en la cuenta, la brújula con la frase
+  de antes y el README con el número. La de la web sobrevivía, porque la prueba solo miraba que la
+  pantalla y `rumbo` dijeran lo mismo. Se fijó el recuento de una carpeta vacía (de 9 a 12), y mueren
+  las cuatro.
+- **T072 ✓** 26-09 · Verificación de F8 ([verificación](../verifications/todo-cuadra-F8-2026-09-26.md)):
+  `humo` 314, `humo+` 321, `contrato` 13, las tres empresas enteras, diccionario limpio (54 ficheros y
+  709 rótulos) y PowerShell sin pegas. Treinta mutaciones, y mueren todas. Decisión 124, worklog, 0.40.0
+  y commit. La revisión con ojos frescos de F8 corre sobre ese commit.

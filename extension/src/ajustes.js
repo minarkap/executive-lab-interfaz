@@ -64,7 +64,7 @@ function ponerPermiso(cual) {
     fs.mkdirSync(path.dirname(ruta), { recursive: true });
     fs.writeFileSync(ruta, `${JSON.stringify(nuevo, null, 2)}\n`);
   } catch {
-    return { ok: false, mensaje: 'No he podido guardarlo. Prueba con "Algo va mal".' };
+    return { ok: false, mensaje: 'No he podido guardarlo. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
   }
   return { ok: true, mensaje: 'Hecho. Se nota en la próxima conversación que abras.' };
 }
@@ -92,7 +92,7 @@ async function ponerCadaCuanto(horas) {
     // Por carpeta, no global: cada arnés lleva su ritmo.
     await vscode.workspace.getConfiguration().update(CLAVE_GUARDADO, cual, vscode.ConfigurationTarget.Workspace);
   } catch {
-    return { ok: false, mensaje: 'No he podido guardarlo. Prueba con "Algo va mal".' };
+    return { ok: false, mensaje: 'No he podido guardarlo. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
   }
   return { ok: true, mensaje: cual ? 'Hecho. A partir de ahora guarda solo.' : 'Hecho. Solo guardará cuando lo pidas.' };
 }

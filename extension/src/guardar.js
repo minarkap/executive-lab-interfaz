@@ -61,7 +61,7 @@ function haceCuanto(iso) {
   return `el ${new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' }).format(entonces)}`;
 }
 
-const NO_PUEDO = 'No puedo guardar copias en este ordenador. Pulsa "Algo va mal".';
+const NO_PUEDO = 'No puedo guardar copias en este ordenador. Pulsa «Algo va mal» y pásale el código a tu tutor.';
 const SIN_PIEZA = 'Falta una pieza para poder guardar. Puedo ponerla yo.';
 
 // Esto volvió a preguntar lo que preguntaba al principio: si hay git. Durante
@@ -170,7 +170,7 @@ async function volverA(id) {
   if (!movido.ok) {
     return movido.error === 'identificador con mala pinta'
       ? { ok: false, mensaje: 'Esa copia no existe.' }
-      : { ok: false, mensaje: 'No he podido volver atrás. Prueba con "Algo va mal".' };
+      : { ok: false, mensaje: 'No he podido volver atrás. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
   }
 
   const etiqueta = movido.cuando ? haceCuanto(movido.cuando) : 'entonces';

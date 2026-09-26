@@ -211,7 +211,7 @@ function leerArticulo(rutaRelativa) {
   try {
     texto = fs.readFileSync(completa, 'utf8');
   } catch {
-    return { ok: false, mensaje: 'No he podido abrirlo. Prueba con "Algo va mal".' };
+    return { ok: false, mensaje: 'No he podido abrirlo. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
   }
 
   // Fuera la cabecera técnica, y fuera el título repetido: ya va de rótulo.
@@ -428,7 +428,7 @@ function guardarSoltados(ficheros = []) {
     }
   }
 
-  if (!cuantos) return { ok: false, mensaje: 'No he podido guardar ninguno. Prueba con "Algo va mal".' };
+  if (!cuantos) return { ok: false, mensaje: 'No he podido guardar ninguno. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
   return {
     ok: true,
     cuantos,
@@ -461,7 +461,7 @@ async function anadirDocumentos() {
     }
   }
 
-  if (!cuantos) return { ok: false, mensaje: 'No he podido copiar ninguno. Prueba con "Algo va mal".' };
+  if (!cuantos) return { ok: false, mensaje: 'No he podido copiar ninguno. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
   return {
     ok: true,
     cuantos,

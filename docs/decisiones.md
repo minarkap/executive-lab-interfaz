@@ -3886,3 +3886,51 @@ la barra decía «Listo» con la plantilla de conexiones a medias.
   se exige la de la 2.0.5.
 - Un enlace a nada no es una habilidad puesta, y un comando del alumno con nombre de la tabla sigue
   siendo suyo.
+
+## 124. Los papeles dicen lo mismo que la barra
+
+**Fecha:** 26 de septiembre de 2026 · **Estado:** hecho · **Cadena SDD** `todo-cuadra`, fase F8
+
+La documentación contaba cinco preguntas y la versión 0.9.1, y la pantalla principal prometía «una sola
+cosa». Había dos listas de palabras prohibidas, y una prueba salía siempre «SALTADA». Cuatro comandos
+de RSC estaban en git y a la vez ignorados, y el manifiesto decía que el disfraz apagaba la confianza.
+Quince mensajes mandaban a «Algo va mal» sin decir qué hacer con el código. A Eric le faltaban seis
+cosas de RSC por contar. Y volver a montar borraba lo que el asistente había apuntado en el perfil.
+
+### Lo que se cuenta (A8, H1)
+
+- **El número de preguntas lo calcula `rumbo`**: de nueve a doce en una carpeta vacía, según lo que se
+  conteste. Es lo que dice la pantalla principal.
+- **Los documentos no llevan números que se quedan viejos**: ni el de preguntas ni el de la release. La
+  versión de la barra es la de `extension/package.json`.
+- Dicen que no hace falta instalar Node, con el relevo (decisión 119), y ya no mandan borrar
+  `.rsc.json`.
+- Lo del instalador que se firma (`.iss`, `Info.plist`, `probar.ps1`, `COMO-PROBARLO.md`) queda para
+  Jose.
+
+### Una sola lista, y lo que vigila (H2)
+
+- **El comprobador del diccionario es la única lista.** La prueba del catálogo la usa y deja la suya.
+- **Vigila también las tablas y los instaladores**: `nombres.json`, `capacidades.json`, los pasos de
+  `instalar.js` (sin lo que va al registro), la ventana de Mac y el asistente de Windows.
+- «Node.js» es un nombre propio y pasa; «node» a secas, no.
+- La prueba de las capacidades mira el catálogo que viaja en el `.vsix`, y deja de saltar.
+
+### El repositorio y los avisos (H3, H4)
+
+- **Nada en git está a la vez ignorado**, y una prueba lo vigila.
+- **La descripción de la confianza dice la verdad**: la apaga el instalador, no la barra, y al abrirse
+  la barra solo retoca lo suyo.
+- **Quien manda a «Algo va mal» dice qué hacer después**: «Pulsa «Algo va mal» y pásale el código a tu
+  tutor.». Una prueba lo exige en cada mensaje.
+
+### Para Eric, y un hueco nuestro (H5, B11)
+
+- **`docs/para-rsc.md` suma seis**, cada una con fichero y línea contra la 2.0.5, el rodeo que hemos
+  puesto y un borrador de issue en inglés para que Jose la abra.
+- **Volver a montar ya no borra el perfil.** Al escribir la sexta salió un hueco nuestro: RSC reescribe
+  el perfil entero al aceptar un plan, y lo que `init` apunta ahí se perdía al subir de versión. Ahora
+  se devuelven la cabecera que RSC no escribe y el cuerpo, con el dial y las palabras al día. Si algún
+  día RSC deja de borrarlo, no se duplica.
+
+0.40.0. 314 comprobaciones, 321 con el arnés de verdad, y 13 de contrato.

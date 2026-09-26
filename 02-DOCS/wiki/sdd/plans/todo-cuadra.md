@@ -544,7 +544,8 @@ pasa. Y la verificación anota que se pone roja otra vez si se quita el código.
 | T069 |  | Sacar de git los cuatro comandos de RSC, y decir la verdad en `untrustedWorkspaces` (8.3) | `git ls-files -ci --exclude-standard` vacío | T014 | H3 |
 | T070 |  | Reescribir los doce «Prueba con "Algo va mal"» (8.4) | `grep -rn "Prueba con" extension/src extension/media/panel.js` vacío | T005 | H4 |
 | T071 |  | Contarle a Eric las seis cosas de RSC (8.5) | `docs/para-rsc.md` las tiene con fichero y línea; la issue queda preparada para que la abra Jose | T039 | H5 |
-| T072 |  | Verificar F8, y escribir la decisión 124, el worklog, la versión y el commit | `batería` en verde | T067–T071 | H1–H6 |
+| T078 |  | Volver a montar sin borrar lo que el asistente apuntó en el perfil: la cabecera que RSC no escribe y el cuerpo, con el dial al día (B11; salió al escribir T071, añadida el 26-09) | `humo`: «volver a montar no borra lo que el asistente apuntó en el perfil» y «lo devuelto lleva el dial que se acaba de elegir» en verde | T071 | B11 |
+| T072 |  | Verificar F8, y escribir la decisión 124, el worklog, la versión y el commit | `batería` en verde | T067–T071, T078 | H1–H6 |
 
 ### F9 · Cierre
 

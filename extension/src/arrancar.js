@@ -300,6 +300,7 @@ const CUANDO_FALLO = {
 // va a tocar, y se pregunta por lo que se llame igual que algo del arnés (B4).
 async function montarElArnes(respuestas, { ajenaCarpeta = false, reciboAnterior = null } = {}) {
   const flags = flagsDelMontaje(respuestas);
+  const perfilAntes = leerElPerfil();
   const pedirElPlan = async () => {
     const previo = await rsc.correr(['onboard', ...flags], { tiempoMaximo: 600000 });
     return { previo, plan: rsc.leerElPlanEnSeco(previo.salida) };
@@ -350,6 +351,7 @@ async function montarElArnes(respuestas, { ajenaCarpeta = false, reciboAnterior 
   // tiene que ser la que se enseñó y la que RSC dejó en el recibo.
   const recibo = (proyecto.declaracion() || {}).onboarding || {};
   const como = rsc.comoAcaboElMontaje(aplicado, { planId: huella, aceptado: recibo.acceptedPlanId });
+  if (como.forma === 'Listo' || como.forma === 'SueloAMedias') devolverAlPerfil(perfilAntes);
   if (como.forma === 'Listo') return { ok: true, forma: 'Listo', renombrados };
   if (como.forma === 'SueloAMedias') return { ok: true, forma: 'SueloAMedias', faltan: como.faltan, renombrados };
   return { ok: false, forma: como.forma, detalle: loQuePaso(CUANDO_FALLO[como.forma] || 'al aplicar el plan', aplicado) };
@@ -539,6 +541,63 @@ function ponerEnElPerfil(campos) {
   }
 
   fs.writeFileSync(perfil, texto.replace(bloque[0], () => `---\n${cabecera}\n---`));
+  return true;
+}
+
+// RSC reescribe el perfil entero al aceptar un plan (`onboarding-apply.js:69,76-81`):
+// tres campos en la cabecera y, debajo, «# User profile» y «Goal:». Lo que el
+// asistente fue apuntando ahí al conocer a la persona —`init` lo pide así— se
+// perdía cada vez que se volvía a montar, que es lo que pasa al subir de
+// versión (T078). Se lee antes de montar y se devuelve después: los campos de
+// la cabecera que RSC ya no escribe, y el cuerpo sin su título ni su objetivo,
+// que son del plan nuevo. El dial y las palabras de lo devuelto quedan como
+// los acaba de escribir RSC: el asistente y «Cómo te habla» leen primero
+// `accompaniment_level`, y se quedarían con el de antes.
+function leerElPerfil() {
+  const perfil = proyecto.ruta(...identidad.PERFIL);
+  try {
+    return perfil ? fs.readFileSync(perfil, 'utf8') : null;
+  } catch {
+    return null;
+  }
+}
+
+const partesDelPerfil = (texto) => {
+  const bloque = texto.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+  return bloque ? { cabecera: bloque[1], cuerpo: texto.slice(bloque[0].length) } : { cabecera: null, cuerpo: texto };
+};
+const claveDe = (linea) => (linea.match(/^([A-Za-z_][\w-]*)\s*:/) || [])[1];
+
+function devolverAlPerfil(antes) {
+  const ahora = leerElPerfil();
+  if (!antes || !ahora || ahora === antes) return false;
+  const viejo = partesDelPerfil(antes);
+  const nuevo = partesDelPerfil(ahora);
+
+  const suValor = (clave) => ((nuevo.cabecera || '').match(new RegExp(`^${clave}\\s*:\\s*(.+)$`, 'm')) || [])[1];
+  const alDia = { accompaniment_level: suValor('accompaniment'), technical_level: suValor('technical_level') };
+  const conLoDeHoy = (texto) => texto.replace(
+    /^(\s*-?\s*)(accompaniment_level|technical_level)(\s*:\s*)([^<\n]*?)(\s*(?:<!--.*)?)$/gm,
+    (todo, delante, clave, dos, valor, cola) => (alDia[clave] ? `${delante}${clave}${dos}${alDia[clave].trim()}${cola}` : todo),
+  );
+
+  let cabecera = nuevo.cabecera;
+  if (cabecera !== null && viejo.cabecera) {
+    const tiene = new Set(cabecera.split(/\r?\n/).map(claveDe).filter(Boolean));
+    const faltan = viejo.cabecera.split(/\r?\n/).filter((l) => claveDe(l) && !tiene.has(claveDe(l)));
+    if (faltan.length) cabecera = `${cabecera}\n${conLoDeHoy(faltan.join('\n'))}`;
+  }
+
+  // Lo suyo se busca tal cual estaba: un RSC que ya conserve el cuerpo lo trae
+  // con el dial de antes, y buscarlo ya al día lo duplicaría.
+  const suyo = viejo.cuerpo.replace(/^#\s+User profile\s*$/im, '').replace(/^Goal:.*$/m, '').trim();
+  let cuerpo = nuevo.cuerpo;
+  if (suyo && !cuerpo.includes(suyo)) cuerpo = `${cuerpo.replace(/\s*$/, '')}\n\n${suyo}\n`;
+  cuerpo = conLoDeHoy(cuerpo);
+
+  const escrito = cabecera === null ? cuerpo : `---\n${cabecera}\n---\n${cuerpo}`;
+  if (escrito === ahora) return false;
+  fs.writeFileSync(proyecto.ruta(...identidad.PERFIL), escrito);
   return true;
 }
 
@@ -935,7 +994,7 @@ async function elCamino(contexto, salida) {
   if (plan.rama === 'reciboRoto') {
     return {
       ok: false,
-      mensaje: 'El fichero que dice cómo está montado esto no se puede leer. No voy a tocar nada. Pulsa "Algo va mal".',
+      mensaje: 'El fichero que dice cómo está montado esto no se puede leer. No voy a tocar nada. Pulsa «Algo va mal» y pásale el código a tu tutor.',
     };
   }
 

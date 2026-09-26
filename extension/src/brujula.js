@@ -180,7 +180,8 @@ async function calcular() {
       return {
         ...comun,
         donde: 'Aquí todavía no hay nada',
-        aviso: 'Puedo montar tu empresa en esta carpeta. Tarda unos minutos y te pregunto una sola cosa.',
+        // Cuántas se preguntan de verdad, contadas por `rumbo` (A8): prometía una.
+        aviso: (({ min, max }) => `Puedo preparar esta carpeta. Tarda unos minutos, y antes te hago entre ${min} y ${max} preguntas, de una en una.`)(rumbo.cuantasPreguntas({ recibo: null, railes: null })),
       };
     }
 

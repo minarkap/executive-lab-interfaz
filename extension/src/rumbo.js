@@ -306,4 +306,22 @@ function comoLaDeLaClase(parte) {
   };
 }
 
-module.exports = { elegirRama, comoLaDeLaClase, loQueFaltaPorPreguntar, PASOS, PREGUNTAS, VALORES, CON_TAMANO };
+// Cuántas veces se le pregunta algo a la persona al preparar la carpeta, como
+// mínimo y como máximo (A8). La brújula prometía «una sola cosa», y el arranque
+// pregunta más, y según las respuestas: el asistente, solo con los dos
+// instalados; qué va a construir, solo si hay algo que construir; el objetivo,
+// y otra si escribe el suyo; los dos nombres; y la web, que se puede dejar.
+const CUANTAS_VECES = {
+  asistente: [0, 1], deQueVa: [1, 1], alcance: [1, 1], personas: [1, 1], queConstruir: [0, 1],
+  objetivo: [1, 2], nivel: [1, 1], dial: [1, 1], nombres: [2, 2], web: [1, 1],
+};
+
+function cuantasPreguntas(parte) {
+  const lista = [...loQueFaltaPorPreguntar(parte), ...(parte && parte.recibo ? [] : ['web'])];
+  return lista.reduce((cuenta, id) => {
+    const [min, max] = CUANTAS_VECES[id] || [1, 1];
+    return { min: cuenta.min + min, max: cuenta.max + max };
+  }, { min: 0, max: 0 });
+}
+
+module.exports = { elegirRama, comoLaDeLaClase, loQueFaltaPorPreguntar, cuantasPreguntas, PASOS, PREGUNTAS, VALORES, CON_TAMANO };

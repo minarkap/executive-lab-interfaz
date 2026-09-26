@@ -256,3 +256,17 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
   antes, por la tabla.
 - **La observación de `entorno.node()` no se toca**: todos los instaladores han llevado Node v24, y RSC
   pide ≥18.
+
+## 2026-09-26 · todo-cuadra · F8
+
+- **«Node.js» pasa el comprobador como nombre propio**, como dice la decisión de los nombres de
+  programas; «node» a secas sigue prohibido. Es el único nombre propio que choca con la lista.
+- **De los instaladores se revisa lo que se ve, sin tocarlos**, porque van firmados. De `instalar.js`
+  se salta lo que va al registro (`anotar`), que es el informe para el tutor. La ventana de Mac se lee
+  entera, porque un diálogo ocupa varias líneas. Del asistente de Windows se leen `[Messages]` y
+  `[CustomMessages]` (`Clave=Texto`) y lo que va entre comillas, sin los comentarios de Inno.
+- **La marca descartada ya no dice «Prueba con»**, para que la búsqueda del «hecho cuando» salga vacía:
+  dice «Hace falta uno más claro o más oscuro», que significa lo mismo.
+- **T078 entra en F8**, aunque es de B11: salió al escribir T071 y comparte la causa, que RSC reescribe
+  el perfil entero. Lo devuelto va con el dial y las palabras que acaba de escribir RSC, y la guarda
+  contra duplicados compara lo de antes tal cual.

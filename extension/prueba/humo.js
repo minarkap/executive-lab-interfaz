@@ -1012,6 +1012,31 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return donde;
   });
 
+  await comprobar('el recuento de preguntas sale de rumbo', async () => {
+    // A8, H1 y T067. La brújula prometía «te pregunto una sola cosa», y el README
+    // y las notas de publicar decían cinco: el arranque pregunta más, y según las
+    // respuestas. El número sale de las preguntas de `rumbo`, y los documentos no
+    // llevan uno que se quede viejo.
+    const vacia = fs.mkdtempSync(path.join(os.tmpdir(), 'recuento-'));
+    vscode.guion.raiz = vacia;
+    try {
+      const { min, max } = cargar('rumbo').cuantasPreguntas({ recibo: null, railes: null });
+      assert.ok(min > 1 && max >= min, `un recuento que no cuadra: ${min}–${max}`);
+      // Fijado: si cambian las preguntas del arranque, cambia lo que se promete en pantalla.
+      assert.deepEqual({ min, max }, { min: 9, max: 12 }, 'en una carpeta vacía se pregunta de 9 a 12 veces');
+      const estado = await cargar('brujula').estado({ fresco: true });
+      assert.doesNotMatch(estado.aviso, /una sola cosa/, 'se promete una sola pregunta');
+      assert.match(estado.aviso, new RegExp(`entre ${min} y ${max} preguntas`), `no dice cuántas: ${estado.aviso}`);
+      for (const doc of ['README.md', 'publicar.sh', path.join('extension', 'README.md')]) {
+        const texto = fs.readFileSync(path.join(RAIZ, '..', doc), 'utf8');
+        assert.doesNotMatch(texto, /cinco preguntas|0\.9\.1/, `${doc} dice un número de otro día`);
+      }
+      return estado.aviso;
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+  });
+
   await comprobar('la brújula dice lo último que aprendió', async () => {
     const estado = await brujula.estado({ fresco: true });
     assert.equal(estado.listo, true);
@@ -1907,6 +1932,18 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
 
   // ---------------------------------------------- que no se separen las copias
 
+  await comprobar('nada de lo que está en git está a la vez ignorado', () => {
+    // H3 y T069. Cuatro comandos de RSC seguían en git desde antes de que el
+    // `.gitignore` los nombrara: los ignorados que ya estaban no salen solos, y
+    // cada `sync` que los reescribía los dejaba como cambios sin guardar.
+    const repo = path.join(RAIZ, '..');
+    if (!fs.existsSync(path.join(repo, '.git'))) return 'SALTADA: esta copia no es el repositorio';
+    const r = require('node:child_process').spawnSync('git', ['ls-files', '-ci', '--exclude-standard'], { cwd: repo, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.deepEqual(r.stdout.split('\n').filter(Boolean), [], 'en git y a la vez ignorados');
+    return 'ninguno';
+  });
+
   await comprobar('los raíles del .vsix son los mismos que los del repositorio', () => {
     // skills/ es la fuente; extension/media/railes/ es la copia que viaja
     // dentro del .vsix, y las cargas de los instaladores son otras dos. Se han
@@ -2116,9 +2153,10 @@ exec git "$@"
   const CATALOGO = require(path.join(RAIZ, 'media', 'capacidades.json')).capacidades;
 
   await comprobar('cada capacidad que ofrecemos existe en el catálogo de verdad', () => {
-    const manifiesto = path.join(RAIZ, '..', 'instalador', 'mac', 'carga', 'harness',
-      'node_modules', '@ericrisco', 'rsc', 'manifest.json');
-    if (!fs.existsSync(manifiesto)) return 'SALTADA';
+    // Miraba el del instalador de Mac, que solo existe al construirlo: salía
+    // «SALTADA» siempre (H2). El de verdad es el que viaja dentro del .vsix.
+    const manifiesto = path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'manifest.json');
+    assert.ok(fs.existsSync(manifiesto), 'no está el catálogo del arnés que viaja dentro');
 
     const catalogo = require(manifiesto);
     const existentes = new Set((Array.isArray(catalogo) ? catalogo : catalogo.skills || []).map((s) => s.name || s.id));
@@ -2363,7 +2401,7 @@ exec git "$@"
     const estado = await brujula.estado({ fresco: true });
     assert.equal(estado.sinArnes, true);
     assert.equal(estado.listo, false);
-    assert.match(estado.aviso, /Puedo montar tu empresa/);
+    assert.match(estado.aviso, /Puedo preparar esta carpeta/);
     vscode.guion.raiz = empresa;
     return estado.donde;
   });
@@ -2863,6 +2901,88 @@ exec git "$@"
     assert.doesNotMatch(regla, /\*Añadir\*/, 'manda pulsar un botón que no existe');
     assert.match(regla, /\*Sugerencias del catálogo\*/, 'no dice dónde está lo que se pulsa');
     return `${verbos.size} verbos en ${ficheros.length} ficheros, todos en la regla`;
+  });
+
+  await comprobar('el comprobador del diccionario vigila también los nombres, el catálogo y los instaladores', () => {
+    // H2 y T068. Revisaba el código de la barra, el manifiesto y los rótulos de
+    // los raíles; no `nombres.json` ni `capacidades.json`, que son lo que más se
+    // lee en la barra, ni los textos de los instaladores. Se siembra una palabra
+    // prohibida en cada uno, en una copia, y se mira que la vea.
+    const { revisarTodo, tieneUnaProhibida } = require(path.join(RAIZ, '..', 'docs', 'comprobar-diccionario.js'));
+    assert.deepEqual(revisarTodo().map((f) => `${f.fichero}:${f.linea} ${f.mala}`), [], 'el proyecto de verdad no está limpio');
+    assert.equal(tieneUnaProhibida('Abre la terminal y sigue'), 'terminal');
+    assert.equal(tieneUnaProhibida('Un servicio con Node.js y Express'), null, 'Node.js es un nombre propio, y se toma por jerga');
+    assert.equal(tieneUnaProhibida('Lo corre node por debajo'), 'node');
+    const copia = fs.mkdtempSync(path.join(os.tmpdir(), 'diccionario-sembrado-'));
+    const poner = (rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(copia, rel)), { recursive: true });
+      fs.writeFileSync(path.join(copia, rel), txt);
+    };
+    poner('docs/diccionario.md', fs.readFileSync(path.join(RAIZ, '..', 'docs', 'diccionario.md'), 'utf8'));
+    poner('extension/package.json', '{"contributes":{}}');
+    // Lo sembrado que es pantalla y lo que no: una nota de la tabla (`_…`), el
+    // registro del instalador (`anotar`) y los comentarios de cada lenguaje.
+    poner('extension/media/nombres.json', JSON.stringify({
+      _viejo: { nombre: 'Abre la shell de la casa' },
+      habilidades: { bro: { nombre: 'Abre la terminal', queHace: 'Lo de siempre.' } },
+      patrones: { lenguajes: { node: 'Node' } },
+    }));
+    poner('extension/media/capacidades.json', JSON.stringify({ capacidades: [{ id: 'x', nombre: 'Algo', frase: 'Se hace con la consola del equipo.' }, { id: 'nodejs', nombre: 'Node.js y Express', frase: 'Un servicio con Node.js.' }] }));
+    poner('instalador/mac/instalar.applescript', [
+      '-- Antes: display dialog "Abre la shell de la casa"',
+      'display dialog "Abre el repositorio de la empresa para seguir"',
+      'display dialog "Ya está.',
+      '',
+      'Si no sale, abre la consola de la casa." with title "Executive Lab" buttons {"Abrir"}',
+    ].join('\n'));
+    poner('instalador/mac/instalar.js', "anotar('El arranque del shell de la casa');\nconst x = 'Pulsa en la extensión de la barra';\n");
+    poner('instalador/windows/ExecutiveLab.iss', [
+      '; Un comentario con "el token de la casa"',
+      '[Languages]',
+      'Name: "es"; MessagesFile: "compiler:Default.isl"',
+      '[Messages]',
+      '; WelcomeLabel1=Aquí iba el token de la casa, y "el token de la casa"',
+      'WelcomeLabel2=Esto instala la extensión en tu ordenador.',
+      '[Code]',
+      "  MsgBox('No he podido abrir la terminal del equipo.', mbError, MB_OK);",
+    ].join('\n'));
+    const vistos = revisarTodo(copia).map((f) => `${f.fichero}:${f.mala}`).sort();
+    assert.deepEqual(vistos, [
+      'extension/media/capacidades.json:consola',
+      'extension/media/nombres.json:node',
+      'extension/media/nombres.json:terminal',
+      'instalador/mac/instalar.applescript:consola',
+      'instalador/mac/instalar.applescript:repositorio',
+      'instalador/mac/instalar.js:extensión',
+      'instalador/windows/ExecutiveLab.iss:extensión',
+      'instalador/windows/ExecutiveLab.iss:terminal',
+    ], 'lo que ve el comprobador en la copia sembrada');
+    return `${vistos.length} vistas en la copia sembrada, y el proyecto, limpio`;
+  });
+
+  await comprobar('quien manda a «Algo va mal» dice también qué hacer después', () => {
+    // H4 y T070. Trece mensajes decían «Prueba con "Algo va mal"» y dos «Pulsa
+    // "Algo va mal"», y ahí se quedaban: el alumno pulsa, sale un código, y no
+    // sabe que ese código es para su tutor. La frase del diccionario lo dice.
+    const DESPUES = ' y pásale el código a tu tutor';
+    const MANDA = /(?:Pulsa|pulsa|Prueba con|prueba con)\s+["«]Algo va mal["»]/g;
+    const ficheros = [
+      ...fs.readdirSync(path.join(RAIZ, 'src')).filter((x) => x.endsWith('.js')).map((x) => path.join(RAIZ, 'src', x)),
+      path.join(RAIZ, 'media', 'panel.js'),
+    ];
+    const sinDespues = [];
+    let cuantas = 0;
+    for (const fichero of ficheros) {
+      const texto = fs.readFileSync(fichero, 'utf8');
+      for (const m of texto.matchAll(MANDA)) {
+        if (texto.slice(0, m.index).split('\n').pop().trim().startsWith('//')) continue;
+        cuantas++;
+        if (!texto.startsWith(DESPUES, m.index + m[0].length)) sinDespues.push(`${path.basename(fichero)}: ${texto.slice(m.index, m.index + 60)}`);
+      }
+    }
+    assert.deepEqual(sinDespues, [], 'mandan a «Algo va mal» y no dicen qué hacer con el código');
+    assert.ok(cuantas > 10, `solo ${cuantas}: el patrón ya no encuentra los mensajes`);
+    return `${cuantas} mensajes, todos con el paso siguiente`;
   });
 
   await comprobar('la lista de la habilidad es la del diccionario', () => {
@@ -5139,12 +5259,13 @@ exec git "$@"
     // Cada fila del catálogo trae lo que la pantalla necesita, y en las palabras
     // del diccionario: ni identificadores ni jerga prohibida en lo que se ve.
     const PARA = new Set(['operations', 'content', 'software', 'research']);
-    const PROHIBIDAS = /\b(API|token|JSON|hook|repositorio|commit|branch|extensión|terminal|consola)\b/;
+    // Con la lista del diccionario, la del comprobador: tenía una suya de diez (H2).
+    const { tieneUnaProhibida } = require(path.join(RAIZ, '..', 'docs', 'comprobar-diccionario.js'));
     for (const c of catalogo) {
       assert.ok(c.nombre && c.frase, `${c.id} sin nombre o sin frase`);
       assert.ok(Array.isArray(c.palabras) && c.palabras.length >= 2, `${c.id} con menos de dos palabras`);
       assert.ok(Array.isArray(c.para) && c.para.length && c.para.every((p) => PARA.has(p)), `${c.id} con un "para" que no existe: ${c.para}`);
-      assert.ok(!PROHIBIDAS.test(`${c.nombre} ${c.frase}`), `${c.id} usa una palabra prohibida en pantalla: ${c.nombre} — ${c.frase}`);
+      assert.ok(!tieneUnaProhibida(`${c.nombre} ${c.frase}`), `${c.id} usa una palabra prohibida en pantalla: ${c.nombre} — ${c.frase}`);
     }
 
     // Los agentes por lenguaje se nombran con el lenguaje, no con su clave.
@@ -8946,6 +9067,105 @@ exec git "$@"
       assert.equal(hecho.rama, 'completar', hecho.mensaje);
       assert.equal(valorDe(pedidos[0], '--accompaniment'), 'L0', 'gana el del perfil y no el que se acaba de contestar');
       return 'L0, el que se contestó';
+    } finally {
+      rscM.correr = antes;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  // T078 (B11, y la novena de docs/para-rsc.md). RSC reescribe el perfil entero
+  // al aceptar un plan: tres campos en la cabecera, «# User profile» y «Goal:».
+  // Lo que `init` va apuntando ahí mientras conoce a la persona —a qué se
+  // dedica, qué herramientas usa, qué no se puede tocar— se perdía la próxima
+  // vez que se montaba, que es lo que pasa al subir de versión. El RSC fingido
+  // hace lo que el de verdad (`onboarding-apply.js:69,76-81`): el perfil de cero,
+  // con el dial y las palabras que se le mandan.
+  // Con `conserva`, un RSC que ya no borra el cuerpo —lo que se le ha pedido a
+  // Eric—: solo reescribe su cabecera.
+  const rscQueReescribeElPerfil = (carpeta, objetivo, { acaba = 'READY', conserva = false } = {}) => async (args) => {
+    if (args[0] !== 'onboard') return { codigo: 0, salida: '' };
+    if (args.includes('--accept-plan')) {
+      const ruta = path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'user-profile.md');
+      const cuerpo = conserva ? fs.readFileSync(ruta, 'utf8').replace(/^---\n[\s\S]*?\n---\n/, '') : `\n# User profile\n\nGoal: ${objetivo}\n`;
+      fs.writeFileSync(ruta, `---\ntechnical_level: ${valorDe(args, '--technical-level')}\naccompaniment: ${valorDe(args, '--accompaniment')}\nproject_kind: operations\n---\n${cuerpo}`);
+      return { codigo: 0, salida: `RSC_ONBOARDING_${acaba} ${'d'.repeat(64)}` };
+    }
+    return { codigo: 0, salida: `Plan id: ${'d'.repeat(64)}\nAccept exactly this plan: npx @ericrisco/rsc@2.0.5 onboard --target claude --technical-level ${valorDe(args, '--technical-level')} --accompaniment ${valorDe(args, '--accompaniment')} --accept-plan ${'d'.repeat(64)}` };
+  };
+  const PERFIL_DE_INIT = (dial) => [
+    // `sector` no lo escribe nadie más: `language` lo pone también la barra (sus raíles).
+    '---', 'technical_level: non-technical', `accompaniment: ${dial}`, 'project_kind: operations', 'sector: gestoría', '---', '',
+    '# User profile', '', 'Goal: Llevar las facturas', '',
+    '## Levels', '- technical_level: non-technical', `- accompaniment_level: ${dial}                    <!-- L0 | L1 | L2 | L3 -->`, '',
+    '## Who they are', '- Lleva una gestoría con dos personas.', '',
+    '## Constraints', '- No se toca la carpeta «Clientes 2019».', '',
+  ].join('\n');
+
+  await comprobar('volver a montar no borra lo que el asistente apuntó en el perfil', async () => {
+    const rscM = cargar('rsc');
+    const antes = rscM.correr;
+    const RECORD = { projectKind: 'operations', goal: 'x', technicalLevel: 'non-technical', accompaniment: 'L3', targets: ['claude'] };
+    const carpeta = carpetaParaCompletar(RECORD);
+    const perfil = path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'user-profile.md');
+    fs.writeFileSync(perfil, PERFIL_DE_INIT('L3'));
+    rscM.correr = rscQueReescribeElPerfil(carpeta, 'Llevar las facturas y los cobros');
+    try {
+      vscode.guion.raiz = carpeta;
+      const { hecho } = await conRespuestas({}, () => cargar('arrancar').arrancar(CONTEXTO_SIN_MEMORIA_AJENA, { appendLine() {} }));
+      assert.equal(hecho.rama, 'completar', hecho.mensaje);
+      const ahora = fs.readFileSync(perfil, 'utf8');
+      assert.match(ahora, /^Goal: Llevar las facturas y los cobros$/m, 'el objetivo no es el del plan nuevo');
+      assert.equal((ahora.match(/^Goal:/gm) || []).length, 1, 'el objetivo sale dos veces');
+      assert.equal((ahora.match(/^# User profile$/gim) || []).length, 1, 'el título sale dos veces');
+      assert.match(ahora, /## Who they are\n- Lleva una gestoría con dos personas\./, 'se ha perdido quién es');
+      assert.match(ahora, /No se toca la carpeta «Clientes 2019»/, 'se ha perdido lo que no se puede tocar');
+      assert.match(ahora.split(/\n---\n/)[0], /^sector: gestoría$/m, 'se ha perdido un campo de la cabecera');
+      // Y montar otra vez no lo duplica.
+      const { hecho: otra } = await conRespuestas({}, () => cargar('arrancar').arrancar(CONTEXTO_SIN_MEMORIA_AJENA, { appendLine() {} }));
+      assert.equal(otra.rama, 'completar', otra.mensaje);
+      const otraVez = fs.readFileSync(perfil, 'utf8');
+      assert.equal((otraVez.match(/## Who they are/g) || []).length, 1, 'lo apuntado sale dos veces');
+      // Y con un RSC que ya no borra el cuerpo, tampoco se duplica.
+      rscM.correr = rscQueReescribeElPerfil(carpeta, 'Llevar las facturas y los cobros', { conserva: true });
+      await conRespuestas({}, () => cargar('arrancar').arrancar(CONTEXTO_SIN_MEMORIA_AJENA, { appendLine() {} }));
+      const conElArreglo = fs.readFileSync(perfil, 'utf8');
+      assert.equal((conElArreglo.match(/## Who they are/g) || []).length, 1, 'con un RSC que conserva el cuerpo, lo apuntado sale dos veces');
+      assert.match(conElArreglo.split(/\n---\n/)[0], /^sector: gestoría$/m, 'con un RSC que conserva el cuerpo, se pierde un campo de la cabecera');
+      return 'el objetivo nuevo, y lo apuntado, donde estaba';
+    } finally {
+      rscM.correr = antes;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('lo devuelto al perfil lleva el dial que se acaba de elegir', async () => {
+    // Si en ese montaje se contesta otro dial (C-19), RSC lo escribe en la
+    // cabecera; el cuerpo devuelto no puede quedarse con el de antes, porque el
+    // asistente y «Cómo te habla» leen primero `accompaniment_level`.
+    const rscM = cargar('rsc');
+    const antes = rscM.correr;
+    // En el recibo, un dial que RSC no acepta: se vuelve a preguntar.
+    const RECORD = { projectKind: 'operations', goal: 'x', technicalLevel: 'non-technical', accompaniment: 'L9', targets: ['claude'] };
+    try {
+      // Con el RSC de hoy, que borra el cuerpo, y con uno que ya lo conserve y
+      // lo trae con el dial de antes. Los dos acaban con el suelo a medias, que
+      // también es un arnés montado.
+      for (const conserva of [false, true]) {
+        const como = conserva ? 'con un RSC que conserva el cuerpo' : 'con el RSC de hoy';
+        const carpeta = carpetaParaCompletar(RECORD, { dial: 'L1' });
+        const perfil = path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'user-profile.md');
+        fs.writeFileSync(perfil, PERFIL_DE_INIT('L1'));
+        rscM.correr = rscQueReescribeElPerfil(carpeta, 'Llevar las facturas', { acaba: 'INCOMPLETE', conserva });
+        vscode.guion.raiz = carpeta;
+        const { hecho } = await conRespuestas({ '¿Cuánto quieres que te explique?': 'Al grano' },
+          () => cargar('arrancar').arrancar(CONTEXTO_SIN_MEMORIA_AJENA, { appendLine() {} }));
+        assert.equal(hecho.rama, 'completar', hecho.mensaje);
+        const ahora = fs.readFileSync(perfil, 'utf8');
+        assert.match(ahora, /^- accompaniment_level: L0 +<!--/m, `${como}, el cuerpo se queda con el dial de antes:\n${ahora}`);
+        assert.equal((ahora.match(/## Who they are/g) || []).length, 1, `${como}, lo apuntado sale dos veces`);
+        assert.equal(cargar('trato').leer().trato, 'L0', `${como}, «Cómo te habla» lee el dial de antes`);
+      }
+      return 'L0 en la cabecera, en el cuerpo y en «Cómo te habla», con los dos RSC';
     } finally {
       rscM.correr = antes;
       vscode.guion.raiz = empresa;

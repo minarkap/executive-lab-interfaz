@@ -11,8 +11,8 @@ espacio de trabajo es el arnés [RSC](https://github.com/ericrisco/rsc-harness).
 > Salta directo a **[Para agentes: instrucciones ejecutables](#-para-agentes-instrucciones-ejecutables)**.
 > Está escrito para que lo sigas sin interpretar nada.
 
-**Última release:** [v0.9.1](https://github.com/minarkap/executive-lab-interfaz/releases/latest) ·
-`executive-lab-0.9.1.vsix`, 6 MB.
+**Última release:** en [Releases](https://github.com/minarkap/executive-lab-interfaz/releases/latest), con su
+`.vsix`. La versión de la barra es la de `extension/package.json`.
 
 ---
 
@@ -61,9 +61,12 @@ Sirve para quien ya tiene VS Code y una cuenta de pago de Claude Code o de Codex
    [la última release](https://github.com/minarkap/executive-lab-interfaz/releases/latest).
 2. Arrástralo sobre la ventana de VS Code. (O `Ctrl+Shift+P` → *Extensions: Install from VSIX…*)
 3. Abre la carpeta con la que quieras trabajar y pulsa **Preparar esta carpeta** en la barra de la
-   izquierda. Te hará cinco preguntas en lenguaje llano y montará el arnés con tus respuestas.
+   izquierda. Te hará unas preguntas en lenguaje llano, de una en una, y montará el arnés con tus respuestas. Cuántas,
+según lo que respondas: la barra lo dice antes de empezar.
 
-**No hace falta Node ni npm:** VS Code ya lleva Node dentro y el arnés viaja dentro del `.vsix`.
+**No hace falta instalar Node ni npm:** la barra usa el Node que lleva VS Code, también para lo que el
+arnés hace solo (el relevo, decisión 119), y el arnés viaja dentro del `.vsix`. En Windows, el relevo
+está por medir.
 Tampoco hace falta ningún permiso de administrador, y no hay aviso de SmartScreen ni de Gatekeeper
 porque no es un ejecutable.
 
@@ -163,7 +166,7 @@ Si no imprime nada, la instalación falló: mira la salida del paso 1 y **no sig
 
 **Lo normal: no lo montes tú.** Dile que abra en VS Code la carpeta con la que quiere trabajar y que
 pulse **Preparar esta carpeta** en la barra de la izquierda. El asistente de la extensión le hace las
-cinco preguntas en lenguaje llano y monta el arnés con sus respuestas. Es el camino probado.
+unas preguntas en lenguaje llano, de una en una, y monta el arnés con sus respuestas. Es el camino probado.
 
 Solo si te pide expresamente que lo hagas tú, pregúntale las cinco cosas —una a una, sin sugerir la
 respuesta— y luego:
@@ -219,7 +222,7 @@ ls .claude/skills/executive-lab/SKILL.md              # los raíles
 |---|---|---|
 | `code: command not found` | El comando no está en el `PATH` | *Shell Command: Install 'code' command in PATH* desde VS Code |
 | La barra lateral no aparece | La extensión no arrancó | Reinicia VS Code; comprueba el paso 2 |
-| «Preparar esta carpeta» falla a mitad | El arnés quedó a medias | Borra `.rsc.json` y vuelve a pulsar; la salida queda en `instalacion.log` |
+| «Preparar esta carpeta» falla a mitad | El arnés quedó a medias | Vuelve a pulsar: termina lo que se quedó a medias. No borres `.rsc.json`, que es lo que dice cómo está montado. Si sigue, «Algo va mal»; la salida queda en `instalacion.log` |
 | Dice que falta una pieza | No hay `git` en el sistema | Pulsa el botón: lo instala. O instálalo tú |
 | El panel no responde | Falta iniciar sesión en Claude Code o Codex | Que inicie sesión en la extensión del asistente |
 
@@ -236,7 +239,7 @@ Las tres llevan lo mismo, porque el arnés viaja en un solo sitio: dentro del `.
 
 | | `.vsix` (extensión) | `.dmg` (macOS) | `.exe` (Windows) |
 |---|---|---|---|
-| Versión del panel | **0.9.1** | **0.9.1** | **0.9.1** |
+| Versión del panel | la de la release | la misma, dentro | la misma, dentro |
 | Tamaño | 6 MB | **6,8 MB** | **29 MB** |
 | Arnés RSC 2.0.5 | ✅ dentro del paquete | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Raíles | ✅ `media/railes/` | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |

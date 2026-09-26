@@ -232,7 +232,7 @@ function quitar(rutaRelativa) {
   try {
     fs.unlinkSync(completa);
   } catch {
-    return { ok: false, mensaje: 'No he podido quitarlo. Prueba con "Algo va mal".' };
+    return { ok: false, mensaje: 'No he podido quitarlo. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
   }
   return { ok: true, mensaje: `Quitado ${path.basename(completa)}.` };
 }

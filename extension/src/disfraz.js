@@ -249,7 +249,7 @@ async function verEditorCompleto(contexto, salida) {
   }
 
   if (rechazadas.length === claves.length) {
-    return { ok: false, mensaje: 'No he podido cambiar solo esta ventana. Prueba con "Algo va mal".' };
+    return { ok: false, mensaje: 'No he podido cambiar solo esta ventana. Pulsa «Algo va mal» y pásale el código a tu tutor.' };
   }
   return { ok: true, rechazadas, mensaje: 'Ya ves el editor completo en esta ventana. Las demás siguen igual.' };
 }
