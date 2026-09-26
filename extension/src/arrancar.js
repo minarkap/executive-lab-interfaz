@@ -566,7 +566,21 @@ const partesDelPerfil = (texto) => {
   const bloque = texto.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
   return bloque ? { cabecera: bloque[1], cuerpo: texto.slice(bloque[0].length) } : { cabecera: null, cuerpo: texto };
 };
-const claveDe = (linea) => (linea.match(/^([A-Za-z_][\w-]*)\s*:/) || [])[1];
+// Una clave de la cabecera, con tildes o sin ellas: el asistente escribe en
+// español, y `dirección:` se perdía (revisión de F8, I4).
+const claveDe = (linea) => (linea.match(/^([\p{L}_][\p{L}\p{N}_-]*)\s*:/u) || [])[1];
+
+// Las entradas de una cabecera: cada clave con lo que cuelga de ella, una lista
+// de YAML o un bloque de varias líneas, que volvían vacíos (I4).
+const entradasDe = (cabecera) => {
+  const entradas = [];
+  for (const linea of cabecera.split(/\r?\n/)) {
+    const clave = claveDe(linea);
+    if (clave) entradas.push({ clave, lineas: [linea] });
+    else if (entradas.length && (/^\s/.test(linea) || /^-(\s|$)/.test(linea) || !linea.trim())) entradas[entradas.length - 1].lineas.push(linea);
+  }
+  return entradas;
+};
 
 function devolverAlPerfil(antes) {
   const ahora = leerElPerfil();
@@ -583,9 +597,9 @@ function devolverAlPerfil(antes) {
 
   let cabecera = nuevo.cabecera;
   if (cabecera !== null && viejo.cabecera) {
-    const tiene = new Set(cabecera.split(/\r?\n/).map(claveDe).filter(Boolean));
-    const faltan = viejo.cabecera.split(/\r?\n/).filter((l) => claveDe(l) && !tiene.has(claveDe(l)));
-    if (faltan.length) cabecera = `${cabecera}\n${conLoDeHoy(faltan.join('\n'))}`;
+    const tiene = new Set(entradasDe(cabecera).map((e) => e.clave));
+    const faltan = entradasDe(viejo.cabecera).filter((e) => !tiene.has(e.clave)).flatMap((e) => e.lineas);
+    if (faltan.length) cabecera = `${cabecera}\n${conLoDeHoy(faltan.join('\n').replace(/\s+$/, ''))}`;
   }
 
   // Lo suyo se busca tal cual estaba: un RSC que ya conserve el cuerpo lo trae
@@ -985,7 +999,7 @@ async function elCamino(contexto, salida) {
   salida.appendLine(`[arrancar] ${plan.rama}: ${plan.porQue}`); // diccionario: interno
 
   if (plan.rama === 'sinCarpeta') {
-    return { ok: false, mensaje: 'Abre primero la carpeta donde quieres montar tu empresa.' };
+    return { ok: false, mensaje: 'Abre primero la carpeta que quieres preparar.' };
   }
 
   // Un `.rsc.json` ilegible no se pisa. Es un fichero que viaja por git y esto

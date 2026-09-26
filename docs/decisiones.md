@@ -3905,8 +3905,8 @@ cosas de RSC por contar. Y volver a montar borraba lo que el asistente había ap
   versión de la barra es la de `extension/package.json`.
 - Dicen que no hace falta instalar Node, con el relevo (decisión 119), y ya no mandan borrar
   `.rsc.json`.
-- Lo del instalador que se firma (`.iss`, `Info.plist`, `probar.ps1`, `COMO-PROBARLO.md`) queda para
-  Jose.
+- Lo de los instaladores (`.iss`, `Info.plist`, `probar.ps1`, `COMO-PROBARLO.md`) queda para Jose:
+  el plan para el autopilot antes de tocar los instaladores firmados.
 
 ### Una sola lista, y lo que vigila (H2)
 
@@ -3934,3 +3934,14 @@ cosas de RSC por contar. Y volver a montar borraba lo que el asistente había ap
   día RSC deja de borrarlo, no se duplica.
 
 0.40.0. 314 comprobaciones, 321 con el arnés de verdad, y 13 de contrato.
+
+**Tras la revisión de F8** (26-09):
+- La cuenta de preguntas es la de la entrevista, de 8 a 12. Una prueba hace la entrevista por sus dos
+  extremos, y la cuenta suma el aviso de Documentos entera o de dentro de otro proyecto.
+- Las órdenes para agentes llevan el tamaño, que RSC exige con `software` y `mixed`.
+- Lo devuelto al perfil vuelve con sus listas, sus bloques y sus claves con tilde.
+- El comprobador mira también las vistas, la confianza y los módulos comunes.
+- Quien manda a «Algo va mal» dice que el código es para el tutor, también en los raíles.
+- Ningún texto llama «tu empresa» a la carpeta.
+- El motor de JavaScript de las copias no se puede probar aquí, porque ya nada trae su biblioteca.
+  Queda para Jose.

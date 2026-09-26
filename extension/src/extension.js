@@ -1115,7 +1115,7 @@ ${cabecera}
 
   async volverA(id) {
     const eleccion = await vscode.window.showWarningMessage(
-      'Voy a dejar tu empresa como estaba entonces. Guardo antes una copia de lo de ahora, por si acaso.',
+      'Voy a dejar esta carpeta como estaba entonces. Guardo antes una copia de lo de ahora, por si acaso.',
       { modal: true },
       'Sí, vuelve atrás',
     );

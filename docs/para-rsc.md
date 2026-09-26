@@ -296,7 +296,9 @@ con `sync --target` se desinstala si la orden no lo repite.
 
 **Rodeo que hemos puesto.** Al volver a montar, la barra manda el dial y los asistentes de
 hoy, no los del recibo, y vuelve a poner en el perfil lo nuestro: nombres, alcance y
-personas (decisión 118).
+personas (decisión 118). Y lee el perfil antes de aceptar el plan y devuelve después lo que
+había: los campos de la cabecera que el plan no escribe, con sus listas y sus bloques, y el
+cuerpo, con el dial y las palabras al día (decisión 124).
 
 **Lo que parece que falta.** Tocar solo lo que es del plan: reescribir la cabecera y dejar
 el cuerpo. O, si se reescribe entero, conservar lo que había debajo de `Goal:`.

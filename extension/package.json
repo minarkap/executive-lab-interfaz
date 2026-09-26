@@ -206,7 +206,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": true,
-      "description": "La barra funciona igual en una carpeta sin confianza. Al abrirse solo retoca lo que ella misma dejó en esa carpeta (sus reglas para el asistente, y la copia automática si está puesta), y lo demás lo hace cuando se pulsa un botón. En los ordenadores de los alumnos el instalador apaga la confianza, así que esto no llega a salir."
+      "description": "La barra funciona igual en una carpeta sin confianza. Al abrirse, si el modo sencillo está puesto lo aplica en esta carpeta, devuelve a su sitio lo que ella misma dejó en los ajustes del asistente, repone sus reglas si son de antes y, si está puesto, guarda solo de vez en cuando. Lo demás lo hace cuando se pulsa un botón. Con el instalador de Executive Lab la confianza va apagada y esto no llega a salir; con el .vsix solo, sí."
     },
     "virtualWorkspaces": false
   },

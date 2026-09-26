@@ -145,7 +145,7 @@ async function calcular() {
   if (!proyecto.existe('.rsc.json')) {
     // La carpeta personal, la raíz o una del sistema no se preparan (B1). Se
     // dice aquí, antes de ofrecer nada, y la salida es una carpeta nueva.
-    const { prohibida } = terreno.comoEsEstaCarpeta(proyecto.raiz());
+    const { prohibida, delicada } = terreno.comoEsEstaCarpeta(proyecto.raiz());
     if (prohibida) {
       const dicho = require('./arrancar').comoSeDiceQueNo(prohibida);
       return { listo: false, sinArnes: true, noSePrepara: prohibida, hiciste: null, donde: dicho.donde, aviso: dicho.aviso, boton: dicho.boton };
@@ -181,7 +181,7 @@ async function calcular() {
         ...comun,
         donde: 'Aquí todavía no hay nada',
         // Cuántas se preguntan de verdad, contadas por `rumbo` (A8): prometía una.
-        aviso: (({ min, max }) => `Puedo preparar esta carpeta. Tarda unos minutos, y antes te hago entre ${min} y ${max} preguntas, de una en una.`)(rumbo.cuantasPreguntas({ recibo: null, railes: null })),
+        aviso: (({ min, max }) => `Puedo preparar esta carpeta. Tarda unos minutos, y antes te hago entre ${min} y ${max} preguntas, de una en una.`)(rumbo.cuantasPreguntas({ recibo: null, railes: null, carpeta: { delicada }, dentroDeOtro: terreno.queHayEncima(proyecto.raiz()) })),
       };
     }
 

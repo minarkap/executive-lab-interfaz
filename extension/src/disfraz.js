@@ -231,7 +231,7 @@ const modoDeEstaVentana = () => (quiereVistaSencilla() ? 'sencillo' : 'avanzado'
 // Apaga el interruptor de ESTA carpeta y quita de ella lo que escribimos.
 async function verEditorCompleto(contexto, salida) {
   if (!hayCarpeta()) {
-    return { ok: false, mensaje: 'Primero abre tu empresa; sin carpeta no puedo cambiar solo esta ventana.' };
+    return { ok: false, mensaje: 'Primero abre una carpeta; sin ella no puedo cambiar solo esta ventana.' };
   }
 
   const configuracion = vscode.workspace.getConfiguration();
@@ -257,7 +257,7 @@ async function verEditorCompleto(contexto, salida) {
 // Enciende el interruptor de ESTA carpeta y pone el disfraz.
 async function volverAModoSencillo(contexto, salida) {
   if (!hayCarpeta()) {
-    return { ok: false, mensaje: 'Primero abre tu empresa; sin carpeta no puedo cambiar solo esta ventana.' };
+    return { ok: false, mensaje: 'Primero abre una carpeta; sin ella no puedo cambiar solo esta ventana.' };
   }
 
   const configuracion = vscode.workspace.getConfiguration();

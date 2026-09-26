@@ -72,10 +72,47 @@ con el dial al día») muere.
 
 ## Lo que no se puede comprobar aquí
 
-- La versión del `.iss` y del `Info.plist`, y lo que dicen `probar.ps1` y `COMO-PROBARLO.md`: son del
-  instalador, que se firma, y lo de Windows se mide allí.
+- La versión del `.iss` y del `Info.plist`, y lo que dicen `probar.ps1` y `COMO-PROBARLO.md`. El plan
+  para el autopilot antes de tocar los instaladores, que van firmados, así que se quedan para Jose. Y
+  lo de Windows se mide allí.
 - Abrir las issues de RSC: sale fuera, y lo hace Jose.
 
 ## Lo que encontró la revisión con ojos frescos
 
-Corre sobre el commit de F8.
+La hizo un revisor aparte, sobre una exportación de `056950f`, sin tocar el repositorio. Reprodujo la
+batería (`humo` 314, `humo+` 321, `contrato` 13, las tres empresas, el diccionario y PowerShell) y
+probó sus casos con guiones propios: las 288 combinaciones de la entrevista, perfiles con listas y
+tildes, y palabras sembradas donde el comprobador no miraba. Comprobó una a una las citas de
+`docs/para-rsc.md` contra el paquete, y todas son correctas. Veredicto: *hay que hacer cambios*, con 0
+críticos, 5 importantes y 7 menores. Se comprobaron todos contra el código y, salvo lo que el plan
+deja para Jose, se aceptaron.
+
+| Hallazgo | Qué se hizo |
+|---|---|
+| **Importante 1 (A8).** La cuenta daba dos nombres siempre, y con «La empresa entera» se pregunta uno: la pantalla prometía de 9 a 12 y en el caso más típico se hacían 8. La prueba fijaba lo que devolvía la propia cuenta, sin mirar la entrevista. Y no contaba el aviso de Documentos entera ni el de dentro de otro proyecto | Un nombre con «La empresa entera» y dos si no: de 8 a 12. Una prueba nueva hace la entrevista entera, por el camino más corto y por el más largo, y mira que dé la cuenta. Y la cuenta suma el aviso de Documentos, el Escritorio o las Descargas enteras, y el de dentro de otro proyecto, que la brújula ya le pasa |
+| **Importante 2 (H1).** Las órdenes `onboard` para agentes ofrecían `software` y `mixed` sin `--software-scope`, que RSC exige, y la lista de preguntas no traía la del tamaño | Las dos órdenes llevan el tamaño, con una línea que dice cuándo cuenta, y la lista trae lo que RSC necesita. Comprobado con el RSC empaquetado: sin el tamaño, `mixed` no monta; con `operations` no molesta. Prueba nueva |
+| **Importante 3 (H1, T067).** El `.iss` sigue en 0.9.0, y `probar.ps1` y `COMO-PROBARLO.md` esperan git y el arnés dentro del instalador | Se quedan para Jose: el plan para el autopilot antes de tocar los instaladores firmados. Lo que no era exacto era el motivo escrito, «se firma», porque editarlos no firma nada. Está corregido |
+| **Importante 4 (T078).** Al devolver la cabecera del perfil solo volvían las líneas que empiezan por una clave, sin tildes: una lista volvía sin sus elementos, un bloque sin su texto, y `dirección:` no volvía | Cada clave vuelve con lo que cuelga de ella, y las claves pueden llevar tildes. Prueba nueva con una lista, un bloque y una clave con tilde |
+| **Importante 5 (H2).** «El motor de JavaScript sigue sirviendo de resto» sale saltada siempre, y el registro daba una razón falsa | La razón de verdad: ese motor solo existe con `isomorphic-git`, que ya no trae nada de este repositorio y solo queda en instaladores de antes. La prueba lo dice así, y el registro se corrige. Retirar ese motor o traer la biblioteca para probarlo queda para Jose |
+| Menor 1. Erratas y datos viejos en el README: «las unas preguntas», `instalacion.log`, «cinco sitios» y lo que versiona este repositorio | Corregidos. La prueba de la versión se llama ya «en todos los sitios donde está escrita» |
+| Menor 2 (H2). El comprobador no miraba los títulos de las vistas, la descripción de la confianza ni los mensajes de los módulos comunes | Los mira. Lo que va al registro (`anotar`) no cuenta, en ningún fichero. Sembrado en la prueba, y el proyecto, limpio |
+| Menor 3. La descripción de la confianza no era del todo exacta | Dice lo que hace la barra al abrirse, con los nombres del diccionario, y que con el `.vsix` solo sí sale |
+| Menor 4 (H4). La prueba no veía comillas curvas ni «Pulsa en…»; el raíl de ayuda pedía el código para el asistente, `siempre.md` no decía qué hacer con él, y la pieza del recibo roto tampoco | La prueba ve esas formas, y lo comprueba. Los raíles dicen que el código es para el tutor, y la pieza, «Pulsa «Algo va mal» y pásale el código a tu tutor». Pruebas nuevas |
+| Menor 5. La marca decía «Hace falta uno más claro», que ya no dice qué hacer | «Pídele al asistente uno más claro o más oscuro»: verbo primero y lo que se puede hacer |
+| Menor 6. El punto 9 de `docs/para-rsc.md` no contaba lo que ahora hace T078 | Lo cuenta |
+| Menor 7. Quedaban textos que llaman «tu empresa» a la carpeta | Los cinco dicen «esta carpeta» o «una carpeta». Las preguntas por la empresa de verdad se quedan. Prueba nueva |
+
+### Mutación de los arreglos
+
+Quince, y mueren todas:
+- dos nombres siempre, sin contar Documentos entera, sin contar dentro de otro proyecto, y la brújula
+  sin la carpeta de verdad;
+- los dos README sin el tamaño;
+- las claves sin tildes, y sin lo que cuelga de cada una;
+- el comprobador sin los títulos de las vistas, sin la confianza o sin `git.js`;
+- la pieza sin el tutor, el raíl de ayuda pidiendo el código para el asistente, y la búsqueda sin
+  comillas curvas;
+- la carpeta llamada «tu empresa» otra vez.
+
+La batería, con los arreglos y sobre F8: `humo` 320, `humo+` 327, `contrato` 13, las tres
+empresas, y el diccionario (57 ficheros y 712 rótulos) y PowerShell limpios.

@@ -1082,7 +1082,7 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
       piezas: [{
         nombre: 'El fichero que dice cómo está montado esto',
         estado: 'no',
-        detalle: 'No se puede leer. Suele ser un conflicto sin resolver, y no lo voy a tocar.',
+        detalle: 'No se puede leer. Suele ser un conflicto sin resolver, y no lo voy a tocar. Pulsa «Algo va mal» y pásale el código a tu tutor.',
         arreglo: { como: 'persona', etiqueta: 'Algo va mal', accion: { tipo: 'algoVaMal' } },
       }],
     };
@@ -1216,7 +1216,7 @@ function fechaDelPlan() {
 }
 
 module.exports = {
-  queCarpetaEs, comoEsEstaCarpeta, MARCA_DEL_HISTORIAL,
+  queCarpetaEs, comoEsEstaCarpeta, queHayEncima, MARCA_DEL_HISTORIAL,
   queHay, reconocer, mirarYClasificar, podemosGuardarElPuntoDePartida, radiografia, fechaDelPlan,
   laUltimaRevision, dondeViveLaRevision, comoEstanLosRailes, saberDondeEstamos, comoEstaElFreno, tieneTexto, tieneElBloque, loQueFaltaPorPoner,
 };

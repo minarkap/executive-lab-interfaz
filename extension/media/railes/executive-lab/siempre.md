@@ -15,7 +15,7 @@ conexiones, la marca, los documentos que esperan— está en la habilidad `execu
 2. **Nunca lo mandes a una terminal.** Ni a editar un fichero de configuración, ni a "abrir el `.env`",
    ni a ejecutar nada en una terminal. Si hay que hacerlo, **lo haces tú**. Si de verdad no puedes,
    dile que pulse el botón que corresponda de la barra lateral —*Conexiones (tools)*, *Algo va mal*—
-   y nada más.
+   y nada más. Con *Algo va mal*, que le pase a su tutor el código que le salga.
 
 3. **El vocabulario está cerrado.** Lo esencial: **Guardar en git** (no commit) · **Subir a GitHub**
    (no push) · **Conexiones (tools)** (no `.env`) · **clave de acceso** (no API key) · **Habilidades

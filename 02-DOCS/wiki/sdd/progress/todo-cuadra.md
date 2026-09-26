@@ -1013,3 +1013,24 @@ Solo se añade.
   `humo` 314, `humo+` 321, `contrato` 13, las tres empresas enteras, diccionario limpio (54 ficheros y
   709 rótulos) y PowerShell sin pegas. Treinta mutaciones, y mueren todas. Decisión 124, worklog, 0.40.0
   y commit. La revisión con ojos frescos de F8 corre sobre ese commit.
+- **Corrección a T067** 26-09 · El motivo de dejar para Jose el `.iss`, el `Info.plist`, `probar.ps1` y
+  `COMO-PROBARLO.md` no era «que se firma»: editarlos no firma nada. Es la regla del plan para el
+  autopilot, que para antes de tocar los instaladores firmados.
+- **Corrección a T068** 26-09 · «El motor de JavaScript sigue sirviendo de resto» no salta «donde hay
+  git»: salta porque ese motor solo existe con `isomorphic-git`, que ya no trae nada de este
+  repositorio y solo queda en instaladores de antes. La prueba lo dice así, y la decisión queda para
+  Jose.
+- **Revisión de F8** 26-09 · Cinco importantes y siete menores, comprobados y aceptados, salvo lo que el
+  plan deja para Jose
+  ([verificación de F8](../verifications/todo-cuadra-F8-2026-09-26.md#lo-que-encontró-la-revisión-con-ojos-frescos)).
+  En un commit propio, con lo de F9 (los plurales y el montaje de «Un poco de todo») apartado en un
+  `stash`:
+  - la cuenta de preguntas, la de la entrevista (de 8 a 12), con los avisos de antes de preparar;
+  - las órdenes para agentes, con el tamaño que RSC exige;
+  - la cabecera del perfil, devuelta con sus listas, sus bloques y sus tildes;
+  - el comprobador, mirando las vistas, la confianza y los módulos comunes;
+  - «Algo va mal» con su paso siguiente también en los raíles y en la pieza del recibo roto;
+  - ningún texto que llame «tu empresa» a la carpeta; la marca, con qué hacer; el README, al día.
+  - Seis pruebas nuevas, en rojo primero. Quince mutaciones, y mueren todas.
+
+  Verde: `humo` 320, `humo+` 327, `contrato` 13.

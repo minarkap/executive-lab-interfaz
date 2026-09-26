@@ -60,8 +60,8 @@ proyecto suyo, el botón se llama **Añadir el asistente a esto** y el panel ens
 encontrado.)
 
 El asistente de la extensión le hará las preguntas que RSC necesita —de qué va, qué quiere resolver,
-qué tal se maneja, cuánto quiere que le expliquen y con quién trabaja— en lenguaje llano, y montará
-el arnés con esas respuestas.
+qué tal se maneja, cuánto quiere que le expliquen, con quién trabaja y, si va a construir algo, de qué
+tamaño— en lenguaje llano, y montará el arnés con esas respuestas.
 
 Si prefiere que lo hagas tú, las respuestas son suyas, no tuyas: pregúntaselas una a una y luego
 
@@ -71,7 +71,9 @@ npx @ericrisco/rsc@2.0.5 onboard \
   --accompaniment <L0|L1|L2|L3> \
   --project-kind <software|operations|research|content|mixed> \
   --goal "<lo que quiera conseguir>" \
+  --software-scope <small|growing|complex> \
   --target <claude|codex>
+# el tamaño solo cuenta con software y mixed, y con esos dos es obligatorio.
 # imprime un plan y su huella; solo después de que ACEPTE ese plan exacto:
 npx @ericrisco/rsc@2.0.5 onboard ...mismos flags... --accept-plan <huella>
 ```

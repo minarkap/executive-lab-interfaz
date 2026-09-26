@@ -12,7 +12,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const raiz = path.join(__dirname, '..');
-const REVISAR = ['extension/media/panel.js', 'extension/src'];
+// Y los módulos comunes que la barra carga y cuyos mensajes enseña: los de git,
+// las copias y los enganches (revisión de F8, M2).
+const REVISAR = ['extension/media/panel.js', 'extension/src', 'instalador/comun/git.js', 'instalador/comun/historial.js', 'instalador/comun/enganches.js'];
 
 // El manifiesto también pinta cosas para el alumno y estaba fuera: los títulos
 // de comando salen en la paleta del editor y los rótulos de los ajustes, en su
@@ -235,6 +237,16 @@ function rotulosDelManifiesto(base = raiz) {
   for (const orden of aporta.commands || []) {
     if (orden.title) rotulos.push({ donde: orden.command, texto: orden.title });
   }
+  // Los títulos de la barra de actividad y de la vista, y lo que se dice de la
+  // confianza (revisión de F8, M2): también salen en pantalla.
+  for (const [donde, lista] of Object.entries(aporta.viewsContainers || {})) {
+    for (const v of lista || []) if (v.title) rotulos.push({ donde: `${donde}.${v.id}`, texto: v.title });
+  }
+  for (const [donde, lista] of Object.entries(aporta.views || {})) {
+    for (const v of lista || []) if (v.name) rotulos.push({ donde: `${donde}.${v.id}`, texto: v.name });
+  }
+  const confianza = ((manifiesto.capabilities || {}).untrustedWorkspaces || {}).description;
+  if (confianza) rotulos.push({ donde: 'untrustedWorkspaces', texto: confianza });
   for (const [clave, ajuste] of Object.entries((aporta.configuration || {}).properties || {})) {
     if (ajuste.description) rotulos.push({ donde: clave, texto: ajuste.description });
     for (const suya of ajuste.enumDescriptions || []) rotulos.push({ donde: clave, texto: suya });
@@ -258,7 +270,8 @@ function revisarLoDe(base = raiz) {
   const deLosRailes = rotulosDeLosRailes(base);
   const deLasTablas = tablas.map((tabla) => ({ tabla, rotulos: rotulosDeUnaTabla(base, tabla) }));
   const fallos = [
-    ...codigo.flatMap((f) => revisar(f, prohibidas)),
+    // Lo que va al registro (`anotar`) no es pantalla, en ningún fichero.
+    ...codigo.flatMap((f) => revisar(f, prohibidas, { saltar: /\banotar\(/ })),
     ...revisarRotulos(delManifiesto, path.join(base, 'extension', 'package.json'), prohibidas),
     ...revisarRotulos(deLosRailes, path.join(base, 'skills', 'comandos'), prohibidas),
     ...deLasTablas.flatMap(({ tabla, rotulos }) => revisarRotulos(rotulos, path.join(base, tabla.fichero), prohibidas)),

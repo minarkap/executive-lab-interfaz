@@ -193,8 +193,8 @@ async function volverA(id) {
   return {
     ok: true,
     mensaje: habiaTrabajoSinGuardar
-      ? `Listo. Tu empresa ha vuelto a como estaba ${etiqueta}. Lo que tenías hecho después ya no está en las carpetas, pero no se ha perdido: lo guardé justo antes, y aquí abajo lo tienes para volver.`
-      : `Listo. Tu empresa ha vuelto a como estaba ${etiqueta}.`,
+      ? `Listo. Esta carpeta ha vuelto a como estaba ${etiqueta}. Lo que tenías hecho después ya no está en las carpetas, pero no se ha perdido: lo guardé justo antes, y aquí abajo lo tienes para volver.`
+      : `Listo. Esta carpeta ha vuelto a como estaba ${etiqueta}.`,
   };
 }
 

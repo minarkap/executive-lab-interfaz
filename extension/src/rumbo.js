@@ -310,14 +310,24 @@ function comoLaDeLaClase(parte) {
 // mínimo y como máximo (A8). La brújula prometía «una sola cosa», y el arranque
 // pregunta más, y según las respuestas: el asistente, solo con los dos
 // instalados; qué va a construir, solo si hay algo que construir; el objetivo,
-// y otra si escribe el suyo; los dos nombres; y la web, que se puede dejar.
+// y otra si escribe el suyo; los nombres, uno con «La empresa entera» y dos si
+// no; y la web, que se puede dejar. Y lo que se confirma antes de tocar nada:
+// Documentos, el Escritorio o las Descargas enteras, y una carpeta dentro de
+// otro proyecto. Una prueba hace la entrevista entera por sus dos extremos y
+// mira que dé esto (revisión de F8, I1: contaba dos nombres siempre).
 const CUANTAS_VECES = {
   asistente: [0, 1], deQueVa: [1, 1], alcance: [1, 1], personas: [1, 1], queConstruir: [0, 1],
-  objetivo: [1, 2], nivel: [1, 1], dial: [1, 1], nombres: [2, 2], web: [1, 1],
+  objetivo: [1, 2], nivel: [1, 1], dial: [1, 1], nombres: [1, 2], web: [1, 1],
+  laCarpeta: [1, 1], dentroDeOtro: [1, 1],
 };
 
 function cuantasPreguntas(parte) {
-  const lista = [...loQueFaltaPorPreguntar(parte), ...(parte && parte.recibo ? [] : ['web'])];
+  const lista = [
+    ...loQueFaltaPorPreguntar(parte),
+    ...(parte && parte.recibo ? [] : ['web']),
+    ...(parte && parte.carpeta && parte.carpeta.delicada ? ['laCarpeta'] : []),
+    ...(parte && parte.dentroDeOtro ? ['dentroDeOtro'] : []),
+  ];
   return lista.reduce((cuenta, id) => {
     const [min, max] = CUANTAS_VECES[id] || [1, 1];
     return { min: cuenta.min + min, max: cuenta.max + max };

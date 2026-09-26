@@ -165,11 +165,13 @@ Si no imprime nada, la instalación falló: mira la salida del paso 1 y **no sig
 ### Paso 3 — el arnés, con las respuestas de esa persona
 
 **Lo normal: no lo montes tú.** Dile que abra en VS Code la carpeta con la que quiere trabajar y que
-pulse **Preparar esta carpeta** en la barra de la izquierda. El asistente de la extensión le hace las
-unas preguntas en lenguaje llano, de una en una, y monta el arnés con sus respuestas. Es el camino probado.
+pulse **Preparar esta carpeta** en la barra de la izquierda. El asistente de la extensión le hace unas
+preguntas en lenguaje llano, de una en una, y monta el arnés con sus respuestas. Es el camino probado.
 
-Solo si te pide expresamente que lo hagas tú, pregúntale las cinco cosas —una a una, sin sugerir la
-respuesta— y luego:
+Solo si te pide expresamente que lo hagas tú, pregúntale lo que RSC necesita —una cosa cada vez, sin
+sugerir la respuesta—: qué tal se maneja, cuánto quiere que le expliquen, de qué va la carpeta, qué
+quiere conseguir, con qué asistente trabaja y, si va a construir algo (`software` o `mixed`), de qué
+tamaño. Luego:
 
 ```bash
 cd "<su carpeta de trabajo>"
@@ -179,10 +181,12 @@ npx @ericrisco/rsc@2.0.5 onboard \
   --accompaniment <L0|L1|L2|L3> \
   --project-kind <software|operations|research|content|mixed> \
   --goal "<lo que quiera conseguir, en sus palabras>" \
+  --software-scope <small|growing|complex> \
   --target <claude|codex>
 ```
 
-Ese comando **imprime un plan y una huella, y no monta nada todavía**. Enséñale el plan. Solo cuando
+El tamaño solo lo usa RSC con `software` y `mixed`, y con esos dos es obligatorio; con los demás tipos
+no cambia nada. Ese comando **imprime un plan y una huella, y no monta nada todavía**. Enséñale el plan. Solo cuando
 lo acepte, repite el mismo comando con los mismos flags y añade la huella **tal cual la imprimió**:
 
 ```bash
@@ -222,7 +226,7 @@ ls .claude/skills/executive-lab/SKILL.md              # los raíles
 |---|---|---|
 | `code: command not found` | El comando no está en el `PATH` | *Shell Command: Install 'code' command in PATH* desde VS Code |
 | La barra lateral no aparece | La extensión no arrancó | Reinicia VS Code; comprueba el paso 2 |
-| «Preparar esta carpeta» falla a mitad | El arnés quedó a medias | Vuelve a pulsar: termina lo que se quedó a medias. No borres `.rsc.json`, que es lo que dice cómo está montado. Si sigue, «Algo va mal»; la salida queda en `instalacion.log` |
+| «Preparar esta carpeta» falla a mitad | El arnés quedó a medias | Vuelve a pulsar: termina lo que se quedó a medias. No borres `.rsc.json`, que es lo que dice cómo está montado. Si sigue, «Algo va mal»: deja un informe con un código para el tutor, y lo que fue pasando está en el panel de salida «Executive Lab» |
 | Dice que falta una pieza | No hay `git` en el sistema | Pulsa el botón: lo instala. O instálalo tú |
 | El panel no responde | Falta iniciar sesión en Claude Code o Codex | Que inicie sesión en la extensión del asistente |
 
@@ -359,14 +363,16 @@ Dónde queda fricción, ordenada por cuánta gente pierde cada punto:
 
 ## Este repo también lleva el arnés
 
-Está equipado con RSC en modo desarrollador. Se versionan `.rsc.json`, `.claude/settings.json` y
-`.claude/rsc-bootstrap.mjs`; el resto está en `.gitignore`. Para retomarlo en otra máquina:
+Está equipado con RSC en modo desarrollador. Se versionan `.rsc.json`, `.claude/settings.json`,
+`.claude/rsc-bootstrap.mjs`, lo nuestro de `.claude/` (la habilidad de la casa, sus comandos y sus
+agentes) y `.rsc/.no-gitmoji`; lo que monta RSC está en `.gitignore`. Para retomarlo en otra máquina:
 
 ```bash
 npx @ericrisco/rsc@2.0.5 sync
 ```
 
-> La versión va fijada exacta a propósito, y está escrita en cinco sitios que una prueba obliga a
+> La versión va fijada exacta a propósito, y está escrita en varios sitios —el paquete de la barra,
+> `.rsc.json`, `rsc.js`, `preparar-paquete.js` y la copia fijada del freno— que una prueba obliga a
 > decir lo mismo. Se subió de la 1.4.1 a la 2.0.5 el 21 de septiembre de 2026, después de leer las
 > dos enteras: las tres tablas de `targets/` que copiamos estaban idénticas byte a byte y ningún
 > marcador que la barra lee había cambiado. Lo que sí cambió está en la decisión 91.

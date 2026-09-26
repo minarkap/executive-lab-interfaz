@@ -1023,7 +1023,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       const { min, max } = cargar('rumbo').cuantasPreguntas({ recibo: null, railes: null });
       assert.ok(min > 1 && max >= min, `un recuento que no cuadra: ${min}–${max}`);
       // Fijado: si cambian las preguntas del arranque, cambia lo que se promete en pantalla.
-      assert.deepEqual({ min, max }, { min: 9, max: 12 }, 'en una carpeta vacía se pregunta de 9 a 12 veces');
+      assert.deepEqual({ min, max }, { min: 8, max: 12 }, 'en una carpeta vacía se pregunta de 8 a 12 veces');
       const estado = await cargar('brujula').estado({ fresco: true });
       assert.doesNotMatch(estado.aviso, /una sola cosa/, 'se promete una sola pregunta');
       assert.match(estado.aviso, new RegExp(`entre ${min} y ${max} preguntas`), `no dice cuántas: ${estado.aviso}`);
@@ -1035,6 +1035,91 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     } finally {
       vscode.guion.raiz = empresa;
     }
+  });
+
+  await comprobar('el recuento es el de la entrevista de verdad: la más corta y la más larga', async () => {
+    // Revisión de F8, importante 1. La cuenta daba dos nombres siempre, y con «La
+    // empresa entera» se pregunta uno: la pantalla prometía de 9 a 12 y se hacían 8.
+    // La prueba de arriba fijaba lo que devolvía la propia cuenta, sin mirar la
+    // entrevista. Aquí se hace la entrevista entera por sus dos extremos, con un
+    // arnés fingido, y se cuentan las respuestas que se gastan.
+    const rscM = cargar('rsc');
+    const antes = { correr: rscM.correr, git: process.env.GIT_CONFIG_GLOBAL, instalados: vscode.guion.extensionesInstaladas };
+    const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'entrevista-git-'));
+    fs.writeFileSync(path.join(casa, '.gitconfig'), '');
+    process.env.GIT_CONFIG_GLOBAL = path.join(casa, '.gitconfig');
+    rscM.correr = async (args) => {
+      if (args[0] !== 'onboard') return { codigo: 0, salida: '' };
+      if (args.includes('--accept-plan')) return { codigo: 0, salida: `RSC_ONBOARDING_READY ${'d'.repeat(64)}` };
+      return { codigo: 0, salida: `Plan id: ${'d'.repeat(64)}\nAccept exactly this plan: npx @ericrisco/rsc@2.0.5 onboard --target claude --accept-plan ${'d'.repeat(64)}` };
+    };
+    const entrevista = async (instalados, respuestas) => {
+      vscode.guion.raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'entrevista-'));
+      vscode.guion.extensionesInstaladas = instalados;
+      vscode.guion.respuestas = [...respuestas];
+      const hecho = await cargar('arrancar').arrancar({ extensionPath: RAIZ, workspaceState: { get: () => undefined, update: async () => {} } }, vscode.window.createOutputChannel());
+      assert.equal(hecho.ok, true, hecho.mensaje || 'se canceló a mitad: hizo una pregunta más de las contadas');
+      assert.equal(vscode.guion.respuestas.length, 0, `sobran respuestas, hizo menos preguntas: ${vscode.guion.respuestas.join(' · ')}`);
+      return respuestas.length;
+    };
+    try {
+      const { min, max } = cargar('rumbo').cuantasPreguntas({ recibo: null, railes: null });
+      const corta = await entrevista(['anthropic.claude-code'], [
+        'Llevar el día a día', 'La empresa entera', 'Solo yo', 'Organizar el papeleo', 'Lo justo', 'De la mano', 'Ferretería Soler', '',
+      ]);
+      const larga = await entrevista(['anthropic.claude-code', 'openai.chatgpt'], [
+        'Claude', 'Un poco de todo', 'Un proyecto', 'Solo yo', 'Algo que irá sumando piezas', 'Otra cosa — te la cuento yo',
+        'Llevar la web de la tienda', 'Me defiendo', 'Corto', 'Web nueva', 'Tienda Soler', '',
+      ]);
+      assert.deepEqual({ min, max }, { min: corta, max: larga }, 'la cuenta no es la de la entrevista');
+      return `de ${corta} a ${larga}, como dice la pantalla`;
+    } finally {
+      rscM.correr = antes.correr;
+      if (antes.git === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+      else process.env.GIT_CONFIG_GLOBAL = antes.git;
+      vscode.guion.extensionesInstaladas = antes.instalados;
+      vscode.guion.respuestas = null;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('en Documentos entera o dentro de otro proyecto, la cuenta suma su aviso', async () => {
+    // Revisión de F8, importante 1: la brújula contaba como si la carpeta fuera
+    // cualquiera, y en Documentos entera o dentro de otro proyecto se pregunta una
+    // cosa más antes de preparar.
+    const rumboM = cargar('rumbo');
+    const base = rumboM.cuantasPreguntas({ recibo: null, railes: null });
+    const mas = (n) => ({ min: base.min + n, max: base.max + n });
+    assert.deepEqual(rumboM.cuantasPreguntas({ recibo: null, railes: null, carpeta: { delicada: 'documentos' } }), mas(1));
+    assert.deepEqual(rumboM.cuantasPreguntas({ recibo: null, railes: null, dentroDeOtro: { nombre: 'Proyectos' } }), mas(1));
+    const antesHome = process.env.HOME;
+    const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'casa-de-mentira-'));
+    const documentos = path.join(casa, 'Documents');
+    fs.mkdirSync(documentos);
+    process.env.HOME = casa;
+    vscode.guion.raiz = documentos;
+    try {
+      const { aviso } = await cargar('brujula').estado({ fresco: true });
+      assert.match(aviso, new RegExp(`entre ${base.min + 1} y ${base.max + 1} preguntas`), `en Documentos entera, la brújula no cuenta su aviso: ${aviso}`);
+      return aviso;
+    } finally {
+      process.env.HOME = antesHome;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('las instrucciones para agentes montan si se siguen al pie de la letra', () => {
+    // Revisión de F8, importante 2. Las dos órdenes `onboard` de los README
+    // ofrecían `software` y `mixed` sin `--software-scope`, que RSC exige para esos
+    // dos (`onboarding.js:45-47`): siguiéndolas, RSC respondía «falta el tamaño».
+    for (const doc of ['README.md', path.join('extension', 'README.md')]) {
+      const texto = fs.readFileSync(path.join(RAIZ, '..', doc), 'utf8');
+      const ordenes = [...texto.matchAll(/npx @ericrisco\/rsc@[\d.]+ onboard \\\n[\s\S]*?--target <claude\|codex>/g)].map((m) => m[0]);
+      assert.ok(ordenes.length, `${doc} ya no trae la orden onboard`);
+      for (const orden of ordenes) assert.match(orden, /--software-scope <small\|growing\|complex>/, `${doc}: sin el tamaño, software y mixed no montan`);
+      assert.doesNotMatch(texto, /las unas preguntas|las cinco cosas/, `${doc} cuenta las preguntas mal`);
+    }
+    return 'las dos, con el tamaño';
   });
 
   await comprobar('la brújula dice lo último que aprendió', async () => {
@@ -2116,7 +2201,9 @@ exec git "$@"
 
   await comprobar('el motor de JavaScript sigue sirviendo de resto', async () => {
     const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
-    if (historial.queMotor({ recalcular: true }) !== 'js') return 'SALTADA';
+    // Ese motor solo existe si hay isomorphic-git, y ya no lo trae nada de este
+    // repositorio: queda en los ordenadores con un instalador de antes (revisión de F8, I5).
+    if (historial.queMotor({ recalcular: true }) !== 'js') return 'SALTADA: aquí no hay isomorphic-git, que solo queda en instaladores de antes';
 
     const donde = fs.mkdtempSync(path.join(os.tmpdir(), 'historial-'));
     assert.ok((await historial.iniciar(donde)).ok);
@@ -2919,7 +3006,11 @@ exec git "$@"
       fs.writeFileSync(path.join(copia, rel), txt);
     };
     poner('docs/diccionario.md', fs.readFileSync(path.join(RAIZ, '..', 'docs', 'diccionario.md'), 'utf8'));
-    poner('extension/package.json', '{"contributes":{}}');
+    poner('extension/package.json', JSON.stringify({
+      contributes: { viewsContainers: { activitybar: [{ id: 'x', title: 'Abre la consola del equipo' }] }, views: { x: [{ id: 'x.panel', name: 'El repositorio de la casa' }] } },
+      capabilities: { untrustedWorkspaces: { supported: true, description: 'Toca el hook de la casa en esta carpeta.' } },
+    }));
+    poner('instalador/comun/git.js', "const aviso = 'Abre el terminal de la casa para seguir';\n");
     // Lo sembrado que es pantalla y lo que no: una nota de la tabla (`_…`), el
     // registro del instalador (`anotar`) y los comentarios de cada lenguaje.
     poner('extension/media/nombres.json', JSON.stringify({
@@ -2953,11 +3044,48 @@ exec git "$@"
       'extension/media/nombres.json:terminal',
       'instalador/mac/instalar.applescript:consola',
       'instalador/mac/instalar.applescript:repositorio',
+      'extension/package.json:consola',
+      'extension/package.json:hook',
+      'extension/package.json:repositorio',
+      'instalador/comun/git.js:terminal',
       'instalador/mac/instalar.js:extensión',
       'instalador/windows/ExecutiveLab.iss:extensión',
       'instalador/windows/ExecutiveLab.iss:terminal',
-    ], 'lo que ve el comprobador en la copia sembrada');
+    ].sort(), 'lo que ve el comprobador en la copia sembrada');
     return `${vistos.length} vistas en la copia sembrada, y el proyecto, limpio`;
+  });
+
+  await comprobar('nada llama «tu empresa» a la carpeta', () => {
+    // Revisión de F8, menor 7. El diccionario no deja llamarlo «tu empresa»: puede
+    // ser un departamento. Preguntar por la empresa de verdad está bien («¿Cómo se
+    // llama tu empresa?»); abrir, montar o dejar «tu empresa», no.
+    const mal = [];
+    const carpeta = /\b(abre|abrir|montar|monta|dejar|deja|preparar)\b[^'`"]{0,40}\btu empresa\b|\btu empresa ha vuelto\b/i;
+    for (const f of [...fs.readdirSync(path.join(RAIZ, 'src')).filter((x) => x.endsWith('.js')).map((x) => path.join(RAIZ, 'src', x)), path.join(RAIZ, 'media', 'panel.js')]) {
+      fs.readFileSync(f, 'utf8').split('\n').forEach((linea, i) => {
+        if (/^\s*(\/\/|\*)/.test(linea)) return;
+        if (carpeta.test(linea)) mal.push(`${path.basename(f)}:${i + 1}`);
+      });
+    }
+    assert.deepEqual(mal, [], 'textos que llaman «tu empresa» a la carpeta');
+    return 'ninguno';
+  });
+
+  await comprobar('la pieza que manda a «Algo va mal» dice qué hacer con el código', async () => {
+    // Revisión de F8, menor 4. Con el fichero que dice cómo está montado esto
+    // ilegible, la pieza trae el botón «Algo va mal» y no decía que el código que
+    // sale es para el tutor.
+    const r = fs.mkdtempSync(path.join(os.tmpdir(), 'recibo-roto-'));
+    fs.writeFileSync(path.join(r, '.rsc.json'), '<<<<<<< HEAD\n{"version": 1}\n=======\n{"version": 2}\n>>>>>>> otra\n');
+    vscode.guion.raiz = r;
+    try {
+      const pieza = (await cargar('terreno').radiografia()).piezas.find((p) => p.arreglo && p.arreglo.etiqueta === 'Algo va mal');
+      assert.ok(pieza, 'no sale la pieza del fichero roto');
+      assert.match(pieza.detalle, /pásale el código a tu tutor/, `no dice qué hacer con el código: ${pieza.detalle}`);
+      return pieza.detalle;
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
   });
 
   await comprobar('quien manda a «Algo va mal» dice también qué hacer después', () => {
@@ -2965,7 +3093,11 @@ exec git "$@"
     // "Algo va mal"», y ahí se quedaban: el alumno pulsa, sale un código, y no
     // sabe que ese código es para su tutor. La frase del diccionario lo dice.
     const DESPUES = ' y pásale el código a tu tutor';
-    const MANDA = /(?:Pulsa|pulsa|Prueba con|prueba con)\s+["«]Algo va mal["»]/g;
+    const MANDA = /(?:Pulsa|pulsa|Prueba con|prueba con)\s+(?:en\s+)?(?:el botón\s+)?["«“]Algo va mal["»”]/g;
+    // Las formas que se le escapaban (revisión de F8, M4): comillas curvas, «Pulsa en…» y «el botón…».
+    for (const forma of ['Pulsa “Algo va mal”', 'Pulsa en «Algo va mal»', 'pulsa el botón «Algo va mal»']) {
+      assert.ok(forma.match(MANDA), `no reconoce «${forma}»`);
+    }
     const ficheros = [
       ...fs.readdirSync(path.join(RAIZ, 'src')).filter((x) => x.endsWith('.js')).map((x) => path.join(RAIZ, 'src', x)),
       path.join(RAIZ, 'media', 'panel.js'),
@@ -2982,6 +3114,13 @@ exec git "$@"
     }
     assert.deepEqual(sinDespues, [], 'mandan a «Algo va mal» y no dicen qué hacer con el código');
     assert.ok(cuantas > 10, `solo ${cuantas}: el patrón ya no encuentra los mensajes`);
+    // Y lo que le dicen los raíles al asistente (revisión de F8, M4): donde manda a
+    // «Algo va mal», que el código es para el tutor.
+    const railes = [path.join(RAIZ, '..', 'skills', 'comandos'), path.join(RAIZ, '..', 'skills', 'executive-lab')]
+      .flatMap((d) => fs.readdirSync(d).filter((x) => x.endsWith('.md')).map((x) => path.join(d, x)));
+    const sinTutor = railes.flatMap((r) => fs.readFileSync(r, 'utf8').split(/\n\s*\n/)
+      .filter((p) => /Algo va mal/.test(p) && !/tutor/.test(p)).map((p) => `${path.basename(r)}: ${p.replace(/\s+/g, ' ').trim().slice(0, 70)}`));
+    assert.deepEqual(sinTutor, [], 'los raíles mandan a «Algo va mal» sin decir que el código es para el tutor');
     return `${cuantas} mensajes, todos con el paso siguiente`;
   });
 
@@ -4063,7 +4202,7 @@ exec git "$@"
     }
   });
 
-  await comprobar('la versión del arnés está fijada, y dice lo mismo en los cinco sitios', () => {
+  await comprobar('la versión del arnés está fijada, y dice lo mismo en todos los sitios donde está escrita', () => {
     // La política está escrita en `rsc.js`: toda la cohorte corre el mismo
     // catálogo, y subir de versión es una decisión, no un efecto secundario.
     // Pero `media/harness/package.json` declaraba `^1.4.1` — un rango. Bastaba
@@ -4071,7 +4210,7 @@ exec git "$@"
     // con otro catálogo sin que nadie lo pidiera. Una versión fijada con
     // acento circunflejo no está fijada.
     //
-    // Y está escrita en cinco sitios. Mientras nada los compare, el día que
+    // Y está escrita en varios sitios. Mientras nada los compare, el día que
     // alguien suba uno se quedan tres mintiendo. Esto dice cuáles tocar.
     const fs2 = require('node:fs');
     const leer = (...p) => JSON.parse(fs2.readFileSync(path.join(...p), 'utf8'));
@@ -9166,6 +9305,36 @@ exec git "$@"
         assert.equal(cargar('trato').leer().trato, 'L0', `${como}, «Cómo te habla» lee el dial de antes`);
       }
       return 'L0 en la cabecera, en el cuerpo y en «Cómo te habla», con los dos RSC';
+    } finally {
+      rscM.correr = antes;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('lo devuelto a la cabecera del perfil lleva sus listas, sus bloques y sus tildes', async () => {
+    // Revisión de F8, importante 4. Solo volvían las líneas que empiezan por una
+    // clave, y solo con letras sin tilde: una lista de YAML volvía sin sus
+    // elementos, un bloque sin su texto, y `dirección:` no volvía.
+    const rscM = cargar('rsc');
+    const antes = rscM.correr;
+    const RECORD = { projectKind: 'operations', goal: 'x', technicalLevel: 'non-technical', accompaniment: 'L3', targets: ['claude'] };
+    const carpeta = carpetaParaCompletar(RECORD);
+    const perfil = path.join(carpeta, '02-DOCS', 'wiki', 'harness', 'user-profile.md');
+    fs.writeFileSync(perfil, [
+      '---', 'technical_level: non-technical', 'accompaniment: L3', 'project_kind: operations',
+      'herramientas:', '  - Holded', '  - Gmail', 'no_tocar: >', '  La carpeta de 2019', '  y los contratos firmados', 'dirección: Calle Mayor 1', '---', '',
+      '# User profile', '', 'Goal: Llevar las facturas', '',
+    ].join('\n'));
+    rscM.correr = rscQueReescribeElPerfil(carpeta, 'Llevar las facturas');
+    try {
+      vscode.guion.raiz = carpeta;
+      const { hecho } = await conRespuestas({}, () => cargar('arrancar').arrancar(CONTEXTO_SIN_MEMORIA_AJENA, { appendLine() {} }));
+      assert.equal(hecho.rama, 'completar', hecho.mensaje);
+      const cabecera = fs.readFileSync(perfil, 'utf8').split(/\n---\n/)[0];
+      assert.match(cabecera, /^herramientas:\n {2}- Holded\n {2}- Gmail$/m, `la lista vuelve sin sus elementos:\n${cabecera}`);
+      assert.match(cabecera, /^no_tocar: >\n {2}La carpeta de 2019\n {2}y los contratos firmados$/m, `el bloque vuelve sin su texto:\n${cabecera}`);
+      assert.match(cabecera, /^dirección: Calle Mayor 1$/m, `una clave con tilde no vuelve:\n${cabecera}`);
+      return 'la lista, el bloque y la clave con tilde, enteros';
     } finally {
       rscM.correr = antes;
       vscode.guion.raiz = empresa;

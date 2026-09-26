@@ -165,7 +165,7 @@ function leer() {
   const seLee = (a, b) => color.contraste(a, b) >= 4.5;
   if (!seLee(esquema.texto, esquema.superficie) || !seLee(esquema.texto, esquema.tarjeta)) {
     return {
-      descartada: 'con ese fondo no se lee nada encima. Hace falta uno más claro o más oscuro',
+      descartada: 'con ese fondo no se lee nada encima. Pídele al asistente uno más claro o más oscuro',
       nombre: campos.empresa || campos.title || null,
     };
   }

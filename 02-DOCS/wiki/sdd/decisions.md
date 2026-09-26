@@ -270,3 +270,16 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
 - **T078 entra en F8**, aunque es de B11: salió al escribir T071 y comparte la causa, que RSC reescribe
   el perfil entero. Lo devuelto va con el dial y las palabras que acaba de escribir RSC, y la guarda
   contra duplicados compara lo de antes tal cual.
+
+## 2026-09-26 · todo-cuadra · revisión de F8
+
+- **La cuenta de preguntas se prueba contra la entrevista**, no contra sí misma: la prueba hace la
+  entrevista entera por sus dos extremos con un arnés fingido y cuenta las respuestas que se gastan.
+- **Los avisos de antes de preparar cuentan como preguntas**: Documentos, el Escritorio o las Descargas
+  enteras, y dentro de otro proyecto.
+- **La cabecera del perfil se devuelve por entradas**: cada clave con lo que cuelga de ella, y claves
+  con letras de cualquier idioma.
+- **`anotar` nunca es pantalla**: el comprobador lo salta en todos los ficheros que revisa.
+- **Los instaladores siguen sin tocar**, por la regla del plan para el autopilot, y el motivo se escribe
+  así. El motor de JavaScript de las copias queda para Jose: retirarlo o traer su biblioteca para
+  probarlo.
