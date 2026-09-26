@@ -237,3 +237,22 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
   de una clave privada, que salen igual la imprima un `cat` o un programa.
 - **Un `.env` queda con finales de Unix al guardar una clave**, y uno con finales de Windows se dice
   como una clave que la prueba lee mal: bash deja el `\r` dentro del valor.
+
+## 2026-09-26 · todo-cuadra · revisión de F7
+
+- **El andamio de RSC se descuenta también con índice**, y lo archivado (`<tema>/_archive/`) en todas
+  partes: con índice es el caso normal, porque las habilidades de RSC le piden al asistente indexar lo
+  suyo.
+- **Los comandos por lenguaje llevan delante la habilidad**, no el lenguaje. La tabla nombra también
+  esas habilidades, y la frase dice quién lo hace según la descripción que escribe RSC
+  (`{ayudante}`), no según el nombre del comando.
+- **`doctor` va con `--target`**, el asistente de `donde.paraQuien()`, porque RSC sin él contesta por
+  el primero de la lista.
+- **«No se sabe» es un tercer estado de «Algo va mal»**: sin diagnóstico legible no se dice ni sano ni
+  roto, y no se ofrece arreglar.
+- **El suelo sale del recibo**, como en RSC: un recibo sin `floorPaths` queda exento de la plantilla
+  entera. Y la plantilla de la 2.0.5 va fijada en el código para cuando la del paquete no se pueda leer.
+- **Con el estado del arnés a mano, un comando es del arnés si el estado lo dice**; sin estado, como
+  antes, por la tabla.
+- **La observación de `entorno.node()` no se toca**: todos los instaladores han llevado Node v24, y RSC
+  pide ≥18.

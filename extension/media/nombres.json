@@ -260,19 +260,23 @@
     "el mismo molde: `<lenguaje>-reviewer` y `<lenguaje>-build-resolver`. Hay más de",
     "veinte y salen nuevos con cada versión, así que en vez de una fila por cada uno",
     "hay una regla por familia. `{resto}` es el lenguaje: si está en `lenguajes`, con su",
-    "nombre de verdad (cpp → C++, mle → ML en producción); si no, humanizado."
+    "nombre de verdad (cpp → C++, mle → ML en producción); si no, humanizado.",
+    "En los comandos, lo que va delante del sufijo es la HABILIDAD, no el lenguaje, y quien",
+    "lo hace puede ser de otro: `nextjs-review` lo hace `react-reviewer` (`stackAliases`).",
+    "Así que `lenguajes` nombra también esas habilidades (nextjs → Next.js), y la frase dice",
+    "`{ayudante}`: el lenguaje del ayudante que RSC escribe en la descripción del comando."
   ],
   "patrones": {
     "comandos": [
       {
         "sufijo": "-review",
         "nombre": "Revisar el código de {resto}",
-        "queHace": "Le pasa al revisor de {resto} los cambios, para que señale fallos sin tocar nada."
+        "queHace": "Le pasa al revisor de {ayudante} los cambios, para que señale fallos sin tocar nada."
       },
       {
         "sufijo": "-build",
         "nombre": "Arreglar la compilación de {resto}",
-        "queHace": "Le pasa al arreglador de {resto} la compilación rota, para que la deje pasando con el cambio mínimo."
+        "queHace": "Le pasa al arreglador de {ayudante} la compilación rota, para que la deje pasando con el cambio mínimo."
       }
     ],
     "ayudantes": [
@@ -306,7 +310,16 @@
       "swift": "Swift",
       "go": "Go",
       "vue": "Vue",
-      "python": "Python"
+      "python": "Python",
+      "nextjs": "Next.js",
+      "spring-boot": "Spring Boot",
+      "kotlin-android": "Kotlin para Android",
+      "swift-ios": "Swift para iOS",
+      "vue-nuxt": "Vue y Nuxt",
+      "csharp-dotnet": "C# y .NET",
+      "laravel": "Laravel",
+      "postgresdb": "PostgreSQL",
+      "machine-learning": "aprendizaje automático"
     }
   },
   "_fontaneria": [

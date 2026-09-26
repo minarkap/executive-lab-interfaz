@@ -35,7 +35,10 @@ function leer(...partes) {
 
 // Las plantillas de RSC traen filas de ejemplo con marcadores entre llaves o
 // ángulos. No son artículos: no se enseñan.
-const ES_PLANTILLA = (texto) => /[{<]/.test(texto);
+// Las marcas de las plantillas de RSC son `{…}`, y solo esas: también se
+// tomaba por plantilla cualquier texto con «<», y una pregunta como «los pedidos
+// de menos de <100 €>» desaparecía (revisión de F7, m2).
+const ES_PLANTILLA = (texto) => /\{[^{}]*\}/.test(texto);
 
 // ------------------------------------------------------------ el índice
 
@@ -59,6 +62,14 @@ function tituloDe(rutaRelativa) {
 // su andamio: las fichas de cada cambio (`ftd`), sus decisiones, su diseño, su
 // pila técnica y sus informes (G6).
 const NO_SON_TEMAS = new Set(['harness', 'brand', 'sdd', 'ftd', 'decisions', 'design', 'stack', 'reports']);
+
+// Si una ruta de la wiki es del andamio: se mira su primera carpeta. Vale también
+// con índice, que es el caso normal —`specify`, `sdd` y `decision-records` le
+// piden al asistente que indexe lo suyo—: se aplica fila a fila, y un tema que se
+// queda sin filas no sale (revisión de F7, importante 1). Y lo archivado, que RSC
+// mueve a `<tema>/_archive/`.
+const esAndamio = (ruta) => NO_SON_TEMAS.has(String(ruta).replace(/^\.\//, '').split('/')[0].trim().toLowerCase());
+const esArchivado = (ruta) => /(^|\/)_archive\//.test(String(ruta));
 
 function delDisco() {
   const wiki = proyecto.ruta(...WIKI);
@@ -121,7 +132,7 @@ function delIndice() {
     const fila = linea.match(/^\|\s*\[([^\]]+)\]\(([^)]+)\)\s*\|([^|]*)\|([^|]*)\|/);
     if (!fila) continue;
     const [, titulo, ruta, resumen, fecha] = fila;
-    if (ES_PLANTILLA(titulo) || ES_PLANTILLA(ruta)) continue;
+    if (ES_PLANTILLA(titulo) || ES_PLANTILLA(ruta) || esAndamio(ruta) || esArchivado(ruta)) continue;
     // Lo archivado: RSC le pone `[Archived]` delante del resumen (G6).
     if (/^\s*\[(Archived|Archivado)\]/i.test(resumen) || /^\[Archivado\]/i.test(titulo)) continue;
 
@@ -221,7 +232,6 @@ function todosLosDocumentos() {
   const wiki = proyecto.ruta(...WIKI);
   if (!wiki || !fs.existsSync(wiki)) return [];
 
-  const fuera = ['harness', 'brand', 'sdd'];
   const raiz = ['index.md', 'log.md', 'gaps.md'];
   const encontrados = [];
 
@@ -237,7 +247,11 @@ function todosLosDocumentos() {
       const completa = path.join(carpeta, entrada.name);
       const relativa = path.relative(wiki, completa);
       if (entrada.isDirectory()) {
-        if (!fuera.includes(entrada.name)) recorrer(completa);
+        // El andamio, arriba del todo; lo archivado, en cualquier tema. Tenía su
+        // propia lista, la de antes, y «sin ordenar» enseñaba `ftd/`, `stack/` y
+        // las versiones viejas de `_archive/` (revisión de F7, importante 1).
+        if (entrada.name === '_archive' || (carpeta === wiki && NO_SON_TEMAS.has(entrada.name))) continue;
+        recorrer(completa);
       } else if (entrada.name.endsWith('.md') && !raiz.includes(relativa)) {
         encontrados.push(relativa);
       }
@@ -298,19 +312,26 @@ function loQueAunNoSabe(cuantos = 5) {
   if (!texto) return [];
 
   // El ejemplo de la plantilla lleva `{concept}`, y eso no cuenta (ES_PLANTILLA).
+  // Las viñetas, solo fuera de los bloques de RSC: dentro son notas del bloque,
+  // o su estado escrito en viñeta (revisión de F7, m2).
   const abiertas = [];
+  const sueltas = [];
   for (const bloque of texto.split(/^(?=## )/m)) {
     const cabecera = bloque.match(/^##\s+\[[^\]]*\]\s*gap\s*\|\s*(.+?)\s*$/m);
-    if (!cabecera) continue;
-    const estado = (bloque.match(/^Status:\s*(.+?)\s*$/m) || [])[1] || 'open';
-    if (/FILLED/i.test(cabecera[1]) || !/^open$/i.test(estado)) continue;
+    if (!cabecera) {
+      for (const linea of bloque.split('\n')) {
+        const vineta = linea.match(/^[-*]\s+(.+?)\s*$/);
+        if (vineta && !ES_PLANTILLA(vineta[1])) sueltas.push(vineta[1]);
+      }
+      continue;
+    }
+    // El estado como se escriba: `Status: open`, en negrita, en viñeta, y con
+    // una nota detrás o sin ella.
+    const estado = (bloque.match(/^\s*(?:[-*]\s+)?\**Status\**:?\**\s*(.+?)\s*$/mi) || [])[1] || 'open';
+    if (/FILLED/i.test(cabecera[1]) || !/^open\b/i.test(estado)) continue;
     if (!ES_PLANTILLA(cabecera[1])) abiertas.push(cabecera[1]);
   }
-  const vinetas = texto.split('\n')
-    .map((l) => l.match(/^[-*]\s+(.+?)\s*$/))
-    .filter((m) => m && !ES_PLANTILLA(m[1]))
-    .map((m) => m[1]);
-  return [...abiertas, ...vinetas].slice(0, cuantos);
+  return [...abiertas, ...sueltas].slice(0, cuantos);
 }
 
 // El panel humano que RSC regenera solo en cada pasada de mantenimiento.

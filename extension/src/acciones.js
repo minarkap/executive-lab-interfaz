@@ -73,12 +73,13 @@ function acciones() {
 // (`.rsc-state.json` → `commands`). Con eso, uno por lenguaje —`fastapi-review`—
 // se nombra y se pone entre los del arnés, y uno del alumno que acabe igual
 // sigue siendo suyo (G5).
+// `null` si no se sabe: sin estado, o con uno de antes que no los apunta así.
 function losDelArnes() {
   try {
     const estado = JSON.parse(fs.readFileSync(donde.ficheroDeEstado(), 'utf8'));
-    return new Set(Array.isArray(estado.commands) ? estado.commands : []);
+    return Array.isArray(estado.commands) ? new Set(estado.commands) : null;
   } catch {
-    return new Set();
+    return null;
   }
 }
 
@@ -102,10 +103,17 @@ function todos() {
     // la suya y manda la de la tabla.
     const suya = typeof campos.description === 'string' ? campos.description.replace(/^["']|["']$/g, '').trim() : '';
 
+    // Con el estado del arnés a mano, manda él: con Claude, RSC no escribe
+    // `review` ni `plan` como comandos, y un `review.md` es del alumno aunque
+    // la tabla lo nombre (revisión de F7, m8). Sin estado, la tabla, como antes.
+    const esDelArnes = deRsc ? deRsc.has(nombre) : null;
+    // Quién lo hace, si es uno por lenguaje: RSC lo escribe en su descripción,
+    // «… to the installed react-reviewer agent» (importante 2).
+    const ayudante = (suya.match(/\binstalled ([a-z0-9-]+) agent\b/) || [])[1] || null;
     const dicho = nombres.comoSeLlama('comandos', nombre, {
       nombre: etiqueta,
       queHace: nombres.enEspanol(suya) ? suya : '',
-    }, { patrones: deRsc.has(nombre) });
+    }, { patrones: Boolean(esDelArnes), ayudante, tabla: esDelArnes !== false });
 
     encontrados.push({
       nombre,
@@ -113,7 +121,7 @@ function todos() {
       queHace: dicho.queHace,
       icono: typeof campos.icono === 'string' ? campos.icono : '▸',
       esBoton: Boolean(etiqueta),
-      delArnes: dicho.deFuera || deRsc.has(nombre),
+      delArnes: esDelArnes === null ? dicho.deFuera : esDelArnes,
       prompt: comando.prompt,
     });
   }

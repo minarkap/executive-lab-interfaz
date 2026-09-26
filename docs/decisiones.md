@@ -3876,3 +3876,13 @@ la barra decía «Listo» con la plantilla de conexiones a medias.
   arnés de dentro.
 
 0.39.0. 297 comprobaciones, 304 con el arnés de verdad, y 13 de contrato.
+
+**Tras la revisión de F7** (26-09):
+- El andamio de RSC y lo archivado no cuentan como conocimiento, tampoco con índice.
+- Los comandos por lenguaje se nombran por su habilidad, y la frase nombra al ayudante que los hace.
+- «Algo va mal» pregunta a `doctor` por el asistente con el que se habla. Distingue el «no se sabe»
+  («No he podido revisarlo entero.»), y ya no lo llama «tu empresa».
+- La plantilla entera se exige solo si el recibo la declara, como RSC. Sin poder leer la del paquete,
+  se exige la de la 2.0.5.
+- Un enlace a nada no es una habilidad puesta, y un comando del alumno con nombre de la tabla sigue
+  siendo suyo.

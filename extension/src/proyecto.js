@@ -38,19 +38,36 @@ function existe(...partes) {
 // menos, la barra decía «Listo» y RSC «incompleto» (G7). Se leen de la
 // plantilla del arnés que viaja dentro, como hace RSC con la suya; `gitignore`
 // viaja sin punto, porque npm no empaqueta un `.gitignore`.
-function ficherosDeLaPlantilla() {
+//
+// Si la del paquete no se puede leer, se exige la de la 2.0.5, la versión de la
+// clase (P7). Un error ahí daba una lista vacía, y el suelo se conformaba con la
+// carpeta sin decir nada; RSC no se lo come (`templateAssets`). Una prueba
+// compara esta lista con la del paquete (revisión de F7, m5).
+const PLANTILLA_DE_LA_CLASE = Object.freeze(['.env.example', '.gitignore', 'CREDENTIALS.md', 'README.md', 'test_connection.sh']);
+const LA_DEL_PAQUETE = path.join(__dirname, '..', 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'skills', 'harness', 'assets', '_TEMPLATE');
+
+function ficherosDeLaPlantilla(donde = LA_DEL_PAQUETE) {
   try {
-    const plantilla = path.join(__dirname, '..', 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'skills', 'harness', 'assets', '_TEMPLATE');
-    return fs.readdirSync(plantilla).map((asset) => (asset === 'gitignore' ? '.gitignore' : asset));
+    return fs.readdirSync(donde).map((asset) => (asset === 'gitignore' ? '.gitignore' : asset));
   } catch {
-    return [];
+    return [...PLANTILLA_DE_LA_CLASE];
   }
+}
+
+// Y la plantilla entera, solo si el recibo la pide: RSC saca el suelo del plan
+// aceptado (`missingHarnessFloor`), y un recibo de antes, sin `floorPaths`, queda
+// exento, con la plantilla a medias de las versiones que copiaban cuatro de sus
+// cinco ficheros. Sin recibo, la carpeta (revisión de F7, m6).
+function pideLaPlantillaEntera() {
+  const plan = ((declaracion() || {}).onboarding || {}).plan || {};
+  return Array.isArray(plan.floorPaths) && plan.floorPaths.some((p) => String(p).replace(/\/+$/, '') === '01-TOOLS/_TEMPLATE');
 }
 
 function sueloDelArnes() {
   return {
     declaracion: existe('.rsc.json'),
-    conexiones: existe('01-TOOLS', '_TEMPLATE') && ficherosDeLaPlantilla().every((fichero) => existe('01-TOOLS', '_TEMPLATE', fichero)),
+    conexiones: existe('01-TOOLS', '_TEMPLATE')
+      && (!pideLaPlantillaEntera() || ficherosDeLaPlantilla().every((fichero) => existe('01-TOOLS', '_TEMPLATE', fichero))),
     conocimiento: existe('02-DOCS', 'wiki', 'harness'),
   };
 }
@@ -119,5 +136,5 @@ function versionDelCatalogo() {
 
 module.exports = {
   raiz, ruta, existe, declaracion, comoEstaLaDeclaracion, recibo, sueloDelArnes, arnesCompleto, versionDelCatalogo,
-  faltanLosInnegociables, INNEGOCIABLES, conVarias,
+  faltanLosInnegociables, INNEGOCIABLES, conVarias, ficherosDeLaPlantilla, PLANTILLA_DE_LA_CLASE,
 };

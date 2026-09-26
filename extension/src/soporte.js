@@ -81,7 +81,13 @@ async function revisar({ lineas = [], carpetaAparte = null } = {}) {
     // Qué arnés y qué módulos comunes corren de verdad: los de un instalador de
     // antes ya no mandan (G2), y si algo raro pasa, aquí se ve.
     `Arnés en uso: ${rsc.queArnes() || '(ninguno)'}`, // diccionario: interno
-    `Módulos comunes: ${path.dirname(require('./entorno').moduloComun('historial') || '(ninguno)')}`, // diccionario: interno
+    // Los tres, cada uno donde esté: sin ninguno decía «.», y solo miraba
+    // `historial` (revisión de F7, m7).
+    'Módulos comunes:', // diccionario: interno
+    ...['historial', 'enganches', 'git'].map((m) => {
+      const donde = require('./entorno').moduloComun(m);
+      return `  ${`${m}:`.padEnd(11)}${donde ? path.dirname(donde) : '(ninguno)'}`; // diccionario: interno
+    }),
     '',
     'Piezas del ordenador:',
     `  git:                     ${hayGit ? 'sí' : 'NO — sin esto no funciona nada'}`, // diccionario: interno
@@ -129,9 +135,12 @@ async function revisar({ lineas = [], carpetaAparte = null } = {}) {
   // Sin git no está sano por mucho que el doctor del arnés diga que sí: es la
   // pieza de la que cuelga todo lo demás.
   const sano = entero === true && proyecto.arnesCompleto() && hayGit;
+  // Si lo único que falta es saber lo que dice el arnés —su diagnóstico no se
+  // pudo leer—, no se sabe: ni sano, ni roto (revisión de F7, m4).
+  const desconocido = entero === null && proyecto.arnesCompleto() && hayGit;
   const hayQueTocarAlgo = /repair|fix|missing|dangling/i.test(reparacion.salida || '');
 
-  return { codigo, fichero, sano, hayQueTocarAlgo, faltaGit: !hayGit, informe };
+  return { codigo, fichero, sano, desconocido, hayQueTocarAlgo, faltaGit: !hayGit, informe };
 }
 
 // Solo se llama cuando el alumno ha dicho que sí. `rsc repair` guarda una copia

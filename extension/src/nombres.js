@@ -96,15 +96,28 @@ function deLaTabla(montón, id) {
 // El resto es el lenguaje, y humanizarlo a secas daba «Cpp», «Csharp», «Mle»:
 // un rótulo que no reconoce ni quien programa en él. Si la tabla `lenguajes`
 // lo conoce, se usa su nombre de verdad; si no, se humaniza como antes.
-function dePatron(montón, id) {
+//
+// En los comandos, quien lo hace puede ser de otro lenguaje: `nextjs-review` lo
+// hace `react-reviewer`, y la frase nombraba a un «revisor de Nextjs» que no
+// existe (revisión de F7, importante 2). `{ayudante}` es el lenguaje de quien lo
+// hace, sacado de su nombre con las reglas de los ayudantes.
+function dePatron(montón, id, { ayudante = null } = {}) {
   const reglas = (tabla().patrones || {})[montón] || [];
   const lenguajes = (tabla().patrones || {}).lenguajes || {};
+  const suBase = (nombre, deQuien) => {
+    for (const regla of (tabla().patrones || {})[deQuien] || []) {
+      if (typeof regla.sufijo === 'string' && String(nombre).endsWith(regla.sufijo)) return String(nombre).slice(0, -regla.sufijo.length);
+    }
+    return null;
+  };
   for (const regla of reglas) {
     if (typeof regla.sufijo !== 'string' || !String(id).endsWith(regla.sufijo)) continue;
     const base = String(id).slice(0, -regla.sufijo.length);
     const resto = lenguajes[base] || humanizar(base);
     if (!resto) continue;
-    const rellenar = (t) => String(t || '').replace(/\{resto\}/g, resto);
+    const deQuienLoHace = ayudante && suBase(ayudante, 'ayudantes');
+    const quien = (deQuienLoHace && (lenguajes[deQuienLoHace] || humanizar(deQuienLoHace))) || resto;
+    const rellenar = (t) => String(t || '').replace(/\{resto\}/g, resto).replace(/\{ayudante\}/g, quien);
     return { nombre: rellenar(regla.nombre), queHace: rellenar(regla.queHace) };
   }
   return null;
@@ -118,8 +131,11 @@ function dePatron(montón, id) {
 //
 //   patrones  si se prueban las reglas por familia: con los comandos, solo para
 //             los que RSC apunta en su estado (G5)
-function comoSeLlama(montón, id, suyo = {}, { patrones = true } = {}) {
-  const fila = deLaTabla(montón, id) || (patrones ? dePatron(montón, id) : null);
+//   ayudante  quién lo hace, si es un comando por lenguaje (`react-reviewer`)
+//   tabla     si se mira la tabla: con los comandos, no para uno que el estado
+//             del arnés no apunta, que es del alumno aunque se llame igual (m8)
+function comoSeLlama(montón, id, suyo = {}, { patrones = true, ayudante = null, tabla: conTabla = true } = {}) {
+  const fila = (conTabla ? deLaTabla(montón, id) : null) || (patrones ? dePatron(montón, id, { ayudante }) : null);
   const nombrePropio = typeof suyo.nombre === 'string' ? suyo.nombre.trim() : '';
   const frasePropia = typeof suyo.queHace === 'string' ? suyo.queHace.trim() : '';
 

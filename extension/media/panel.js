@@ -2218,12 +2218,17 @@ function pantallaCopias({ copias }) {
   `;
 }
 
-function pantallaIncidencia({ codigo, fichero, sano, hayQueTocarAlgo, faltaGit, comoSeInstalaGit }) {
+function pantallaIncidencia({ codigo, fichero, sano, desconocido, hayQueTocarAlgo, faltaGit, comoSeInstalaGit }) {
   // Si lo que falta es git, arreglar el arnés no sirve de nada: la pieza no
   // está. Se dice eso y se ofrece ponerla, en vez de un botón que no puede.
+  //
+  // Sin el diagnóstico del arnés no se sabe, y no se dice «He encontrado algo»
+  // ni se ofrece arreglar lo que no se ha visto. Y nada de «tu empresa»: esto
+  // puede ser un departamento (revisión de F7, m4).
   const queDigo = faltaGit
     ? 'Falta una pieza en este ordenador, y sin ella no puedo hacer casi nada.'
-    : (sano ? 'He mirado y tu empresa está bien.' : 'He encontrado algo y puedo intentar arreglarlo.');
+    : (sano ? 'He mirado y está todo bien.'
+      : (desconocido ? 'No he podido revisarlo entero.' : 'He encontrado algo y puedo intentar arreglarlo.'));
 
   return `
     <p class="titulo">Algo va mal</p>
@@ -2234,7 +2239,7 @@ function pantallaIncidencia({ codigo, fichero, sano, hayQueTocarAlgo, faltaGit, 
     <span class="codigo">${texto(codigo)}</span>
     ${faltaGit
       ? boton({ etiqueta: 'Ponerla ahora', icono: '⬇️', principal: true, accion: { tipo: 'instalarGit' } })
-      : (!sano || hayQueTocarAlgo ? boton({ etiqueta: 'Arreglarlo ahora', icono: '🛠️', principal: true, accion: { tipo: 'arreglar' } }) : '')}
+      : ((!sano && !desconocido) || hayQueTocarAlgo ? boton({ etiqueta: 'Arreglarlo ahora', icono: '🛠️', principal: true, accion: { tipo: 'arreglar' } }) : '')}
     ${fichero ? boton({ etiqueta: 'Enseñar el informe', icono: '📄', accion: { tipo: 'verElInforme', fichero } }) : ''}
   `;
 }

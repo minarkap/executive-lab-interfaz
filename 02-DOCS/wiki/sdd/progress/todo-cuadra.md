@@ -898,3 +898,20 @@ Solo se añade.
   `humo` 297, `humo+` 304, `contrato` 13, las tres empresas enteras, diccionario limpio y PowerShell
   sin pegas. Veintiuna mutaciones, y mueren todas. Decisión 123, worklog, 0.39.0 y commit. La revisión
   con ojos frescos de F7 corre sobre ese commit.
+- **Revisión de F7** 26-09 · Tres importantes y nueve menores, comprobados y aceptados
+  ([verificación de F7](../verifications/todo-cuadra-F7-2026-09-26.md#lo-que-encontró-la-revisión-con-ojos-frescos)).
+  El revisor se cortó tres veces por la red, con el Mac dormido de madrugada, y se retomó donde estaba.
+  El arreglo va en un commit propio, con F8 (T067–T071 y T078, a medias) apartado en un `stash`:
+  - el andamio de RSC y lo archivado, fuera del conocimiento también con índice;
+  - los comandos por lenguaje, con el nombre de su habilidad y la frase de su ayudante;
+  - `doctor` con el asistente de ahora, y «no se sabe» como tercer estado de «Algo va mal», que ya no
+    dice «tu empresa»;
+  - el suelo, sacado del recibo, y la plantilla de la 2.0.5 fijada para cuando no se pueda leer;
+  - un enlace a nada, que no es una habilidad; un comando del alumno con nombre de la tabla, que sigue
+    siendo suyo; las variantes de las preguntas; los tres módulos en el informe;
+  - la prueba de despacho, con las 83 rutas; y la batería, que ya no revienta sin el paquete.
+  - Once pruebas nuevas, en rojo primero. Treinta mutaciones: mueren veintisiete, y de las otras tres,
+    dos eran equivalentes (una deja fuera un filtro que sobraba) y la tercera pedía una prueba, que se
+    añadió y la mata.
+
+  Verde: `humo` 308, `humo+` 315, `contrato` 13.

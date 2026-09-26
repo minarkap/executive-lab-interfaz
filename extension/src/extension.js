@@ -1181,6 +1181,7 @@ ${cabecera}
       codigo: informe.codigo,
       fichero: informe.fichero,
       sano: informe.sano,
+      desconocido: informe.desconocido,
       hayQueTocarAlgo: informe.hayQueTocarAlgo,
       // Si lo que falta es git, `rsc repair` no lo va a arreglar: hay que
       // ponerlo. Mejor ese botón que uno que no puede funcionar.

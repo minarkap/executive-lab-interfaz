@@ -26,9 +26,18 @@ const { montar, montarMarca } = require('./empresa-falsa');
 const RAIZ = path.join(__dirname, '..');
 // Los ficheros de la plantilla de conexiones, como los deja RSC: el suelo los
 // pide todos, no solo la carpeta (G7). Salen del paquete que viaja dentro.
-const PLANTILLA_ENTERA = require('node:fs')
-  .readdirSync(path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'skills', 'harness', 'assets', '_TEMPLATE'))
-  .map((asset) => (asset === 'gitignore' ? '.gitignore' : asset));
+// Sin el paquete —`node_modules` no va en git— la batería reventaba aquí,
+// antes de la primera comprobación (revisión de F7, m9): se usa la plantilla
+// fijada de la 2.0.5, y las pruebas que necesitan el paquete lo dicen ellas.
+const PLANTILLA_ENTERA = (() => {
+  try {
+    return require('node:fs')
+      .readdirSync(path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'skills', 'harness', 'assets', '_TEMPLATE'))
+      .map((asset) => (asset === 'gitignore' ? '.gitignore' : asset));
+  } catch {
+    return ['.env.example', '.gitignore', 'CREDENTIALS.md', 'README.md', 'test_connection.sh'];
+  }
+})();
 const cargar = (m) => require(path.join(RAIZ, 'src', m));
 
 let pasadas = 0;
@@ -795,6 +804,74 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     }
   });
 
+  await comprobar('el andamio de RSC no es conocimiento, tampoco con índice ni en lo que falta por ordenar', () => {
+    // Revisión de F7, importante 1. El andamio de RSC solo se quitaba sin índice.
+    // Con índice —el caso normal: `specify`, `sdd` y `decision-records` le piden
+    // al asistente que indexe lo suyo— salía como tema. Y «sin ordenar» tenía su
+    // propia lista, la de antes, y entraba en lo archivado (`<tema>/_archive/`).
+    const r = fs.mkdtempSync(path.join(os.tmpdir(), 'andamio-con-indice-'));
+    const poner = (rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(r, rel)), { recursive: true });
+      fs.writeFileSync(path.join(r, rel), txt);
+    };
+    const tabla = (titulo, ruta) => ['| Artículo | Resumen | Fecha | Puntos |', '|---|---|---|---|', `| [${titulo}](${ruta}) | Algo | 2026-09-20 | 4.0 |`, ''];
+    // Y bajo un tema de verdad, una fila de lo archivado sin su marca y otra del andamio.
+    const ventas = [...tabla('Precios', 'ventas/precios.md').slice(0, 3),
+      '| [Precios de antes](ventas/_archive/precios__2026-09-01.md) | La de agosto | 2026-09-01 | 3.0 |',
+      '| [Usar Holded](decisions/0001-usar-holded.md) | Por qué Holded | 2026-09-02 | 3.0 |', ''];
+    poner('02-DOCS/wiki/index.md', ['# Índice', '',
+      '## ventas', '', 'Lo que se vende.', '', ...ventas,
+      '## decisions', '', 'Las decisiones del arnés.', '', ...tabla('Usar Holded', 'decisions/0001-usar-holded.md'),
+      '## sdd/specs', '', ...tabla('Facturas', 'sdd/specs/facturas.md'),
+    ].join('\n'));
+    poner('02-DOCS/wiki/ventas/precios.md', '# Precios\n');
+    poner('02-DOCS/wiki/ventas/clientes.md', '# Clientes\n');
+    poner('02-DOCS/wiki/ventas/_archive/precios__2026-09-01.md', '# Precios de antes\n');
+    for (const andamio of ['decisions/0001-usar-holded.md', 'ftd/nueva-factura.md', 'stack/node.md', 'design/pantallas.md', 'reports/semana.md', 'sdd/specs/facturas.md']) {
+      poner(`02-DOCS/wiki/${andamio}`, '# Algo del arnés\n');
+    }
+    vscode.guion.raiz = r;
+    try {
+      const cerebroM = cargar('cerebro');
+      assert.deepEqual(cerebroM.catalogo().map((t) => t.id), ['ventas'], 'con índice, el andamio del arnés sale como tema');
+      assert.deepEqual(cerebroM.catalogo()[0].articulos.map((a) => a.titulo), ['Precios'], 'lo archivado o el andamio salen como artículos de un tema');
+      assert.deepEqual(cerebroM.sinOrdenar().map((d) => d.ruta.split(path.sep).join('/')), ['ventas/clientes.md'], 'lo que falta por ordenar trae el andamio o lo archivado');
+      return 'un tema, y por ordenar solo lo suyo';
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('las preguntas sin contestar se leen como se escriben', () => {
+    // Revisión de F7, menor 2. La forma de la plantilla de RSC se leía bien; sus
+    // variantes, no. Un estado en negrita o en viñeta, contestado, salía como
+    // abierto; un «open» con una nota detrás desaparecía; las viñetas de dentro
+    // de un bloque salían como preguntas; y cualquier pregunta con «<» se tomaba
+    // por plantilla. Las marcas de plantilla de RSC son solo `{…}`.
+    const r = fs.mkdtempSync(path.join(os.tmpdir(), 'huecos-variantes-'));
+    fs.mkdirSync(path.join(r, '02-DOCS', 'wiki'), { recursive: true });
+    fs.writeFileSync(path.join(r, '02-DOCS', 'wiki', 'gaps.md'), [
+      '# Knowledge Gaps', '',
+      '## [2026-09-20] gap | El margen por cliente', '', '**Status:** [FILLED 2026-09-21]', '',
+      '## [2026-09-20] gap | El plazo de cobro', '', '- Status: [FILLED 2026-09-22]', '',
+      '## [2026-09-20] gap | Quién lleva las nóminas', '', 'Status: open — lo pregunto el lunes', '- una nota dentro del bloque', '',
+      '## [2026-09-20] gap | Los pedidos de menos de <100 €>', '', 'Status: open', '',
+      '## [YYYY-MM-DD] gap | {concept}', '', 'Status: open', '',
+      '## Preguntas sueltas', '', '- ¿Cobramos el IVA de los envíos?', '',
+    ].join('\n'));
+    vscode.guion.raiz = r;
+    try {
+      assert.deepEqual(cargar('cerebro').loQueAunNoSabe(), [
+        'Quién lleva las nóminas',
+        'Los pedidos de menos de <100 €>',
+        '¿Cobramos el IVA de los envíos?',
+      ]);
+      return 'tres abiertas: dos del arnés, con sus variantes, y una escrita a mano';
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+  });
+
   await comprobar('los documentos se cuentan bien', () => {
     assert.equal(cerebro.esperandoLectura(), 1, 'el README del inbox no es un documento');
     assert.equal(cerebro.yaLeidos(), 1);
@@ -1065,6 +1142,65 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.ok(!fs.readFileSync(fichero, 'utf8').includes(clave), 'y el fichero también');
     assert.ok(informe.includes(`Bearer ••••${clave.slice(-4)}`), 'y no se deja ver cuál es');
     return 'tapada';
+  });
+
+  await comprobar('sin poder leer el diagnóstico, no se dice que está bien', async () => {
+    // Revisión de F7, menor 4. Si `doctor --json` no se puede leer, la barra no
+    // lo sabe: ni sano ni roto. Dos mutaciones lo volvían «sano» sin que nada se
+    // pusiera rojo. Y la pantalla decía «He encontrado algo» sin haber encontrado
+    // nada, y «tu empresa», que el diccionario no deja decir.
+    const rscM = cargar('rsc');
+    assert.equal(rscM.estaEntero(null), null);
+    assert.equal(rscM.estaEntero(rscM.comoEstaDeSalud({ codigo: 0, salida: 'esto no es un informe' })), null);
+    const antes = { salud: rscM.salud, arreglarEnSeco: rscM.arreglarEnSeco, reevaluar: rscM.reevaluar, revisar: rscM.revisar };
+    rscM.salud = async () => ({ codigo: 0, salida: 'esto no es un informe' });
+    rscM.arreglarEnSeco = async () => ({ codigo: 0, salida: 'Nothing to repair' });
+    rscM.reevaluar = async () => ({ codigo: 0, salida: 'RSC_REASSESSMENT_NO_CHANGE' });
+    rscM.revisar = async () => ({ codigo: 0, salida: '' });
+    try {
+      const hecho = await cargar('soporte').revisar({ carpetaAparte: fs.mkdtempSync(path.join(os.tmpdir(), 'incidencias-')) });
+      assert.equal(hecho.sano, false, 'sin diagnóstico, se dice que está bien');
+      assert.equal(hecho.desconocido, true, 'no se dice que no se ha podido saber');
+
+      const { montarPanel } = require('./panel-falso');
+      const sinSaber = montarPanel().mandar({ tipo: 'incidencia', codigo: 'ABC234', sano: false, desconocido: true, hayQueTocarAlgo: false });
+      assert.match(sinSaber, /No he podido revisarlo entero\./, 'sin saberlo, dice otra cosa');
+      assert.doesNotMatch(sinSaber, /He encontrado algo|Arreglarlo ahora/, 'dice que ha encontrado algo, u ofrece arreglar lo que no ha visto');
+      const bien = montarPanel().mandar({ tipo: 'incidencia', codigo: 'ABC234', sano: true });
+      assert.match(bien, /He mirado y está todo bien\./);
+      assert.doesNotMatch(bien, /empresa/, 'lo llama «tu empresa»');
+      const mal = montarPanel().mandar({ tipo: 'incidencia', codigo: 'ABC234', sano: false, hayQueTocarAlgo: true });
+      assert.match(mal, /He encontrado algo y puedo intentar arreglarlo\./);
+      assert.match(mal, /Arreglarlo ahora/);
+      return 'ni sano ni roto: «No he podido revisarlo entero.»';
+    } finally {
+      Object.assign(rscM, antes);
+    }
+  });
+
+  await comprobar('el informe dice dónde está cada módulo común, o que no está', async () => {
+    // Revisión de F7, menor 7. Sin ninguno decía «Módulos comunes: .», y solo
+    // miraba `historial`: `enganches` y `git` ni se nombraban.
+    const rscM = cargar('rsc');
+    const entornoM = cargar('entorno');
+    const antes = { salud: rscM.salud, arreglarEnSeco: rscM.arreglarEnSeco, reevaluar: rscM.reevaluar, revisar: rscM.revisar, modulo: entornoM.moduloComun };
+    rscM.salud = async () => ({ codigo: 0, salida: '{}' });
+    rscM.arreglarEnSeco = async () => ({ codigo: 0, salida: '' });
+    rscM.reevaluar = async () => ({ codigo: 0, salida: 'RSC_REASSESSMENT_NO_CHANGE' });
+    rscM.revisar = async () => ({ codigo: 0, salida: '' });
+    const informe = async () => (await cargar('soporte').revisar({ carpetaAparte: fs.mkdtempSync(path.join(os.tmpdir(), 'incidencias-')) })).informe;
+    try {
+      const conEllos = await informe();
+      for (const m of ['historial', 'enganches', 'git']) assert.match(conEllos, new RegExp(`^ +${m}: +\\S*comun`, 'm'), `no dice dónde está ${m}`);
+      entornoM.moduloComun = () => null;
+      const sinEllos = await informe();
+      assert.doesNotMatch(sinEllos, /: \.$/m, 'dice «.» por no decir que no está');
+      for (const m of ['historial', 'enganches', 'git']) assert.match(sinEllos, new RegExp(`^ +${m}: +\\(ninguno\\)$`, 'm'), `no dice que falta ${m}`);
+      return 'los tres, cada uno con su sitio o con «(ninguno)»';
+    } finally {
+      Object.assign(rscM, { salud: antes.salud, arreglarEnSeco: antes.arreglarEnSeco, reevaluar: antes.reevaluar, revisar: antes.revisar });
+      entornoM.moduloComun = antes.modulo;
+    }
   });
 
   await comprobar('con un informe real de doctor, faltan nombres y no rutas', async () => {
@@ -1581,6 +1717,32 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       assert.equal(cargar('donde').paraQuien(), 'claude');
       return 'Codex en todas · sin ninguno, el primero declarado en todas';
     } finally {
+      fs2.writeFileSync(declaracion, antes);
+      vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
+    }
+  });
+
+  await comprobar('«Algo va mal» mira la salud del asistente con el que se habla', async () => {
+    // Revisión de F7, importante 3. `doctor` iba sin `--target`, y con dos
+    // asistentes RSC contesta por el primero de su lista: con Codex roto y Claude
+    // entero, «Algo va mal» decía que todo estaba bien.
+    const fs2 = require('node:fs');
+    const rscM = cargar('rsc');
+    const declaracion = path.join(empresa, '.rsc.json');
+    const antes = fs2.readFileSync(declaracion, 'utf8');
+    const correrAntes = rscM.correr;
+    const pedidos = [];
+    fs2.writeFileSync(declaracion, JSON.stringify({ ...JSON.parse(antes), targets: ['claude', 'codex'] }, null, 2));
+    vscode.guion.extensionesInstaladas = ['openai.chatgpt'];
+    rscM.correr = async (args) => { pedidos.push(args); return { codigo: 0, salida: '{}' }; };
+    try {
+      await rscM.salud();
+      await rscM.revisar();
+      assert.equal(pedidos.length, 2, 'no se le pregunta a doctor');
+      for (const args of pedidos) assert.equal(args[args.indexOf('--target') + 1], 'codex', `doctor, sin el asistente de ahora: ${args.join(' ')}`);
+      return 'doctor --target codex, las dos veces';
+    } finally {
+      rscM.correr = correrAntes;
       fs2.writeFileSync(declaracion, antes);
       vscode.guion.extensionesInstaladas = ['anthropic.claude-code'];
     }
@@ -2809,6 +2971,81 @@ exec git "$@"
       assert.equal(uno('uno-nuevo-del-arnes').delArnes, true, 'uno que el arnés dice que es suyo sale como del alumno');
       assert.notEqual(uno('contratos-review').etiqueta, 'Revisar el código de Contratos', 'y con un nombre que no es el suyo');
       return `${uno('fastapi-review').etiqueta} · ${uno('go-build').etiqueta}`;
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('cada comando por lenguaje tiene nombre, y su frase nombra al ayudante que lo hace', async () => {
+    // Revisión de F7, importante 2. Delante del sufijo va la habilidad, no el
+    // lenguaje: `nextjs-review` lo hace `react-reviewer`, y `machine-learning-build`
+    // lo hace `pytorch-build-resolver` (`stackAliases`, `targets/commands.js`). La
+    // tabla de lenguajes era la de los agentes: catorce comandos salían con el
+    // identificador humanizado —«Revisar el código de Csharp dotnet»— y con una
+    // frase que nombraba a un ayudante que no existe.
+    const { pathToFileURL } = require('node:url');
+    const agentes = await import(pathToFileURL(path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'targets', 'agents.js')).href);
+    const nombresM = cargar('nombres');
+    const lenguajes = JSON.parse(fs.readFileSync(path.join(RAIZ, 'media', 'nombres.json'), 'utf8')).patrones.lenguajes;
+    const comandos = agentes.stackAgents()
+      .filter((a) => ['reviewer', 'build-resolver'].includes(a.role))
+      .flatMap((a) => (a.skills || []).map((s) => ({ nombre: `${s}-${a.role === 'reviewer' ? 'review' : 'build'}`, habilidad: s, ayudante: a.name })));
+    assert.ok(comandos.length >= 30, `solo ${comandos.length}: el paquete ya no los describe así`);
+    const mal = [];
+    for (const c of comandos) {
+      const lenguaje = c.ayudante.replace(/-(reviewer|build-resolver)$/, '');
+      const dicho = nombresM.comoSeLlama('comandos', c.nombre, {}, { ayudante: c.ayudante });
+      if (!lenguajes[c.habilidad] || !dicho.nombre.includes(lenguajes[c.habilidad])) mal.push(`${c.nombre}: «${dicho.nombre}»`);
+      if (!lenguajes[lenguaje] || !dicho.queHace.includes(lenguajes[lenguaje])) mal.push(`${c.nombre}: «${dicho.queHace}» no nombra a ${c.ayudante}`);
+    }
+    assert.deepEqual(mal, [], 'comandos sin nombre de verdad, o que nombran a otro ayudante');
+
+    // Y en la barra: el ayudante sale de la descripción que escribe RSC.
+    const r = fs.mkdtempSync(path.join(os.tmpdir(), 'comando-con-ayudante-'));
+    const poner = (rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(r, rel)), { recursive: true });
+      fs.writeFileSync(path.join(r, rel), txt);
+    };
+    poner('.rsc.json', JSON.stringify({ version: 1, targets: ['claude'], skills: ['nextjs'] }));
+    poner('.claude/skills/.rsc-state.json', JSON.stringify({ skills: {}, commands: ['nextjs-review'] }));
+    poner('.claude/commands/nextjs-review.md', '---\ndescription: Delegate nextjs review work to the installed react-reviewer agent.\n---\n');
+    vscode.guion.raiz = r;
+    try {
+      const uno = cargar('acciones').todos().find((c) => c.nombre === 'nextjs-review') || {};
+      assert.equal(uno.etiqueta, `Revisar el código de ${lenguajes.nextjs}`);
+      assert.match(uno.queHace || '', new RegExp(`revisor de ${lenguajes.react}\\b`), `la frase no nombra al revisor de React: ${uno.queHace}`);
+      return `${comandos.length} comandos · ${uno.etiqueta}: ${uno.queHace}`;
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('un comando del alumno que se llama como uno de la tabla sigue siendo suyo', () => {
+    // Revisión de F7, menor 8. Con Claude, RSC no escribe `review`, `plan` ni
+    // `debug` como comandos, que van como habilidades. Pero todo comando de la
+    // tabla salía como del arnés, y con el nombre y la frase de la tabla. Si el
+    // estado del arnés existe, manda él.
+    const r = fs.mkdtempSync(path.join(os.tmpdir(), 'comando-suyo-de-la-tabla-'));
+    const poner = (rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(r, rel)), { recursive: true });
+      fs.writeFileSync(path.join(r, rel), txt);
+    };
+    poner('.rsc.json', JSON.stringify({ version: 1, targets: ['claude'], skills: [] }));
+    poner('.claude/skills/.rsc-state.json', JSON.stringify({ skills: {}, commands: ['checkpoint'] }));
+    poner('.claude/commands/checkpoint.md', '---\ndescription: Save a checkpoint.\n---\n');
+    poner('.claude/commands/review.md', '---\ndescription: Repasa un contrato con la lista de la casa\n---\n');
+    vscode.guion.raiz = r;
+    try {
+      const uno = (n) => cargar('acciones').todos().find((c) => c.nombre === n) || {};
+      assert.equal(uno('review').delArnes, false, 'el suyo sale como del arnés');
+      assert.equal(uno('review').queHace, 'Repasa un contrato con la lista de la casa', 'y con la frase de la tabla');
+      const deLaTabla = JSON.parse(fs.readFileSync(path.join(RAIZ, 'media', 'nombres.json'), 'utf8')).comandos.review.nombre;
+      assert.notEqual(uno('review').etiqueta, deLaTabla, 'y con el nombre de la tabla');
+      assert.equal(uno('checkpoint').delArnes, true);
+      // Sin estado, un arnés de antes: manda la tabla, como antes.
+      fs.rmSync(path.join(r, '.claude', 'skills', '.rsc-state.json'));
+      assert.equal(uno('review').delArnes, true, 'sin estado, deja de reconocerse lo del arnés');
+      return 'el suyo, suyo; y sin estado, la tabla';
     } finally {
       vscode.guion.raiz = empresa;
     }
@@ -6909,7 +7146,7 @@ exec git "$@"
       assert.equal(entorno.entradaDelArnes(null, null), path.join(rscViejo, 'scripts', 'rsc.js'), 'uno de la misma versión no se usa');
       // Y el informe de «Algo va mal» dice cuál corre.
       const { informe } = await cargar('soporte').revisar({ carpetaAparte: fs.mkdtempSync(path.join(os.tmpdir(), 'incidencias-')) });
-      assert.match(informe, /^Arnés en uso: .*media\/harness\/node_modules\/@ericrisco\/rsc\/scripts\/rsc\.js$/m, 'el informe no dice qué arnés corre');
+      assert.match(informe, /^Arnés en uso: .*media[\\/]harness[\\/]node_modules[\\/]@ericrisco[\\/]rsc[\\/]scripts[\\/]rsc\.js$/m, 'el informe no dice qué arnés corre');
       return 'el del .vsix, y el de la app solo si es igual';
     } finally {
       if (antes === undefined) delete process.env.EXECUTIVE_LAB_HOME;
@@ -7772,7 +8009,7 @@ exec git "$@"
       fs.mkdirSync(path.dirname(path.join(r, rel)), { recursive: true });
       fs.writeFileSync(path.join(r, rel), txt);
     };
-    poner('.rsc.json', JSON.stringify({ version: 1, catalogVersion: '2.0.5', targets: ['claude'], skills: ['bro'], ownSkills: [], onboarding: { plan: { record: { projectKind: 'operations', goal: 'x', technicalLevel: 'mixed', accompaniment: 'L2', targets: ['claude'] } } } }));
+    poner('.rsc.json', JSON.stringify({ version: 1, catalogVersion: '2.0.5', targets: ['claude'], skills: ['bro'], ownSkills: [], onboarding: { plan: { record: { projectKind: 'operations', goal: 'x', technicalLevel: 'mixed', accompaniment: 'L2', targets: ['claude'] }, floorPaths: ['01-TOOLS/_TEMPLATE/', '02-DOCS/wiki/harness/'] } } }));
     poner('.rsc/session-start.mjs', '//');
     poner('.claude/skills/bro/SKILL.md', '#');
     poner('.claude/settings.json', JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: 'command', command: 'node "${CLAUDE_PROJECT_DIR}/.claude/rsc-bootstrap.mjs" "announce"' }] }] } }));
@@ -7780,6 +8017,50 @@ exec git "$@"
     poner('02-DOCS/wiki/harness/user-profile.md', '---\narnes: X\n---\n');
     return r;
   };
+
+  await comprobar('el suelo pide la plantilla entera solo si el recibo la declara, como RSC', () => {
+    // Revisión de F7, menor 6. RSC saca el suelo del recibo (`missingHarnessFloor`):
+    // un recibo de antes, sin `floorPaths`, queda exento, y con él la plantilla a
+    // medias de las versiones que copiaban cuatro de sus cinco ficheros. La barra
+    // la exigía entera a todos, y la pantalla principal decía «a medio preparar»
+    // sin más arreglo que volver a montar.
+    const r = fs.mkdtempSync(path.join(os.tmpdir(), 'suelo-del-recibo-'));
+    const poner = (rel, txt) => {
+      fs.mkdirSync(path.dirname(path.join(r, rel)), { recursive: true });
+      fs.writeFileSync(path.join(r, rel), txt);
+    };
+    const recibo = (plan) => poner('.rsc.json', JSON.stringify({ version: 1, targets: ['claude'], skills: [], onboarding: { acceptedPlanId: 'a'.repeat(64), plan } }));
+    poner('01-TOOLS/_TEMPLATE/README.md', '# Plantilla\n');
+    poner('02-DOCS/wiki/harness/user-profile.md', '---\n---\n');
+    vscode.guion.raiz = r;
+    try {
+      const proyectoM = cargar('proyecto');
+      recibo({ record: {} });
+      assert.equal(proyectoM.sueloDelArnes().conexiones, true, 'un recibo sin suelo declarado exige la plantilla entera');
+      poner('.rsc.json', JSON.stringify({ version: 1, targets: ['claude'], skills: [] }));
+      assert.equal(proyectoM.sueloDelArnes().conexiones, true, 'sin recibo, exige la plantilla entera');
+      recibo({ record: {}, floorPaths: ['01-TOOLS/_TEMPLATE/', '02-DOCS/wiki/harness/'] });
+      assert.equal(proyectoM.sueloDelArnes().conexiones, false, 'con el suelo en el recibo, se conforma con la carpeta');
+      for (const f of PLANTILLA_ENTERA) poner(`01-TOOLS/_TEMPLATE/${f}`, 'x\n');
+      assert.equal(proyectoM.sueloDelArnes().conexiones, true, 'con la plantilla entera, sigue sin suelo');
+      return 'como RSC: el suelo es el que dice el recibo';
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('si no se puede leer la plantilla del paquete, se exige la de la 2.0.5', () => {
+    // Revisión de F7, menor 5. Un error al leerla daba una lista vacía, y el suelo
+    // se conformaba con la carpeta sin decir nada; RSC no se lo come
+    // (`templateAssets`, en `onboarding-apply.js`). La barra fija la versión, así
+    // que conoce la plantilla: la de la 2.0.5, comparada aquí con la del paquete.
+    const proyectoM = cargar('proyecto');
+    const delPaquete = fs.readdirSync(path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'skills', 'harness', 'assets', '_TEMPLATE'))
+      .map((a) => (a === 'gitignore' ? '.gitignore' : a)).sort();
+    assert.deepEqual([...proyectoM.PLANTILLA_DE_LA_CLASE].sort(), delPaquete, 'la plantilla fijada ya no es la del paquete');
+    assert.deepEqual(proyectoM.ficherosDeLaPlantilla(path.join(os.tmpdir(), 'no-existe-esta-plantilla')), proyectoM.PLANTILLA_DE_LA_CLASE, 'sin poder leerla, no se exige nada');
+    return `${delPaquete.length} ficheros, los mismos`;
+  });
 
   await comprobar('falta un fichero de la plantilla y no se dice Listo', async () => {
     // G7 y T065. El suelo de la barra solo miraba carpetas, y RSC pide además los
@@ -8263,6 +8544,29 @@ exec git "$@"
       return pedidos.join(' · ');
     } finally {
       rscM.correr = antes;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('una habilidad enlazada a nada no cuenta como puesta', () => {
+    // Revisión de F7, menor 1. En Mac, RSC pone cada habilidad como un enlace a
+    // `.rsc/skills/<id>`. Sin `.rsc/skills`, el enlace apunta a nada, y la barra
+    // la daba por instalada, con su botón.
+    if (process.platform === 'win32') return 'SALTADA: en Windows RSC copia las habilidades, no las enlaza';
+    const r = fs.mkdtempSync(path.join(os.tmpdir(), 'enlace-a-nada-'));
+    const skills = path.join(r, '.claude', 'skills');
+    fs.mkdirSync(path.join(skills, 'bro'), { recursive: true });
+    fs.writeFileSync(path.join(skills, 'bro', 'SKILL.md'), '# bro\n');
+    fs.mkdirSync(path.join(r, '.rsc', 'skills', 'suggest'), { recursive: true });
+    fs.writeFileSync(path.join(r, '.rsc', 'skills', 'suggest', 'SKILL.md'), '# suggest\n');
+    fs.symlinkSync(path.join('..', '..', '.rsc', 'skills', 'suggest'), path.join(skills, 'suggest'), 'dir');
+    fs.symlinkSync(path.join('..', '..', '.rsc', 'skills', 'eli5'), path.join(skills, 'eli5'), 'dir');
+    fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'], skills: ['bro', 'suggest', 'eli5'] }));
+    vscode.guion.raiz = r;
+    try {
+      assert.deepEqual(cargar('rsc').habilidadesEnDisco().sort(), ['bro', 'suggest'], 'la que apunta a nada cuenta como puesta, o la enlazada de verdad no');
+      return 'la enlazada cuenta; la que apunta a nada, no';
+    } finally {
       vscode.guion.raiz = empresa;
     }
   });
@@ -9219,6 +9523,32 @@ exec git "$@"
     return 'con la 9.9.9 publicada, el arranque calla';
   });
 
+  await comprobar('«Algo va mal» le dice al panel que no se ha podido saber', async () => {
+    // Revisión de F7, m4: que la extensión lo mande. Sin esto, el panel no sabría
+    // que el diagnóstico no se pudo leer, por mucho que `soporte` lo sepa.
+    const proveedor = vscode.registrado.proveedor;
+    const rscM = cargar('rsc');
+    const antes = { salud: rscM.salud, arreglarEnSeco: rscM.arreglarEnSeco, reevaluar: rscM.reevaluar, revisar: rscM.revisar };
+    const enviarAntes = proveedor.enviar;
+    const enviados = [];
+    rscM.salud = async () => ({ codigo: 0, salida: 'esto no es un informe' });
+    rscM.arreglarEnSeco = async () => ({ codigo: 0, salida: 'Nothing to repair' });
+    rscM.reevaluar = async () => ({ codigo: 0, salida: 'RSC_REASSESSMENT_NO_CHANGE' });
+    rscM.revisar = async () => ({ codigo: 0, salida: '' });
+    proveedor.enviar = (m) => enviados.push(m);
+    try {
+      await proveedor.algoVaMal();
+      const incidencia = enviados.find((m) => m.tipo === 'incidencia');
+      assert.ok(incidencia, 'no se pinta la pantalla de «Algo va mal»');
+      assert.equal(incidencia.sano, false);
+      assert.equal(incidencia.desconocido, true, 'la extensión no le dice al panel que no se sabe');
+      return 'no sano, y sin saber';
+    } finally {
+      Object.assign(rscM, antes);
+      proveedor.enviar = enviarAntes;
+    }
+  });
+
   await comprobar('todo tipo que manda el panel se despacha sin excepción', async () => {
     // G1 e I2. «Resolver una incidencia» reventaba siempre: `encargos` se usaba y
     // no se importaba, y ninguna prueba pasaba por los manejadores del panel. La
@@ -9226,18 +9556,30 @@ exec git "$@"
     // tipo que el panel manda y se mira que no se haya apuntado un fallo de
     // programa. Lo que tiene efectos de verdad (instalar, subir, volver atrás,
     // montar, borrar) se finge: aquí se mira que el camino exista, no que haga.
+    //
+    // Revisión de F7, m3: los tipos se buscaban de dos formas de escribirlos, y
+    // siete no salían nunca (`ponerTrato`, `abrirFuera`…); y se fingían 24
+    // manejadores, algunos inofensivos. Ahora se despacha toda ruta de la tabla
+    // de `manejar`, se mira que todo tipo del panel tenga la suya, y se trabaja
+    // en una copia de la empresa de mentira: solo se finge lo que sale fuera
+    // (la red, instalar, montar con RSC) o lo que escribe fuera de la carpeta.
     const proveedor = vscode.registrado.proveedor;
     const panel = fs.readFileSync(path.join(RAIZ, 'media', 'panel.js'), 'utf8');
-    const tipos = [...new Set([
-      ...[...panel.matchAll(/accion:\s*\{\s*tipo:\s*'([a-zA-Z]+)'/g)].map((m) => m[1]),
+    const fuente = fs.readFileSync(path.join(RAIZ, 'src', 'extension.js'), 'utf8');
+    const tablaDeRutas = fuente.slice(fuente.indexOf('const rutas = {'), fuente.indexOf('const accion = rutas[mensaje.tipo]'));
+    const tipos = [...tablaDeRutas.matchAll(/^\s+([a-zA-Z]+): \(\) =>/gm)].map((m) => m[1]).sort();
+    assert.ok(tipos.length > 60, `solo ${tipos.length} rutas: la prueba no lee la tabla`);
+    const delPanel = [...new Set([
+      ...[...panel.matchAll(/\btipo:\s*'([a-zA-Z]+)'/g)].map((m) => m[1]),
       ...[...panel.matchAll(/pedir\('([a-zA-Z]+)'/g)].map((m) => m[1]),
-    ])].sort();
-    assert.ok(tipos.length > 40, `solo ${tipos.length} tipos: la prueba no lee el panel`);
+    ])];
+    assert.deepEqual(delPanel.filter((x) => !tipos.includes(x)), [], 'tipos que manda el panel y no tienen ruta');
 
-    const FINGIDOS = ['arrancar', 'arreglar', 'instalarGit', 'subirCopia', 'guardarCopia', 'volverA', 'conectarGitHub',
-      'ponerCopias', 'ponerLaCara', 'elegirCarpeta', 'aprenderCapacidad', 'ponerLosRailesAlDia', 'ponerComoLaDeLaClase',
-      'ponerElBloque', 'ponerElFreno', 'arreglarElRelevo', 'quitarPapel', 'quitarLaCara', 'soltarDocumentos', 'anadirDocumentos',
-      'elegirAsistente', 'guardarClave', 'guardarLaRevision', 'pedir'];
+    const copia = fs.mkdtempSync(path.join(os.tmpdir(), 'despacho-'));
+    fs.cpSync(empresa, copia, { recursive: true });
+    vscode.guion.raiz = copia;
+    const FINGIDOS = ['arrancar', 'arreglar', 'instalarGit', 'subirCopia', 'conectarGitHub', 'aprenderCapacidad', 'ponerLaCara',
+      'ponerComoLaDeLaClase', 'elegirCarpeta', 'arreglarElRelevo', 'pedir'];
     const antes = {};
     for (const nombre of FINGIDOS) {
       antes[nombre] = proveedor[nombre];

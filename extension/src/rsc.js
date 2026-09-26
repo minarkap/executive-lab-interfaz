@@ -149,7 +149,11 @@ function habilidadesEnDisco() {
   if (!carpeta || !fs.existsSync(carpeta)) return [];
   const ext = donde.habilidadEnUnFichero();
   try {
-    const entradas = fs.readdirSync(carpeta, { withFileTypes: true }).filter((e) => !e.name.startsWith('.'));
+    // Un enlace cuenta si lleva a algo: en Mac, RSC enlaza cada habilidad a
+    // `.rsc/skills/<id>`, y sin esa carpeta el enlace apunta a nada (revisión de
+    // F7, m1). `existsSync` sigue el enlace.
+    const lleva = (e) => !e.isSymbolicLink() || fs.existsSync(path.join(carpeta, e.name));
+    const entradas = fs.readdirSync(carpeta, { withFileTypes: true }).filter((e) => !e.name.startsWith('.') && lleva(e));
     if (!ext) return entradas.filter((e) => e.isDirectory() || e.isSymbolicLink()).map((e) => e.name);
     return entradas
       .filter((e) => (e.isFile() || e.isSymbolicLink()) && e.name.endsWith(ext) && !e.name.startsWith('rsc-'))
@@ -397,12 +401,21 @@ function comoAcaboElMontaje({ codigo, salida = '', error = '' }, { planId, acept
   return { forma: 'Fallo', codigo };
 }
 
-const revisar = () => correr(['doctor'], { tiempoMaximo: 120000 });
+// De qué asistente se pregunta. Sin `--target`, con dos declarados RSC contesta
+// por el primero de su lista, y con Codex roto y Claude entero «Algo va mal»
+// decía que todo estaba bien (revisión de F7, importante 3). Es el mismo que el
+// de la pieza «Lo que debería estar puesto», que lee este informe.
+function delDeAhora() {
+  const declarados = (proyecto.declaracion() || {}).targets;
+  return Array.isArray(declarados) && declarados.length ? ['--target', require('./donde').paraQuien()] : [];
+}
+
+const revisar = () => module.exports.correr(['doctor', ...delDeAhora()], { tiempoMaximo: 120000 });
 
 // El mismo doctor, pero para máquina. Sin `--json` la salida lleva delante el
 // bloque de presupuesto de contexto, en texto, así que `JSON.parse` revienta.
 // `revisar()` se queda como está: esa la lee una persona, en el informe.
-const salud = () => correr(['doctor', '--json'], { tiempoMaximo: 120000 });
+const salud = () => module.exports.correr(['doctor', '--json', ...delDeAhora()], { tiempoMaximo: 120000 });
 
 // Traer a esta máquina lo que el repositorio declara. Es la acción correcta
 // para un clon: reconstruye desde el plan aceptado y —a diferencia de `add` y
