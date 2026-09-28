@@ -4152,6 +4152,16 @@ Queda un caso, y se deja dicho: otra copia de este repositorio **ya montada**. E
 fichero, y su `sync` no lo repone, porque su `.rsc/` ya existe. Ahí hay que crear `.rsc/.no-gitmoji` a
 mano. Hoy no hay ninguna: las otras sesiones trabajaban en esta misma carpeta.
 
+### Lo que encontró la revisión
+
+Un refutador de corrección sobre la rama entera de la 0.42.0, que comprobó ejecutándolo lo gordo: las
+rutas, simulando Windows con `path.win32`; la expresión de la regla 7 contra el paquete de verdad; y la
+copia del freno por su SHA-256. Dejó un importante: el arranque de un clon de la 2.0.15 lleva copiada a
+mano la lista de interruptores del equipo, y su comentario dice que una prueba la mantiene igual a la de
+`targets/opt-outs.js`. Esa prueba es de RSC, no de aquí. Ahora el contrato avisa, al subir de versión,
+de tres cosas: si las dos copias se separan, si la de este repositorio no es la del paquete, o si RSC
+trae un interruptor que la barra no sabe nombrar. Dos mutaciones lo tumban.
+
 ### Qué les pasa a las carpetas de los alumnos
 
 Una carpeta montada con la 2.0.5 es ahora de una versión anterior a la de la clase. La barra lo dice en
@@ -4211,5 +4221,5 @@ de Git, una la mide `windows.js` y otra es de enlaces, que en Windows RSC no hac
   editor lanzaría `Code.exe` con `ELECTRON_RUN_AS_NODE`, que es como VS Code arranca sus extensiones.
 - **El corte de la URL a 2.048 caracteres** del puente, que pide el editor y una conversación.
 
-0.42.0. 327 comprobaciones, 335 con el arnés de verdad, 13 de contrato, 7 en un VS Code de verdad, y en
-Windows 7 de solo Windows, 327 y 13.
+0.42.0. 327 comprobaciones, 335 con el arnés de verdad, 14 de contrato, 7 en un VS Code de verdad, y en
+Windows 7 de solo Windows, 327 y 14.

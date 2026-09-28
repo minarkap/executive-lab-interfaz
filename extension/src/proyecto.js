@@ -39,8 +39,8 @@ function existe(...partes) {
 // plantilla del arnés que viaja dentro, como hace RSC con la suya; `gitignore`
 // viaja sin punto, porque npm no empaqueta un `.gitignore`.
 //
-// Si la del paquete no se puede leer, se exige la de la 2.0.5, la versión de la
-// clase (P7). Un error ahí daba una lista vacía, y el suelo se conformaba con la
+// Si la del paquete no se puede leer, se exige esta, que es la de la versión de la
+// clase (P7): la 2.0.5 y la 2.0.15 traen la misma. Un error ahí daba una lista vacía, y el suelo se conformaba con la
 // carpeta sin decir nada; RSC no se lo come (`templateAssets`). Una prueba
 // compara esta lista con la del paquete (revisión de F7, m5).
 const PLANTILLA_DE_LA_CLASE = Object.freeze(['.env.example', '.gitignore', 'CREDENTIALS.md', 'README.md', 'test_connection.sh']);

@@ -667,4 +667,4 @@ Decisión 128 en `docs/decisiones.md`. Vía rápida `lo-que-queda`, punto 9.
   andamio de RSC dentro, las claves sueltas con «\», y el aviso de permiso que no salía.
 - **Sigue sin medir**: el `.exe`, un Windows de alumno sin administrador y el relevo con el editor.
 
-0.42.0. En Windows: 7 de solo Windows, 327 y 13.
+0.42.0. En Windows: 7 de solo Windows, 327 y 14.

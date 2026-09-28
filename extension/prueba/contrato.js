@@ -145,6 +145,30 @@ async function main() {
     return `RSC ${version}`;
   });
 
+  // ── (b) Los interruptores de RSC ────────────────────────────────────────
+  //
+  // Desde la 2.0.6, RSC separa los interruptores del equipo, que viajan en
+  // `.rsc.json`, de los de cada máquina (`targets/opt-outs.js`). El arranque de un
+  // clon (`targets/clone-bootstrap.mjs`) se copia a cada carpeta y no puede importar
+  // nada, así que lleva la lista del equipo copiada a mano. Su comentario dice que
+  // una prueba las mantiene iguales, y esa prueba es de RSC, no de aquí (revisión
+  // de la 0.42.0). Esta avisa, al subir de versión, de tres cosas: si las dos copias
+  // se separan, si la de este repositorio no es la del paquete, o si RSC trae un
+  // interruptor que la barra no sabe nombrar.
+  await comprobar('los interruptores de RSC cuadran en sus dos copias, y la barra los nombra todos', async () => {
+    const optOuts = await import(pathToFileURL(path.join(PAQUETE, 'targets', 'opt-outs.js')).href);
+    const arranque = await import(pathToFileURL(path.join(PAQUETE, 'targets', 'clone-bootstrap.mjs')).href);
+    assert.deepEqual([...arranque.PROJECT_OPT_OUTS].sort(), [...optOuts.PROJECT_OPT_OUTS].sort(), 'las dos listas del equipo de RSC no son la misma');
+    const deAqui = fs.readFileSync(path.join(RAIZ, '..', '.claude', 'rsc-bootstrap.mjs'), 'utf8');
+    assert.equal(deAqui, fs.readFileSync(path.join(PAQUETE, 'targets', 'clone-bootstrap.mjs'), 'utf8'),
+      'el arranque de clon de este repositorio no es el del paquete: falta sincronizarlo');
+    const reglas = cargar('reglas');
+    const conNombre = new Set([...reglas.GUARDIANES, ...reglas.AUTOMATISMOS].map((p) => p.interruptor).filter(Boolean));
+    const sinNombre = [...optOuts.PROJECT_OPT_OUTS, ...optOuts.MACHINE_OPT_OUTS].filter((id) => !conNombre.has(`.no-${id}`));
+    assert.deepEqual(sinNombre, [], `interruptores de RSC que la barra no sabe nombrar: ${sinNombre.join(', ')}`);
+    return `${optOuts.PROJECT_OPT_OUTS.length} del equipo y ${optOuts.MACHINE_OPT_OUTS.length} de cada máquina, todos con nombre`;
+  });
+
   // ── (c) Lo que la barra da por bueno ────────────────────────────────────
   //
   // `rumbo` decide qué se vuelve a preguntar mirando si un valor «vale». Si da
