@@ -89,6 +89,14 @@ function escribirElRelevo(carpeta, ejecutable, plataforma) {
   }
 }
 
+// En Windows las rutas no distinguen mayúsculas, y el almacén de la extensión
+// llega a veces con la unidad en minúscula (`c:\\…`) y otras en mayúscula.
+// Comparadas a pelo, el relevo no se reconocía a sí mismo: la barra decía que ya
+// había un node, que era el suyo (lo cazó la barra en un VS Code de Windows).
+const mismaCarpeta = (a, b, plataforma) => (plataforma === 'win32'
+  ? path.win32.normalize(String(a)).toLowerCase() === path.win32.normalize(String(b)).toLowerCase()
+  : a === b);
+
 // Qué hay para los enganches, y dónde. Pone el relevo solo si hace falta.
 //
 //   nodeDelSistema  ya hay un `node` de verdad en el PATH: no se toca nada
@@ -96,7 +104,7 @@ function escribirElRelevo(carpeta, ejecutable, plataforma) {
 //   ninguno         no se ha podido poner, y la pieza lo dice con su botón
 function asegurar({ carpeta, ejecutable = process.execPath, env = process.env, plataforma = process.platform } = {}) {
   const encontrado = nodeDelPath(env, plataforma);
-  const esElNuestro = Boolean(carpeta) && Boolean(encontrado) && path.dirname(encontrado) === carpeta;
+  const esElNuestro = Boolean(carpeta) && Boolean(encontrado) && mismaCarpeta(path.dirname(encontrado), carpeta, plataforma);
   if (encontrado && !esElNuestro) return { modo: 'nodeDelSistema', carpeta: null, node: encontrado };
   if (!carpeta || !ejecutable) return { modo: 'ninguno', carpeta: null };
 
@@ -108,7 +116,7 @@ function asegurar({ carpeta, ejecutable = process.execPath, env = process.env, p
 
   const clave = clavePath(env);
   const partes = String(env[clave] || '').split(path.delimiter).filter(Boolean);
-  if (partes[0] !== carpeta) env[clave] = [carpeta, ...partes.filter((d) => d !== carpeta)].join(path.delimiter);
+  if (!mismaCarpeta(partes[0], carpeta, plataforma)) env[clave] = [carpeta, ...partes.filter((d) => !mismaCarpeta(d, carpeta, plataforma))].join(path.delimiter);
   return { modo: 'relevoVSCode', carpeta };
 }
 

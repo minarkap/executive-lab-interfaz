@@ -37,7 +37,13 @@ for (const fichero of ficheros) {
   });
 
   lineas.forEach((linea, i) => {
+    // No solo las tildes: cualquier cosa que no sea ASCII. PowerShell 5.1 lee un
+    // UTF-8 sin BOM como Windows-1252, y la raya «—» (E2 80 94) acaba en 0x94, que
+    // ahí es la comilla «”», y PowerShell acepta las comillas tipográficas como
+    // final de cadena: probar.ps1 no llegaba ni a leerse («MissingEndCurlyBrace»,
+    // en la máquina Windows de GitHub, 28-09-2026).
     if (/[áéíóúÁÉÍÓÚñÑ¿¡]/.test(linea)) mal(fichero, i + 1, 'lleva tildes: PowerShell 5.1 las destroza');
+    else if (/[^\x20-\x7e\t\r]/.test(linea)) mal(fichero, i + 1, 'lleva algo que no es ASCII: PowerShell 5.1 lo lee como Windows-1252, y una raya «—» le cierra la cadena');
   });
 
   if (!fallos) console.log(`  ✓ ${fichero}`);

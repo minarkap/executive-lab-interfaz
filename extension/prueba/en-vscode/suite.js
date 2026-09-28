@@ -145,9 +145,12 @@ async function run() {
     const cargado = Object.keys(require.cache).find((k) => k.toLowerCase() === path.join(raiz, 'src', 'relevo.js').toLowerCase());
     const relevo = cargado ? require.cache[cargado].exports : require(path.join(raiz, 'src', 'relevo.js'));
     // Los enganches, como los corre Claude Code: con `sh -c`, que en Windows es el
-    // de Git Bash, y que allí contesta con rutas de MSYS (`/c/Users/…`).
-    const SH = process.platform === 'win32' ? require(path.join(raiz, 'src', 'entorno.js')).bash() : '/bin/sh';
-    const comoMsys = (ruta) => ruta.replace(/^([A-Za-z]):/, (_, u) => `/${u.toLowerCase()}`).split('\\').join('/');
+    // de Git Bash. Allí contesta con rutas de MSYS —la carpeta temporal sale como
+    // `/tmp/…`—, así que la ruta se le pide en la forma de Windows, con `cygpath -w`, y
+    // se compara sin mayúsculas, como las compara Windows.
+    const EN_WINDOWS = process.platform === 'win32';
+    const SH = EN_WINDOWS ? require(path.join(raiz, 'src', 'entorno.js')).bash() : '/bin/sh';
+    const mismaCarpeta = (a, b) => (EN_WINDOWS ? a.toLowerCase() === b.toLowerCase() : a === b);
 
     const puesto = relevo.comoEsta();
     assert.equal(puesto.modo, 'relevoVSCode', `sin node, la barra no pone el relevo: ${JSON.stringify(puesto)}`);
@@ -163,10 +166,9 @@ async function run() {
     // arquitectura y lanza `node-arm64`. Se compara lo que corre de verdad por
     // los dos caminos.
     const entorno = require(path.join(raiz, 'src', 'entorno.js'));
-    const [donde, cual] = cp.execFileSync(SH, ['-c', 'command -v node; node -p process.execPath'], { encoding: 'utf8' }).trim().split(/\r?\n/);
-    const delRelevo = [puesto.carpeta, comoMsys(puesto.carpeta)].map((c) => c.toLowerCase());
-    assert.ok(delRelevo.includes(path.posix.dirname(donde.split('\\').join('/')).toLowerCase()) || delRelevo.includes(path.dirname(donde).toLowerCase()),
-      `el hijo encuentra otro node: ${donde}`);
+    const dondeEsta = EN_WINDOWS ? 'cygpath -w "$(command -v node)"' : 'command -v node';
+    const [donde, cual] = cp.execFileSync(SH, ['-c', `${dondeEsta}; node -p process.execPath`], { encoding: 'utf8' }).trim().split(/\r?\n/);
+    assert.ok(mismaCarpeta(path.dirname(donde), puesto.carpeta), `el hijo encuentra otro node: ${donde}`);
     const directo = cp.execFileSync(entorno.node(), ['-p', 'process.execPath'], { encoding: 'utf8', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } }).trim();
     assert.equal(cual, directo, `el relevo lanza otro Node: ${cual}, y la barra usa ${directo}`);
     const deQuien = entorno.node() === process.execPath ? 'el de VS Code' : 'el de la app';

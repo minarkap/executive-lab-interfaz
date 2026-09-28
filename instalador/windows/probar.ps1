@@ -4,8 +4,8 @@
 #
 #   powershell -ExecutionPolicy Bypass -File probar.ps1
 #
-# Responde solo las preguntas 3, 4 y 6 del spike. Las otras dos —SmartScreen y
-# que no pida administrador— son de mirar: hay que descargar el .exe con Edge y
+# Responde solo las preguntas 3, 4 y 6 del spike. Las otras dos (SmartScreen y
+# que no pida administrador) son de mirar: hay que descargar el .exe con Edge y
 # hacer doble clic con un usuario normal, grabando la pantalla.
 
 $ErrorActionPreference = 'Continue'
@@ -22,11 +22,11 @@ function Comprobar($titulo, $bloque) {
     Write-Host "  OK   $titulo $detalle" -ForegroundColor Green
   } catch {
     $script:resultados += [pscustomobject]@{ Ok = $false; Que = $titulo; Detalle = "$($_.Exception.Message)" }
-    Write-Host "  MAL  $titulo — $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "  MAL  $titulo - $($_.Exception.Message)" -ForegroundColor Red
   }
 }
 
-Write-Host "`nExecutive Lab — comprobacion del instalador`n"
+Write-Host "`nExecutive Lab - comprobacion del instalador`n"
 Write-Host "  Windows:  $([System.Environment]::OSVersion.Version)"
 Write-Host "  Usuario:  $env:USERNAME"
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
