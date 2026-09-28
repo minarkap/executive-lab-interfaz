@@ -4152,6 +4152,10 @@ Queda un caso, y se deja dicho: otra copia de este repositorio **ya montada**. E
 fichero, y su `sync` no lo repone, porque su `.rsc/` ya existe. Ahí hay que crear `.rsc/.no-gitmoji` a
 mano. Hoy no hay ninguna: las otras sesiones trabajaban en esta misma carpeta.
 
+Y pasa también en esta misma carpeta, al cambiar de rama: al volver a `main` desde una rama de antes, git
+borró el fichero, y el guardián de gitmoji paró el siguiente commit (28-09-2026). Se repone con un
+fichero vacío, `.rsc/.no-gitmoji`.
+
 ### Lo que encontró la revisión
 
 Un refutador de corrección sobre la rama entera de la 0.42.0, que comprobó ejecutándolo lo gordo: las

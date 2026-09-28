@@ -19,8 +19,9 @@ node_modules/
 # equipo, y desde la 2.0.6 viaja en `.rsc.json` (`optOuts`): en un clon nuevo, el
 # primer `sync` la vuelve a poner (#258, arreglada). Hasta entonces se versionaba el
 # fichero con `.rsc/*` y una excepción. Si hubiera otra copia de este repositorio
-# ya montada, el `pull` le borra ese fichero y su `sync` no lo repone, porque su
-# `.rsc/` ya existe: ahí hay que crear `.rsc/.no-gitmoji` a mano (decisión 127).
+# ya montada —o esta misma, al pasar de una rama de antes a una de después—, git le
+# borra ese fichero y su `sync` no lo repone, porque su `.rsc/` ya existe: ahí hay que
+# crear `.rsc/.no-gitmoji` a mano (decisión 127).
 # `.claude/skills/` NO se excluye entera: ahí viven también las habilidades
 # PROPIAS de esta carpeta (`ownSkills` en `.rsc.json`), que no están en ningún
 # catálogo y que un clon no puede reconstruir con `sync`. Los enlaces a las del

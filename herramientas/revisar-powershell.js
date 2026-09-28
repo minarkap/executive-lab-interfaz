@@ -37,6 +37,13 @@ for (const fichero of ficheros) {
   });
 
   lineas.forEach((linea, i) => {
+    // Y un `.Count` sobre lo que devuelve un `Where-Object`, sin envolverlo en `@()`. Con
+    // un solo resultado, PowerShell 5.1 da un objeto suelto, y su `.Count` es nulo:
+    // probar.ps1 decía «13 bien,  mal», y con una comprobación mal salía con 0 porque
+    // `$null -gt 0` es falso (máquina Windows de GitHub, 28-09-2026).
+    if (/(^|[^@])\(\s*\$[A-Za-z_][\w]*\s*\|\s*Where-Object\b[^)]*\)\.Count/.test(linea)) {
+      mal(fichero, i + 1, 'un .Count de Where-Object sin @(): con un solo resultado, PowerShell 5.1 lo da nulo');
+    }
     // No solo las tildes: cualquier cosa que no sea ASCII. PowerShell 5.1 lee un
     // UTF-8 sin BOM como Windows-1252, y la raya «—» (E2 80 94) acaba en 0x94, que
     // ahí es la comilla «”», y PowerShell acepta las comillas tipográficas como

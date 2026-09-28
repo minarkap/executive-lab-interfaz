@@ -115,6 +115,14 @@ jobs:
           powershell -ExecutionPolicy Bypass -File instalador/windows/probar.ps1
           if ($LASTEXITCODE -ne 0) { throw "probar.ps1 ha encontrado algo mal" }
 
+      # El registro vive en C:, y el código en D:: la acción de subir necesita una
+      # carpeta común, así que se copia antes.
+      - name: El registro de la instalación, junto al informe
+        if: always()
+        shell: pwsh
+        run: |
+          $registro = Join-Path $env:LOCALAPPDATA 'ExecutiveLab\instalacion.log'
+          if (Test-Path $registro) { Copy-Item $registro instalador/windows/instalacion.log }
       - name: El informe y el registro de la instalación
         if: always()
         uses: actions/upload-artifact@v4
@@ -122,5 +130,5 @@ jobs:
           name: el-exe-informe
           path: |
             instalador/windows/informe-*.txt
-            ~/AppData/Local/ExecutiveLab/instalacion.log
+            instalador/windows/instalacion.log
           if-no-files-found: warn

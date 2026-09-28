@@ -93,8 +93,11 @@ Comprobar 'el registro de la instalacion no tiene errores' {
   # no hay ninguna carpeta de trabajo.
   $registro = Join-Path $app 'instalacion.log'
   if (-not (Test-Path $registro)) { throw "no hay instalacion.log en $app" }
-  $malos = Select-String -Path $registro -Pattern 'ERROR' -SimpleMatch
-  if ($malos) { throw "$($malos.Count) errores: $($malos[0].Line)" }
+  # Las lineas de error de preparar.js: la fecha entre corchetes y ERROR, en
+  # mayusculas. Buscado a secas y sin distinguir mayusculas, salia el 'errors' de
+  # un aviso de Node ('prone to errors'), que no es ningun error.
+  $malos = @(Select-String -Path $registro -Pattern '^\[[^\]]+\] ERROR' -CaseSensitive)
+  if ($malos.Count) { throw "$($malos.Count) errores: $($malos[0].Line)" }
   'limpio'
 }
 Comprobar 'VS Code y las dos extensiones' {
@@ -139,8 +142,10 @@ Comprobar 'el acceso directo esta en el escritorio' {
   'si'
 }
 
-$bien = ($resultados | Where-Object { $_.Ok }).Count
-$mal = ($resultados | Where-Object { -not $_.Ok }).Count
+# Con @(): con un solo resultado, PowerShell 5.1 da un objeto suelto, y su .Count
+# es nulo. Decia '13 bien,  mal' y, con una comprobacion mal, salia con 0.
+$bien = @($resultados | Where-Object { $_.Ok }).Count
+$mal = @($resultados | Where-Object { -not $_.Ok }).Count
 Write-Host "`n$bien bien, $mal mal`n"
 
 $informe = Join-Path $aqui ('informe-{0:yyyyMMdd-HHmm}.txt' -f (Get-Date))
