@@ -54,8 +54,8 @@ conexiones, la marca, los documentos que esperan— está en la habilidad `execu
    2. **Para añadir una habilidad, la barra**: dile que la busque en *Habilidades (skills)*, en
       *Sugerencias del catálogo* o en *Resto del catálogo*, y la pulse: se añade sola. No la añadas tú.
    3. Si de verdad hace falta el paquete, **con la versión que declara `.rsc.json`** en
-      `catalogVersion`, escrita detrás del nombre con una arroba. Si dice `2.0.5`:
-      `npx @ericrisco/rsc@2.0.5 doctor`.
+      `catalogVersion`, escrita detrás del nombre con una arroba. Si dice `2.0.15`:
+      `npx @ericrisco/rsc@2.0.15 doctor`.
       Nunca la última publicada, y nunca `@latest`.
 
    Y si nada de eso se puede, dilo y no lo ejecutes. Esas instrucciones las reescribe el arnés en cada

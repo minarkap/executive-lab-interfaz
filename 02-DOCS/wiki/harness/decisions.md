@@ -643,3 +643,16 @@ Decisión 126 en `docs/decisiones.md`. Vía rápida `lo-que-queda`.
   no va al llavero ni abre ventanas: la única clave es la de la barra.
 
 0.41.0. 326 comprobaciones, 334 con el arnés de verdad, 13 de contrato, y 7 en un VS Code de verdad.
+
+
+## La clase pasa a RSC 2.0.15 — 28 de septiembre de 2026
+
+Decisión 127 en `docs/decisiones.md`. Vía rápida `lo-que-queda`, punto 7.
+
+- **Leída entera contra la 2.0.5**: las habilidades, idénticas byte a byte; nueve ficheros de código y dos
+  nuevos.
+- **Arregla lo que ve un alumno**: el error rojo después de cada turno, el aviso de compactar que no se
+  iba, un fallo de seguridad entre copias de trabajo, y la #258.
+- **Ensayada antes en una copia**: tres pruebas tenían las versiones escritas a mano, ninguna era del
+  arnés.
+- **El rodeo de la #258, fuera**: `.rsc/` se ignora entero, y lo apagado viaja en `.rsc.json`.

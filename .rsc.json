@@ -47,11 +47,12 @@
     "texto-de-la-barra",
     "executive-lab"
   ],
-  "catalogVersion": "2.0.5",
+  "catalogVersion": "2.0.15",
   "tier": null,
   "optOuts": [
-    "context7",
-    "gitmoji"
+    "audit",
+    "gitmoji",
+    "worktree-cleanup"
   ],
   "onboarding": {
     "schemaVersion": 1,

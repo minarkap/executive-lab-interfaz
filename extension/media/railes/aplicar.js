@@ -364,7 +364,7 @@ hechos.push(callarLosAvisos());
 //
 // RSC solo engancha el suyo cuando el plan practica la cadena SDD, y en el resto
 // de carpetas de alumno nada paraba un `rm -rf`. La habilidad trae el
-// envoltorio y la copia fijada del de RSC (`freno.mjs` y `freno-rsc-2.0.5.mjs`,
+// envoltorio y la copia fijada del de RSC (`freno.mjs` y `freno-rsc-2.0.15.mjs`,
 // copiados en el paso 1); aquí se engancha antes de cada orden.
 //
 // La orden no lleva `.rsc/`: RSC quita todo enganche con esa aguja cuando

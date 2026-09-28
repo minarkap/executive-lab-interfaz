@@ -14,15 +14,13 @@ node_modules/
 # Lo que RSC pide no versionar. Lo habría añadido él, pero esta carpeta no era
 # un repo git cuando se instaló. Se versionan .rsc.json, .claude/settings.json
 # y .claude/rsc-bootstrap.mjs; el resto es estado de máquina.
-# `.rsc/*` y no `.rsc/`, para poder salvar una línea de dentro: git no deja
-# recuperar un fichero de un directorio excluido entero.
-.rsc/*
-# Y la excepción: la decisión de no usar gitmoji aquí es del equipo, no de esta
-# máquina. RSC la guarda en `.rsc/.no-gitmoji` y el guardián solo mira ese
-# fichero — nunca el `optOuts` de `.rsc.json`, que sí viaja. Sin esta línea, el
-# guardián vuelve en cada clon y le deniega el primer commit a quien llegue.
-# Está contado en `docs/para-rsc.md`.
-!.rsc/.no-gitmoji
+.rsc/
+# Entero, también `.rsc/.no-gitmoji`. La decisión de no usar gitmoji aquí es del
+# equipo, y desde la 2.0.6 viaja en `.rsc.json` (`optOuts`): en un clon nuevo, el
+# primer `sync` la vuelve a poner (#258, arreglada). Hasta entonces se versionaba el
+# fichero con `.rsc/*` y una excepción. Si hubiera otra copia de este repositorio
+# ya montada, el `pull` le borra ese fichero y su `sync` no lo repone, porque su
+# `.rsc/` ya existe: ahí hay que crear `.rsc/.no-gitmoji` a mano (decisión 127).
 # `.claude/skills/` NO se excluye entera: ahí viven también las habilidades
 # PROPIAS de esta carpeta (`ownSkills` en `.rsc.json`), que no están en ningún
 # catálogo y que un clon no puede reconstruir con `sync`. Los enlaces a las del
@@ -91,8 +89,3 @@ extension/.vscode-test/
 .claude/commands/learn.md
 .claude/commands/resume-session.md
 .claude/commands/save-session.md
-
-# RSC añade aquí `.rsc/` cada vez que aplica un plan, porque busca esa línea exacta
-# y no la encuentra (arriba está como `.rsc/*`, a propósito). Con `.rsc/` entera
-# excluida, git no deja recuperar `.rsc/.no-gitmoji`, así que hay que quitarla.
-# Ver `docs/para-rsc.md`, punto 1.

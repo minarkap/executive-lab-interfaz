@@ -176,7 +176,7 @@ tamaño. Luego:
 ```bash
 cd "<su carpeta de trabajo>"
 
-npx @ericrisco/rsc@2.0.5 onboard \
+npx @ericrisco/rsc@2.0.15 onboard \
   --technical-level <non-technical|mixed|technical> \
   --accompaniment <L0|L1|L2|L3> \
   --project-kind <software|operations|research|content|mixed> \
@@ -190,7 +190,7 @@ no cambia nada. Ese comando **imprime un plan y una huella, y no monta nada toda
 lo acepte, repite el mismo comando con los mismos flags y añade la huella **tal cual la imprimió**:
 
 ```bash
-npx @ericrisco/rsc@2.0.5 onboard ...los mismos flags... --accept-plan <huella>
+npx @ericrisco/rsc@2.0.15 onboard ...los mismos flags... --accept-plan <huella>
 ```
 
 Por último, los raíles de Executive Lab (idioma y vocabulario), que viajan dentro de la extensión:
@@ -212,7 +212,7 @@ ls .claude/skills/executive-lab/SKILL.md              # los raíles
 - **No enciendas la vista sencilla por tu cuenta.** Es un ajuste **por carpeta**
   (`executiveLab.vistaSencilla`) que reconfigura todo el editor. Lo decide esa persona, desde el
   botón de la barra o cuando el asistente se lo pregunte al terminar. Su editor es suyo.
-- **No uses `@latest` para RSC.** Va fijada la **2.0.5** a propósito: toda una cohorte tiene que
+- **No uses `@latest` para RSC.** Va fijada la **2.0.15** a propósito: toda una cohorte tiene que
   correr el mismo catálogo o dejan de servir las instrucciones de clase. Subir de versión es una
   decisión que se toma, se contrasta y se escribe — nunca un efecto secundario de un `npm install`.
 - **No inventes las respuestas del onboarding.** Definen el tono, el idioma y cuánto le explica el
@@ -245,7 +245,7 @@ Las tres llevan lo mismo, porque el arnés viaja en un solo sitio: dentro del `.
 |---|---|---|---|
 | Versión del panel | la de la release | la misma, dentro | la misma, dentro |
 | Tamaño | 6 MB | **6,8 MB** | **29 MB** |
-| Arnés RSC 2.0.5 | ✅ dentro del paquete | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
+| Arnés RSC 2.0.15 | ✅ dentro del paquete | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Raíles | ✅ `media/railes/` | ✅ (dentro del `.vsix`) | ✅ (dentro del `.vsix`) |
 | Módulos compartidos | ✅ `media/comun/` | ✅ | ✅ |
 | Disfraz (`disfraz.json`) | ✅ | ✅ | ✅ |
@@ -296,7 +296,7 @@ git clone git@github.com:minarkap/executive-lab-interfaz.git
 cd executive-lab-interfaz
 
 # El arnés que viaja dentro de la extensión NO está versionado. Antes de empaquetar:
-npm install --prefix extension/media/harness @ericrisco/rsc@2.0.5
+npm install --prefix extension/media/harness @ericrisco/rsc@2.0.15
 ```
 
 ### Probarlo
@@ -364,18 +364,21 @@ Dónde queda fricción, ordenada por cuánta gente pierde cada punto:
 ## Este repo también lleva el arnés
 
 Está equipado con RSC en modo desarrollador. Se versionan `.rsc.json`, `.claude/settings.json`,
-`.claude/rsc-bootstrap.mjs`, lo nuestro de `.claude/` (la habilidad de la casa, sus comandos y sus
-agentes) y `.rsc/.no-gitmoji`; lo que monta RSC está en `.gitignore`. Para retomarlo en otra máquina:
+`.claude/rsc-bootstrap.mjs` y lo nuestro de `.claude/` (la habilidad de la casa, sus comandos y sus
+agentes); lo que monta RSC está en `.gitignore`. Lo que el equipo apagó (el formato de gitmoji, entre
+otros) viaja en `.rsc.json`, y RSC lo vuelve a poner al montarlo en otra máquina. Para retomarlo:
 
 ```bash
-npx @ericrisco/rsc@2.0.5 sync
+npx @ericrisco/rsc@2.0.15 sync
 ```
 
 > La versión va fijada exacta a propósito, y está escrita en varios sitios —el paquete de la barra,
 > `.rsc.json`, `rsc.js`, `preparar-paquete.js` y la copia fijada del freno— que una prueba obliga a
 > decir lo mismo. Se subió de la 1.4.1 a la 2.0.5 el 21 de septiembre de 2026, después de leer las
 > dos enteras: las tres tablas de `targets/` que copiamos estaban idénticas byte a byte y ningún
-> marcador que la barra lee había cambiado. Lo que sí cambió está en la decisión 91.
+> marcador que la barra lee había cambiado. Lo que sí cambió está en la decisión 91. Y de la 2.0.5 a la
+> 2.0.15 el 28 de septiembre, con las habilidades idénticas byte a byte: por qué, y lo que cambió, en la
+> decisión 127.
 
 ---
 

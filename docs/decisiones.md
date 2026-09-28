@@ -4092,3 +4092,68 @@ Un refutador de corrección, con ojos frescos, sobre el commit entero. Tres hall
   por delante.
 
 0.41.0. 326 comprobaciones, 334 con el arnés de verdad, 13 de contrato, y 7 en un VS Code de verdad.
+
+## 127. La clase pasa a RSC 2.0.15
+
+**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `lo-que-queda`, punto 7
+
+La versión del arnés es una para toda la cohorte y la decide Jose (P7). La decisión 91 la subió de la
+1.4.1 a la 2.0.5 el 21-09. Con «Hazlo tú lo que queda», se leyó la 2.0.15 contra ella
+entera antes de subir, como se hizo con la 1.4.1.
+
+### Lo que cambia entre las dos
+
+Poco, y leído línea a línea:
+
+- **`skills/` es idéntico byte a byte**, y las habilidades del manifiesto también. No hay habilidades,
+  comandos ni agentes nuevos que nombrar.
+- `targets/index.js` y las tablas de los asistentes no cambian: `sitios.js` sigue igual.
+- `danger-guard.mjs` no cambia: la copia fijada de los raíles es la misma, con otro nombre.
+- Cambian nueve ficheros de código y hay dos nuevos (`targets/opt-outs.js` y
+  `scripts/lib/versions.js`). El paquete trae su propia lista de arreglos (`rscFixes`).
+
+### Por qué subir
+
+Lo que arregla le pasa a un alumno de esta clase:
+
+- **2.0.11. Un error rojo después de cada turno.** El enganche de memoria contestaba a `Stop` y a
+  `PreCompact` por un canal que Claude Code rechaza. Era el punto 3 de `docs/para-rsc.md`. Además, el
+  aviso de compactar salía en cada turno para siempre: ahora sale una vez por sesión.
+- **2.0.12. Un fallo de seguridad.** La continuación de una sesión podía venir de otra copia de trabajo
+  (GHSA-8gjp-3r7c-33f4).
+- **2.0.6. Lo que el equipo apagó ya viaja** (#258, la nuestra). Los interruptores del equipo se
+  reconstruyen desde `.rsc.json` en un clon; los de cada máquina (`git`, `harness`, `context7`,
+  `scope-check`) no salen de ella.
+- **2.0.8. En macOS, `rsc capabilities` no veía ninguna habilidad**, porque RSC las deja como enlaces.
+  `suggest` lo usa para saber si algo ya está cubierto.
+- 2.0.10 y 2.0.15: `onboard` en nueve asistentes que no son los nuestros, y el aviso de compactar en las
+  sesiones que editan por la terminal.
+
+### Lo que se probó
+
+- Primero, un ensayo en una copia del proyecto. La batería entera, el contrato, las tres empresas y
+  `--con-arnes` sobre la 2.0.15 dejaron tres rojas, y **ninguna era del arnés**:
+  - Dos pruebas daban por hecho la 2.0.5 como clase y la 2.0.13 como «más nueva», y con la 2.0.15 la
+    más nueva era vieja. Ahora leen la versión de la clase del paquete y calculan una más nueva.
+  - La prueba de la regla 7 cruzaba un salto de línea y leía «process» como un verbo de RSC.
+- Después, lo mismo en el árbol, y este repositorio sincronizado con la 2.0.15.
+- Las seis issues de `docs/para-rsc.md` que quedaban (de la 4 a la 9) se reprodujeron con la 2.0.15.
+  Siguen, y están abiertas: de #273 a #278.
+
+### El rodeo de la #258, fuera
+
+Este repositorio versionaba `.rsc/.no-gitmoji` con `.rsc/*` y una excepción en el `.gitignore`, porque en la
+2.0.5 la decisión no viajaba. Con la 2.0.15 viaja en `.rsc.json`, y el primer `sync` de un clon nuevo la
+vuelve a poner. Así que `.rsc/` se ignora entero, como lo escribe RSC, y el fichero sale de git: con la
+excepción y la línea que RSC añade en cada `sync`, quedaba en git y a la vez ignorado, que es lo que
+prohíbe H3.
+
+Queda un caso, y se deja dicho: otra copia de este repositorio **ya montada**. El `pull` le borra el
+fichero, y su `sync` no lo repone, porque su `.rsc/` ya existe. Ahí hay que crear `.rsc/.no-gitmoji` a
+mano. Hoy no hay ninguna: las otras sesiones trabajaban en esta misma carpeta.
+
+### Qué les pasa a las carpetas de los alumnos
+
+Una carpeta montada con la 2.0.5 es ahora de una versión anterior a la de la clase. La barra lo dice en
+«Qué falta por montar» y la pone al día con su botón (B5). Las habilidades no cambian, así que ponerla
+al día solo cambia los enganches de `.rsc/`.

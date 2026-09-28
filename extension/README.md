@@ -66,7 +66,7 @@ tamaño— en lenguaje llano, y montará el arnés con esas respuestas.
 Si prefiere que lo hagas tú, las respuestas son suyas, no tuyas: pregúntaselas una a una y luego
 
 ```bash
-npx @ericrisco/rsc@2.0.5 onboard \
+npx @ericrisco/rsc@2.0.15 onboard \
   --technical-level <non-technical|mixed|technical> \
   --accompaniment <L0|L1|L2|L3> \
   --project-kind <software|operations|research|content|mixed> \
@@ -75,7 +75,7 @@ npx @ericrisco/rsc@2.0.5 onboard \
   --target <claude|codex>
 # el tamaño solo cuenta con software y mixed, y con esos dos es obligatorio.
 # imprime un plan y su huella; solo después de que ACEPTE ese plan exacto:
-npx @ericrisco/rsc@2.0.5 onboard ...mismos flags... --accept-plan <huella>
+npx @ericrisco/rsc@2.0.15 onboard ...mismos flags... --accept-plan <huella>
 ```
 
 Y por último, los raíles de Executive Lab (idioma y vocabulario), que van dentro de la extensión:

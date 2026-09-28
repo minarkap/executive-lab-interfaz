@@ -38,6 +38,18 @@ const PLANTILLA_ENTERA = (() => {
     return ['.env.example', '.gitignore', 'CREDENTIALS.md', 'README.md', 'test_connection.sh'];
   }
 })();
+
+// La versión de la clase, leída de lo que se empaqueta (P7), y una más nueva que
+// ella, para las pruebas de una carpeta montada con otra. Escritas a mano, se
+// quedaron en la 2.0.5 y la 2.0.13, y al subir la clase a la 2.0.15 la «más
+// nueva» pasó a ser vieja. La más nueva es, además, menor como texto siempre que
+// se puede (la 2.0.100 frente a la 2.0.15): así se prueba que no se comparan
+// como texto.
+const LA_DE_LA_CLASE = require(path.join(RAIZ, 'media', 'harness', 'package.json')).dependencies['@ericrisco/rsc'];
+const MAS_NUEVA = (() => {
+  const [mayor, menor, parche] = LA_DE_LA_CLASE.split('.');
+  return `${mayor}.${menor}.1${'0'.repeat(parche.length)}`;
+})();
 const cargar = (m) => require(path.join(RAIZ, 'src', m));
 
 let pasadas = 0;
@@ -3036,7 +3048,7 @@ exec git "$@"
     const verbos = new Map();
     for (const g of ficheros) {
       // Con versión o sin ella, también la de `@<catalogVersion in .rsc.json>`.
-      for (const m of fs.readFileSync(g, 'utf8').matchAll(/npx\s+@ericrisco\/rsc(?:@<[^>]*>|@[^\s`]+)?\s+([a-z][a-z-]*)/g)) {
+      for (const m of fs.readFileSync(g, 'utf8').matchAll(/npx\s+@ericrisco\/rsc(?:@<[^>]*>|@[^\s`'")]+)?\s+([a-z][a-z-]*)/g)) {
         if (!verbos.has(m[1])) verbos.set(m[1], new Set());
         verbos.get(m[1]).add(path.basename(path.dirname(g)));
       }
@@ -8731,20 +8743,20 @@ exec git "$@"
     }
   });
 
-  await comprobar('1.4.1 se pone al día, 2.0.13 no se baja sin pulsar', async () => {
+  await comprobar('1.4.1 se pone al día, y una más nueva que la de la clase no se baja sin pulsar', async () => {
     // B5 y C-10. «Atrasada» quería decir «distinta»: una carpeta montada con un
     // arnés más nuevo que el de la clase se llamaba «versión anterior», el
     // arranque la bajaba sin decir nada, y el `sync` de la de la clase fallaba a
     // medias si había una habilidad que solo trae la nueva.
     const rscM = cargar('rsc');
     assert.equal(rscM.comoEsLaVersion('1.4.1'), 'vieja');
-    assert.equal(rscM.comoEsLaVersion('2.0.5'), 'igual');
-    assert.equal(rscM.comoEsLaVersion('2.0.13'), 'nueva', 'la 2.0.13 no es más nueva que la 2.0.5: se compara como texto');
+    assert.equal(rscM.comoEsLaVersion(LA_DE_LA_CLASE), 'igual');
+    assert.equal(rscM.comoEsLaVersion(MAS_NUEVA), 'nueva', `la ${MAS_NUEVA} no es más nueva que la ${LA_DE_LA_CLASE}: se compara como texto`);
     assert.equal(rscM.comoEsLaVersion('2.1.0'), 'nueva');
     // Lo que no es una versión de verdad no se compara a medias (revisión de F4,
     // m2): «2.0» salía más nueva, y «latest», más vieja.
     for (const rara of ['2.0', '2', 'latest', 'x.y.z']) assert.equal(rscM.comoEsLaVersion(rara), 'rara', `«${rara}» se compara como si fuera una versión`);
-    assert.equal(rscM.comoEsLaVersion('v2.0.13'), 'nueva');
+    assert.equal(rscM.comoEsLaVersion(`v${MAS_NUEVA}`), 'nueva');
 
     const conVersion = (version) => {
       const r = conEnganches();
@@ -8772,10 +8784,10 @@ exec git "$@"
       assert.equal(piezaVieja.arreglo.etiqueta, 'Ponerlo al día');
 
       // La nueva, no: se dice, y no se baja.
-      const nueva = conVersion('2.0.13');
+      const nueva = conVersion(MAS_NUEVA);
       vscode.guion.raiz = nueva;
       const parte = cargar('terreno').mirarYClasificar();
-      assert.equal(parte.versionAtrasada, false, 'la 2.0.13 se toma por vieja');
+      assert.equal(parte.versionAtrasada, false, `la ${MAS_NUEVA} se toma por vieja`);
       assert.notEqual(cargar('rumbo').elegirRama({ ...parte, git: { hay: true, repositorio: true } }).rama, 'ponerAlDia', 'se baja al preparar');
       const pieza = (await cargar('terreno').radiografia()).piezas.find((p) => p.nombre === 'La versión del arnés');
       assert.equal(pieza.detalle, 'Esta carpeta se montó con una versión del arnés más nueva que la de tu clase.');
@@ -8916,7 +8928,7 @@ exec git "$@"
       const r = conEnganches();
       const d = JSON.parse(fs.readFileSync(path.join(r, '.rsc.json'), 'utf8'));
       if (enElPlan) d.onboarding.plan.policy = { skills: ['bro', 'solo-en-la-nueva'] };
-      fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ ...d, catalogVersion: '2.0.13', skills: ['bro', 'solo-en-la-nueva'] }, null, 2));
+      fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ ...d, catalogVersion: MAS_NUEVA, skills: ['bro', 'solo-en-la-nueva'] }, null, 2));
       return r;
     };
     const antes = { sincronizar: rscM.sincronizar, volver: arrancarM.volverAMontarComoLaDeLaClase, enviar: proveedor.enviar, refrescar: proveedor.refrescar };
@@ -8976,7 +8988,7 @@ exec git "$@"
     const proveedor = vscode.registrado.proveedor;
     const r = conEnganches();
     const d = JSON.parse(fs.readFileSync(path.join(r, '.rsc.json'), 'utf8'));
-    fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ ...d, catalogVersion: '2.0.13' }));
+    fs.writeFileSync(path.join(r, '.rsc.json'), JSON.stringify({ ...d, catalogVersion: MAS_NUEVA }));
     const antes = { correr: rscM.correr, enviar: proveedor.enviar, refrescar: proveedor.refrescar };
     const pedidos = [];
     const enviados = [];
@@ -8990,7 +9002,7 @@ exec git "$@"
       const dicho = enviados.pop();
       assert.match(dicho.texto, /más nueva que la de tu clase/, 'no se dice por qué no');
       assert.match(dicho.texto, /«Ponerla como la de la clase»/, 'y no se dice qué hacer');
-      assert.equal(JSON.parse(fs.readFileSync(path.join(r, '.rsc.json'), 'utf8')).catalogVersion, '2.0.13');
+      assert.equal(JSON.parse(fs.readFileSync(path.join(r, '.rsc.json'), 'utf8')).catalogVersion, MAS_NUEVA);
       return dicho.texto.slice(0, 70);
     } finally {
       rscM.correr = antes.correr;
@@ -10669,7 +10681,7 @@ exec git "$@"
       fs.writeFileSync(path.join(r, '.rsc', 'skills', 'solo-en-la-nueva', 'SKILL.md'), '---\nname: solo-en-la-nueva\ndescription: x\n---\n# nueva\n');
       fs.symlinkSync(path.join('..', '..', '.rsc', 'skills', 'solo-en-la-nueva'), path.join(r, '.claude', 'skills', 'solo-en-la-nueva'));
       const d = leerJson('.rsc.json');
-      d.catalogVersion = '2.0.13';
+      d.catalogVersion = MAS_NUEVA;
       d.skills = [...new Set([...d.skills, 'solo-en-la-nueva'])].sort();
       d.onboarding.plan.policy.skills = [...d.onboarding.plan.policy.skills, 'solo-en-la-nueva'].sort();
       escribirJson(d, '.rsc.json');
@@ -10677,7 +10689,7 @@ exec git "$@"
       estado.skills['solo-en-la-nueva'] = { files: [], base: '.rsc/skills/solo-en-la-nueva' };
       escribirJson(estado, '.claude', 'skills', '.rsc-state.json');
       const bases = leerJson('.rsc', '.base-versions.json');
-      bases['solo-en-la-nueva'] = '2.0.13';
+      bases['solo-en-la-nueva'] = MAS_NUEVA;
       escribirJson(bases, '.rsc', '.base-versions.json');
 
       vscode.guion.raiz = r;

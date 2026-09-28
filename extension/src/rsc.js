@@ -13,7 +13,7 @@ const entorno = require('./entorno');
 
 // Último recurso si .rsc.json no dice versión. Se actualiza a mano, a
 // propósito: subir de versión es una decisión, no un efecto secundario.
-const VERSION_DE_RESPALDO = '2.0.5';
+const VERSION_DE_RESPALDO = '2.0.15';
 
 // Cómo es una versión frente a la de la clase: 'igual', 'vieja' o 'nueva'. Por
 // sus números y no como texto (B5): comparada como texto, la 2.0.13 salía

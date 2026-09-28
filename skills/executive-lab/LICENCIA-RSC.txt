@@ -1,5 +1,5 @@
-freno-rsc-2.0.5.mjs es una copia sin cambios de targets/danger-guard.mjs de
-@ericrisco/rsc 2.0.5 (https://www.npmjs.com/package/@ericrisco/rsc), de Eric Risco,
+freno-rsc-2.0.15.mjs es una copia sin cambios de targets/danger-guard.mjs de
+@ericrisco/rsc 2.0.15 (https://www.npmjs.com/package/@ericrisco/rsc), de Eric Risco,
 que se distribuye con esta licencia:
 
 MIT License

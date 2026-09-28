@@ -5,7 +5,8 @@ contra la **2.0.5** y comprobadas leyendo el paquete publicado, no deducidas. La
 son relativas al paquete (`node_modules/@ericrisco/rsc/`).
 
 Ninguna nos bloquea: todas tienen rodeo y lo hemos puesto, menos la tercera, que es
-cosmética. Van por si sirven.
+cosmética. Van por si sirven. Con la clase ya en la **2.0.15**, dos están arregladas y seis siguen, abiertas
+como issues: el estado de cada una, al final.
 
 > **La primera está abierta como issue**:
 > [ericrisco/rsc-harness#258](https://github.com/ericrisco/rsc-harness/issues/258),
@@ -307,7 +308,7 @@ el cuerpo. O, si se reescribe entero, conservar lo que había debajo de `Goal:`.
 
 ## Borradores de las issues (de la 4 a la 9)
 
-Uno por punto, para abrirlos por separado. Van en inglés, como el repositorio.
+Uno por punto, para abrirlos por separado. Se abrieron en español y con gitmoji en el título, como la #258: es lo que se hace en ese repositorio. Cómo quedó cada uno, abajo.
 
 **4 · `init` promises the danger guard by technical level, but it is only wired when the plan practises SDD.**
 `skills/init/SKILL.md:167-171` tells a non-technical user that a `PreToolUse` guard blocks
@@ -348,6 +349,28 @@ drops the rest, although `init` records its discovery there
 loses it, resets the dial to the receipt's, and `:173-175` uninstalls any assistant added
 later with `sync --target`. Suggestion: rewrite the frontmatter fields the plan owns and keep the
 body.
+
+---
+
+## Cómo está cada una en la 2.0.15 (28-09-2026)
+
+La clase subió a la 2.0.15 (decisión 127). Cada punto de arriba se volvió a mirar contra ese paquete, y
+los seis que quedaban se reprodujeron con él antes de abrirlos:
+
+| # | Qué | En la 2.0.15 | Issue |
+|---|---|---|---|
+| 1 | `optOuts` no viaja en un clon | **Arreglado en la 2.0.6**, a su manera: los guardianes siguen mirando `.rsc/.no-*`, y la instalación los reconstruye desde `.rsc.json` cuando `.rsc/` no existe. Solo los del equipo; los de cada máquina no salen de ella. El rodeo del `.gitignore` de este repositorio se quitó | [#258](https://github.com/ericrisco/rsc-harness/issues/258), cerrada |
+| 2 | `scanProject` no lee el `.gitignore` | Sigue igual. No se abrió: es discutible | — |
+| 3 | La memoria contesta a `PreCompact` con un campo que Claude Code no acepta | **Arreglado en la 2.0.11**: lo que es para la persona va por `systemMessage` | la #269, de otra persona |
+| 4 | El freno de `init` solo con SDD | Sigue: reproducido | [#273](https://github.com/ericrisco/rsc-harness/issues/273) |
+| 5 | `repair` engancha los frenos sin el plan | Sigue: reproducido | [#274](https://github.com/ericrisco/rsc-harness/issues/274) |
+| 6 | `onboard` sustituye una habilidad del usuario | Sigue: reproducido | [#275](https://github.com/ericrisco/rsc-harness/issues/275) |
+| 7 | El dial con dos nombres | Sigue: nueve ficheros leen `accompaniment_level` | [#276](https://github.com/ericrisco/rsc-harness/issues/276) |
+| 8 | `doctor` sale siempre con 0 | Sigue: reproducido | [#277](https://github.com/ericrisco/rsc-harness/issues/277) |
+| 9 | Aceptar un plan reescribe el perfil | Sigue: reproducido. Lo de los asistentes, corregido al reproducirlo: no se desinstalan, salen de la declaración | [#278](https://github.com/ericrisco/rsc-harness/issues/278) |
+
+Se abrieron en español y con gitmoji en el título, como la #258: es lo que se hace en ese repositorio. La
+nota de los borradores que decía «en inglés» estaba equivocada.
 
 ---
 
