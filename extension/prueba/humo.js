@@ -4020,7 +4020,7 @@ exec git "$@"
       'guardarCopia', 'verCopiaFuera', 'verCopias', 'verDiario',
       'verConexiones', 'verSaberes',
       'verAyuda', 'verRadiografia',
-      'verLaCara', 'elegirCarpeta', 'verEditorCompleto', 'bajarLaNueva',
+      'verLaCara', 'elegirCarpeta', 'verEditorCompleto', 'ponerLaNueva',
     ];
     const faltan = imprescindibles.filter((t) => !principal.includes(`tipo: '${t}'`));
     assert.deepEqual(faltan, [], `la pantalla principal ya no lleva a: ${faltan.join(', ')}`);
@@ -10760,7 +10760,7 @@ exec git "$@"
         hayProyectos: true,
       });
       assert.match(conTodo, /UN CONSEJO DE PRUEBA/, 'el consejo no sale');
-      assert.match(conTodo, /Hay una versión más nueva de esto \(99\.0\.0\)/, 'la versión nueva no sale');
+      assert.match(conTodo, /Hay una versión nueva de la barra: la 99\.0\.0\./, 'la versión nueva no sale');
       assert.match(conTodo, /En qué estamos/, '«En qué estamos» no sale');
 
       // Y en Ayuda, por su nombre y no por el del botón.
@@ -10785,6 +10785,175 @@ exec git "$@"
     assert.ok(LO_QUE_NO_ENTRA.includes(`${avisos.CARPETA.join('/')}/`), 'los avisos entran en las copias');
     assert.ok(vscode.registrado.vigia && vscode.registrado.vigia.patron.includes(`${avisos.CARPETA.join('/')}/*`), 'la barra no se entera de que el asistente ha dejado uno');
     return 'vigilados y fuera de git';
+  });
+
+  // ── La barra se pone al día (decisión 132) ────────────────────────────
+  //
+  // No está en la tienda del editor, así que se pone ella: baja el `.vsix` de la
+  // release, lo comprueba y se lo da al editor. Lo que importa es lo que NO se
+  // instala: otro fichero, otro sitio, uno cortado o uno cambiado.
+  const versionM = cargar('version');
+  const unPaquete = (bytes, version = '0.43.0', cambios = {}) => ({
+    tag_name: `v${version}`,
+    assets: [{
+      name: `executive-lab-${version}.vsix`,
+      browser_download_url: `https://github.com/minarkap/executive-lab-interfaz/releases/download/v${version}/executive-lab-${version}.vsix`,
+      size: bytes.length,
+      digest: `sha256:${require('node:crypto').createHash('sha256').update(bytes).digest('hex')}`,
+      ...cambios,
+    }],
+  });
+
+  await comprobar('solo se baja un paquete de fiar: de nuestro sitio, de esa versión, con su huella', () => {
+    const bytes = Buffer.from('un vsix de mentira');
+    const bien = versionM.deUnaRelease(unPaquete(bytes));
+    assert.equal(bien.version, '0.43.0');
+    assert.ok(bien.paquete, 'uno bueno no se da por bueno');
+    for (const [porQue, cambios] of [
+      ['otro nombre', { name: 'otra-cosa-0.43.0.vsix' }],
+      ['otro sitio', { browser_download_url: 'https://ejemplo.com/executive-lab-0.43.0.vsix' }],
+      ['otro repositorio', { browser_download_url: 'https://github.com/otro/executive-lab-interfaz/releases/download/v0.43.0/executive-lab-0.43.0.vsix' }],
+      ['otra versión en la dirección', { browser_download_url: 'https://github.com/minarkap/executive-lab-interfaz/releases/download/v0.40.0/executive-lab-0.43.0.vsix' }],
+      ['sin huella', { digest: null }],
+      ['con otra clase de huella', { digest: 'md5:abc' }],
+      ['vacío', { size: 0 }],
+      ['de más de 64 MB', { size: versionM.TAMANO_MAXIMO + 1 }],
+    ]) {
+      assert.equal(versionM.deUnaRelease(unPaquete(bytes, '0.43.0', cambios)).paquete, null, `se da por bueno uno con ${porQue}`);
+    }
+    assert.equal(versionM.deUnaRelease({ tag_name: 'nocturna', assets: [] }), null, 'una etiqueta que no es una versión');
+    assert.equal(versionM.deUnaRelease({ tag_name: 'v0.43.0', assets: [] }).paquete, null, 'sin fichero, solo se avisa');
+    return 'ocho formas de no ser de fiar';
+  });
+
+  await comprobar('ponerla baja, comprueba e instala; y lo cortado, lo cambiado o lo viejo no se instala', async () => {
+    const bytes = Buffer.from('PK un vsix de mentira, entero');
+    const almacen = fs.mkdtempSync(path.join(os.tmpdir(), 'almacen-'));
+    const ctx = { globalStorageUri: { fsPath: almacen }, globalState: { datos: new Map(), get(k) { return this.datos.get(k); }, async update(k, v) { this.datos.set(k, v); } } };
+    const antes = { fetch: global.fetch, ejecutar: vscode.commands.executeCommand };
+    const instalados = [];
+    vscode.commands.executeCommand = async (id, ...args) => { if (id === 'workbench.extensions.installExtension') instalados.push(args[0]); };
+    const conGitHub = (release, bajado) => {
+      global.fetch = async (url) => (String(url).endsWith('/releases/latest')
+        ? { ok: true, status: 200, json: async () => release }
+        : bajado());
+    };
+    const entero = () => ({ ok: true, status: 200, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length) });
+    try {
+      conGitHub(unPaquete(bytes), entero);
+      const hecho = await versionM.ponerLaNueva(ctx, '0.42.0');
+      assert.deepEqual(hecho, { ok: true, version: '0.43.0' });
+      assert.equal(instalados.length, 1, 'no se le da al editor');
+      assert.equal(instalados[0].fsPath, path.join(almacen, 'versiones', 'executive-lab-0.43.0.vsix'));
+      assert.deepEqual(fs.readFileSync(instalados[0].fsPath), bytes, 'se instala otra cosa que lo bajado');
+
+      const noSeInstala = async (motivo, release, bajado, actual = '0.42.0', opciones) => {
+        instalados.length = 0;
+        conGitHub(release, bajado);
+        const r = await versionM.ponerLaNueva(ctx, actual, opciones);
+        assert.equal(r.ok, false, `se pone con ${motivo}`);
+        assert.equal(r.motivo, motivo);
+        assert.equal(instalados.length, 0, `se instala con ${motivo}`);
+      };
+      await noSeInstala('noCoincide', unPaquete(bytes), () => ({ ok: true, arrayBuffer: async () => Buffer.from('PK un vsix cambiado, del mismo largo').subarray(0, bytes.length) }));
+      await noSeInstala('aMedias', unPaquete(bytes), () => ({ ok: true, arrayBuffer: async () => bytes.subarray(0, 5) }));
+      await noSeInstala('yaEstaAlDia', unPaquete(bytes), entero, '0.43.0');
+      await noSeInstala('yaEstaAlDia', unPaquete(bytes), entero, '0.100.0');
+      await noSeInstala('sinPaquete', unPaquete(bytes, '0.43.0', { digest: null }), entero);
+      await noSeInstala('sinRespuesta', unPaquete(bytes), () => ({ ok: false, status: 404 }));
+      // Colgada: se corta de verdad, no solo se deja de esperar.
+      let cortada = false;
+      global.fetch = async (url, opciones = {}) => {
+        if (String(url).endsWith('/releases/latest')) return { ok: true, status: 200, json: async () => unPaquete(bytes) };
+        return new Promise((_, fallar) => opciones.signal.addEventListener('abort', () => { cortada = true; fallar(new Error('cortada')); }));
+      };
+      instalados.length = 0;
+      // Con su propio reloj: si no se corta, esto se quedaría esperando para
+      // siempre, y la batería terminaría a medias sin decir que ha fallado.
+      const colgada = await Promise.race([
+        versionM.ponerLaNueva(ctx, '0.42.0', { esperar: 30 }),
+        new Promise((listo) => setTimeout(() => listo({ motivo: 'se ha quedado colgada' }), 3000)),
+      ]);
+      assert.equal(colgada.motivo, 'sinRespuesta', 'una descarga colgada no se corta');
+      assert.ok(cortada, 'una descarga colgada sigue bajando por detrás');
+      // Y si anuncia que mide otra cosa, ni se baja.
+      let leida = false;
+      await noSeInstala('aMedias', unPaquete(bytes), () => ({ ok: true, headers: { get: (h) => (h === 'content-length' ? String(bytes.length * 1000) : null) }, arrayBuffer: async () => { leida = true; return bytes; } }));
+      assert.ok(!leida, 'se baja entera una que ya dijo que no medía lo que tiene que medir');
+      vscode.commands.executeCommand = async () => { throw new Error('el editor no la acepta'); };
+      conGitHub(unPaquete(bytes), entero);
+      assert.equal((await versionM.ponerLaNueva(ctx, '0.42.0')).motivo, 'noSeInstala');
+      return 'entera y la misma, o nada';
+    } finally {
+      global.fetch = antes.fetch;
+      vscode.commands.executeCommand = antes.ejecutar;
+    }
+  });
+
+  await comprobar('la versión nueva sale arriba, se pone con un clic y pide recargar; «Ahora no» la aparta tres días', async () => {
+    const proveedor = vscode.registrado.proveedor;
+    const bytes = Buffer.from('PK otro vsix de mentira');
+    const almacen = fs.mkdtempSync(path.join(os.tmpdir(), 'almacen-'));
+    const enviados = [];
+    const antes = {
+      enviar: proveedor.enviar, fetch: global.fetch, ejecutar: vscode.commands.executeCommand,
+      almacen: contexto.globalStorageUri, extension: contexto.extension, mirado: contexto.globalState.get(versionM.CLAVE),
+      puesta: proveedor.versionPuesta, apartados: contexto.workspaceState.get('executiveLab.consejosApartados'),
+    };
+    proveedor.enviar = (m) => enviados.push(m);
+    contexto.globalStorageUri = { fsPath: almacen };
+    contexto.extension = { packageJSON: { version: '0.42.0' } };
+    const release = unPaquete(bytes, '0.43.0');
+    await contexto.globalState.update(versionM.CLAVE, { cuando: Date.now(), ...versionM.deUnaRelease(release) });
+    const instalados = [];
+    vscode.commands.executeCommand = async (id, ...args) => { vscode.registrado.ejecutados.push({ id, args }); if (id === 'workbench.extensions.installExtension') instalados.push(args[0]); };
+    global.fetch = async (url) => (String(url).endsWith('/releases/latest')
+      ? { ok: true, status: 200, json: async () => release }
+      : { ok: true, status: 200, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length) });
+    const ultimo = (tipo) => [...enviados].reverse().find((m) => m.tipo === tipo);
+    const pintar = (m) => require('./panel-falso').montarPanel().mandar(m);
+    try {
+      await proveedor.refrescar(true);
+      assert.equal(ultimo('estado').hayVersionNueva, '0.43.0');
+      assert.match(pintar(ultimo('estado')), /Hay una versión nueva de la barra: la 0\.43\.0\..*Actualizar ahora.*version:0\.43\.0/s, 'no sale arriba, o sin su «Ahora no»');
+
+      // Dos clics seguidos: una sola descarga.
+      await Promise.all([proveedor.manejar({ tipo: 'ponerLaNueva' }), proveedor.manejar({ tipo: 'ponerLaNueva' })]);
+      assert.equal(instalados.length, 1, 'con el clic no se instala, o un doble clic la pone dos veces');
+      assert.match(ultimo('aviso').texto, /^Ya está puesta la 0\.43\.0\. Recarga la ventana/);
+      assert.equal(ultimo('aviso').boton.accion.tipo, 'recargar');
+      assert.match(pintar(ultimo('estado')), /Ya está puesta la 0\.43\.0.*Recargar ahora/s, 'puesta, y sigue diciendo que hay una nueva');
+      assert.doesNotMatch(pintar(ultimo('estado')), /Actualizar ahora/);
+      await proveedor.manejar({ tipo: 'recargar' });
+      assert.ok(vscode.registrado.ejecutados.some((e) => e.id === 'workbench.action.reloadWindow'), 'recargar no recarga');
+
+      // Si no se puede, se dice, con su página de repuesto, y va al informe.
+      proveedor.versionPuesta = null;
+      vscode.commands.executeCommand = async () => { throw new Error('el editor no la acepta'); };
+      await proveedor.manejar({ tipo: 'ponerLaNueva' });
+      assert.match(ultimo('aviso').texto, /No he podido ponerla\. Pulsa «Algo va mal»/);
+      assert.equal(ultimo('aviso').boton.accion.tipo, 'bajarLaNueva');
+      assert.ok(vscode.registrado.mensajes.some((l) => /\[version\] no se ha puesto la 0\.43\.0: noSeInstala \(el editor no la acepta\)/.test(l)), 'el motivo no se apunta');
+
+      // «Ahora no»: fuera de la principal tres días, y en Ayuda sigue.
+      await proveedor.ahoraNo('version:0.43.0');
+      assert.equal(ultimo('estado').hayVersionNueva, null, '«Ahora no» no la aparta');
+      await proveedor.verAyuda();
+      assert.match(pintar(ultimo('ayuda')), /Tienes la 0\.42\.0\. Hay una más nueva: la 0\.43\.0\..*Actualizar ahora/s, 'en Ayuda no sale');
+      await contexto.workspaceState.update('executiveLab.consejosApartados', { 'version:0.43.0': Date.now() - 4 * 86400000 });
+      await proveedor.refrescar(true);
+      assert.equal(ultimo('estado').hayVersionNueva, '0.43.0', 'a los tres días no vuelve');
+      return 'arriba · un clic · recargar · de repuesto su página · tres días apartada';
+    } finally {
+      proveedor.enviar = antes.enviar;
+      global.fetch = antes.fetch;
+      vscode.commands.executeCommand = antes.ejecutar;
+      contexto.globalStorageUri = antes.almacen;
+      contexto.extension = antes.extension;
+      await contexto.globalState.update(versionM.CLAVE, antes.mirado);
+      await contexto.workspaceState.update('executiveLab.consejosApartados', antes.apartados);
+      proveedor.versionPuesta = antes.puesta;
+    }
   });
 
   await comprobar('todo tipo que manda el panel se despacha sin excepción', async () => {
@@ -10817,7 +10986,7 @@ exec git "$@"
     fs.cpSync(empresa, copia, { recursive: true });
     vscode.guion.raiz = copia;
     const FINGIDOS = ['arrancar', 'arreglar', 'instalarGit', 'subirCopia', 'conectarGitHub', 'aprenderCapacidad', 'ponerLaCara',
-      'ponerComoLaDeLaClase', 'elegirCarpeta', 'arreglarElRelevo', 'pedir', 'mandarElAviso'];
+      'ponerComoLaDeLaClase', 'elegirCarpeta', 'arreglarElRelevo', 'pedir', 'mandarElAviso', 'ponerLaNueva'];
     const antes = {};
     for (const nombre of FINGIDOS) {
       antes[nombre] = proveedor[nombre];
@@ -11312,7 +11481,19 @@ exec git "$@"
   }
 
   console.log(`\n${pasadas} comprobaciones pasadas${process.exitCode ? ' — y alguna ha fallado' : ''}`);
+  terminada = true;
 }
+
+// Si una prueba se queda esperando algo que no llega —una descarga que nadie
+// corta, una promesa sin reloj—, Node se queda sin nada que hacer y sale con 0,
+// a medias y sin decir nada: pasó con la del corte de la descarga (decisión
+// 132). Una batería que no llega al final ha fallado.
+let terminada = false;
+process.on('exit', () => {
+  if (terminada) return;
+  console.error(`\n  ✗ la batería se ha parado a medias, después de ${pasadas} comprobaciones: una prueba se ha quedado esperando algo que no llega`);
+  process.exitCode = 1;
+});
 
 main().catch((e) => {
   console.error(e);

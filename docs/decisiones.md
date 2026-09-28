@@ -4474,3 +4474,89 @@ críticos y cinco importantes, y están todos arreglados con su prueba:
 
 Dieciséis mutaciones, una por arreglo y por pieza, tumban las pruebas. La que quitaba las formas del
 nombre sobrevivió a la primera, porque el sitio de GitHub llegaba por otro lado, y ahora tiene su caso.
+
+## 132. La barra se pone al día con un clic
+
+**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `la-barra-se-pone-al-dia`
+
+Jose: *«si un alumno instala la extensión y la actualizamos en github […] tendrá que enterarse el alumno
+y actualizarla […] tenemos que hacer que los alumnos puedan actualizar la extensión también»*. La barra
+va a ser cerrada, sin tienda del editor que la ponga al día sola.
+
+### Lo que había, y por qué no servía
+
+Cada versión se publica como release en GitHub, con su `.vsix` (`/publicar-una-version`), y `version.js`
+miraba una vez al día si había una más nueva. Pero:
+
+- **El aviso no salía nunca.** La pantalla lo buscaba dentro del estado, y la extensión lo manda al lado
+  (decisión 131).
+- **Y aunque saliera, iba al final de Ajustes, plegado**, con un botón que abría la página de GitHub.
+  Bajar un `.vsix` e instalarlo a mano no lo va a hacer un alumno que no programa.
+
+### Cómo es ahora
+
+- **Arriba y a la vista**, como el consejo: «Hay una versión nueva de la barra: la 0.43.0.», con
+  **Actualizar ahora** y **Ahora no**. Lo apartado vuelve a los tres días. En Ayuda, *Esta barra* dice
+  cuál tiene y si hay otra, aunque se apartara.
+- **Actualizar ahora** vuelve a preguntar a GitHub cuál es la última, en ese momento. Luego baja su
+  `.vsix`, comprueba que ha llegado entero y que es el mismo, y se lo pasa al editor
+  (`workbench.extensions.installExtension`). Al terminar, «Ya está puesta la 0.43.0. Recarga la
+  ventana para empezar a usarla: no se pierde nada.», con **Recargar ahora**.
+- **Sin su clic no se instala nada.** Mirar sí se mira solo; cambiarla, no.
+
+### Qué se instala y qué no
+
+Solo un paquete de fiar, y lo que no lo es no se baja:
+
+- **de nuestro sitio**: la dirección exacta de la release en `minarkap/executive-lab-interfaz`;
+- **de esa versión**: el nombre que le pone `publicar.sh`, `executive-lab-<versión>.vsix`;
+- **con su huella**: la `sha256` que GitHub publica con cada fichero de una release, y su tamaño.
+
+Lo bajado tiene que medir lo mismo y dar la misma huella. Uno cortado o uno cambiado no se instala. Uno
+igual o más viejo que el que tiene, tampoco. Si algo de eso falla, se dice, el motivo va al informe de
+«Algo va mal», y se ofrece **Abrir su página**, que es lo que había antes.
+
+### Lo que esto pide al publicar
+
+Nada nuevo: `publicar.sh` y `gh release create`, como hasta ahora, con el `.vsix` subido a la release.
+GitHub le pone la huella solo.
+
+**Y un freno que ahora importa más.** Antes, una versión mala llegaba a quien se animara a bajarla a
+mano, que era casi nadie. Ahora llega a todos los que pulsen en las primeras horas. La barra solo ofrece
+la que GitHub da como *la última* (`releases/latest`), y esa **nunca es una «prerelease»**. Así que una
+versión que no se ha probado en un ordenador de verdad se publica como prerelease
+(`gh release create … --prerelease`), y se marca como la última cuando esté bien
+(`gh release edit v0.43.0 --prerelease=false --latest`). Hasta entonces no se le ofrece a nadie.
+
+### Lo que encontró la revisión
+
+Un refutador de seguridad no encontró forma de colar un paquete que no sea el publicado, ni de
+instalarlo sin el clic. Tampoco vio que se llevara la clave de nadie ni que la caché de un día decida
+lo que se instala. Dejó dos importantes y un menor:
+
+- **Sin techo de tamaño**, un paquete enorme se bajaba entero a memoria antes de comprobarlo. Ahora
+  uno de más de 64 MB no se baja, y el de hoy ocupa 6,6.
+- **El reloj no cortaba la descarga, solo dejaba de esperarla.** Ahora la corta, y si la respuesta
+  anuncia otro tamaño, ni se baja.
+- **Dos clics, dos descargas** sobre el mismo fichero. Ahora hay una a la vez.
+- Y lo del freno de arriba, que es de Jose y no del código.
+
+Al probar que el reloj corta salió otra cosa, de la batería entera: **si una prueba se quedaba
+esperando algo que no llega, `humo.js` terminaba a medias con código 0**, como si todo hubiera ido bien.
+Ahora, si no llega al final, falla y dice después de cuántas se paró. Se comprobó con una prueba colgada
+a propósito. `contrato.js` y `empresas-distintas.js` no lo llevan todavía.
+
+Trece mutaciones tumban las pruebas nuevas.
+
+### Si el repositorio pasa a privado
+
+Esto, y los avisos de la decisión 131, dependen de que las releases y las incidencias se puedan leer y
+abrir sin ser del repositorio. Si `minarkap/executive-lab-interfaz` deja de ser público, las dos cosas
+dejan de funcionar para los alumnos. Haría falta un sitio público solo para las versiones (cambiar
+`REPO` en `version.js`), y para los avisos, un sitio donde puedan abrir incidencias o un servidor
+intermedio.
+
+### Fuera
+
+- **Instalarla sin preguntar**, por lo mismo que siempre.
+- **La tienda del editor**: `publicar-tiendas.sh` sigue ahí si algún día se quiere.

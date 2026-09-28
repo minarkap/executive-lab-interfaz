@@ -22,6 +22,8 @@ y se apoya en [RSC](https://github.com/ericrisco/rsc-harness), que es quien mont
   GitHub de la barra. También lo puede dejar preparado el asistente, o la barra cuando falla por dentro;
   siempre se enseña entero y solo sale si la persona dice que sí.
 - **Tu marca**: si dices cuál es la web de tu empresa, la barra se pinta con sus colores y su logotipo.
+- **Al día**: cuando se publica una versión nueva, la barra lo dice arriba y se pone con un clic, sin
+  bajar nada a mano. Solo instala el paquete de esa release, entero y con su huella.
 
 Nada de eso está escrito en el código: sale de leer lo que el arnés tenga montado en tu carpeta. Una
 gestoría acaba con botones de facturación y una empresa de contratos con botones de contratos.

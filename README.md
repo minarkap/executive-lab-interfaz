@@ -260,6 +260,11 @@ Las tres llevan lo mismo, porque el arnés viaja en un solo sitio: dentro del `.
 | Monta el arnés | El panel | El panel | El panel |
 | Firmado | No hace falta | ❌ pendiente | ❌ pendiente |
 
+Las tres se ponen al día igual, porque las tres acaban siendo el mismo `.vsix` instalado en el editor.
+Cuando hay una release más nueva, la barra lo dice arriba y **Actualizar ahora** la baja de GitHub,
+comprueba que es la de esa release y que llegó entera (tamaño y `sha256`), y se la da al editor. Nada se
+instala sin ese clic (decisión 132).
+
 ---
 
 ## Cómo está hecho
