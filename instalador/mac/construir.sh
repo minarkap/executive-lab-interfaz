@@ -133,8 +133,9 @@ cp "$RAIZ/extension/executive-lab.vsix" "$CARGA/executive-lab.vsix"
 
 # --- El icono. Da igual de dónde salga mientras acabe siendo un .icns.
 if [ ! -f "$CARGA/executivelab.icns" ]; then
+  # El icono es nuestro y se versiona junto al instalador de Windows.
   ORIGEN=""
-  [ -f "$RAIZ/instalador/windows/carga/executivelab.ico" ] && ORIGEN="$RAIZ/instalador/windows/carga/executivelab.ico"
+  [ -f "$RAIZ/instalador/windows/executivelab.ico" ] && ORIGEN="$RAIZ/instalador/windows/executivelab.ico"
   if [ -n "$ORIGEN" ]; then
     echo "  Icono…"
     TMPI="$(mktemp -d)"

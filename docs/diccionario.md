@@ -167,6 +167,7 @@ jerga por goteo.
 | lo que dice «Algo va mal» al terminar de revisar (nunca «tu empresa»: puede ser un departamento) | «He mirado y está todo bien.» · con algo roto: «He encontrado algo y puedo intentar arreglarlo.» · si el diagnóstico del arnés no se puede leer: «No he podido revisarlo entero.», sin botón de arreglar si no hay nada que arreglar |
 | una carpeta sin arnés, en la pantalla principal (A8: cuántas preguntas, contadas por `rumbo`) | «Puedo preparar esta carpeta. Tarda unos minutos, y antes te hago entre {9} y {12} preguntas, de una en una.» |
 | algo falla y se manda a «Algo va mal» (H4: antes «Prueba con "Algo va mal"», que no decía qué hacer con el código), en cualquier aviso | «No he podido {guardarlo}. Pulsa «Algo va mal» y pásale el código a tu tutor.» |
+| un encargo largo en Windows, que va por el portapapeles (el enlace lleva el texto en la URL, y Windows la corta sobre los 2.048 caracteres; decisión 130) | «Es un texto largo: te lo he copiado para que llegue entero. Pégalo con Ctrl+V en la caja de {Claude} y dale a enviar.» |
 | la marca de su web no se puede usar porque encima no se lee nada, en Tu marca | «No he podido usar lo que hay: con ese fondo no se lee nada encima. Pídele al asistente uno más claro o más oscuro.» |
 | abrir otra carpeta | Elegir una carpeta (la primera vez) · Cambiar de proyecto |
 | quitar el disfraz en esta ventana | Ver el editor completo |

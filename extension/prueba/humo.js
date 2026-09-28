@@ -1194,6 +1194,41 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'claude-vscode.editor.open, de repuesto';
   });
 
+  await comprobar('en Windows, un encargo largo va por el portapapeles para que llegue entero', async () => {
+    // El enlace lleva el texto dentro de la URL, y en Windows ShellExecute corta
+    // las URL sobre los 2.048 caracteres: el encargo de ordenar 120 claves ocupa
+    // 8.448. No se ha podido medir si VS Code manda allí su propia URL por el
+    // sistema (decisión 129), así que se va a lo seguro. Corre en las dos
+    // máquinas: en el Mac, por el enlace; en la de Windows, por el portapapeles.
+    assert.equal(puente.cabeEnElEnlace('x'.repeat(2500), 'win32'), false, 'en Windows, una URL de 2.500 caracteres cabe');
+    assert.equal(puente.cabeEnElEnlace('x'.repeat(2500), 'darwin'), true, 'fuera de Windows no hay por qué cortar');
+    assert.equal(puente.cabeEnElEnlace('x'.repeat(300), 'win32'), true, 'uno corto en Windows no va al portapapeles');
+
+    const largo = 'Ordena las claves de acceso de esta carpeta según el protocolo de la barra. '.repeat(30);
+    vscode.registrado.ejecutados.length = 0;
+    vscode.registrado.abiertos.length = 0;
+    vscode.registrado.portapapeles = '';
+    const avisos = [];
+    const antes = vscode.window.showWarningMessage;
+    vscode.window.showWarningMessage = (m) => { avisos.push(m); return Promise.resolve(undefined); };
+    try {
+      const como = await puente.enviar(largo);
+      if (process.platform === 'win32') {
+        assert.equal(como, 'copiado', 'en Windows, un encargo largo va por el enlace, y puede llegar a medias');
+        assert.equal(vscode.registrado.portapapeles, largo, 'no se copia entero');
+        assert.deepEqual(vscode.registrado.abiertos, [], 'y además se manda por el enlace');
+        assert.ok(!vscode.registrado.ejecutados.some((e) => /editor\.open$/.test(e.id) && e.args && e.args[1]), 'y por un comando que tira el texto');
+        assert.match(avisos.join(' '), /largo.*llegue entero/, `no se dice por qué va copiado: ${avisos.join(' ')}`);
+        return 'en Windows, copiado entero y dicho';
+      }
+      assert.equal(como, 'directo');
+      assert.equal(vscode.registrado.abiertos.length, 1);
+      return 'en el Mac, por el enlace';
+    } finally {
+      vscode.window.showWarningMessage = antes;
+    }
+  });
+
   await comprobar('sin la extensión de Claude, al portapapeles', async () => {
     // Sin la extensión puesta no hay ni comandos suyos ni nadie que recoja el
     // enlace: es el único caso en el que el texto acaba en el portapapeles.
