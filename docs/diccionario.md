@@ -288,6 +288,8 @@ Dos matices:
    caracteres que pueda dictar por teléfono.
 5. **Ninguna pregunta sin opciones.** Un campo de texto vacío ante alguien que no sabe qué escribir es
    una pared. Siempre hay ejemplos clicables.
+6. **Nada de plurales con paréntesis.** «3 cosa(s)» suena a formulario: se escribe la frase de uno y la de
+   varios, «1 cosa declarada que no está» y «3 cosas declaradas que no están». Lo vigila una prueba.
 
 ## Nada predefinido
 

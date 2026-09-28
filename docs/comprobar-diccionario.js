@@ -80,9 +80,12 @@ function tieneUnaProhibida(texto, prohibidas = palabrasProhibidas()) {
 
 // ------------------------------------------- qué cuenta como texto de pantalla
 
-// Una cadena es prosa si tiene un espacio y alguna palabra funcional española.
-// Así se dejan fuera identificadores, rutas y nombres de comandos.
-const FUNCIONALES = /\b(el|la|los|las|un|una|tu|te|de|del|que|no|se|y|con|para|en|lo|ya|he|ha|si|al|es|su)\b/i;
+// Una cadena es pantalla si no parece código y es una frase, o un rótulo de una
+// palabra con mayúscula («Ruta»). Antes hacía falta una palabra funcional
+// española, y un rótulo corto sin artículo —«Abrir terminal», «devueltos a
+// node»— o una palabra suelta se colaban (revisión final, corrección y pruebas).
+// Se dejan fuera identificadores, rutas, órdenes y nombres de ficheros.
+const PARECE_CODIGO = /[\/\\=<>{}()[\]|;$`@#]|--|\.(js|mjs|json|md|sh|py|cmd|exe)\b|^[a-z]+[A-Z]|_/;
 const CADENAS = /'([^'\\]*(?:\\.[^'\\]*)*)'|"([^"\\]*(?:\\.[^"\\]*)*)"|`([^`\\]*(?:\\.[^`\\]*)*)`/g;
 
 function ficheros(base, entrada) {
@@ -94,9 +97,16 @@ function ficheros(base, entrada) {
     .map((f) => path.join(completa, f));
 }
 
-const esProsa = (cadena) => cadena.includes(' ') && FUNCIONALES.test(cadena);
+// `palabraSuelta`: si un rótulo de una palabra cuenta. En el código Pascal del
+// instalador de Windows, una palabra suelta es un nombre (`'Path'`), no pantalla.
+const esProsa = (cadena, { palabraSuelta = true } = {}) => {
+  const limpia = cadena.trim();
+  if (!limpia || PARECE_CODIGO.test(limpia)) return false;
+  if (limpia.includes(' ')) return /[a-záéíóúñ]{2,}/i.test(limpia);
+  return palabraSuelta && /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+$/.test(limpia);
+};
 
-function revisar(fichero, prohibidas, { saltar = null, comentario = null } = {}) {
+function revisar(fichero, prohibidas, { saltar = null, comentario = null, palabraSuelta = true } = {}) {
   const fallos = [];
 
   fs.readFileSync(fichero, 'utf8').split('\n').forEach((linea, i) => {
@@ -108,7 +118,7 @@ function revisar(fichero, prohibidas, { saltar = null, comentario = null } = {})
 
     for (const coincidencia of linea.matchAll(CADENAS)) {
       const cadena = coincidencia[1] ?? coincidencia[2] ?? coincidencia[3] ?? '';
-      if (!esProsa(cadena)) continue;
+      if (!esProsa(cadena, { palabraSuelta })) continue;
 
       for (const mala of lasQueSalen(cadena, prohibidas)) {
         fallos.push({ fichero, linea: i + 1, mala, cadena: cadena.slice(0, 70) });
@@ -166,7 +176,7 @@ function revisarInno(fichero, prohibidas) {
       fallos.push({ fichero, linea: i + 1, mala, cadena: texto.slice(0, 70) });
     }
   });
-  return [...fallos, ...revisar(fichero, prohibidas, { comentario: /^\s*;/ })];
+  return [...fallos, ...revisar(fichero, prohibidas, { comentario: /^\s*;/, palabraSuelta: false })];
 }
 
 function revisarInstalador(base, { fichero, como, saltar }, prohibidas) {

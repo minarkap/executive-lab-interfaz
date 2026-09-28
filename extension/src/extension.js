@@ -772,13 +772,13 @@ ${cabecera}
       }
       for (const p of conexiones.proveedores()) {
         if (p.aMedioHacer) visto.push(`La conexión ${p.etiqueta} está a medio preparar (sigue con la plantilla).`);
-        else if (p.fueraDeSitio) visto.push(`${p.etiqueta} tiene ${p.fueraDeSitio} clave(s) guardadas fuera de su carpeta.`);
-        else if (p.faltan) visto.push(`A ${p.etiqueta} le faltan ${p.faltan} clave(s).`);
+        else if (p.fueraDeSitio) visto.push(`${p.etiqueta} tiene ${p.fueraDeSitio === 1 ? 'una clave guardada' : `${p.fueraDeSitio} claves guardadas`} fuera de su carpeta.`);
+        else if (p.faltan) visto.push(`A ${p.etiqueta} ${p.faltan === 1 ? 'le falta una clave' : `le faltan ${p.faltan} claves`}.`);
       }
       const desordenadas = sueltas.resumen();
       if (desordenadas) {
         if (desordenadas.claves) {
-          visto.push(`Hay ${desordenadas.claves} clave(s) fuera de sitio en: ${desordenadas.ficheros.join(', ')}.`);
+          visto.push(`Hay ${desordenadas.claves === 1 ? 'una clave' : `${desordenadas.claves} claves`} fuera de sitio en: ${desordenadas.ficheros.join(', ')}.`);
           for (const g of desordenadas.reparto) {
             visto.push(`  · ${g.claves.join(', ')} parecen de ${g.herramienta}${g.existe ? '' : ', que no tiene carpeta en 01-TOOLS'}.`);
           }

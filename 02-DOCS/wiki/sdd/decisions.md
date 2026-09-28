@@ -283,3 +283,16 @@ Solo se añade. Cada entrada lleva fecha, feature y quién decidió.
 - **Los instaladores siguen sin tocar**, por la regla del plan para el autopilot, y el motivo se escribe
   así. El motor de JavaScript de las copias queda para Jose: retirarlo o traer su biblioteca para
   probarlo.
+
+## 2026-09-28 · todo-cuadra · F9, el cierre
+
+- **Un solo commit para F9**: la verificación (T073) y los arreglos de la revisión final (T074) son las
+  dos tareas del cierre, y los arreglos salen de los mismos ficheros que tocó la verificación.
+- **«Enganchado» es estructura, no texto**: una entrada de `hooks.PreToolUse` cuyo `matcher` alcanza a
+  Bash, como lo interpreta Claude Code (vacío, `*`, o una expresión que casa entera). La regla vive en
+  `reglas.enganchadoAntesDeBash`, y el envoltorio lleva su gemela porque en la carpeta del alumno no
+  puede cargar nada de la barra.
+- **Pantalla es lo que no parece código**, sea frase o rótulo de una palabra con mayúscula. En el
+  código Pascal del instalador de Windows, una palabra suelta es un nombre.
+- **Los informes de «Algo va mal» siguen dentro de la carpeta**, porque el encargo que resuelve la
+  incidencia los lee de ahí, pero fuera de git.

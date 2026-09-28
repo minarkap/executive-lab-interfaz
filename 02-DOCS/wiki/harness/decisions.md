@@ -613,3 +613,15 @@ Decisión 124 en `docs/decisiones.md`. Fase F8 de la cadena SDD `todo-cuadra`.
 - **Volver a montar ya no borra lo que el asistente apuntó en el perfil.**
 
 0.40.0. 314 comprobaciones, 321 con el arnés de verdad, y 13 de contrato.
+
+## El cierre: todo cuadra — 28 de septiembre de 2026
+
+Decisión 125 en `docs/decisiones.md`. Fase F9 de la cadena SDD `todo-cuadra`.
+
+- **61 criterios con su prueba**: cumplen 60, y C2 espera a medirse en Windows.
+- **«Un poco de todo» se monta de verdad**, y la barra no hace plurales con paréntesis.
+- **El freno cuenta solo si está enganchado de verdad**, y «Las reglas» ya no lo da por puesto sin él.
+- **El comprobador del diccionario ve las palabras sueltas**, la prueba de despacho ve cualquier
+  excepción, y el informe de «Algo va mal» no sale del ordenador.
+
+0.41.0. 322 comprobaciones, 330 con el arnés de verdad, y 13 de contrato.

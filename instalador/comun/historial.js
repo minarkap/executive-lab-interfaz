@@ -16,14 +16,16 @@
 // autentica con un token por HTTPS, sin llaveros, sin claves SSH y sin el
 // gestor de credenciales de Windows.
 //
-// El motor binario se queda como red de seguridad para la máquina de quien
-// desarrolla esto (que sí tiene git) y para el instalador de Windows de hoy,
-// que todavía lleva MinGit dentro.
+// Eso era al principio. Hoy git es obligatorio y se instala (`git.js` dice por
+// qué), y la barra pide el motor binario: el git de verdad, el mismo que usa el
+// arnés. El de JavaScript se queda como resto, y solo existe donde un instalador
+// de antes dejó `isomorphic-git`: nada de este repositorio lo trae ya, y su
+// prueba sale saltada por eso (revisión final).
 //
-// Quién lo usa: `preparar.js` (al montar la carpeta) y `extension/src/guardar.js`
-// (los botones "Guardar copia de seguridad" y "Volver a como estaba antes").
-// Vive aquí, en comun/, porque el instalador lo deja junto a `preparar.js` y la
-// extensión lo encuentra ahí; en desarrollo se resuelve desde el propio repo.
+// Quién lo usa: `extension/src/guardar.js` (guardar, el guardado solo, volver a
+// como estaba y subir a GitHub). Vive aquí, en comun/, porque viaja dentro de la
+// extensión (`media/comun/`, que copia `preparar-paquete.js`); en desarrollo se
+// resuelve desde el propio repo.
 
 const fs = require('node:fs');
 const path = require('node:path');

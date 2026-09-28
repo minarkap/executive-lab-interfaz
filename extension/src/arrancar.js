@@ -901,11 +901,13 @@ async function arreglarLoQueSePuedaSolo(salida) {
   // Lo que el arnés pregunta antes de tocar no se contesta por nadie: uno de
   // esos hallazgos mueve el arnés a otro asistente.
   if (queHay.aDecidir.length) {
-    return { ok: true, detalle: `${queHay.aDecidir.length} cosa(s) que tiene que decidir una persona`, aDecidir: queHay.aDecidir };
+    const n = queHay.aDecidir.length;
+    return { ok: true, detalle: `${n} ${n === 1 ? 'cosa' : 'cosas'} que tiene que decidir una persona`, aDecidir: queHay.aDecidir };
   }
 
   const hecho = await rsc.arreglarSolo();
-  return { ok: hecho.codigo === 0, detalle: `${queHay.solas.length} arreglada(s)` };
+  const n = queHay.solas.length;
+  return { ok: hecho.codigo === 0, detalle: n === 1 ? '1 arreglada' : `${n} arregladas` };
 }
 
 const COMO_SE_HACE = {
@@ -935,7 +937,8 @@ const COMO_SE_HACE = {
     const campos = { ...(respuestas.nombres || {}), alcance: respuestas.alcance, personas: respuestas.personas };
     return { ok: Object.values(campos).some(Boolean) ? ponerEnElPerfil(campos) : true };
   },
-  apuntarLosEnganches: async ({ salida }) => ({ ok: true, detalle: (await apuntarLosEnganches(salida)) ? 'devueltos a node' : 'no hacía falta' }),
+  // El detalle de cada paso va al canal de salida, para el tutor.
+  apuntarLosEnganches: async ({ salida }) => ({ ok: true, detalle: (await apuntarLosEnganches(salida)) ? 'devueltos a node' : 'no hacía falta' }), // diccionario: interno
 
   puntoDePartida: async () => {
     // El historial de alguien no se escribe. Se comprueba aquí y no solo en
@@ -1187,7 +1190,11 @@ async function ponerLasCopias(contexto) {
 // lo que tiene y se le pregunta, y lo suyo no se borra pase lo que pase.
 async function pedirPermiso(parte) {
   const suyo = parte.otroMontaje.asistentes
-    .map((a) => [a.habilidades && `${a.habilidades} habilidad(es)`, a.comandos && `${a.comandos} comando(s)`, a.agentes && `${a.agentes} agente(s)`].filter(Boolean).join(', '))
+    .map((a) => [
+      a.habilidades && `${a.habilidades} ${a.habilidades === 1 ? 'habilidad' : 'habilidades'}`,
+      a.comandos && `${a.comandos} ${a.comandos === 1 ? 'comando' : 'comandos'}`,
+      a.agentes && `${a.agentes} ${a.agentes === 1 ? 'agente' : 'agentes'}`,
+    ].filter(Boolean).join(', '))
     .filter(Boolean);
   const ficheros = parte.otroMontaje.ficheros;
 

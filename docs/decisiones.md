@@ -3945,3 +3945,42 @@ cosas de RSC por contar. Y volver a montar borraba lo que el asistente había ap
 - Ningún texto llama «tu empresa» a la carpeta.
 - El motor de JavaScript de las copias no se puede probar aquí, porque ya nada trae su biblioteca.
   Queda para Jose.
+
+## 125. El cierre: todo cuadra, y lo que queda para Jose
+
+**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Cadena SDD** `todo-cuadra`, fase F9
+
+La verificación de cierre pasa la batería entera sobre el estado final y mira los 61 criterios de la
+spec, cada uno con la prueba que lo sostiene. Cumplen 60, y C2 cumple en Mac y está a medias hasta
+medirlo en Windows. La revisión final la hicieron tres refutadores a la vez, con ojos frescos, sobre la
+rama entera.
+
+### Lo que añadió la verificación
+
+- **Un montaje de verdad de «Un poco de todo»** (I3): ninguno pasaba por ahí.
+- **Nada de plurales con paréntesis**: «3 cosa(s)» y «necesita(n)», en diecisiete textos de antes de
+  este programa, van con la frase de uno y la de varios. Es una regla del diccionario, y una prueba la
+  vigila.
+
+### Lo que encontró la revisión final
+
+- **El freno cuenta solo si está enganchado de verdad** antes de cada orden de Bash, el de RSC y el
+  nuestro. Con el nombre del de RSC en una nota, o enganchado a otra herramienta, el nuestro se
+  apartaba sin que frenara nadie, y «Las reglas» decía que lo ponía el arnés.
+- **El comprobador del diccionario ve las palabras sueltas y las frases sin artículos**.
+- **La prueba de despacho ve cualquier excepción**, por la señal que da el propio producto.
+- **El informe de «Algo va mal» no entra en la copia de git**, que llevaba las rutas de este
+  ordenador.
+
+### Para Jose
+
+- Merge y push de la rama, y publicar el `.vsix`.
+- Lo que baja o toca cosas fuera del proyecto: la prueba de T032 (2) y (3) en un VS Code de verdad.
+- Lo de Windows: el relevo en Git Bash y en PowerShell, Python y el `.exe`.
+- Una subida de verdad a GitHub con el token en una cabecera.
+- Los instaladores firmados: el `.iss`, el `Info.plist`, `probar.ps1` y `COMO-PROBARLO.md`.
+- Tres nombres para el diccionario, y la propuesta de activar la barra con `*`.
+- El motor de JavaScript de las copias: retirarlo, o traer su biblioteca para probarlo.
+- Las seis issues de RSC, y subir la versión del arnés (hay 2.0.15; la clase va en 2.0.5).
+
+0.41.0. 322 comprobaciones, 330 con el arnés de verdad, y 13 de contrato.

@@ -131,7 +131,7 @@ function ordenarLaCarpeta(parte) {
 function conectarUnaHerramienta(proveedor) {
   return armar({
     etiqueta: `Terminar de conectar ${proveedor.etiqueta}`,
-    queHay: `A la conexión con ${proveedor.etiqueta} le faltan ${proveedor.faltan} clave(s).`,
+    queHay: `A la conexión con ${proveedor.etiqueta} ${proveedor.faltan === 1 ? 'le falta una clave' : `le faltan ${proveedor.faltan} claves`}.`,
     queTieneQueQuedar: `Dime qué claves son, dónde se sacan en ${proveedor.etiqueta}, y guárdalas en 01-TOOLS/${proveedor.id}/.env cuando te las dé. `
       + 'Después prueba la conexión y dime si funciona.',
     queNoSeToca: 'No inventes valores ni pongas claves de ejemplo: si no las tengo, dímelo y lo dejamos.',
@@ -158,7 +158,7 @@ function reajustar(recomendaciones = []) {
 
   return armar({
     etiqueta: 'Explícame qué cambiaría',
-    queHay: `Cuando se montó esto, el arnés dejó ${recomendaciones.length} cosa(s) para más adelante porque el proyecto era más pequeño. `
+    queHay: `Cuando se montó esto, el arnés dejó ${recomendaciones.length === 1 ? 'una cosa' : `${recomendaciones.length} cosas`} para más adelante porque el proyecto era más pequeño. `
       + `Hoy ya encajan: ${recomendaciones.map((r) => `${r.tipo}/${r.id}`).join(', ')}.`, // diccionario: interno
     queTieneQueQuedar: 'Explícame en cristiano qué es cada una y qué cambiaría en mi día a día si la pongo. '
       + 'Después corre `reassess`, enséñame el plan nuevo que propone y pídeme que lo acepte por su identificador. '

@@ -1034,3 +1034,27 @@ Solo se añade.
   - Seis pruebas nuevas, en rojo primero. Quince mutaciones, y mueren todas.
 
   Verde: `humo` 320, `humo+` 327, `contrato` 13.
+- **T073 ✓** 28-09 · Verificar el cierre
+  ([verificación](../verifications/todo-cuadra-2026-09-28.md)): la batería entera sobre el estado
+  final, y cada uno de los 61 criterios con la prueba que lo sostiene. Cumplen 60, y C2 cumple en Mac y
+  espera a medirse en Windows. Por el camino:
+  - **I3**: ningún montaje de verdad pasaba por «Un poco de todo». Prueba nueva en `humo+`: montado
+    como `mixed`, con su tamaño y con raíles.
+  - **Los plurales con paréntesis**: diecisiete textos de antes de este programa («3 cosa(s)»,
+    «necesita(n)»). Van con la frase de uno y la de varios, con una regla en el diccionario y una prueba
+    en rojo primero.
+- **T074 ✓** 28-09 · La revisión final, con tres refutadores (corrección, seguridad y pruebas) sobre la
+  rama entera. Un crítico, dos importantes, un menor y una observación, comprobados y aceptados:
+  - el freno cuenta solo si está enganchado de verdad antes de cada orden de Bash, el de RSC y el
+    nuestro (crítico);
+  - el comprobador del diccionario ve palabras sueltas y frases sin artículos;
+  - la prueba de despacho ve cualquier excepción;
+  - el informe de «Algo va mal» no entra en la copia de git;
+  - la cabecera de `historial.js`, al día.
+  - Cinco pruebas nuevas o ampliadas, en rojo primero. Trece mutaciones, y mueren todas.
+
+  Verde, sobre el estado final: `humo` 322, `humo+` 330, `contrato` 13, las tres empresas, el
+  diccionario (57 ficheros y 712 rótulos) y PowerShell limpios, y `git ls-files -ci` vacío.
+- **T075 ✓** 28-09 · El informe para Jose, en la conversación, y la página de pantallas al día
+  (https://claude.ai/artifact/JRBxy4Mcbz7MMQ2uY8drre, de F1 al cierre). Se para aquí: sin merge, sin
+  push y sin publicar nada.

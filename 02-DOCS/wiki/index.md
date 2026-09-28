@@ -33,6 +33,7 @@ timestamp: 2026-09-24T15:50:00Z
 | Verificación F6 · todo-cuadra | [sdd/verifications/todo-cuadra-F6-2026-09-25.md](sdd/verifications/todo-cuadra-F6-2026-09-25.md) |
 | Verificación F7 · todo-cuadra | [sdd/verifications/todo-cuadra-F7-2026-09-26.md](sdd/verifications/todo-cuadra-F7-2026-09-26.md) |
 | Verificación F8 · todo-cuadra | [sdd/verifications/todo-cuadra-F8-2026-09-26.md](sdd/verifications/todo-cuadra-F8-2026-09-26.md) |
+| Verificación del cierre · todo-cuadra | [sdd/verifications/todo-cuadra-2026-09-28.md](sdd/verifications/todo-cuadra-2026-09-28.md) |
 | Spec · credenciales que no son variables | [sdd/specs/credenciales-que-no-son-variables.md](sdd/specs/credenciales-que-no-son-variables.md) |
 | Plan · credenciales que no son variables | [sdd/plans/credenciales-que-no-son-variables.md](sdd/plans/credenciales-que-no-son-variables.md) |
 | Verificaciones | [sdd/verifications/](sdd/verifications/) |

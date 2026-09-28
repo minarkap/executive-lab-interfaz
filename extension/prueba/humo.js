@@ -3011,6 +3011,9 @@ exec git "$@"
       capabilities: { untrustedWorkspaces: { supported: true, description: 'Toca el hook de la casa en esta carpeta.' } },
     }));
     poner('instalador/comun/git.js', "const aviso = 'Abre el terminal de la casa para seguir';\n");
+    // Un rótulo de una palabra y uno sin artículos, que se colaban (revisión final),
+    // y cadenas de código, que no son pantalla.
+    poner('extension/src/sembrado.js', "const a = 'Ruta';\nconst b = 'Abrir terminal';\nconst c = 'PATH';\nconst d = 'node_modules/x';\n");
     // Lo sembrado que es pantalla y lo que no: una nota de la tabla (`_…`), el
     // registro del instalador (`anotar`) y los comentarios de cada lenguaje.
     poner('extension/media/nombres.json', JSON.stringify({
@@ -3036,6 +3039,7 @@ exec git "$@"
       'WelcomeLabel2=Esto instala la extensión en tu ordenador.',
       '[Code]',
       "  MsgBox('No he podido abrir la terminal del equipo.', mbError, MB_OK);",
+      "  RegQueryStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', Actual);",
     ].join('\n'));
     const vistos = revisarTodo(copia).map((f) => `${f.fichero}:${f.mala}`).sort();
     assert.deepEqual(vistos, [
@@ -3047,6 +3051,8 @@ exec git "$@"
       'extension/package.json:consola',
       'extension/package.json:hook',
       'extension/package.json:repositorio',
+      'extension/src/sembrado.js:ruta',
+      'extension/src/sembrado.js:terminal',
       'instalador/comun/git.js:terminal',
       'instalador/mac/instalar.js:extensión',
       'instalador/windows/ExecutiveLab.iss:extensión',
@@ -3086,6 +3092,29 @@ exec git "$@"
     } finally {
       vscode.guion.raiz = empresa;
     }
+  });
+
+  await comprobar('ningún texto de la barra hace el plural con paréntesis', () => {
+    // F9. «3 cosa(s) declaradas que no están», «necesita(n)»: un plural a base de
+    // paréntesis, que a quien no programa le suena a formulario. Se escribe la
+    // frase de uno y la de varios, como el resto de la barra.
+    const conParentesis = /[a-záéíóúñ]\((?:s|n|es)\)(?![\w(])/i;
+    const ficheros = [
+      ...fs.readdirSync(path.join(RAIZ, 'src')).filter((x) => x.endsWith('.js')).map((x) => path.join(RAIZ, 'src', x)),
+      path.join(RAIZ, 'media', 'panel.js'),
+    ];
+    const mal = [];
+    for (const fichero of ficheros) {
+      fs.readFileSync(fichero, 'utf8').split('\n').forEach((linea, i) => {
+        if (/^\s*(\/\/|\*)/.test(linea)) return;
+        for (const m of linea.matchAll(/'([^'\\]*(?:\\.[^'\\]*)*)'|`([^`\\]*(?:\\.[^`\\]*)*)`/g)) {
+          const cadena = (m[1] ?? m[2] ?? '').replace(/\$\{[^}]*\}/g, ' ');
+          if (conParentesis.test(cadena)) mal.push(`${path.basename(fichero)}:${i + 1} ${cadena.trim().slice(0, 60)}`);
+        }
+      });
+    }
+    assert.deepEqual(mal, [], 'plurales con paréntesis');
+    return 'ninguno';
   });
 
   await comprobar('quien manda a «Algo va mal» dice también qué hacer después', () => {
@@ -4826,6 +4855,62 @@ exec git "$@"
       assert.ok(deniega(pasarPor(elFrenoNuestro(carpeta), carpeta, 'rm -rf ./informes')), `${que}, no frena nadie`);
     }
     return 'media mitad no cuenta: frena el nuestro';
+  });
+
+  await comprobar('el freno de RSC cuenta solo si está enganchado antes de cada orden de Bash', () => {
+    // Revisión final, crítico (seguridad). El envoltorio, «Las reglas» y la
+    // radiografía daban por puesto el freno de RSC con su fichero y con su nombre
+    // en cualquier sitio de los ajustes. Con su nombre en una nota, o enganchado a
+    // otra herramienta, el nuestro se apartaba sin que frenara nadie, y «Las
+    // reglas» decía que lo ponía el arnés.
+    const conElSuyo = (prefijo, cambiar) => {
+      const carpeta = conEnganchesDeRsc(prefijo);
+      fs.mkdirSync(path.join(carpeta, '.rsc'), { recursive: true });
+      fs.copyFileSync(path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'targets', 'danger-guard.mjs'), path.join(carpeta, '.rsc', 'danger-guard.mjs'));
+      ponerLosRailesEn(carpeta);
+      const ajustes = path.join(carpeta, '.claude', 'settings.json');
+      const datos = JSON.parse(fs.readFileSync(ajustes, 'utf8'));
+      cambiar(datos);
+      fs.writeFileSync(ajustes, `${JSON.stringify(datos, null, 2)}\n`);
+      return carpeta;
+    };
+    const casos = [
+      ['con su nombre en una nota', (d) => { d._nota = `antes: ${ORDEN_DEL_FRENO_DE_RSC}`; }, false],
+      ['enganchado a Read', (d) => { d.hooks.PreToolUse.push({ matcher: 'Read', hooks: [{ type: 'command', command: ORDEN_DEL_FRENO_DE_RSC }] }); }, false],
+      ['enganchado a Bash|Edit', (d) => { d.hooks.PreToolUse.push({ matcher: 'Bash|Edit', hooks: [{ type: 'command', command: ORDEN_DEL_FRENO_DE_RSC }] }); }, true],
+    ];
+    const vistos = [];
+    for (const [que, cambiar, esDeRsc] of casos) {
+      const carpeta = conElSuyo('freno-estructura-', cambiar);
+      fs.rmSync(path.join(carpeta, '.rsc', '.no-danger-guard'), { force: true });
+      const dicho = pasarPor(elFrenoNuestro(carpeta), carpeta, 'rm -rf ./informes');
+      if (esDeRsc) assert.ok(!deniega(dicho), `${que}: frena el de RSC, y el nuestro tenía que apartarse`);
+      else assert.ok(deniega(dicho), `${que}: el nuestro se aparta y no frena nadie`);
+      vscode.guion.raiz = carpeta;
+      try {
+        const suyo = cargar('reglas').losGuardianes().find((g) => g.id === 'danger-guard');
+        assert.equal(suyo.deQuien === 'Lo pone el arnés.', esDeRsc, `${que}: «Las reglas» dice «${suyo.deQuien}»`);
+        assert.equal(cargar('terreno').comoEstaElFreno().deRsc, esDeRsc, `${que}: la radiografía lo da por puesto`);
+      } finally {
+        vscode.guion.raiz = empresa;
+      }
+      vistos.push(`${que}: ${esDeRsc ? 'el de RSC' : 'el nuestro'}`);
+    }
+    // Y el nuestro, igual: con su orden en una nota y sin enganche, no está puesto.
+    const soloNota = conElSuyo('freno-nuestro-en-nota-', (d) => {
+      const nuestra = d.hooks.PreToolUse.flatMap((e) => e.hooks).find((h) => h.command.includes('/executive-lab/freno.mjs')).command;
+      d.hooks.PreToolUse = d.hooks.PreToolUse.filter((e) => !e.hooks.some((h) => h.command.includes('/executive-lab/freno.mjs')));
+      d._nota = nuestra;
+    });
+    vscode.guion.raiz = soloNota;
+    try {
+      assert.equal(cargar('terreno').comoEstaElFreno().nuestro, false, 'el nuestro, solo en una nota, se da por enganchado');
+      const suyo = cargar('reglas').losGuardianes().find((g) => g.id === 'danger-guard');
+      assert.notEqual(suyo.deQuien, 'Lo pone Executive Lab: el arnés no lo trae en esta clase de proyecto.', '«Las reglas» lo da por puesto');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return vistos.join(' · ');
   });
 
   await comprobar('Ponerlo ahora no dice que está puesto si no lo está', async () => {
@@ -7989,10 +8074,16 @@ exec git "$@"
     const texto = leer(carpeta);
     assert.ok(texto.startsWith(SUYO), 'se ha tocado lo suyo');
     assert.equal((texto.match(/# executive-lab:start/g) || []).length, 1, 'el bloque no está, o está dos veces');
-    for (const f of ['otra/.env', '.env.local', 'x.pem', 'credentials.json', 'client_secret_123.json', 'mi-service-account.json', 'id_rsa', 'token.json', 'cert.p12']) {
+    // Y el informe de «Algo va mal», que se escribe dentro de la carpeta con las
+    // rutas de este ordenador (revisión final, seguridad). Lo demás de raw/ sí entra.
+    for (const [rel, txt] of [['02-DOCS/raw/incidencias/AB12CD.txt', 'Incidencia AB12CD\n'], ['02-DOCS/raw/worklog/dia.md', '# Día\n']]) {
+      fs.mkdirSync(path.dirname(path.join(carpeta, rel)), { recursive: true });
+      fs.writeFileSync(path.join(carpeta, rel), txt);
+    }
+    for (const f of ['otra/.env', '.env.local', 'x.pem', 'credentials.json', 'client_secret_123.json', 'mi-service-account.json', 'id_rsa', 'token.json', 'cert.p12', '02-DOCS/raw/incidencias/AB12CD.txt']) {
       assert.ok(ignora(carpeta, f), `«${f}» entra en la copia`);
     }
-    for (const f of ['.env.example', 'presentacion.key', 'facturas.json', 'README.md']) {
+    for (const f of ['.env.example', 'presentacion.key', 'facturas.json', 'README.md', '02-DOCS/raw/worklog/dia.md']) {
       assert.ok(!ignora(carpeta, f), `«${f}» se queda fuera, y no es una credencial`);
     }
     assert.match(git(carpeta, 'ls-files'), /^\.env$/m, 'se ha sacado de git lo que ya estaba');
@@ -9978,7 +10069,8 @@ exec git "$@"
     const crearAntes = arrancarM.crearUnaCarpetaDentro;
     arrancarM.crearUnaCarpetaDentro = async () => null;
     const enviarAntes = proveedor.enviar;
-    proveedor.enviar = () => {};
+    const enviados = [];
+    proveedor.enviar = (m) => enviados.push(m);
     const MENSAJE = {
       proveedor: 'HOLDED', fichero: 'listar_facturas.sh', etiqueta: 'Lista', pideDatos: false, clave: 'HOLDED_ENV', valor: 'test',
       texto: 'factura', donde: null, tema: 'x', ruta: '02-DOCS/wiki/index.md', desde: null, titulo: 'x', ficheros: [], para: null,
@@ -9986,10 +10078,22 @@ exec git "$@"
     };
     const desde = vscode.registrado.mensajes.length;
     try {
-      for (const tipo of tipos) await conRespuestas({}, () => proveedor.manejar({ ...MENSAJE, tipo }));
-      const fallos = vscode.registrado.mensajes.slice(desde)
-        .filter((l) => /^\[[a-zA-Z]+\] .*(ReferenceError|TypeError|is not defined|is not a function|Cannot read properties)/s.test(l));
-      assert.deepEqual(fallos.map((l) => l.split('\n')[0]), [], 'hay manejadores que revientan');
+      // Revisión final (pruebas): solo se reconocían unos tipos de error, y un
+      // `throw new Error(…)` pasaba. Se mira la señal del propio producto: al
+      // reventar un manejador, la extensión le manda al panel «Algo no ha ido bien»
+      // y apunta `[tipo]` con su error, del tipo que sea.
+      const revientan = [];
+      for (const tipo of tipos) {
+        const antesDeEste = enviados.length;
+        await conRespuestas({}, () => proveedor.manejar({ ...MENSAJE, tipo }));
+        if (enviados.slice(antesDeEste).some((m) => m && m.tipo === 'aviso' && /^Algo no ha ido bien/.test(m.texto || ''))) revientan.push(tipo);
+      }
+      const apuntados = vscode.registrado.mensajes.slice(desde).filter((l) => {
+        const suyo = l.match(/^\[([a-zA-Z]+)\] /);
+        return suyo && tipos.includes(suyo[1]) && /\w*Error\b|\n\s+at /.test(l);
+      });
+      assert.deepEqual(revientan, [], 'hay manejadores que revientan');
+      assert.deepEqual(apuntados.map((l) => l.split('\n')[0]), [], 'hay manejadores que apuntan un error');
       return `${tipos.length} tipos, ninguno revienta`;
     } finally {
       for (const nombre of FINGIDOS) proveedor[nombre] = antes[nombre];
@@ -10099,6 +10203,45 @@ exec git "$@"
         assert.equal(dicho.status, 0);
         assert.ok(!/"deny"/.test(dicho.stdout), `deniega un commit en español: ${dicho.stdout.slice(0, 160)}`);
         return 'montado a medias, con raíles, y el commit pasa';
+      } finally {
+        if (antes === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+        else process.env.GIT_CONFIG_GLOBAL = antes;
+        vscode.guion.raiz = empresa;
+        vscode.guion.respuestas = null;
+      }
+    });
+
+    await comprobar('con «Un poco de todo» queda montado de verdad, como mixed y con su tamaño', async () => {
+      // I3, en la verificación de cierre (T073): ningún montaje de verdad pasaba
+      // por «Un poco de todo», que era el caso de A1 —RSC pide el tamaño también
+      // para `mixed`, y sin él no montaba—. Se monta en una carpeta vacía con lo
+      // que menos construye, y se mira lo que RSC dejó en el recibo.
+      const nueva = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-de-todo-'));
+      const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'empresa-de-todo-git-'));
+      fs.writeFileSync(path.join(casa, '.gitconfig'), '');
+      const antes = process.env.GIT_CONFIG_GLOBAL;
+      process.env.GIT_CONFIG_GLOBAL = path.join(casa, '.gitconfig');
+      vscode.guion.raiz = nueva;
+      vscode.guion.respuestas = [
+        'Un poco de todo',                // de qué va
+        'La empresa entera',              // qué lleva la carpeta
+        'De 2 a 10',                      // cuánta gente hay detrás
+        'Nada, o casi nada',              // qué va a construir
+        'Poner orden en mis facturas',    // qué quiere resolver
+        'Lo justo',                       // cómo se maneja
+        'De la mano',                     // cuánto se le explica
+        'Ferretería Soler',               // cómo se llama su empresa: con la empresa entera, una sola caja
+        '',                               // la web, en blanco
+      ];
+      try {
+        const hecho = await cargar('arrancar').arrancar(contexto, vscode.window.createOutputChannel());
+        assert.equal(hecho.ok, true, hecho.mensaje || 'se canceló a mitad');
+        assert.equal(vscode.guion.respuestas.length, 0, 'han sobrado respuestas');
+        const { record } = JSON.parse(fs.readFileSync(path.join(nueva, '.rsc.json'), 'utf8')).onboarding.plan;
+        assert.equal(record.projectKind, 'mixed', 'no se montó como «un poco de todo»');
+        assert.equal(record.softwareScope, 'small', 'sin el tamaño que se contestó');
+        assert.ok(fs.existsSync(path.join(nueva, '.claude', 'skills', 'executive-lab', 'SKILL.md')), 'sin raíles');
+        return `${record.projectKind}, ${record.softwareScope}, montado y con raíles`;
       } finally {
         if (antes === undefined) delete process.env.GIT_CONFIG_GLOBAL;
         else process.env.GIT_CONFIG_GLOBAL = antes;

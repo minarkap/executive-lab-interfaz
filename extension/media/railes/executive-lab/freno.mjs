@@ -25,10 +25,27 @@ import { join } from 'node:path';
 
 const raiz = process.argv[2] || process.cwd();
 
+// Puesto es enganchado de verdad antes de cada orden de Bash: una entrada de
+// `hooks.PreToolUse` cuyo `matcher` alcanza a Bash, con una orden que lleva el
+// suyo. Con su nombre en una nota, o enganchado a otra herramienta, este se
+// apartaba sin que frenara nadie (revisión final, crítico). La barra decide con
+// la misma regla (`reglas.enganchadoAntesDeBash`), y una prueba mira que coincidan.
+function alcanzaABash(matcher) {
+  if (matcher === undefined || matcher === null || matcher === '' || matcher === '*') return true;
+  if (typeof matcher !== 'string') return false;
+  try {
+    return new RegExp(`^(?:${matcher})$`).test('Bash');
+  } catch {
+    return matcher === 'Bash';
+  }
+}
+
 function elDeRscEstaPuesto() {
   if (!existsSync(join(raiz, '.rsc', 'danger-guard.mjs'))) return false;
   try {
-    return readFileSync(join(raiz, '.claude', 'settings.json'), 'utf8').includes('.rsc/danger-guard.');
+    const entradas = (JSON.parse(readFileSync(join(raiz, '.claude', 'settings.json'), 'utf8')).hooks || {}).PreToolUse;
+    return Array.isArray(entradas) && entradas.some((e) => e && Array.isArray(e.hooks) && alcanzaABash(e.matcher)
+      && e.hooks.some((h) => h && typeof h.command === 'string' && h.command.includes('.rsc/danger-guard.')));
   } catch {
     return false;
   }

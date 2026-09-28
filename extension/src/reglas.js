@@ -177,15 +177,44 @@ function loApagado() {
 // de RSC y el nuestro se aparta, así que el que cuenta es ese. El nuestro puede
 // estar sin enganchar: en una carpeta cuyo historial no creó la barra, se espera
 // a su sí (C-4).
+//
+// «Enganchado» es una entrada de verdad antes de cada orden de Bash, no su
+// nombre en cualquier sitio de los ajustes: con él en una nota, o enganchado a
+// otra herramienta, el nuestro se apartaba sin que frenara nadie y aquí se decía
+// que lo ponía el arnés (revisión final, crítico). El envoltorio `freno.mjs`
+// decide con la misma regla.
+function alcanzaABash(matcher) {
+  if (matcher === undefined || matcher === null || matcher === '' || matcher === '*') return true;
+  if (typeof matcher !== 'string') return false;
+  try {
+    return new RegExp(`^(?:${matcher})$`).test('Bash');
+  } catch {
+    return matcher === 'Bash';
+  }
+}
+
+function enganchadoAntesDeBash(texto, aguja) {
+  let ajustes;
+  try {
+    ajustes = JSON.parse(texto || '');
+  } catch {
+    return false;
+  }
+  const entradas = ajustes && ajustes.hooks && ajustes.hooks.PreToolUse;
+  if (!Array.isArray(entradas)) return false;
+  return entradas.some((e) => e && Array.isArray(e.hooks) && alcanzaABash(e.matcher)
+    && e.hooks.some((h) => h && typeof h.command === 'string' && h.command.includes(aguja)));
+}
+
 function elDeRscEstaPuesto() {
-  return hayEnRsc('danger-guard.mjs') && (leer('.claude', 'settings.json') || '').includes('.rsc/danger-guard.');
+  return hayEnRsc('danger-guard.mjs') && enganchadoAntesDeBash(leer('.claude', 'settings.json'), '.rsc/danger-guard.');
 }
 
 function comoEstaElNuestro() {
   if (!donde.puedeTenerFrenos()) return { enganchado: false, pendiente: false };
   const habilidades = donde.carpetaDeHabilidades();
   const esta = Boolean(habilidades && fs.existsSync(require('node:path').join(habilidades, 'executive-lab', 'freno.mjs')));
-  const enganchado = (leer('.claude', 'settings.json') || '').includes('/executive-lab/freno.mjs');
+  const enganchado = enganchadoAntesDeBash(leer('.claude', 'settings.json'), '/executive-lab/freno.mjs');
   return { enganchado: esta && enganchado, pendiente: esta && !enganchado };
 }
 
@@ -343,5 +372,5 @@ function dondeVive(cual) {
 }
 
 module.exports = {
-  queHay, dondeVive, losGuardianes, losAutomatismos, loApagado, GUARDIANES, AUTOMATISMOS,
+  queHay, dondeVive, losGuardianes, losAutomatismos, loApagado, GUARDIANES, AUTOMATISMOS, enganchadoAntesDeBash,
 };

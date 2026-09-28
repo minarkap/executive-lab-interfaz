@@ -812,13 +812,13 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
       nombre: 'Claves que ya tenías, fuera de sitio',
       estado: fuera ? 'aMedias' : 'si',
       detalle: fuera
-        ? `${fuera.claves} en ${fuera.sitios} sitio(s); el asistente puede ordenarlas`
+        ? `${fuera.claves === 1 ? '1 clave' : `${fuera.claves} claves`} en ${fuera.sitios === 1 ? 'un sitio' : `${fuera.sitios} sitios`}; el asistente puede ${fuera.claves === 1 ? 'ordenarla' : 'ordenarlas'}`
         : 'Nada suelto',
     }, comoEncargo(encargos.ordenarLasClaves())),
     conArreglo({
       nombre: 'Conocimiento',
       estado: !conArnes ? 'noAplica' : (temas ? 'si' : 'no'),
-      detalle: !conArnes ? 'Cuando esté montado' : (temas ? `${temas} tema(s)` : 'Todavía no ha aprendido nada'),
+      detalle: !conArnes ? 'Cuando esté montado' : (temas ? `${temas} ${temas === 1 ? 'tema' : 'temas'}` : 'Todavía no ha aprendido nada'),
     }, { como: 'solo', etiqueta: 'Darle documentos (inbox)', accion: { tipo: 'verPapeles' } }),
     // Los botones solo son una pieza que falta si ese asistente llega a
     // tenerlos. Con Codex no los hay nunca —RSC no le escribe comandos— así que
@@ -896,7 +896,7 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
     piezas.push({
       nombre: 'Lo que este proyecto traía puesto',
       estado: 'no',
-      detalle: `${parte.habilidades.colgando.length} cosa(s) declaradas que no están en este ordenador`,
+      detalle: `${parte.habilidades.colgando.length} ${parte.habilidades.colgando.length === 1 ? 'cosa declarada que no está' : 'cosas declaradas que no están'} en este ordenador`,
       arreglo: { como: 'solo', etiqueta: 'Traerlo ahora', accion: { tipo: 'arrancar' } },
     });
   }
@@ -1016,7 +1016,7 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
         nombre: 'Lo que debería estar puesto',
         estado: 'no',
         // Por sus nombres, no por lo que escribe el arnés (G3).
-        detalle: `${falta.length} cosa(s) declaradas que no están: ${falta.slice(0, 3).map((f) => `«${require('./nombres').comoSeLlama({ habilidad: 'habilidades', agente: 'ayudantes', comando: 'comandos' }[f.que], f.id, {}).nombre}»`).join(', ')}`, // diccionario: interno
+        detalle: `${falta.length} ${falta.length === 1 ? 'cosa declarada que no está' : 'cosas declaradas que no están'}: ${falta.slice(0, 3).map((f) => `«${require('./nombres').comoSeLlama({ habilidad: 'habilidades', agente: 'ayudantes', comando: 'comandos' }[f.que], f.id, {}).nombre}»`).join(', ')}`, // diccionario: interno
         arreglo: { como: 'solo', etiqueta: 'Traerlas ahora', accion: { tipo: 'arreglar' } },
       });
     }
@@ -1031,8 +1031,8 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
         nombre: 'Cosas del arnés fuera de sitio',
         estado: 'aMedias',
         detalle: roto.aDecidir.length
-          ? `${roto.solas.length + roto.aDecidir.length} cosa(s), y ${roto.aDecidir.length} necesita(n) que alguien decida`
-          : `${roto.solas.length} cosa(s), y se arreglan solas`,
+          ? `${roto.solas.length + roto.aDecidir.length} ${roto.solas.length + roto.aDecidir.length === 1 ? 'cosa' : 'cosas'}, y ${roto.aDecidir.length} ${roto.aDecidir.length === 1 ? 'necesita' : 'necesitan'} que alguien decida`
+          : (roto.solas.length === 1 ? '1 cosa, y se arregla sola' : `${roto.solas.length} cosas, y se arreglan solas`),
         arreglo: soloFix
           ? { como: 'solo', etiqueta: 'Arreglarlo ahora', accion: { tipo: 'arreglar' } }
           : { como: 'persona', etiqueta: 'Ver qué pasa', accion: { tipo: 'algoVaMal' } },
@@ -1067,7 +1067,9 @@ async function radiografia({ aFondo = null, sigueSinCopias = false } = {}) {
     piezas.push({
       nombre: 'Lo que el arnés dejó para más adelante',
       estado: 'aMedias',
-      detalle: `${aFondo.recomendaciones.length} cosa(s) que se aplazaron al montarlo y hoy ya encajan`,
+      detalle: aFondo.recomendaciones.length === 1
+        ? '1 cosa que se aplazó al montarlo y hoy ya encaja'
+        : `${aFondo.recomendaciones.length} cosas que se aplazaron al montarlo y hoy ya encajan`,
       arreglo: comoEncargo(encargos.reajustar(aFondo.recomendaciones)),
     });
   }
@@ -1144,8 +1146,10 @@ function comoEstaElFreno() {
     // sin ajustes, sin frenos
   }
   return {
-    nuestro: ajustes.includes('/executive-lab/freno.mjs'),
-    deRsc: ajustes.includes('.rsc/danger-guard.') && proyecto.existe('.rsc', 'danger-guard.mjs'),
+    // Enganchados de verdad antes de cada orden de Bash, como en «Las reglas»
+    // (revisión final, crítico).
+    nuestro: require('./reglas').enganchadoAntesDeBash(ajustes, '/executive-lab/freno.mjs'),
+    deRsc: require('./reglas').enganchadoAntesDeBash(ajustes, '.rsc/danger-guard.') && proyecto.existe('.rsc', 'danger-guard.mjs'),
   };
 }
 

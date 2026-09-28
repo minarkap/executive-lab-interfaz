@@ -50,6 +50,9 @@ const LO_QUE_NO_ENTRA = [
   '*service-account*.json',
   '*service_account*.json',
   '*serviceaccount*.json',
+  // El informe de «Algo va mal»: la barra lo deja aquí para que el asistente lo
+  // lea, con las rutas de este ordenador. No sale de él (revisión final, seguridad).
+  '02-DOCS/raw/incidencias/',
 ];
 
 // Las marcas van como comentarios de `.gitignore`: una línea con `<!--`, como las
