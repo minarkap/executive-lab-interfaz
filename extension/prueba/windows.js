@@ -118,6 +118,22 @@ const mismo = (a, b) => path.resolve(String(a).trim()).toLowerCase() === path.re
     return 'deniega, y deja pasar lo demás';
   });
 
+  await comprobar('el relevo se reconoce aunque la unidad llegue en otra caja', () => {
+    // El almacén de la extensión llega a veces con la unidad en minúscula (`c:\\…`)
+    // y otras en mayúscula. En Windows las rutas no distinguen: comparadas a pelo,
+    // el relevo no se reconocía a sí mismo y la barra decía que ya había un node
+    // (lo cazó la barra en un VS Code de Windows, 28-09-2026).
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'relevo-caja-'));
+    relevo.escribirElRelevo(carpeta, process.execPath, 'win32');
+    const otraCaja = carpeta.replace(/^([a-zA-Z]):/, (_, u) => `${u === u.toUpperCase() ? u.toLowerCase() : u.toUpperCase()}:`);
+    const env = { [clavePath]: [otraCaja, ...sinNode].join(path.delimiter) };
+    const puesto = relevo.asegurar({ carpeta, ejecutable: process.execPath, env, plataforma: 'win32' });
+    assert.equal(puesto.modo, 'relevoVSCode', `toma su propio relevo por un node del sistema: ${JSON.stringify(puesto)}`);
+    const veces = env[clavePath].split(path.delimiter).filter((d) => d.toLowerCase() === carpeta.toLowerCase()).length;
+    assert.equal(veces, 1, `el relevo sale ${veces} veces en el PATH`);
+    return `${otraCaja.slice(0, 2)} y ${carpeta.slice(0, 2)}, la misma carpeta`;
+  });
+
   await comprobar('para los guiones en Python, la barra elige py -3', async () => {
     const conexiones = cargar('conexiones');
     const elegido = await conexiones.quePython();

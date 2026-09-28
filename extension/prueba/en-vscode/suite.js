@@ -139,7 +139,11 @@ async function run() {
     const fs = require('node:fs');
     const os = require('node:os');
     const raiz = vscode.extensions.getExtension(ID).extensionPath;
-    const relevo = require(path.join(raiz, 'src', 'relevo.js'));
+    // La misma copia del módulo que cargó la extensión: en Windows la unidad puede
+    // llegar en otra caja, y un `require` con otra ruta da otra copia, sin lo que
+    // puso la barra al activarse.
+    const cargado = Object.keys(require.cache).find((k) => k.toLowerCase() === path.join(raiz, 'src', 'relevo.js').toLowerCase());
+    const relevo = cargado ? require.cache[cargado].exports : require(path.join(raiz, 'src', 'relevo.js'));
     // Los enganches, como los corre Claude Code: con `sh -c`, que en Windows es el
     // de Git Bash, y que allí contesta con rutas de MSYS (`/c/Users/…`).
     const SH = process.platform === 'win32' ? require(path.join(raiz, 'src', 'entorno.js')).bash() : '/bin/sh';

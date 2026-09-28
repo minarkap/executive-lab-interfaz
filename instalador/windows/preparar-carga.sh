@@ -52,7 +52,9 @@ if [ ! -f "$RAIZ/extension/executive-lab.vsix" ]; then
   (cd "$RAIZ/extension" && npm run --silent empaquetar >/dev/null)
 fi
 cp "$RAIZ/extension/executive-lab.vsix" "$CARGA/executive-lab.vsix"
-VERSION="$(node -p "require('$RAIZ/extension/package.json').version")"
+# Desde la raíz y con una ruta relativa: en Git Bash, $RAIZ es de MSYS (`/d/a/…`),
+# y el Node de Windows no la entiende.
+VERSION="$(cd "$RAIZ" && node -p "require('./extension/package.json').version")"
 echo "  carga/executive-lab.vsix  ($VERSION)"
 
 # El Node portable trae npm dentro, y npm son 17 MB que aquí no se usan: desde
