@@ -1203,6 +1203,28 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(puente.cabeEnElEnlace('x'.repeat(2500), 'win32'), false, 'en Windows, una URL de 2.500 caracteres cabe');
     assert.equal(puente.cabeEnElEnlace('x'.repeat(2500), 'darwin'), true, 'fuera de Windows no hay por qué cortar');
     assert.equal(puente.cabeEnElEnlace('x'.repeat(300), 'win32'), true, 'uno corto en Windows no va al portapapeles');
+    // El borde, justo (revisión: ninguna prueba lo tocaba).
+    assert.equal(puente.cabeEnElEnlace('x'.repeat(2000), 'win32'), true, 'la de 2.000 ya no cabe');
+    assert.equal(puente.cabeEnElEnlace('x'.repeat(2001), 'win32'), false, 'la de 2.001 cabe');
+
+    // Lo que se mide es la URL, codificada, y no el texto: en español, las tildes
+    // y los espacios la inflan. Con este, el texto no llega a 2.000 y la URL sí
+    // (revisión: medir el texto pasaba en verde). Se prueba como si fuera Windows
+    // desde cualquier máquina.
+    const medio = 'Ordena las claves de acceso de esta carpeta según el protocolo de la barra. '.repeat(20);
+    const suUri = `vscode://anthropic.claude-code/open?prompt=${encodeURIComponent(medio)}`;
+    assert.ok(medio.length < 2000 && suUri.length > 2000, `el texto de la prueba no está en la zona: ${medio.length} y ${suUri.length}`);
+    {
+      vscode.registrado.abiertos.length = 0;
+      const antesAviso = vscode.window.showWarningMessage;
+      vscode.window.showWarningMessage = () => Promise.resolve(undefined);
+      try {
+        assert.equal(await puente.enviar(medio, null, { plataforma: 'win32' }), 'copiado', 'se mide el texto y no la URL: la URL codificada no cabe');
+        assert.deepEqual(vscode.registrado.abiertos, [], 'y se manda igual por el enlace');
+      } finally {
+        vscode.window.showWarningMessage = antesAviso;
+      }
+    }
 
     const largo = 'Ordena las claves de acceso de esta carpeta según el protocolo de la barra. '.repeat(30);
     vscode.registrado.ejecutados.length = 0;
@@ -1226,6 +1248,26 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       return 'en el Mac, por el enlace';
     } finally {
       vscode.window.showWarningMessage = antes;
+    }
+  });
+
+  await comprobar('probar.sh de Mac, con --casa y sin carpeta, se para antes de mirar nada', () => {
+    // Revisión del encargo largo y el Mac: con `--casa --sin-firma`, la carpeta
+    // olvidada, se tomaba «--sin-firma» por la carpeta, en silencio, y la firma se
+    // miraba igual. Ahora se para y lo dice, antes de comprobar nada.
+    if (process.platform !== 'darwin') return 'SALTADA: probar.sh es de macOS';
+    const cp = require('node:child_process');
+    const script = path.join(RAIZ, '..', 'instalador', 'mac', 'probar.sh');
+    const carpeta = path.dirname(script);
+    const antes = new Set(fs.readdirSync(carpeta).filter((n) => n.startsWith('informe-')));
+    try {
+      const r = cp.spawnSync('bash', [script, '--casa', '--sin-firma'], { encoding: 'utf8', timeout: 60000 });
+      assert.notEqual(r.status, 0, 'sin la carpeta de --casa, sigue como si nada');
+      assert.doesNotMatch(r.stdout, /Comprobando Executive Lab/, 'y llega a comprobar cosas');
+      assert.match(`${r.stdout}${r.stderr}`, /carpeta/, 'y no dice qué falta');
+      return 'se para, y dice que falta la carpeta';
+    } finally {
+      for (const n of fs.readdirSync(carpeta)) if (n.startsWith('informe-') && !antes.has(n)) fs.rmSync(path.join(carpeta, n), { force: true });
     }
   });
 

@@ -4310,3 +4310,55 @@ Tres mutaciones tumban las dos pruebas nuevas.
   pasar por la de Claude, y aun así no se sabría si Windows manda la URL por el sistema o si VS Code la
   resuelve dentro. En un Mac, además, podría acabar en el VS Code de verdad de Jose.
 - **SmartScreen y un usuario sin administrador**, que son de mirar.
+
+## 130. Un encargo largo llega entero en Windows, y el instalador de Mac se prueba en una máquina macOS
+
+**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `el-encargo-largo-y-el-mac`
+
+### El encargo largo, por el portapapeles
+
+El puente mete el texto en la URL del enlace (`vscode://anthropic.claude-code/open?prompt=…`), y en
+Windows `ShellExecute` corta las URL sobre los 2.048 caracteres. El encargo de ordenar 120 claves ocupa
+8.448. Si VS Code manda allí su propia URL por el sistema, llegaría a medias, y `openExternal` diría que
+sí igual. No se pudo medir sin una persona delante (decisión 129), así que se va a lo seguro.
+
+- En Windows, si la URL pasa de 2.000 caracteres, el texto va por el portapapeles, que ya era el camino de
+  repuesto y no tiene límite. Se abre la conversación y se dice por qué: «Es un texto largo: te lo he
+  copiado para que llegue entero. Pégalo con Ctrl+V en la caja de Claude y dale a enviar.»
+- Los comandos no sirven para esto, porque abren una conversación vacía y tiran el texto.
+- Fuera de Windows no cambia nada: el enlace no tiene ese límite.
+
+Una prueba corre en las dos máquinas: en el Mac va por el enlace, y en la Windows de GitHub, «copiado
+entero y dicho». Salió roja antes del arreglo, y una mutación que deja pasar cualquier URL la tumba.
+
+### El instalador de Mac, en una máquina macOS de GitHub
+
+Igual que el `.exe` en la de Windows (decisión 129), el trabajo `el-dmg` hace lo que dice
+`COMO-PROBARLO.md` en «En falso»:
+- construye el `.dmg`;
+- lo instala en una carpeta personal de mentira, sin tocar el Dock;
+- lo comprueba con `probar.sh`.
+
+La primera vez, en macOS 26.6 arm64: **14 bien, 0 mal**. Quedan instaladas las dos extensiones del
+editor, los ajustes, el Node en `.zprofile` y el acceso directo, y nada se cuela en `/usr/local`.
+
+La firma no se puede mirar allí: sin un certificado Developer ID, `probar.sh --sin-firma` la anota en vez
+de darla por mala. Firmar los dos instaladores sigue siendo lo que más falta, y es de Jose, porque pide
+comprar los certificados.
+
+Y `construir.sh` saca el icono de la app del `.ico` que ahora se versiona. Antes lo buscaba en la carga de
+Windows, que no viaja en git, y la app salía con el icono genérico.
+
+### Lo que encontró la revisión
+
+Un refutador de corrección. Dejó dos importantes y un menor, los tres de las pruebas y no del código:
+
+- **La prueba no fijaba que se mide la URL codificada y no el texto.** En español las tildes y los
+  espacios la inflan: con un texto de 1.520 caracteres, la URL ocupa 2.223. Medir el texto pasaba en
+  verde. Ahora `enviar` acepta la plataforma para las pruebas, y un texto de esa zona se prueba como si
+  fuera Windows desde cualquier máquina.
+- **`probar.sh --casa --sin-firma`, olvidando la carpeta, tomaba «--sin-firma» por la carpeta**, en
+  silencio. Ahora se para antes de comprobar nada y dice que falta.
+- El borde de los 2.000 caracteres, sin probar: ahora se prueban 2.000 y 2.001.
+
+Tres mutaciones, una por hallazgo, tumban las pruebas nuevas.

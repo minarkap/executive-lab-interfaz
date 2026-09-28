@@ -17,7 +17,14 @@ CASA="$HOME"
 SIN_FIRMA=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --casa) CASA="$2"; shift ;;
+    # Sin carpeta detrás, se para: con `--casa --sin-firma` se tomaba «--sin-firma»
+    # por la carpeta, en silencio, y la firma se miraba igual.
+    --casa)
+      if [ -z "${2:-}" ] || [ "${2#--}" != "$2" ]; then
+        echo "Falta la carpeta de --casa. Por ejemplo: ./probar.sh --casa /tmp/casa-falsa" >&2
+        exit 2
+      fi
+      CASA="$2"; shift ;;
     --sin-firma) SIN_FIRMA=1 ;;
   esac
   shift

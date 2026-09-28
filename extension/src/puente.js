@@ -99,7 +99,8 @@ async function alPortapapeles(quien, texto, salida, porLargo = false) {
   return 'copiado';
 }
 
-async function enviar(texto, salida) {
+// `plataforma` es para las pruebas: así se prueba lo de Windows desde cualquier máquina.
+async function enviar(texto, salida, { plataforma = process.platform } = {}) {
   // ── Nada de abrir una conversación con la caja vacía ────────────────────
   //
   // Ya pasó una vez y costó tres versiones: un botón mandaba `undefined` y esa
@@ -118,7 +119,7 @@ async function enviar(texto, salida) {
   // recoge: por eso se comprueba antes que su extensión está instalada.
   if (quien.enlace && asistentes.estaInstalado(quien)) {
     const uri = `${quien.enlace}?${quien.parametro}=${encodeURIComponent(texto)}`;
-    if (!cabeEnElEnlace(uri)) return alPortapapeles(quien, texto, salida, true);
+    if (!cabeEnElEnlace(uri, plataforma)) return alPortapapeles(quien, texto, salida, true);
     try {
       if (await vscode.env.openExternal(vscode.Uri.parse(uri))) return 'directo';
     } catch (error) {

@@ -1,9 +1,11 @@
-# Lo que solo se puede probar en Windows, en una máquina Windows de GitHub.
+# Lo que solo se puede probar en Windows, en una máquina Windows de GitHub, y el
+# instalador de macOS, en una macOS.
 #
 # Windows es donde están casi todos los alumnos, y desde el Mac en el que se
 # hace la barra no se puede probar: el relevo de Node en Git Bash y en
 # PowerShell, qué Python se elige, la barra en un VS Code de Windows y el
-# instalador. Para un repositorio público, estas máquinas no cuestan nada.
+# instalador. Y el de macOS se prueba mejor en una máquina limpia que en la de
+# quien lo hace. Para un repositorio público, estas máquinas no cuestan nada.
 name: Windows
 
 on:

@@ -679,3 +679,12 @@ Decisión 129 en `docs/decisiones.md`. Vía rápida `lo-que-pedia-una-persona`.
 - **Una conversación de verdad con Claude**, sin node: `which node` da el relevo, el freno para el
   `rm -rf` y están cargadas las reglas de los raíles.
 - **Sin hacer**: Codex hablando, porque el de este Mac es viejo; el corte de la URL; y SmartScreen.
+
+
+## Un encargo largo llega entero en Windows, y el instalador de Mac se prueba en una máquina macOS — 28 de septiembre de 2026
+
+Decisión 130 en `docs/decisiones.md`. Vía rápida `el-encargo-largo-y-el-mac`.
+
+- **En Windows, un encargo largo va por el portapapeles**, para que llegue entero, y se dice por qué.
+- **El `.dmg`, en una máquina macOS de GitHub**: se construye, se instala en una carpeta de mentira y
+  `probar.sh` da 14 de 14. La firma se anota: sin certificado no se puede mirar.
