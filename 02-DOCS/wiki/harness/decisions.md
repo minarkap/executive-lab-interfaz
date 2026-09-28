@@ -639,5 +639,7 @@ Decisión 126 en `docs/decisiones.md`. Vía rápida `lo-que-queda`.
 - **En un VS Code de verdad, sin node**: el relevo va el primero, los hijos lo heredan y el freno
   deniega. Y cazó un fallo que los dobles no veían, «Diagnóstico del puente», que reventaba.
 - **La barra se sigue activando al terminar de arrancar**, no con `*`: la medida no lo pide.
+- **Una subida de verdad a GitHub**, con la función de la barra: sube, y al fallar no enseña el token. Y ya
+  no va al llavero ni abre ventanas: la única clave es la de la barra.
 
-0.41.0. 325 comprobaciones, 333 con el arnés de verdad, 13 de contrato, y 7 en un VS Code de verdad.
+0.41.0. 326 comprobaciones, 334 con el arnés de verdad, 13 de contrato, y 7 en un VS Code de verdad.

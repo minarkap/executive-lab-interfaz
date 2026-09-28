@@ -5716,7 +5716,10 @@ exec git "$@"
     fs.writeFileSync(path.join(carpeta, '.rsc', 'session-start.mjs'), '// pieza del arnés');
     for (const s of ['.no-git', '.no-harness']) fs.writeFileSync(path.join(carpeta, '.rsc', s), '');
     const antes = process.env.RSC_NO_UPDATE_CHECK;
-    process.env.RSC_NO_UPDATE_CHECK = '1';
+    // Como al abrirse la barra: `ponerAlActivar` lo apaga con esto, antes de pintar
+    // nada, así que en la barra sale siempre apagado (revisión de lo que quedaba).
+    delete process.env.RSC_NO_UPDATE_CHECK;
+    cargar('relevo').callarElAvisoDeVersion();
     vscode.guion.raiz = carpeta;
     try {
       const reglas = cargar('reglas');
@@ -5727,8 +5730,10 @@ exec git "$@"
       assert.equal(auto['update-check'].estado, 'apagado');
       assert.match(auto['update-check'].porQue, /versión de tu clase/, 'y no se dice por qué');
 
-      // Sin nada apagado, el de versión sale activo, y los otros dos no se
-      // nombran: en una carpeta con git y con perfil no dicen nada.
+      // Sin la variable —lo que pasaría si la barra dejara de apagarlo— se dice
+      // activo, no apagado: la fila mira el entorno, que es donde mira el
+      // enganche. Y los otros dos, sin su interruptor, no se nombran: en una
+      // carpeta con git y con perfil no dicen nada.
       delete process.env.RSC_NO_UPDATE_CHECK;
       for (const s of ['.no-git', '.no-harness']) fs.rmSync(path.join(carpeta, '.rsc', s));
       declarar({ targets: ['claude'] });
@@ -7621,8 +7626,13 @@ exec git "$@"
     const donde = entorno.moduloComun('historial');
     assert.ok(donde, 'sin él, las copias de seguridad quedan apagadas y sin decirlo');
 
+    // Lo que la barra le pide, leído de guardar.js, que es quien lo usa: la lista
+    // escrita a mano pedía `disponible`, que no llamaba nadie, y se dejaba
+    // `subir`, `enlazar` y `cuantosCambios` (revisión de lo que quedaba).
     const modulo = require(donde);
-    for (const fn of ['iniciar', 'guardar', 'historial', 'volverA', 'disponible']) {
+    const pedidas = [...new Set([...fs.readFileSync(path.join(RAIZ, 'src', 'guardar.js'), 'utf8').matchAll(/\bh\.([a-zA-Z]+)\(/g)].map((m) => m[1]))];
+    assert.ok(pedidas.length >= 7, `guardar.js ya no le pide nada al historial: ${pedidas.join(', ')}`);
+    for (const fn of pedidas) {
       assert.equal(typeof modulo[fn], 'function', `al módulo del historial le falta ${fn}`);
     }
 

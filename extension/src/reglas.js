@@ -93,7 +93,11 @@ const AUTOMATISMOS = [
   { id: 'onboarding', interruptor: '.no-harness' },
   // Y el de versión nueva, que la barra apaga al abrirse con
   // `RSC_NO_UPDATE_CHECK` (C4, `relevo.js`). No tiene fichero: se mira donde lo
-  // mira el propio enganche, en el entorno que hereda.
+  // mira el propio enganche, en el entorno que hereda. En la barra sale siempre
+  // apagado, porque `ponerAlActivar` lo apaga antes de pintar nada; se mira igual
+  // para que, si eso dejara de pasar, aquí se dijera activo y no apagado. Y si el
+  // asistente ya estaba en marcha, su conversación no lo ve hasta abrirla otra
+  // vez, como el relevo: eso lo pide la pieza del relevo.
   { id: 'update-check', fichero: 'session-start.mjs', entorno: 'RSC_NO_UPDATE_CHECK', porQueApagado: 'Apagado a propósito: aquí va la versión de tu clase' },
 ];
 

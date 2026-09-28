@@ -4008,7 +4008,9 @@ El arranque de RSC tiene tres avisos que se apagan y no tenían nombre en el dic
 
 Salían «Git · Harness» en «Lo que tiene apagado», y el tercero no salía. Los dos primeros se nombran
 solo apagados, porque en una carpeta con git y con perfil no dicen nada. El de versión nueva se nombra
-siempre que está el arranque, y con Codex no, porque no lo tiene.
+siempre que está el arranque, y con Codex no, porque no lo tiene. En la barra sale siempre apagado, porque la barra
+lo apaga al abrirse, antes de pintar nada. La fila mira el entorno igual, como el enganche: si eso
+dejara de pasar, diría activo y no apagado.
 
 ### El motor de JavaScript de las copias, retirado
 
@@ -4059,4 +4061,34 @@ arranque. El caso tardío ya está cubierto: si el asistente ya estaba en marcha
 vez la conversación (revisión de F3, I3). Lo que sigue sin medir es una sesión de Claude abierta desde la
 barra, hablando: pide a Claude delante.
 
-0.41.0. 325 comprobaciones, 333 con el arnés de verdad, 13 de contrato, y 7 en un VS Code de verdad.
+### Una subida de verdad a GitHub
+
+La rama `todo-cuadra` se subió a su repositorio con la misma función que usa la barra
+(`historial.subir`), con el token en la cabecera y sin ninguna otra ayuda de git. Subió. A un
+repositorio que no existe, y con un token que no vale, lo que dice git no lleva el token, y en el
+`.git/config` no queda ni el token ni la cabecera.
+
+Y enseñó un fallo: con un token que no vale, git pide un usuario, y en este Mac fue a buscarlo al
+llavero. Mandó lo que había guardado, y GitHub respondió «Password authentication is not supported». En
+Windows, el gestor de credenciales de Git para Windows abriría una ventana para entrar en GitHub. Ahora
+la subida lleva un `credential.helper` vacío, que deja la lista de ayudantes vacía, y
+`GIT_TERMINAL_PROMPT=0`: la única clave es la de la barra, y si no vale lo dice ella. Medido otra vez
+contra GitHub, con la configuración de verdad de este Mac: falla al momento y sin tocar el llavero.
+
+### Lo que encontró la revisión
+
+Un refutador de corrección, con ojos frescos, sobre el commit entero. Tres hallazgos:
+
+- **Importante.** El aviso de versión nueva no puede salir nunca activo en la barra de verdad: se
+  apaga al abrirse, y la prueba solo lo veía activo borrando la variable a mano. Aceptado a medias. La
+  fila sigue mirando el entorno, que es lo honrado, y ahora una prueba recorre el camino de verdad: al
+  abrirse la barra, sale apagado y con su porqué. Una mutación que quita el apagado de la barra lo
+  tumba.
+- **Menor.** `disponible()` seguía preguntando por el motor de JavaScript, y no la llamaba nadie.
+  Quitada. La prueba que la exigía ahora lee de `guardar.js` lo que la barra le pide al historial, y
+  cazaba lo que la lista a mano se dejaba: `subir`, `enlazar` y `cuantosCambios`.
+- **Menor, descartado.** Decía que sobre este commit salen 326 comprobaciones y no 325. En una copia
+  exacta del commit salen 325: el refutador corrió la batería sobre el árbol, que ya iba un commit
+  por delante.
+
+0.41.0. 326 comprobaciones, 334 con el arnés de verdad, 13 de contrato, y 7 en un VS Code de verdad.

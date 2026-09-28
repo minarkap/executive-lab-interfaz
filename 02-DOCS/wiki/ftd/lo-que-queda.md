@@ -58,6 +58,7 @@ Observado el 28-09-2026 en la rama `todo-cuadra`, sobre 9b34437.
   ejecutarlo»: `executiveLab.diagnosticoPuente (salida.clear is not a function)`. Arreglado, con prueba.
 - Pantallas: la sección «Lo que quedaba» en https://claude.ai/artifact/JRBxy4Mcbz7MMQ2uY8drre (v6).
 - Decisión 126 en `docs/decisiones.md`; diario en `02-DOCS/raw/worklog/2026-09-28-lo-que-queda.md`.
+- Revisión de `2c60e95` (refutador de corrección): un importante, aceptado a medias, con prueba del camino de verdad; un menor, arreglado (`disponible()`); y un menor descartado con evidencia. Detalle en la decisión 126.
 
 ## Next
 
