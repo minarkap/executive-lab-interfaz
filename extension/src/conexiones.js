@@ -782,4 +782,4 @@ async function ejecutar(proveedorId, fichero) {
   };
 }
 
-module.exports = { proveedores, claves, escribir, probar, scripts, loQueSePuedeMirar, ejecutar, etiquetaDeClave, enmascarar, leerEnv, taparClaves, quePython };
+module.exports = { proveedores, claves, escribir, probar, scripts, loQueSePuedeMirar, ejecutar, etiquetaDeClave, enmascarar, leerEnv, taparClaves, valoresDeClaves, quePython };

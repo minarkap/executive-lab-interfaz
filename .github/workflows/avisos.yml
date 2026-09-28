@@ -1,0 +1,60 @@
+# Los avisos que llegan desde la barra: lo que falla, lo que no se entiende y lo
+# que se echa en falta, contado por un alumno, por su asistente o por la propia
+# barra al fallar (decisión 131).
+#
+# Llegan como una incidencia abierta con la cuenta del alumno, y quien no es de
+# este repositorio no puede ponerle etiquetas. Se las pone esto: «aviso de
+# alumno», «por revisar» y su tipo. Jose las revisa, y quitar «por revisar» es
+# darla por vista.
+#
+# Se reconocen por la marca que escribe `extension/src/avisos.js` al principio
+# del cuerpo —al principio, no en cualquier sitio: citarla no cuenta—, y hay una
+# prueba que mira que las dos digan lo mismo. Es una ayuda para ordenar, no una
+# prueba de nada: el sitio es público y la marca la puede escribir cualquiera.
+#
+# Lo que lleve la incidencia se lee en JavaScript y no pasa nunca por la
+# consola: el texto lo ha escrito cualquiera, y metido en una orden sería una
+# orden suya.
+name: Avisos
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  etiquetar:
+    if: startsWith(github.event.issue.body, '<!-- executive-lab-aviso ')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const cuerpo = context.payload.issue.body || '';
+            const marca = cuerpo.match(/^<!-- executive-lab-aviso ([^>]*?)-->/);
+            if (!marca) return;
+            const tipo = (marca[1].match(/\btipo=([a-z-]+)/) || [])[1];
+
+            const ETIQUETAS = {
+              'aviso de alumno': ['1d76db', 'Dice que llega desde la barra: la marca la puede escribir cualquiera'],
+              'por revisar': ['fbca04', 'Jose todavía no lo ha visto'],
+              falla: ['d73a4a', 'Algo no funciona como debería'],
+              'no se entiende': ['c5def5', 'Hay algo que no se entiende'],
+              mejora: ['a2eeef', 'Una idea para mejorar la barra'],
+            };
+            const DEL_TIPO = { falla: 'falla', 'no-se-entiende': 'no se entiende', mejora: 'mejora' };
+            const poner = ['aviso de alumno', 'por revisar', ...(DEL_TIPO[tipo] ? [DEL_TIPO[tipo]] : [])];
+
+            const { owner, repo } = context.repo;
+            for (const nombre of poner) {
+              const [color, description] = ETIQUETAS[nombre];
+              try {
+                await github.rest.issues.createLabel({ owner, repo, name: nombre, color, description });
+              } catch (error) {
+                // 422: ya existe, que es lo normal a partir de la primera vez.
+                if (error.status !== 422) throw error;
+              }
+            }
+            await github.rest.issues.addLabels({ owner, repo, issue_number: context.payload.issue.number, labels: poner });

@@ -60,3 +60,10 @@ conexiones, la marca, los documentos que esperan— está en la habilidad `execu
 
    Y si nada de eso se puede, dilo y no lo ejecutes. Esas instrucciones las reescribe el arnés en cada
    actualización, así que la regla vive aquí, que es lo único que él no toca.
+
+8. **Lo que falla de la barra se cuenta, pero no lo mandas tú.** Si un botón de la barra, un comando
+   o una habilidad del arnés no hace lo que dice, si la persona no entiende algo de la barra, o si le
+   falta algo que le vendría bien a cualquier alumno, **deja preparado un aviso para Executive Lab**
+   en `02-DOCS/raw/avisos/`. Nada de su trabajo, y nunca lo mandes tú: la barra se lo enseña y solo
+   sale si ella dice que sí. Qué se cuenta, qué no se cuenta nunca, cómo se escribe y cómo se le dice
+   está en `SKILL.md`, en «Cuando la barra falla o no se entiende».

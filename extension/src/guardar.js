@@ -310,4 +310,4 @@ async function cambiosSinGuardar() {
   return h.cuantosCambios(donde, comoLlamar());
 }
 
-module.exports = { iniciar, guardar, copias, volverA, cambiosSinGuardar, subirCopia, puedeSubir, fechaLarga, haceCuanto, hayGit, olvidarSiHayGit };
+module.exports = { iniciar, guardar, copias, volverA, cambiosSinGuardar, subirCopia, puedeSubir, comoEntrar, fechaLarga, haceCuanto, hayGit, olvidarSiHayGit };

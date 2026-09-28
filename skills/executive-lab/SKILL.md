@@ -17,7 +17,7 @@ Todo lo que sigue existe para que no se sienta tonto.
 
 ## Lo innegociable
 
-Son siete, y están en `siempre.md`, aquí al lado. Con Claude se cargan al empezar cada
+Son ocho, y están en `siempre.md`, aquí al lado. Con Claude se cargan al empezar cada
 conversación, sin esperar a que se abra esta habilidad; con los demás asistentes, el fichero que
 leen siempre te manda a leerlas. Si no las tienes delante, léelas antes de seguir: lo de abajo las
 da por sabidas.
@@ -244,6 +244,76 @@ Dos cosas que no se hacen aquí:
   la red de seguridad para lo que cae por su cuenta, no el sitio donde se ponen las cosas a mano.
 - **No lo proceses sin decírselo.** Copiar es gratis; leerlo y escribir en la wiki cambia lo que
   sabe, y eso se cuenta.
+
+## Cuando la barra falla o no se entiende
+
+Quien hace esta barra no ve lo que pasa en el ordenador de cada alumno. Tú sí. Un botón que te manda
+un encargo que no cuadra, una palabra de la barra que la persona no entiende, algo que busca y no
+está: si no lo dejas escrito, no le llega a nadie. Así que, cuando lo veas, prepárale un aviso a
+Executive Lab.
+
+### Qué se cuenta
+
+- **Algo falla** (`tipo: falla`). Un botón de la barra te manda algo vacío, a medias o que no cuadra
+  con lo que hay en la carpeta. Un comando o una habilidad del arnés dice una cosa y hace otra. La
+  barra dice que falta algo que está, o al revés. Un freno para una orden que no tenía nada de
+  peligrosa.
+- **No se entiende** (`tipo: no-se-entiende`). Te pregunta qué es algo de la barra o para qué sirve
+  un botón; lo busca y no lo encuentra; lo usa para lo que no es. Contéstale primero, y después cuenta
+  qué no se entendía: si a esta persona le ha pasado, le pasará a más.
+- **Se podría mejorar** (`tipo: mejora`). Pide algo que la barra no hace y que le vendría bien a
+  cualquier alumno, no solo a esta empresa. O hace a mano, una vez tras otra, algo que podría ser un
+  botón de la barra.
+- **Y cuando te lo pida**: «díselo a Jose», «avisa a Executive Lab», «esto hay que arreglarlo».
+
+### Qué no se cuenta nunca
+
+El aviso acaba en un sitio público, y con la cuenta de esta persona. Así que:
+
+- **Nada de su trabajo**: ni clientes, ni cifras, ni lo que dicen sus documentos, ni el nombre de su
+  empresa o de sus conexiones. Si para explicarlo hace falta un dato suyo, cámbialo por uno inventado.
+- **Ni claves, ni correos, ni nombres de personas, ni carpetas de su ordenador.**
+- **Lo que no es de la barra ni del arnés.** Un fallo de Holded, de Google o de su web es de ellos.
+- **Lo que ya está contado.** Antes de escribir, mira `02-DOCS/raw/avisos/` y también sus dos
+  carpetas: `mandados/` (ya se contó) y `descartados/` (la persona no quiso contarlo). Si ya está, no
+  escribas otro. Si espera sin mandar, añade al final una línea, «Ha vuelto a pasar el 3 de
+  octubre.»; si está en una de las otras dos, nada.
+
+### Cómo se escribe
+
+Un fichero por cosa: `02-DOCS/raw/avisos/<fecha>-<de-qué-va>.md`, con la fecha como `2026-10-03`.
+
+```markdown
+---
+tipo: falla
+origen: asistente
+titulo: «Guardar en git» dice que no hay nada nuevo, y sí lo hay
+---
+
+Le pidió guardar después de cambiar dos documentos. La barra dijo que no había nada nuevo que
+guardar, pero los dos cambios seguían ahí. Los guardé yo desde la conversación y fue bien, así que
+el fallo parece de la barra y no de sus copias.
+```
+
+- `tipo`: `falla`, `no-se-entiende` o `mejora`. `origen`: `asistente`, siempre.
+- `titulo`: una línea, lo que pasa, dicho como lo diría la persona.
+- Debajo, entre tres y ocho líneas: qué estaba haciendo, qué esperaba, qué pasó y cómo salisteis del
+  paso. En español y sin jerga: lo lee quien hizo la barra, y antes lo lee la persona, que es quien
+  decide si se manda.
+- Nada más. La versión de la barra, la del arnés, el sistema y lo último que apuntó la barra los pone
+  ella al mandarlo. No escribas debajo de «## Lo que apuntó la barra»: esa parte es suya.
+
+### Cómo se dice
+
+**Primero, lo suyo.** Resuelve lo que te ha pedido, o sal del paso como puedas: el aviso no
+interrumpe. Escríbelo, y al final díselo en una línea:
+
+> He dejado preparado un aviso para Executive Lab sobre esto. Te sale en la barra, y solo se manda si
+> le das tú.
+
+**Y nunca lo mandes tú**: ni con `gh`, ni con una petición a GitHub, ni abriendo el navegador. Se
+publica con su cuenta, y eso lo decide ella, aviso por aviso, desde la barra. Si prefiere contarlo con
+sus palabras, en la barra tiene *Contárselo a Executive Lab*, dentro de *Ayuda*.
 
 ## Lo que no es esta habilidad
 

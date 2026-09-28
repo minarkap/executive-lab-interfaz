@@ -28,6 +28,8 @@ const buscador = require('./buscar');
 const consejos = require('./consejos');
 const copias = require('./guardar');
 const soporte = require('./soporte');
+// Lo que falla, lo que no se entiende y lo que se echa en falta, para Jose (decisión 131).
+const avisos = require('./avisos');
 const rsc = require('./rsc');
 const disfraz = require('./disfraz');
 const arrancar = require('./arrancar');
@@ -260,6 +262,10 @@ ${cabecera}
       comoSeLlama: identidad.deQuien(),
       // Como mucho uno, y siempre con un botón que lo resuelve ahí mismo.
       consejo: await this.elConsejoQueToca(),
+      // Un aviso para Executive Lab que espera a que la persona diga si se
+      // manda: lo ha preparado su asistente, la barra al fallar, o ella misma
+      // sin poder mandarlo. Como mucho uno; los demás, en Ayuda.
+      avisoParaExecutiveLab: this.elAvisoQueToca(),
       // Con la sesión de GitHub del editor basta; si no la hay, el botón no
       // desaparece — lleva a la guía, que es lo que hace falta cuando no sabes
       // qué es una cuenta de esas.
@@ -386,6 +392,12 @@ ${cabecera}
       volverA: () => this.volverA(mensaje.id),
 
       algoVaMal: () => this.algoVaMal(),
+      verContar: () => this.verContar(),
+      contar: () => this.contar(mensaje.cual),
+      contarLaIncidencia: () => this.contarLaIncidencia(),
+      verElAviso: () => this.verElAviso(mensaje.fichero),
+      mandarElAviso: () => this.mandarElAviso(mensaje.texto, mensaje.titulo),
+      noMandarElAviso: () => this.noMandarElAviso(),
       resolverIncidencia: () => this.resolverIncidencia(mensaje.cual),
       verElInforme: () => this.verElInforme(mensaje.fichero),
       arreglar: () => this.arreglar(),
@@ -456,6 +468,10 @@ ${cabecera}
     } catch (error) {
       // Nada de excepciones en crudo: el alumno ve una frase y una salida.
       this.salida.appendLine(`[${mensaje.tipo}] ${error.stack || error.message}`);
+      // Esto es un fallo de la barra, no del alumno, y a Jose no le llegaba
+      // nunca. Se deja apuntado para Executive Lab; sale solo si la persona
+      // lo ve y dice que sí (decisión 131).
+      avisos.apuntarUnFallo({ accion: mensaje.tipo, error, lineas: this.salida.ultimas ? this.salida.ultimas() : [] });
       this.enviar({ tipo: 'aviso', texto: 'Algo no ha ido bien. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
     }
   }
@@ -724,7 +740,7 @@ ${cabecera}
   // la pregunta más frecuente que hay y no tenía botón en ningún sitio.
   async verAyuda() {
     this.donde = { tipo: 'quieto' };
-    this.enviar({ tipo: 'ayuda', github: await github.estado() });
+    this.enviar({ tipo: 'ayuda', github: await github.estado(), avisos: this.losAvisosQueEsperan() });
   }
 
   // ── Resolver una incidencia ────────────────────────────────────────────
@@ -1176,6 +1192,9 @@ ${cabecera}
     });
     (this.salida.sinGuardar || this.salida.appendLine).call(this.salida, informe.informe);
     this.ultimoInforme = informe.fichero;
+    // Para «Contárselo a Executive Lab» desde esta misma pantalla: el informe
+    // va con el aviso aunque no se haya podido dejar escrito en ningún sitio.
+    this.ultimaIncidencia = { codigo: informe.codigo, informe: informe.informe };
     this.enviar({
       tipo: 'incidencia',
       codigo: informe.codigo,
@@ -1200,6 +1219,183 @@ ${cabecera}
       return;
     }
     await vscode.window.showTextDocument(vscode.Uri.file(donde), { viewColumn: vscode.ViewColumn.Beside });
+  }
+
+  // ── Contárselo a Executive Lab ─────────────────────────────────────────
+  //
+  // Tres entradas y una sola pantalla para mandar (avisos.js): el alumno, desde
+  // Ayuda o desde «Algo va mal»; su asistente, que lo deja escrito porque se lo
+  // dicen los raíles; y la barra, cuando un botón revienta por dentro. En los
+  // tres casos se enseña entero y se puede cambiar, y solo sale con «Mandarlo».
+  // El sitio es público y la incidencia va con su cuenta: eso lo decide la
+  // persona, aviso por aviso (decisión 131).
+
+  versionDeLaBarra() {
+    return this.contexto.extension ? this.contexto.extension.packageJSON.version : null;
+  }
+
+  losAvisosQueEsperan() {
+    try {
+      return avisos.pendientes().map((a) => ({ fichero: a.fichero, titulo: a.titulo, origen: a.origen }));
+    } catch (error) {
+      this.salida.appendLine(`[avisos] ${error.stack || error.message}`); // diccionario: interno
+      return [];
+    }
+  }
+
+  elAvisoQueToca() {
+    try {
+      return avisos.elQueToca(this.almacen().get(CLAVE_SILENCIADOS) || {});
+    } catch (error) {
+      this.salida.appendLine(`[avisos] ${error.stack || error.message}`); // diccionario: interno
+      return null;
+    }
+  }
+
+  verContar() {
+    this.donde = { tipo: 'quieto' };
+    this.enviar({
+      tipo: 'contar',
+      tipos: Object.entries(avisos.TIPOS).map(([id, t]) => ({ id, etiqueta: t.etiqueta, icono: t.icono })),
+    });
+  }
+
+  contar(cual) {
+    return this.ensenarElAviso({ tipo: avisos.TIPOS[cual] ? cual : 'falla', origen: 'alumno', titulo: '', texto: '', detalle: '' });
+  }
+
+  // Desde «Algo va mal»: con el informe y su código, que es lo que el tutor
+  // tiene apuntado. Así Jose y el tutor hablan de lo mismo.
+  contarLaIncidencia() {
+    const hubo = this.ultimaIncidencia;
+    return this.ensenarElAviso({
+      tipo: 'falla',
+      origen: 'alumno',
+      titulo: '',
+      texto: '',
+      detalle: hubo ? `Código de incidencia: ${hubo.codigo}\n\n--- informe de «Algo va mal» ---\n${hubo.informe}` : '', // diccionario: interno
+    });
+  }
+
+  verElAviso(fichero) {
+    const aviso = fichero ? avisos.pendientes().find((a) => a.fichero === fichero) : null;
+    if (!aviso) return this.enviar({ tipo: 'aviso', texto: 'Ese aviso ya no está.' });
+    return this.ensenarElAviso(aviso);
+  }
+
+  async ensenarElAviso(aviso, nota = null) {
+    this.donde = { tipo: 'quieto' };
+    // Lo suyo que la barra sabe y no está en el perfil: su usuario de GitHub y
+    // el sitio de su copia, que salen en el informe de «Algo va mal».
+    const cuenta = await github.estado();
+    const otros = [cuenta.usuario, cuenta.remoto && cuenta.remoto.corto].filter(Boolean);
+    // Lo que se enseña es lo que se manda: los datos, el texto y el título, ya
+    // limpios. Lo que la persona cambie después se vuelve a mirar al pulsar.
+    const conQue = avisos.datos({
+      barra: this.versionDeLaBarra(),
+      editor: vscode.version,
+      tipo: aviso.tipo,
+      origen: aviso.origen,
+      lineas: this.salida.ultimas ? this.salida.ultimas() : [],
+      detalle: aviso.detalle,
+      otros,
+    });
+    const texto = avisos.limpiar(aviso.texto || '', { otros });
+    const titulo = avisos.limpiar(aviso.titulo || '', { otros });
+    this.avisoDelante = { ...aviso, texto, titulo, datos: conQue, otros };
+    const cual = avisos.TIPOS[aviso.tipo];
+    // `cual` y no `tipo`: un `tipo` en los datos pisa el del mensaje, y el panel
+    // se queda sin saber qué pintar (ya pasó una vez).
+    this.enviar({
+      tipo: 'elAviso',
+      cual: aviso.tipo,
+      etiqueta: cual.etiqueta,
+      icono: cual.icono,
+      ejemplo: cual.ejemplo,
+      origen: aviso.origen,
+      texto,
+      // El título es lo primero que se ve en GitHub. El del alumno sale de lo
+      // que escribe; el que puso su asistente o la barra se enseña y se puede
+      // cambiar (revisión de seguridad: antes salía sin que nadie lo viera).
+      titulo: aviso.origen === 'alumno' ? null : titulo,
+      datos: conQue,
+      nota,
+      guardado: Boolean(aviso.fichero),
+      hayQueEscribir: aviso.origen === 'alumno',
+    });
+  }
+
+  async mandarElAviso(texto, titulo) {
+    // Se coge y se suelta antes de esperar a nada: un doble clic manda dos
+    // mensajes, y sin esto eran dos incidencias con su cuenta (revisión).
+    const delante = this.avisoDelante;
+    this.avisoDelante = null;
+    if (!delante) return this.refrescar();
+    const escrito = String(texto == null ? '' : texto).trim();
+    const conTitulo = delante.origen === 'alumno'
+      ? avisos.tituloDe(escrito)
+      : String(titulo == null ? delante.titulo : titulo).replace(/\s+/g, ' ').trim();
+    // El panel no deja mandarlo vacío; esto es por si algún día sí.
+    if (!escrito && delante.origen === 'alumno') return this.ensenarElAviso(delante);
+
+    // Si lo que ha escrito lleva algo que no puede salir, no se manda otra cosa
+    // que lo que ha visto: se le enseña limpio, y lo manda si le parece bien.
+    const limpio = avisos.limpiar(escrito, { otros: delante.otros });
+    const tituloLimpio = avisos.limpiar(conTitulo, { otros: delante.otros });
+    if (limpio !== escrito || tituloLimpio !== conTitulo) {
+      return this.ensenarElAviso({ ...delante, texto: limpio, titulo: tituloLimpio },
+        'He quitado lo que no debe salir de aquí. Míralo y, si está bien, vuelve a pulsar «Mandarlo».');
+    }
+    const aviso = { ...delante, texto: escrito, titulo: conTitulo || avisos.tituloDe(escrito) };
+
+    this.enviar({ tipo: 'esperando', que: 'Mandándolo…' });
+    let entrar = await copias.comoEntrar();
+    if (!entrar) {
+      // Ha pulsado «Mandarlo»: pedirle que entre es lo que toca, con el
+      // diálogo de siempre del editor.
+      const conectado = await github.conectar();
+      if (conectado.ok) entrar = await copias.comoEntrar();
+    }
+    if (!entrar) return this.dejarloParaLuego(aviso, 'No lo he mandado: hace falta entrar en tu cuenta de GitHub. Lo dejo guardado en Ayuda para cuando quieras.');
+
+    const hecho = await avisos.mandar(avisos.componer({ ...aviso, barra: this.versionDeLaBarra(), otros: delante.otros }), entrar.clave);
+    this.salida.appendLine(`[avisos] ${hecho.ok ? `mandado: ${hecho.url || 'sin enlace'}` : `no ha salido: ${hecho.motivo}${hecho.estado ? ` (${hecho.estado})` : ''}`}`); // diccionario: interno
+    if (!hecho.ok) return this.dejarloParaLuego(aviso, 'No he podido mandarlo. Lo dejo guardado en Ayuda y lo puedes volver a intentar.');
+
+    // Se guarda en `mandados/` con su enlace: así ni la barra ni el asistente
+    // vuelven a proponer lo que ya se contó.
+    if (!avisos.archivar(aviso, avisos.MANDADOS, { enlace: hecho.url })) {
+      this.salida.appendLine('[avisos] mandado, pero no he podido apuntarlo como mandado'); // diccionario: interno
+    }
+    await this.refrescar(true);
+    return this.enviar({
+      tipo: 'aviso',
+      texto: 'Mandado. Lo lee quien hace esta barra, y así se arregla para todos.',
+      boton: hecho.url ? { etiqueta: 'Verlo en GitHub', accion: { tipo: 'abrir', url: hecho.url } } : null,
+    });
+  }
+
+  // Lo que escribió no se pierde: se guarda en su sitio, o se deja uno nuevo,
+  // y queda esperando en Ayuda y en la pantalla principal.
+  async dejarloParaLuego(aviso, porQue) {
+    const guardado = aviso.fichero ? avisos.reescribir(aviso) : Boolean(avisos.preparar(aviso));
+    if (!guardado) this.salida.appendLine('[avisos] no he podido dejarlo guardado'); // diccionario: interno
+    this.avisoDelante = null;
+    await this.refrescar(true);
+    return this.enviar({ tipo: 'aviso', texto: guardado ? porQue : 'No he podido mandarlo. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
+  }
+
+  async noMandarElAviso() {
+    const delante = this.avisoDelante;
+    this.avisoDelante = null;
+    // Uno que ya estaba escrito va a `descartados/`: la barra no lo vuelve a
+    // enseñar, y el asistente sabe que esto la persona no lo quiso contar.
+    const estaba = Boolean(delante && delante.fichero);
+    if (estaba && !avisos.archivar(delante, avisos.DESCARTADOS)) {
+      this.salida.appendLine('[avisos] no he podido apartarlo'); // diccionario: interno
+    }
+    await this.refrescar(true);
+    if (estaba) this.enviar({ tipo: 'aviso', texto: 'No lo mando, y no te lo vuelvo a proponer.' });
   }
 
   async arreglar() {
@@ -1567,7 +1763,8 @@ async function vestir(contexto, salida) {
 //
 // Así que las carpetas del asistente se preguntan, no se escriben. Lo fijo es
 // lo que no depende de él: la declaración, las herramientas y la wiki.
-const LO_FIJO = ['.rsc.json', '01-TOOLS/**', '02-DOCS/wiki/**', '02-DOCS/inbox/*'];
+// Y los avisos para Executive Lab, que deja el asistente y la barra enseña.
+const LO_FIJO = ['.rsc.json', '01-TOOLS/**', '02-DOCS/wiki/**', '02-DOCS/inbox/*', '02-DOCS/raw/avisos/*'];
 
 // Relativa a la raíz, que es lo que quiere `RelativePattern`.
 function suCarpeta(completa) {
@@ -1723,6 +1920,9 @@ function activate(contexto) {
     contexto.globalStorageUri && contexto.globalStorageUri.fsPath,
   );
   rsc.saberDondeEstamos(contexto.extensionPath);
+  // Sin arnés, los avisos para Executive Lab esperan en el almacén de la barra,
+  // como el informe de «Algo va mal».
+  avisos.dondeSinArnes(contexto.globalStorageUri && contexto.globalStorageUri.fsPath);
   // Con qué asistente se habla en esta carpeta, elegido aquí (E1).
   asistentes.saberDondeGuardar(contexto.workspaceState);
   buscador.saberDondeEstamos(contexto.extensionPath);
