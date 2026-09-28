@@ -41,9 +41,10 @@ la monta; lo único que hay que dejar a mano son los binarios de terceros:
 
 | Fichero | De dónde sale |
 |---|---|
-| `runtime/` | Node LTS portable: el `.zip` de nodejs.org para Windows, el `.tar.gz` para macOS (`mac/construir.sh` lo descarga solo) |
-| `executivelab.ico` | El icono. Solo Windows |
-| `VSCodeUserSetup-x64.exe` | Solo Windows, de code.visualstudio.com |
+| `runtime/` | Node LTS portable: el `.zip` de nodejs.org para Windows, el `.tar.gz` para macOS (`mac/construir.sh` lo descarga solo, y el flujo de Windows de GitHub también) |
+
+El icono de Windows es nuestro y se versiona (`windows/executivelab.ico`); `preparar-carga.sh` lo copia a
+la carga. El instalador del editor ya no viaja: se descarga al instalar, si hace falta.
 
 El resto lo montan los scripts: `preparar.js`, `git.js`, `ajustes.js`, `disfraz.json` y el `.vsix`
 (que empaquetan si hace falta). **Ya no viajan** el arnés, los raíles ni MinGit: los dos primeros van

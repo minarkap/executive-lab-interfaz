@@ -9,14 +9,14 @@
 # porque no había nada que lo comprobara. El de macOS nunca tuvo ese problema
 # porque lo monta construir.sh.
 #
-# Lo que NO monta esto, porque son binarios de terceros que no se versionan:
+# Lo que NO monta esto, porque es un binario de terceros que no se versiona:
 #
 #   runtime/                   Node LTS portable para Windows (el .zip de nodejs.org)
-#   VSCodeUserSetup-x64.exe    de code.visualstudio.com
-#   executivelab.ico           el icono
 #
-# Esos tres se dejan a mano una vez y se quedan. Si falta alguno, esto lo dice
-# y no compila nada.
+# Se deja a mano una vez y se queda (el flujo de Windows de GitHub lo baja él). Si
+# falta, esto lo dice y no compila nada. El icono sí se versiona, porque es
+# nuestro: `instalador/windows/executivelab.ico`, y se copia a la carga. Y el
+# instalador del editor ya no viaja: se descarga al instalar.
 
 set -euo pipefail
 
@@ -43,6 +43,8 @@ for modulo in preparar.js git.js ajustes.js; do
 done
 cp "$RAIZ/extension/media/disfraz.json" "$CARGA/disfraz.json"
 echo "  carga/disfraz.json"
+cp "$AQUI/executivelab.ico" "$CARGA/executivelab.ico"
+echo "  carga/executivelab.ico"
 
 echo "▸ La extensión"
 if [ ! -f "$RAIZ/extension/executive-lab.vsix" ]; then
@@ -71,7 +73,7 @@ echo "▸ Los binarios de terceros"
 FALTA=0
 # VSCodeUserSetup-x64.exe ya no está en la lista: el editor se descarga
 # durante la instalación, como en macOS.
-for pieza in runtime executivelab.ico; do
+for pieza in runtime; do
   if [ -e "$CARGA/$pieza" ]; then
     echo "  carga/$pieza"
   else

@@ -7,6 +7,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 const { runTests } = require('@vscode/test-electron');
 
 async function main() {
@@ -77,7 +78,9 @@ async function main() {
       // Y sin `--disable-extensions`: eso apaga también la nuestra, que es la
       // que se viene a probar.
       launchArgs: [
-        `--folder-uri=${new URL(`file://${empresa}`).href}`,
+        // Con `pathToFileURL`: escrita a mano, en Windows salía `file://C:\\…`, que no
+        // es una URI.
+        `--folder-uri=${pathToFileURL(empresa).href}`,
         // Sus datos, en una ruta corta. VS Code abre un socket dentro de esa
         // carpeta y el sistema no admite rutas de más de 103 caracteres para
         // eso; la de este proyecto ya se come casi todas ella sola.

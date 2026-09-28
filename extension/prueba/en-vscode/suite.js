@@ -140,6 +140,10 @@ async function run() {
     const os = require('node:os');
     const raiz = vscode.extensions.getExtension(ID).extensionPath;
     const relevo = require(path.join(raiz, 'src', 'relevo.js'));
+    // Los enganches, como los corre Claude Code: con `sh -c`, que en Windows es el
+    // de Git Bash, y que allí contesta con rutas de MSYS (`/c/Users/…`).
+    const SH = process.platform === 'win32' ? require(path.join(raiz, 'src', 'entorno.js')).bash() : '/bin/sh';
+    const comoMsys = (ruta) => ruta.replace(/^([A-Za-z]):/, (_, u) => `/${u.toLowerCase()}`).split('\\').join('/');
 
     const puesto = relevo.comoEsta();
     assert.equal(puesto.modo, 'relevoVSCode', `sin node, la barra no pone el relevo: ${JSON.stringify(puesto)}`);
@@ -155,8 +159,10 @@ async function run() {
     // arquitectura y lanza `node-arm64`. Se compara lo que corre de verdad por
     // los dos caminos.
     const entorno = require(path.join(raiz, 'src', 'entorno.js'));
-    const [donde, cual] = cp.execFileSync('/bin/sh', ['-c', 'command -v node; node -p process.execPath'], { encoding: 'utf8' }).trim().split('\n');
-    assert.equal(path.dirname(donde), puesto.carpeta, `el hijo encuentra otro node: ${donde}`);
+    const [donde, cual] = cp.execFileSync(SH, ['-c', 'command -v node; node -p process.execPath'], { encoding: 'utf8' }).trim().split(/\r?\n/);
+    const delRelevo = [puesto.carpeta, comoMsys(puesto.carpeta)].map((c) => c.toLowerCase());
+    assert.ok(delRelevo.includes(path.posix.dirname(donde.split('\\').join('/')).toLowerCase()) || delRelevo.includes(path.dirname(donde).toLowerCase()),
+      `el hijo encuentra otro node: ${donde}`);
     const directo = cp.execFileSync(entorno.node(), ['-p', 'process.execPath'], { encoding: 'utf8', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } }).trim();
     assert.equal(cual, directo, `el relevo lanza otro Node: ${cual}, y la barra usa ${directo}`);
     const deQuien = entorno.node() === process.execPath ? 'el de VS Code' : 'el de la app';
@@ -168,11 +174,11 @@ async function run() {
     fs.mkdirSync(path.join(carpeta, '.claude'), { recursive: true });
     fs.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'] }));
     fs.writeFileSync(path.join(carpeta, '.claude', 'settings.json'), '{}\n');
-    cp.execFileSync('/bin/sh', ['-c', 'node "$1" "$2"', 'sh', path.join(raiz, 'media', 'railes', 'aplicar.js'), carpeta], { encoding: 'utf8' });
+    cp.execFileSync(SH, ['-c', 'node "$1" "$2"', 'sh', path.join(raiz, 'media', 'railes', 'aplicar.js'), carpeta], { encoding: 'utf8' });
     const ajustes = JSON.parse(fs.readFileSync(path.join(carpeta, '.claude', 'settings.json'), 'utf8'));
     const freno = (ajustes.hooks.PreToolUse || []).flatMap((e) => e.hooks || []).map((h) => h.command).find((o) => o.includes('/executive-lab/freno.mjs'));
     assert.ok(freno, 'los raíles no enganchan el freno');
-    const pasar = (orden) => cp.spawnSync('/bin/sh', ['-c', freno], {
+    const pasar = (orden) => cp.spawnSync(SH, ['-c', freno], {
       input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: orden } }),
       encoding: 'utf8',
       env: { ...process.env, CLAUDE_PROJECT_DIR: carpeta },

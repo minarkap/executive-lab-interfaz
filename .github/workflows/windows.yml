@@ -2,8 +2,8 @@
 #
 # Windows es donde están casi todos los alumnos, y desde el Mac en el que se
 # hace la barra no se puede probar: el relevo de Node en Git Bash y en
-# PowerShell, qué Python se elige, y si la batería de siempre aguanta ahí. Para
-# un repositorio público, estas máquinas no cuestan nada.
+# PowerShell, qué Python se elige, la barra en un VS Code de Windows y el
+# instalador. Para un repositorio público, estas máquinas no cuestan nada.
 name: Windows
 
 on:
@@ -12,6 +12,7 @@ on:
       - 'extension/**'
       - 'skills/**'
       - 'instalador/comun/**'
+      - 'instalador/windows/**'
       - '.github/workflows/windows.yml'
   workflow_dispatch:
 
@@ -19,6 +20,7 @@ permissions:
   contents: read
 
 jobs:
+  # Lo de solo Windows, la batería de siempre y el contrato.
   windows:
     runs-on: windows-latest
     steps:
@@ -48,3 +50,77 @@ jobs:
 
       - name: El contrato con el arnés
         run: node extension/prueba/contrato.js
+
+  # La barra en un VS Code de Windows de verdad: los comandos, los ajustes y el
+  # relevo con el binario del editor, sin ningún node en el PATH.
+  vscode-de-verdad:
+    runs-on: windows-latest
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: El arnés de dentro y los módulos comunes
+        run: |
+          npm ci --prefix extension/media/harness --no-audit --no-fund
+          node extension/preparar-paquete.js
+      - name: La barra en un VS Code de verdad
+        working-directory: extension
+        run: npm run probar-en-vscode
+
+  # El .exe: se compila, se instala en silencio y se comprueba con probar.ps1,
+  # como en un Windows limpio. Lo que esto no responde está en COMO-PROBARLO.md:
+  # SmartScreen y un usuario sin administrador.
+  el-exe:
+    runs-on: windows-latest
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: El arnés de dentro y los módulos comunes
+        run: |
+          npm ci --prefix extension/media/harness --no-audit --no-fund
+          node extension/preparar-paquete.js
+
+      # El Node portable que viaja en el .exe: el mismo que lleva el de macOS.
+      - name: El Node portable de la carga
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path instalador/mac/construir.sh -Pattern 'NODE_VERSION="(v[\d.]+)"').Matches[0].Groups[1].Value
+          Invoke-WebRequest "https://nodejs.org/dist/$v/node-$v-win-x64.zip" -OutFile node.zip
+          Expand-Archive node.zip -DestinationPath node-portable
+          New-Item -ItemType Directory -Force instalador/windows/carga | Out-Null
+          Move-Item "node-portable/node-$v-win-x64" instalador/windows/carga/runtime
+          Write-Host "Node $v en la carga"
+
+      - name: La carga
+        shell: bash
+        run: bash instalador/windows/preparar-carga.sh
+
+      - name: Compilar el .exe
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y | Out-Null }
+          & $iscc instalador/windows/ExecutiveLab.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno no ha compilado" }
+
+      # Como lo haría quien lo prueba a mano: con el PowerShell de Windows.
+      - name: Instalarlo en silencio y comprobarlo
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File instalador/windows/probar.ps1
+          if ($LASTEXITCODE -ne 0) { throw "probar.ps1 ha encontrado algo mal" }
+
+      - name: El informe y el registro de la instalación
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: el-exe-informe
+          path: |
+            instalador/windows/informe-*.txt
+            ~/AppData/Local/ExecutiveLab/instalacion.log
+          if-no-files-found: warn
