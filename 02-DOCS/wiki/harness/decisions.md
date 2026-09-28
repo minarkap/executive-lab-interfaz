@@ -625,3 +625,19 @@ Decisión 125 en `docs/decisiones.md`. Fase F9 de la cadena SDD `todo-cuadra`.
   excepción, y el informe de «Algo va mal» no sale del ordenador.
 
 0.41.0. 322 comprobaciones, 330 con el arnés de verdad, y 13 de contrato.
+
+## Lo que quedaba, hecho — 28 de septiembre de 2026
+
+Decisión 126 en `docs/decisiones.md`. Vía rápida `lo-que-queda`.
+
+- **Tres avisos del arranque, por su nombre**: el de carpeta sin copias, el de preparar el arnés y el
+  de versión nueva. Salían «Git · Harness», o no salían.
+- **El motor de JavaScript de las copias, retirado**: se elegía solo si un instalador de antes había
+  dejado su biblioteca, y no lo probaba nada.
+- **Los instaladores de Windows, al día**: el `.iss` con la versión de la barra, y `probar.ps1` sin
+  buscar lo que ya no viaja en la app.
+- **En un VS Code de verdad, sin node**: el relevo va el primero, los hijos lo heredan y el freno
+  deniega. Y cazó un fallo que los dobles no veían, «Diagnóstico del puente», que reventaba.
+- **La barra se sigue activando al terminar de arrancar**, no con `*`: la medida no lo pide.
+
+0.41.0. 325 comprobaciones, 333 con el arnés de verdad, 13 de contrato, y 7 en un VS Code de verdad.

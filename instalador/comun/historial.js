@@ -2,25 +2,16 @@
 // atrás y subirlas a GitHub. Por debajo es git; por delante, ni una palabra de
 // git (docs/diccionario.md).
 //
-// Por qué hay dos motores
-// -----------------------
-// En macOS no hay git. El `/usr/bin/git` que parece haber es un señuelo: al
-// invocarlo abre el diálogo de "instalar las herramientas de línea de comandos"
-// —uno o dos gigas y contraseña de administrador— y ahí se acaba la clase. No
-// podemos depender de él, y tampoco podemos renunciar al historial: hace falta
-// para las copias de seguridad y para subir los arneses a GitHub.
-//
-// Así que el motor por defecto es `isomorphic-git`: git escrito en JavaScript,
-// que corre sobre el mismo Node que ya llevamos dentro. Sin binarios que firmar,
-// sin diálogos, y para GitHub es incluso mejor que el git de verdad: se
-// autentica con un token por HTTPS, sin llaveros, sin claves SSH y sin el
-// gestor de credenciales de Windows.
-//
-// Eso era al principio. Hoy git es obligatorio y se instala (`git.js` dice por
-// qué), y la barra pide el motor binario: el git de verdad, el mismo que usa el
-// arnés. El de JavaScript se queda como resto, y solo existe donde un instalador
-// de antes dejó `isomorphic-git`: nada de este repositorio lo trae ya, y su
-// prueba sale saltada por eso (revisión final).
+// Un solo motor: el git de verdad
+// --------------------------------
+// Hubo dos. Al principio git no era obligatorio —en macOS, el `/usr/bin/git`
+// que parece haber abre el diálogo de instalar las herramientas de Apple—, y
+// las copias las hacía `isomorphic-git`, git escrito en JavaScript. Desde que
+// git se instala siempre (`git.js` dice por qué, decisión 26), la barra pedía
+// el binario, el mismo que usa el arnés, y el de JavaScript quedó de resto:
+// sin probar, porque nada de este repositorio trae ya esa biblioteca, y
+// elegido solo si un instalador de antes la había dejado en el disco. Se
+// retiró el 28-09-2026.
 //
 // Quién lo usa: `extension/src/guardar.js` (guardar, el guardado solo, volver a
 // como estaba y subir a GitHub). Vive aquí, en comun/, porque viaja dentro de la
@@ -38,150 +29,6 @@ const QUIEN = { name: 'Executive Lab', email: 'alumno@executivelab.local' };
 // dos claves de configuración que pide, y su plantilla de ejemplo.
 const SIN_IDENTIDAD = /user\.email|user\.name|unable to auto-detect email|tell me who you are/i;
 const RAMA = 'main';
-
-// ───────────────────────────── el motor de JavaScript ─────────────────────────
-
-// Se busca por rutas explícitas antes que por `require` a secas: en el
-// ordenador del alumno no hay ningún node_modules en el camino, la biblioteca
-// vive junto al arnés, y en desarrollo está dentro de la carga del instalador
-// (que no se versiona, pero está en el disco de quien construye el paquete).
-function bibliotecaJs() {
-  const app = process.env.EXECUTIVE_LAB_HOME;
-  const candidatas = [
-    // Instalado: este fichero vive en la raíz de la carpeta de la app, con el
-    // arnés al lado. Se mira antes que la variable de entorno porque no
-    // depende de que nadie la haya puesto.
-    path.join(__dirname, 'harness', 'node_modules', 'isomorphic-git'),
-    app && path.join(app, 'harness', 'node_modules', 'isomorphic-git'),
-    path.join(__dirname, '..', 'mac', 'carga', 'harness', 'node_modules', 'isomorphic-git'),
-    path.join(__dirname, '..', 'windows', 'carga', 'harness', 'node_modules', 'isomorphic-git'),
-    path.join(__dirname, 'node_modules', 'isomorphic-git'),
-  ].filter(Boolean);
-
-  for (const donde of candidatas) {
-    if (!fs.existsSync(donde)) continue;
-    try {
-      return { git: require(donde), http: require(path.join(donde, 'http', 'node')) };
-    } catch {
-      // Instalación a medias: se sigue probando, y si no hay ninguna buena
-      // queda el motor binario.
-    }
-  }
-  try {
-    return { git: require('isomorphic-git'), http: require('isomorphic-git/http/node') };
-  } catch {
-    return null;
-  }
-}
-
-function motorJs(js) {
-  const { git, http } = js;
-  const comun = (dir) => ({ fs, dir });
-
-  // statusMatrix devuelve una fila por fichero: [ruta, en la copia, en el
-  // disco, en el índice]. Los ignorados no salen.
-  //
-  // CUIDADO con la columna del disco: para no leer todos los ficheros, se fía
-  // de la fecha y el tamaño. Comprobado con la 1.42.2: si un fichero se
-  // reescribe **en el mismo segundo y con el mismo tamaño**, dice que no ha
-  // cambiado. Escribiendo documentos a máquina eso pasa, y una copia se dejaría
-  // el cambio dentro sin avisar. Por eso `guardar` no usa esta columna: mete
-  // todo en el índice (que sí lee y resume el contenido) y después compara
-  // índice contra última copia, que son dos resúmenes y no dos fechas.
-  async function cambios(dir) {
-    const filas = await git.statusMatrix(comun(dir));
-    return filas.filter(([, copia, disco, indice]) => !(copia === 1 && disco === 1 && indice === 1));
-  }
-
-  // Lo que en git de verdad es `add -A`: todo lo que hay, más las bajas.
-  async function ponerloTodoEnElIndice(dir) {
-    await git.add({ ...comun(dir), filepath: '.' });
-    for (const fichero of await git.listFiles(comun(dir))) {
-      if (!fs.existsSync(path.join(dir, fichero))) {
-        await git.remove({ ...comun(dir), filepath: fichero });
-      }
-    }
-  }
-
-  return {
-    nombre: 'js',
-
-    async iniciar(dir) {
-      await git.init({ ...comun(dir), defaultBranch: RAMA });
-      await git.setConfig({ ...comun(dir), path: 'user.name', value: QUIEN.name });
-      await git.setConfig({ ...comun(dir), path: 'user.email', value: QUIEN.email });
-    },
-
-    async cuantosCambios(dir) {
-      return (await cambios(dir)).length;
-    },
-
-    async guardar(dir, mensaje, { excluir = [] } = {}) {
-      await ponerloTodoEnElIndice(dir);
-
-      // Lo que no entra en la copia (F1): se saca del índice. Solo lo que git no
-      // seguía: una que ya estaba en la última copia sigue, y eso lo decide la
-      // persona.
-      const seguidos = new Set(await git.listFiles({ ...comun(dir), ref: 'HEAD' }).catch(() => []));
-      const fuera = excluir.filter((rel) => fs.existsSync(path.join(dir, rel)) && !seguidos.has(rel));
-      for (const rel of fuera) await git.remove({ ...comun(dir), filepath: rel });
-
-      // Ahora sí se puede contar: se comparan la columna de la última copia y
-      // la del índice, que salen las dos de resúmenes de contenido. La del
-      // disco, la de la fecha, no pinta nada aquí.
-      const filas = await git.statusMatrix(comun(dir));
-      const cambiados = filas.filter(([, copia, , indice]) => copia !== indice);
-      if (!cambiados.length) return { ok: true, sinCambios: true, cuantos: 0, excluidos: fuera };
-
-      await git.commit({ ...comun(dir), message: mensaje, author: QUIEN });
-      return { ok: true, cuantos: cambiados.length, excluidos: fuera };
-    },
-
-    async historial(dir, cuantas) {
-      const copias = await git.log({ ...comun(dir), depth: cuantas });
-      return copias.map((c) => ({
-        id: c.oid,
-        // isomorphic-git da la fecha en segundos y el desfase en minutos.
-        cuando: new Date(c.commit.committer.timestamp * 1000).toISOString(),
-        asunto: c.commit.message.split('\n')[0],
-      }));
-    },
-
-    // `noUpdateHead` es lo que en git de verdad se hace con
-    // `read-tree -m -u --reset`: deja el disco como estaba en esa copia pero sin
-    // mover la rama, así que la vuelta atrás queda registrada como una copia más
-    // y también se puede deshacer.
-    async volverA(dir, id) {
-      await git.checkout({ ...comun(dir), ref: id, force: true, noUpdateHead: true });
-    },
-
-    async enlazar(dir, url) {
-      await git.addRemote({ ...comun(dir), remote: 'origin', url, force: true });
-    },
-
-    async subir(dir, { url, token, rama }) {
-      const resultado = await git.push({
-        ...comun(dir),
-        http,
-        url,
-        ref: rama,
-        remoteRef: rama,
-        force: false,
-        onAuth: () => ({ username: token, password: 'x-oauth-basic' }),
-      });
-      if (resultado?.error) throw new Error(resultado.error);
-    },
-
-    async rama(dir) {
-      return (await git.currentBranch({ ...comun(dir), fullname: false })) || RAMA;
-    },
-
-    async fechaDe(dir, id) {
-      const [copia] = await git.log({ ...comun(dir), depth: 1, ref: id });
-      return copia ? new Date(copia.commit.committer.timestamp * 1000).toISOString() : null;
-    },
-  };
-}
 
 // ───────────────────────────── el motor binario ───────────────────────────────
 
@@ -314,15 +161,9 @@ function motorBinario(ejecutable) {
 let elegido;
 
 // `opciones.git` es la ruta al binario, si quien llama ya la sabe (la extensión
-// la tiene en entorno.js). `opciones.preferirBinario` es para las pruebas.
+// la tiene en entorno.js). `opciones.recalcular` es para las pruebas.
 function motor(opciones = {}) {
   if (elegido && !opciones.recalcular) return elegido;
-
-  const js = opciones.preferirBinario ? null : bibliotecaJs();
-  if (js) {
-    elegido = motorJs(js);
-    return elegido;
-  }
 
   const ejecutable = opciones.git || (process.platform === 'win32' ? 'git.exe' : 'git');
   elegido = motorBinario(ejecutable);

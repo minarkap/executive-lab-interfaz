@@ -18,7 +18,7 @@ rm -rf /tmp/casa-falsa && mkdir -p /tmp/casa-falsa/Documents
 HOME=/tmp/casa-falsa node "escenario/Instalar Executive Lab.app/Contents/Resources/instalar.js" \
   --progreso /tmp/progreso.txt --sin-dock
 
-./probar.sh --casa /tmp/casa-falsa   # 19 comprobaciones
+./probar.sh --casa /tmp/casa-falsa   # 15 comprobaciones
 ```
 
 `--sin-dock` es importante: el Dock **no** vive en la carpeta personal, así que sin esa opción te
@@ -53,7 +53,7 @@ sin editor y sin haber visto nunca esto.
 6. **Cierra el editor y vuelve a abrirlo por el icono del Dock.** Aquí se responde la pregunta 6 de
    [docs/spike.md](../../docs/spike.md): si sale algún aviso de enganche en la conversación, es que
    el arnés no encuentra nuestro Node.
-7. *Guardar copia de seguridad* → *Volver a como estaba antes*.
+7. *Guardar en git* → *Ver las copias guardadas* → volver a la primera.
 8. `bash instalador/mac/probar.sh` y guarda el informe.
 9. `./desinstalar.command` y comprueba que el Mac queda como estaba.
 

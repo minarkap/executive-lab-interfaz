@@ -11,10 +11,18 @@ Copia a la máquina de pruebas **esta carpeta** con el `.exe` dentro y ejecuta:
 powershell -ExecutionPolicy Bypass -File probar.ps1
 ```
 
-Dieciocho comprobaciones en unos minutos: que el instalador termina, que todo queda en la carpeta del
-usuario, que Node, git, bash y el arnés están dentro, que el PATH queda puesto, que el arnés se montó
-entero con sus diales y su punto de partida, que `rsc doctor` dice que los hooks están cableados, que
-las dos extensiones se instalaron y que hay acceso directo. Deja un `informe-*.txt` al lado.
+Catorce comprobaciones en unos minutos:
+- que el instalador termina sin administrador y todo queda en la carpeta del usuario;
+- que lleva Node dentro y lo deja en el PATH;
+- que git está instalado de verdad, con el instalador oficial (decisión 26), y bash a su lado;
+- que no se ha inventado una carpeta de trabajo;
+- que el registro de la instalación está limpio;
+- que el editor y las dos extensiones están, y el arnés dentro de la nuestra, y que arranca con nuestro
+  Node;
+- que hay acceso directo.
+
+Deja un `informe-*.txt` al lado. Montar el arnés en una carpeta ya no es cosa del instalador: lo hace la
+barra al pulsar «Preparar esta carpeta», y se comprueba ahí.
 
 Responde las preguntas **3, 4 (a medias) y 6** de [docs/spike.md](../../docs/spike.md).
 
@@ -41,9 +49,10 @@ Este Mac es arm64 y no tiene virtualización instalada. Por orden de fidelidad:
 
 ## Y para que no haya que repetirlo a mano
 
-Si el repo llega a tener remoto en GitHub, esto mismo cabe en un *workflow* sobre `windows-latest`:
+El repo ya tiene remoto en GitHub, así que esto mismo cabe en un *workflow* sobre `windows-latest`:
 compilar con Inno, ejecutar el instalador en silencio y correr `probar.ps1`. Quedaría comprobado en
-cada cambio. No lo he montado porque hoy el repo es solo local y subirlo es decisión tuya.
+cada cambio. Todavía no está montado: la carga lleva binarios de terceros que no se versionan
+(`preparar-carga.sh` dice cuáles), y el *workflow* tendría que bajarlos él.
 
 Lo que un *runner* **no** puede responder sigue siendo lo mismo: SmartScreen y el usuario sin
 administrador.

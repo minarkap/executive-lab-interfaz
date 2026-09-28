@@ -39,11 +39,9 @@ function historial() {
   return modulo;
 }
 
-// Se pide el motor binario a propósito: git es obligatorio y está instalado
-// (git.js dice por qué), así que las copias las hace el git de verdad, el
-// mismo que usa el arnés. La biblioteca de JavaScript se queda dentro de
-// historial.js como resto, para el instalador que todavía la lleve.
-const comoLlamar = () => ({ git: entorno.git(), preferirBinario: true });
+// Las copias las hace el git de verdad, el mismo que usa el arnés: git es
+// obligatorio y está instalado (git.js dice por qué).
+const comoLlamar = () => ({ git: entorno.git() });
 
 function fechaLarga(cuando = new Date()) {
   return new Intl.DateTimeFormat('es-ES', { dateStyle: 'full', timeStyle: 'short' }).format(cuando);

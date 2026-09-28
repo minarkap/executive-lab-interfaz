@@ -58,7 +58,7 @@ jerga por goteo.
 | `02-DOCS/wiki/sdd/constitution.md` | Innegociables |
 | los guardianes de RSC (`danger-guard`, `gitmoji-guard`, `ship-guard`) | Lo que se comprueba solo (plegado, al final de Las reglas) |
 | `optOuts` de `.rsc.json` y los interruptores `.rsc/.no-*` (lo que aquí se decidió no usar) | Lo que tiene apagado (en Qué falta por montar), cada uno por su nombre de guardián o de automatismo |
-| lo que el arnés hace solo sin parar nada (`session-start`, `worklog-checkpoint`, `userprompt-gate`, `worktree-reaper`, la memoria, `context7`, y las tres comprobaciones de arranque) | Lo que hace solo, sin parar nada (dentro de Lo que se comprueba solo) |
+| lo que el arnés hace solo sin parar nada (`session-start`, `worklog-checkpoint`, `userprompt-gate`, `worktree-reaper`, la memoria, `context7`, y los avisos del arranque) | Lo que hace solo, sin parar nada (dentro de Lo que se comprueba solo) |
 | `session-start.mjs` | La brújula al empezar |
 | `worklog-checkpoint.mjs` | El aviso del diario |
 | `userprompt-gate.mjs` (`.no-feature-gate`) | La puerta antes de construir |
@@ -68,6 +68,9 @@ jerga por goteo.
 | el aviso de `rsc audit` (`.no-audit`) | La revisión periódica de habilidades |
 | el aviso de dos arneses (`.no-scope-check`) | El aviso de arnés duplicado |
 | el aviso de `CLAUDE.md` largo (`.no-claudemd-check`) | El aviso de reglas demasiado largas |
+| el aviso de carpeta sin git (`.no-git`, que el asistente crea cuando alguien le dice que no); se nombra solo apagado | El aviso de carpeta sin copias |
+| el aviso de preparar el arnés (`.no-harness`: sin perfil, que arranque `init`; en un clon, que ofrezca montarlo). No apaga el arnés; se nombra solo apagado | El aviso de preparar el arnés |
+| el aviso de versión nueva del arnés (`RSC_NO_UPDATE_CHECK`, que pone la barra al abrirse, C4) | El aviso de versión nueva · apagado: Apagado a propósito: aquí va la versión de tu clase |
 | un asistente al que RSC no le engancha ninguno (todo lo que no es Claude) | Tu asistente no trae frenos: solo se le enganchan a Claude (en Lo que se comprueba solo, y al cambiar de asistente) |
 | `02-DOCS/wiki/harness/installation-plan.md` y `onboarding.acceptedAt` | El plan de montaje · Ver el plan de montaje · Aceptado el 18 de septiembre |
 | `.rsc/automation-gaps.md` (lo que `skill-scout` apunta tras trabajar) | ideas de automatización (un consejo en Sugerencias) |

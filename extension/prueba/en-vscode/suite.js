@@ -127,6 +127,64 @@ async function run() {
     return 'por carpeta, no global';
   });
 
+  // El relevo de Node (C2, T032 (2)). `correr.js` arranca el editor con un
+  // PATH sin ningún `node`, como el ordenador de un alumno. Lo que solo se
+  // puede medir aquí: que el relevo que pone la barra al abrirse va el primero
+  // del PATH del anfitrión de extensiones —el que comparten todas, también la
+  // del asistente—, que un proceso hijo lo hereda y encuentra con él un Node, y
+  // que un enganche escrito como `node …` corre con él y frena de verdad.
+  await comprobar('sin node en el ordenador, el relevo va el primero y los hijos lo heredan', async () => {
+    if (process.env.EXECUTIVE_LAB_PRUEBA_SIN_NODE !== '1') return 'SALTADA: el editor no se arrancó sin node';
+    const cp = require('node:child_process');
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const raiz = vscode.extensions.getExtension(ID).extensionPath;
+    const relevo = require(path.join(raiz, 'src', 'relevo.js'));
+
+    const puesto = relevo.comoEsta();
+    assert.equal(puesto.modo, 'relevoVSCode', `sin node, la barra no pone el relevo: ${JSON.stringify(puesto)}`);
+    assert.equal(process.env.PATH.split(path.delimiter)[0], puesto.carpeta, 'el relevo no va el primero del PATH');
+
+    // Un hijo que no dice nada de su entorno hereda el del anfitrión: es como
+    // lanza el asistente su proceso, y como ese proceso lanza los enganches.
+    // Y el relevo lanza el mismo Node con el que la barra corre RSC
+    // (`entorno.node()`): el de la app, si un instalador la dejó, y si no el
+    // de VS Code. La primera vez se exigió aquí el de VS Code, y en un Mac con
+    // una app de prueba instalada la comprobación falló por lo que está bien.
+    // Y no se comparan rutas: el `node` de la app es un guion que elige la
+    // arquitectura y lanza `node-arm64`. Se compara lo que corre de verdad por
+    // los dos caminos.
+    const entorno = require(path.join(raiz, 'src', 'entorno.js'));
+    const [donde, cual] = cp.execFileSync('/bin/sh', ['-c', 'command -v node; node -p process.execPath'], { encoding: 'utf8' }).trim().split('\n');
+    assert.equal(path.dirname(donde), puesto.carpeta, `el hijo encuentra otro node: ${donde}`);
+    const directo = cp.execFileSync(entorno.node(), ['-p', 'process.execPath'], { encoding: 'utf8', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' } }).trim();
+    assert.equal(cual, directo, `el relevo lanza otro Node: ${cual}, y la barra usa ${directo}`);
+    const deQuien = entorno.node() === process.execPath ? 'el de VS Code' : 'el de la app';
+
+    // Y el freno, como lo engancha `aplicar.js` —corriendo también con el
+    // relevo— y como lo corre Claude Code: con `sh -c` y la carpeta en
+    // CLAUDE_PROJECT_DIR.
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'relevo-'));
+    fs.mkdirSync(path.join(carpeta, '.claude'), { recursive: true });
+    fs.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'] }));
+    fs.writeFileSync(path.join(carpeta, '.claude', 'settings.json'), '{}\n');
+    cp.execFileSync('/bin/sh', ['-c', 'node "$1" "$2"', 'sh', path.join(raiz, 'media', 'railes', 'aplicar.js'), carpeta], { encoding: 'utf8' });
+    const ajustes = JSON.parse(fs.readFileSync(path.join(carpeta, '.claude', 'settings.json'), 'utf8'));
+    const freno = (ajustes.hooks.PreToolUse || []).flatMap((e) => e.hooks || []).map((h) => h.command).find((o) => o.includes('/executive-lab/freno.mjs'));
+    assert.ok(freno, 'los raíles no enganchan el freno');
+    const pasar = (orden) => cp.spawnSync('/bin/sh', ['-c', freno], {
+      input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: orden } }),
+      encoding: 'utf8',
+      env: { ...process.env, CLAUDE_PROJECT_DIR: carpeta },
+    });
+    const peligrosa = pasar('rm -rf ./informes');
+    assert.equal(peligrosa.status, 0, peligrosa.stderr);
+    assert.match(peligrosa.stdout, /"permissionDecision":\s*"deny"/, 'con el relevo, el freno deja pasar un rm -rf');
+    assert.doesNotMatch(pasar('ls -la').stdout, /"deny"/, 'y frena también lo que no es peligroso');
+    fs.rmSync(carpeta, { recursive: true, force: true });
+    return `el relevo lanza ${deQuien}, y el freno deniega`;
+  });
+
   console.log(`\n${fallos.length ? `${fallos.length} fallos` : 'todo bien'}\n`);
   if (fallos.length) throw new Error(fallos.join(' | '));
 }

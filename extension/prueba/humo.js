@@ -306,13 +306,13 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       fs.writeFileSync(path.join(d, '.env'), 'SECRETO=abcd1234efgh\n');
       fs.writeFileSync(path.join(d, 'b.txt'), 'dos');
       cp.execFileSync('git', ['add', '.env'], { cwd: d });
-      const hecho = await historial.guardar(d, 'Con la clave en el índice', { excluir: ['.env'], preferirBinario: true, recalcular: true });
+      const hecho = await historial.guardar(d, 'Con la clave en el índice', { excluir: ['.env'], recalcular: true });
       assert.equal(hecho.ok, true, hecho.error);
       assert.ok(!enLaCopia(d).includes('.env'), `${conCopiaDeAntes ? 'con' : 'sin'} copia de antes, una clave del índice entra en la copia`);
       assert.deepEqual(hecho.excluidos, ['.env'], 'y no se dice');
       assert.ok(fs.existsSync(path.join(d, '.env')), 'y se ha borrado del disco');
     }
-    historial.queMotor({ recalcular: true, preferirBinario: true });
+    historial.queMotor({ recalcular: true });
     return 'fuera, con copia de antes y sin ella';
   });
 
@@ -2140,7 +2140,7 @@ exec git "$@"
       assert.ok((await historial.iniciar(donde)).ok);
       fs.writeFileSync(path.join(donde, 'a.txt'), 'uno');
       await historial.guardar(donde, 'Primera');
-      const hecho = await historial.subir(donde, { url: 'https://github.com/empresa/copia.git', token: TOKEN }, { git: falso, preferirBinario: true, recalcular: true });
+      const hecho = await historial.subir(donde, { url: 'https://github.com/empresa/copia.git', token: TOKEN }, { git: falso, recalcular: true });
       assert.equal(hecho.ok, false, 'el git de mentira siempre falla al subir');
       const formas = [TOKEN, encodeURIComponent(TOKEN), Buffer.from(`${TOKEN}:x-oauth-basic`).toString('base64')];
       for (const forma of formas) assert.ok(!String(hecho.error).includes(forma), `el error lleva el token: ${hecho.error}`);
@@ -2151,7 +2151,7 @@ exec git "$@"
       for (const forma of formas) assert.ok(!informe.includes(forma), 'el informe lleva el token');
       return String(hecho.error).slice(0, 80);
     } finally {
-      historial.queMotor({ recalcular: true, preferirBinario: true });
+      historial.queMotor({ recalcular: true });
       fs.rmSync(falso, { force: true });
       fs.rmSync(apuntes, { force: true });
     }
@@ -2199,40 +2199,62 @@ exec git "$@"
     }
   });
 
-  await comprobar('el motor de JavaScript sigue sirviendo de resto', async () => {
+  await comprobar('el instalador de Windows va con la barra: su versión, y probar.ps1 no busca lo que ya no viaja', () => {
+    // El .iss se quedó en la 0.9.0 mientras la barra iba por la 0.41, y el .exe
+    // sale rotulado con lo que diga él. Y `probar.ps1` seguía buscando dentro
+    // de la app un git y un arnés que `preparar-carga.sh` saca de la carga a
+    // propósito: git lo pone su instalador oficial (decisión 26) y el arnés va
+    // en el .vsix. En un Windows limpio habría salido «MAL» por lo que está bien.
+    const windows = path.join(RAIZ, '..', 'instalador', 'windows');
+    const iss = fs.readFileSync(path.join(windows, 'ExecutiveLab.iss'), 'utf8');
+    const suya = (iss.match(/^#define Version "([^"]+)"/m) || [])[1];
+    const version = require(path.join(RAIZ, 'package.json')).version;
+    assert.equal(suya, version, `el .exe saldría como la ${suya} con la barra ${version} dentro`);
+
+    const sobran = ((fs.readFileSync(path.join(windows, 'preparar-carga.sh'), 'utf8').match(/^for sobra in ([^;]+);/m) || [])[1] || '').trim().split(/\s+/);
+    assert.ok(sobran.includes('git') && sobran.includes('harness'), 'preparar-carga.sh ya no dice qué saca de la carga');
+    const probar = fs.readFileSync(path.join(windows, 'probar.ps1'), 'utf8');
+    const busca = sobran.filter((cosa) => probar.includes(`$app\\${cosa}\\`));
+    assert.deepEqual(busca, [], `probar.ps1 busca dentro de la app lo que ya no viaja ahí: ${busca.join(', ')}`);
+    return `la ${version}, y nada de ${sobran.join(', ')} dentro de la app`;
+  });
+
+  await comprobar('las copias las hace el git de verdad, aunque un instalador de antes dejara su biblioteca', async () => {
+    // Había un segundo motor, `isomorphic-git`, de cuando git no era
+    // obligatorio. La barra pide siempre el binario, nada de este repositorio
+    // trae esa biblioteca y su prueba salía saltada siempre (revisión de F8,
+    // I5). Pero `historial.js` la seguía buscando, también junto a la app de
+    // un instalador de antes, y la elegía si la encontraba: un motor sin probar,
+    // escogido por lo que hubiera en el disco.
     const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
-    // Ese motor solo existe si hay isomorphic-git, y ya no lo trae nada de este
-    // repositorio: queda en los ordenadores con un instalador de antes (revisión de F8, I5).
-    if (historial.queMotor({ recalcular: true }) !== 'js') return 'SALTADA: aquí no hay isomorphic-git, que solo queda en instaladores de antes';
-
+    const cp = require('node:child_process');
+    const app = fs.mkdtempSync(path.join(os.tmpdir(), 'app-de-antes-'));
+    const biblioteca = path.join(app, 'harness', 'node_modules', 'isomorphic-git');
+    fs.mkdirSync(path.join(biblioteca, 'http'), { recursive: true });
+    fs.writeFileSync(path.join(biblioteca, 'package.json'), JSON.stringify({ name: 'isomorphic-git', main: 'index.js' }));
+    fs.writeFileSync(path.join(biblioteca, 'index.js'), 'module.exports = {};\n');
+    fs.writeFileSync(path.join(biblioteca, 'http', 'node.js'), 'module.exports = {};\n');
+    const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'casa-'));
+    const antes = { app: process.env.EXECUTIVE_LAB_HOME, git: process.env.GIT_CONFIG_GLOBAL };
+    process.env.EXECUTIVE_LAB_HOME = app;
+    process.env.GIT_CONFIG_GLOBAL = path.join(casa, '.gitconfig');
     const donde = fs.mkdtempSync(path.join(os.tmpdir(), 'historial-'));
-    assert.ok((await historial.iniciar(donde)).ok);
-
-    fs.writeFileSync(path.join(donde, 'factura.txt'), 'uno');
-    const primera = await historial.guardar(donde, 'Punto de partida');
-    assert.equal(primera.cuantos, 1);
-
-    // El mismo tamaño y el mismo segundo: isomorphic-git dice que no ha
-    // cambiado si se le pregunta por la fecha. Por eso no se le pregunta.
-    fs.writeFileSync(path.join(donde, 'factura.txt'), 'dos');
-    const segunda = await historial.guardar(donde, 'Otra copia');
-    assert.equal(segunda.cuantos, 1, 'un cambio del mismo tamaño en el mismo segundo también se guarda');
-
-    const { copias: guardadas } = await historial.historial(donde, 5);
-    assert.equal(guardadas.length, 2);
-
-    await historial.volverA(donde, guardadas[1].id);
-    assert.equal(fs.readFileSync(path.join(donde, 'factura.txt'), 'utf8'), 'uno', 'vuelve a como estaba');
-
-    // Y deja fuera lo que se le pide, como el binario (F1).
-    await historial.guardar(donde, 'Después de volver');
-    fs.writeFileSync(path.join(donde, '.env'), 'X=1\n');
-    const conClave = await historial.guardar(donde, 'Con una clave suelta', { excluir: ['.env'] });
-    assert.deepEqual(conClave.excluidos, ['.env'], 'no se deja fuera');
-    assert.equal(conClave.sinCambios, true, 'con solo la clave, se guarda algo');
-
-    fs.rmSync(donde, { recursive: true, force: true });
-    return 'guardar, listar, volver atrás y dejar fuera';
+    try {
+      assert.equal(historial.queMotor({ recalcular: true }), 'binario', 'con la biblioteca de un instalador de antes a mano, las copias no las hace git');
+      assert.ok((await historial.iniciar(donde)).ok);
+      fs.writeFileSync(path.join(donde, 'factura.txt'), 'uno');
+      const hecho = await historial.guardar(donde, 'Punto de partida');
+      assert.equal(hecho.ok, true, hecho.error);
+      assert.match(cp.execFileSync('git', ['-C', donde, 'log', '--format=%s'], { encoding: 'utf8' }), /Punto de partida/);
+      return 'con la biblioteca al lado, el binario';
+    } finally {
+      if (antes.app === undefined) delete process.env.EXECUTIVE_LAB_HOME;
+      else process.env.EXECUTIVE_LAB_HOME = antes.app;
+      if (antes.git === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+      else process.env.GIT_CONFIG_GLOBAL = antes.git;
+      historial.queMotor({ recalcular: true });
+      for (const d of [app, casa, donde]) fs.rmSync(d, { recursive: true, force: true });
+    }
   });
 
   // ------------------------------------------------ que avise cuando ayuda
@@ -5560,7 +5582,9 @@ exec git "$@"
     vscode.guion.raiz = carpeta;
     try {
       const auto = Object.fromEntries(reglas.losAutomatismos().map((a) => [a.id, a]));
-      assert.equal(Object.keys(auto).length, 9, 'los ocho de fichero más context7, que aquí tiene interruptor');
+      // Los nueve de fichero —con el aviso de versión nueva, que vive en el
+      // arranque— más context7, que aquí tiene interruptor.
+      assert.equal(Object.keys(auto).length, 10, 'los nueve de fichero más context7, que aquí tiene interruptor');
       assert.equal(auto['session-start'].nombre, 'La brújula al empezar');
       assert.equal(auto['session-start'].estado, 'activo');
       assert.equal(auto['worktree-reaper'].estado, 'apagado', 'su interruptor está en disco');
@@ -5612,6 +5636,10 @@ exec git "$@"
       fs.writeFileSync(path.join(carpeta, '.rsc', pieza), '// pieza del arnés');
     }
     for (const s of INTERRUPTORES) fs.writeFileSync(path.join(carpeta, '.rsc', `.no-${s}`), '');
+    // El aviso de versión nueva lo apaga el entorno, no un fichero, y otra
+    // prueba ya lo ha dejado puesto: aquí se cuentan solo los interruptores.
+    const avisoAntes = process.env.RSC_NO_UPDATE_CHECK;
+    delete process.env.RSC_NO_UPDATE_CHECK;
     vscode.guion.raiz = carpeta;
     try {
       const apagado = cargar('reglas').loApagado().map((a) => a.nombre);
@@ -5628,6 +5656,55 @@ exec git "$@"
       assert.ok(!conCodex.includes('Formato al guardar en git'), 'con Codex se nombra un guardián que no tiene');
       return `${apagado.length} apagadas, cada una una vez y en español`;
     } finally {
+      if (avisoAntes !== undefined) process.env.RSC_NO_UPDATE_CHECK = avisoAntes;
+      vscode.guion.raiz = empresa;
+    }
+  });
+
+  await comprobar('los avisos del arranque que se apagan se nombran: sin copias, preparar el arnés y la versión nueva', () => {
+    // El arranque de RSC tiene tres avisos más que se callan. Dos, con un
+    // fichero que el asistente crea cuando alguien le dice que no (lo pide el
+    // propio texto de RSC): `.no-git`, el de una carpeta sin git, y
+    // `.no-harness`, el de preparar el arnés. `localDecisions` los copia a
+    // `optOuts` como `git` y `harness`. El tercero, el de versión nueva, lo
+    // apaga la barra con `RSC_NO_UPDATE_CHECK` (C4). No tenían nombre: salían
+    // «Git» y «Harness», y el tercero no salía.
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'avisos-'));
+    fs.mkdirSync(path.join(carpeta, '.rsc'), { recursive: true });
+    const declarar = (datos) => fs.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, ...datos }));
+    declarar({ targets: ['claude'], optOuts: ['git', 'harness'] });
+    fs.writeFileSync(path.join(carpeta, '.rsc', 'session-start.mjs'), '// pieza del arnés');
+    for (const s of ['.no-git', '.no-harness']) fs.writeFileSync(path.join(carpeta, '.rsc', s), '');
+    const antes = process.env.RSC_NO_UPDATE_CHECK;
+    process.env.RSC_NO_UPDATE_CHECK = '1';
+    vscode.guion.raiz = carpeta;
+    try {
+      const reglas = cargar('reglas');
+      const apagado = reglas.loApagado().map((a) => a.nombre);
+      assert.deepEqual([...apagado].sort(), ['El aviso de carpeta sin copias', 'El aviso de preparar el arnés', 'El aviso de versión nueva'].sort(),
+        `lo apagado no se nombra: ${apagado.join(' · ')}`);
+      const auto = Object.fromEntries(reglas.losAutomatismos().map((a) => [a.id, a]));
+      assert.equal(auto['update-check'].estado, 'apagado');
+      assert.match(auto['update-check'].porQue, /versión de tu clase/, 'y no se dice por qué');
+
+      // Sin nada apagado, el de versión sale activo, y los otros dos no se
+      // nombran: en una carpeta con git y con perfil no dicen nada.
+      delete process.env.RSC_NO_UPDATE_CHECK;
+      for (const s of ['.no-git', '.no-harness']) fs.rmSync(path.join(carpeta, '.rsc', s));
+      declarar({ targets: ['claude'] });
+      assert.deepEqual(reglas.loApagado(), [], 'sin nada apagado se nombra algo');
+      const sinNada = Object.fromEntries(reglas.losAutomatismos().map((a) => [a.id, a]));
+      assert.equal(sinNada['update-check'].estado, 'activo');
+      assert.ok(!sinNada['git-check'] && !sinNada.onboarding, 'se nombran encendidos dos avisos que aquí no dicen nada');
+
+      // Con Codex no hay arranque que avise: no se da por apagado.
+      process.env.RSC_NO_UPDATE_CHECK = '1';
+      declarar({ targets: ['codex'] });
+      assert.ok(!reglas.loApagado().some((a) => a.id === 'update-check'), 'con Codex se da por apagado un aviso que no tiene');
+      return 'tres avisos, cada uno por su nombre';
+    } finally {
+      if (antes === undefined) delete process.env.RSC_NO_UPDATE_CHECK;
+      else process.env.RSC_NO_UPDATE_CHECK = antes;
       vscode.guion.raiz = empresa;
     }
   });
@@ -10027,6 +10104,28 @@ exec git "$@"
       Object.assign(rscM, antes);
       proveedor.enviar = enviarAntes;
     }
+  });
+
+  await comprobar('el canal de salida que usa la barra hace todo lo que hace uno de verdad', async () => {
+    // La barra no escribe en el canal de VS Code a pelo: lo envuelve
+    // (`rastro.envolver`) para que «Algo va mal» tenga las últimas líneas. El
+    // envoltorio no tenía `clear`, y «Diagnóstico del puente» lo pide: en un
+    // VS Code de verdad reventaba con «salida.clear is not a function». Los
+    // dobles no lo veían porque aquí nadie lanzaba ese comando con el canal
+    // envuelto; lo cazó `npm run probar-en-vscode` (28-09-2026).
+    const rastro = cargar('rastro');
+    const escrito = [];
+    const canal = vscode.window.createOutputChannel('Executive Lab');
+    const deVerdad = { ...canal, appendLine: (l) => escrito.push(l), clear: () => escrito.splice(0) };
+    const envuelto = rastro.envolver(deVerdad, null);
+    const faltan = Object.keys(canal).filter((m) => typeof canal[m] === 'function' && typeof envuelto[m] !== 'function');
+    assert.deepEqual(faltan, [], `el canal envuelto no sabe: ${faltan.join(', ')}`);
+
+    escrito.push('lo de antes');
+    await puente.diagnostico(envuelto);
+    assert.ok(!escrito.includes('lo de antes'), 'el diagnóstico no empieza limpio');
+    assert.ok(escrito.some((l) => l.startsWith('=== Claude')), 'el diagnóstico no dice nada de Claude');
+    return `${escrito.length} líneas, empezando limpio`;
   });
 
   await comprobar('todo tipo que manda el panel se despacha sin excepción', async () => {

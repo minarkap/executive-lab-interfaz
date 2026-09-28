@@ -3984,3 +3984,79 @@ rama entera.
 - Las seis issues de RSC, y subir la versión del arnés (hay 2.0.15; la clase va en 2.0.5).
 
 0.41.0. 322 comprobaciones, 330 con el arnés de verdad, y 13 de contrato.
+
+## 126. Lo que quedaba, hecho
+
+**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `lo-que-queda`
+(`02-DOCS/wiki/ftd/lo-que-queda.md`)
+
+La decisión 125 cerró «Todo cuadra» con una lista para Jose. Su respuesta fue «Hazlo tú lo que
+queda», y esto es lo que se hizo dentro del proyecto. La versión del arnés y lo que sale fuera
+(subir, publicar, las issues) van en su sitio.
+
+### Los tres avisos del arranque, por su nombre
+
+El arranque de RSC tiene tres avisos que se apagan y no tenían nombre en el diccionario:
+
+- **El aviso de carpeta sin copias** (`.no-git`). Si la carpeta no está en git, RSC le pide al
+  asistente que ofrezca ponerlo; con un no, el asistente crea el interruptor.
+- **El aviso de preparar el arnés** (`.no-harness`). Sin perfil, que arranque `init`; en un clon, que
+  ofrezca montarlo. El nombre que se propuso en F3, «El arnés, apagado en esta carpeta», no era verdad:
+  ese interruptor no apaga el arnés, calla la oferta.
+- **El aviso de versión nueva** (`RSC_NO_UPDATE_CHECK`, que pone la barra al abrirse). Cuando está
+  apagado dice por qué: «Apagado a propósito: aquí va la versión de tu clase».
+
+Salían «Git · Harness» en «Lo que tiene apagado», y el tercero no salía. Los dos primeros se nombran
+solo apagados, porque en una carpeta con git y con perfil no dicen nada. El de versión nueva se nombra
+siempre que está el arranque, y con Codex no, porque no lo tiene.
+
+### El motor de JavaScript de las copias, retirado
+
+`historial.js` tenía dos motores: el git de verdad y `isomorphic-git`, de cuando git no era obligatorio.
+Desde la decisión 26 la barra pedía siempre el binario. Nada de este repositorio trae ya esa biblioteca,
+y la prueba de ese motor salía saltada siempre. Pero `historial.js` la seguía buscando, también junto a
+la app de un instalador de antes, y **la elegía si la encontraba**: un motor sin probar, escogido por
+lo que hubiera en el disco. Retirarlo quita 170 líneas y esa posibilidad. Una prueba deja la biblioteca
+de un instalador de antes al lado y exige que las copias las haga git.
+
+### Los instaladores de Windows, al día
+
+- El `.iss` iba en la 0.9.0 con la barra en la 0.41 dentro. Ahora una prueba exige que diga la versión
+  de `package.json`.
+- `probar.ps1` buscaba dentro de la app un git y un arnés que `preparar-carga.sh` saca a propósito:
+  git lo pone su instalador oficial, y el arnés va en el `.vsix`. En un Windows limpio habría salido
+  «MAL» por lo que está bien. La prueba lee de `preparar-carga.sh` qué no viaja, y exige que
+  `probar.ps1` no lo busque.
+- `probar.ps1` también daba por bueno que el arnés arrancara con `--version`, y en la 2.0.5 eso abre
+  el menú de instalar: con la entrada cerrada sale con 0 y pinta el cartel. Ahora usa `catalog`, que
+  no pregunta nada.
+- Las dos guías, `COMO-PROBARLO.md`, cuentan las comprobaciones que hay: 14 en Windows y 15 en Mac,
+  no 18 y 19.
+
+El `Info.plist` del Mac no se versiona: `construir.sh` le pone la versión de `package.json` al
+construir. El 0.9.0 que hay en disco es de la última vez que se construyó.
+
+### En un VS Code de verdad (T032 (2))
+
+`npm run probar-en-vscode` arranca ahora el editor **sin ningún `node` en el PATH** y **sin la app del
+instalador**, como quien solo instaló la extensión. Con `--force-disable-user-env`, además, el editor no
+va a buscar otro `node` al arranque del shell. Medido el 28-09-2026: la barra pone el relevo el primero
+del PATH del anfitrión, un proceso hijo lo hereda y lanza con él el Node de VS Code, y el freno que
+engancha `aplicar.js`, corriendo también con el relevo, deniega un `rm -rf`. Una mutación que quita el
+relevo del PATH lo tumba.
+
+Lo cazó también, a la primera, un fallo que los dobles no veían: **«Diagnóstico del puente» reventaba**
+con `salida.clear is not a function`. El canal que usa la barra lo envuelve `rastro.envolver`, y el
+envoltorio no tenía `clear`. Ahora lo tiene, y una prueba exige que haga todo lo que hace un canal.
+
+Y lanzada desde un agente que vive dentro de VS Code, esta prueba le pasaba al editor de prueba las
+variables del anfitrión (`VSCODE_IPC_HOOK`, `VSCODE_ESM_ENTRYPOINT`…). Ahora se quitan.
+
+**Activar la barra con `*`: no.** Era la propuesta si la medida lo pedía, y no lo pide. El relevo se pone
+al activarse la barra y lo heredan los procesos que se lancen después. `*` no garantiza ir antes que la
+extensión del asistente, que puede activarse igual de pronto, y VS Code lo desaconseja porque retrasa el
+arranque. El caso tardío ya está cubierto: si el asistente ya estaba en marcha, la pieza pide abrir otra
+vez la conversación (revisión de F3, I3). Lo que sigue sin medir es una sesión de Claude abierta desde la
+barra, hablando: pide a Claude delante.
+
+0.41.0. 325 comprobaciones, 333 con el arnés de verdad, 13 de contrato, y 7 en un VS Code de verdad.

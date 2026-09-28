@@ -62,6 +62,10 @@ function envolver(canal, carpetaDondeGuardar) {
       return [...deAntes, ...lineas].slice(-CUANTAS);
     },
 
+    // Limpiar el canal es para quien lo mira, no para el informe: lo apuntado
+    // se queda, o un diagnóstico pedido justo antes de «Algo va mal» dejaría
+    // el informe sin lo que pasó.
+    clear: () => canal.clear(),
     show: (...a) => canal.show(...a),
     dispose: () => canal.dispose(),
   };

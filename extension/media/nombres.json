@@ -430,6 +430,18 @@
     "claudemd-check": {
       "nombre": "El aviso de reglas demasiado largas",
       "queHace": "Avisa si el fichero de reglas ha crecido tanto que cuesta en cada conversación."
+    },
+    "git-check": {
+      "nombre": "El aviso de carpeta sin copias",
+      "queHace": "Al abrir una conversación, si esta carpeta no guarda copias en git, le recuerda ofrecerte ponerlas."
+    },
+    "onboarding": {
+      "nombre": "El aviso de preparar el arnés",
+      "queHace": "Al abrir una conversación, si el arnés de esta carpeta está sin preparar, le recuerda ofrecerte prepararlo."
+    },
+    "update-check": {
+      "nombre": "El aviso de versión nueva",
+      "queHace": "Al abrir una conversación mira si hay una versión más nueva del arnés y le pide al asistente que te la ofrezca."
     }
   }
 }

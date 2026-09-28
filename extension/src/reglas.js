@@ -83,17 +83,31 @@ const AUTOMATISMOS = [
   { id: 'scope-check', fichero: 'session-start.mjs', interruptor: '.no-scope-check' },
   { id: 'claudemd-check', fichero: 'session-start.mjs', interruptor: '.no-claudemd-check' },
   { id: 'context7', interruptor: '.no-context7' },
+  // Dos avisos más del arranque, que el asistente calla cuando alguien le dice
+  // que no (lo pide el propio texto de RSC): el de una carpeta sin git y el de
+  // preparar el arnés. En una carpeta montada no dicen nada —hay git y hay
+  // perfil—, así que se nombran solo apagados, como context7: cuando hay algo
+  // que explicar. El de preparar el arnés no es solo del arranque: lo lee
+  // también `suggest`, que va con cualquier asistente.
+  { id: 'git-check', fichero: 'session-start.mjs', interruptor: '.no-git', soloApagado: true },
+  { id: 'onboarding', interruptor: '.no-harness' },
+  // Y el de versión nueva, que la barra apaga al abrirse con
+  // `RSC_NO_UPDATE_CHECK` (C4, `relevo.js`). No tiene fichero: se mira donde lo
+  // mira el propio enganche, en el entorno que hereda.
+  { id: 'update-check', fichero: 'session-start.mjs', entorno: 'RSC_NO_UPDATE_CHECK', porQueApagado: 'Apagado a propósito: aquí va la versión de tu clase' },
 ];
 
 // La memoria no tiene interruptor: se apaga en la declaración, con
 // `memory: false` (`targets/memory.js`, `memoryEnabledForProject`). Salía
 // activa estando apagada (C5).
 const memoriaApagada = () => (proyecto.declaracion() || {}).memory === false;
-const estaApagado = (a) => Boolean(a.interruptor && hayEnRsc(a.interruptor)) || (a.id === 'session-memory' && memoriaApagada());
+const estaApagado = (a) => Boolean(a.interruptor && hayEnRsc(a.interruptor))
+  || Boolean(a.entorno && process.env[a.entorno])
+  || (a.id === 'session-memory' && memoriaApagada());
 
 function losAutomatismos() {
   return AUTOMATISMOS
-    .filter((a) => hayEnRsc(a.fichero || a.interruptor))
+    .filter((a) => hayEnRsc(a.fichero || a.interruptor) && (!a.soloApagado || estaApagado(a)))
     .map((a) => {
       const dicho = nombres.comoSeLlama('automatismos', a.id, {});
       const apagado = estaApagado(a);
@@ -102,7 +116,7 @@ function losAutomatismos() {
         nombre: dicho.nombre,
         queHace: dicho.queHace,
         estado: apagado ? 'apagado' : 'activo',
-        porQue: apagado ? 'Apagado aquí, a propósito' : '',
+        porQue: apagado ? a.porQueApagado || 'Apagado aquí, a propósito' : '',
       };
     });
 }

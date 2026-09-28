@@ -51,13 +51,23 @@ $viejaCarpeta = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Mi Empr
 
 Comprobar 'se instala en la carpeta del usuario, sin admin' { if (-not (Test-Path $app)) { throw "no existe $app" }; $app }
 Comprobar 'lleva Node dentro'  { if (-not (Test-Path "$app\runtime\node.exe")) { throw 'falta runtime\node.exe' }; (& "$app\runtime\node.exe" -v) }
-Comprobar 'lleva git dentro'   { if (-not (Test-Path "$app\git\cmd\git.exe")) { throw 'falta git\cmd\git.exe' }; ((& "$app\git\cmd\git.exe" --version) -split ' ')[2] }
-Comprobar 'lleva bash (lo piden las pruebas de conexion de RSC)' {
-  $bash = @("$app\git\usr\bin\bash.exe", "$app\git\bin\bash.exe", "$app\git\usr\bin\sh.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
-  if (-not $bash) { throw 'no hay bash ni sh en MinGit' }
-  Split-Path -Leaf $bash
+# git ya no viaja dentro (preparar-carga.sh lo saca de la carga): lo pone el
+# instalador oficial de Git para Windows, por usuario y sin admin (preparar.js,
+# decision 26). Se busca como lo buscara un enganche, por nombre, en el PATH que
+# les queda a las ventanas nuevas.
+$env:Path = ([Environment]::GetEnvironmentVariable('Path', 'Machine'), [Environment]::GetEnvironmentVariable('Path', 'User')) -join ';'
+$git = Get-Command git.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
+Comprobar 'git esta instalado de verdad (el oficial)' {
+  if (-not $git) { throw 'no hay git.exe en el PATH' }
+  ((& $git --version) -split ' ')[2]
 }
-Comprobar 'lleva el arnes preinstalado' { if (-not (Test-Path "$app\harness\node_modules\@ericrisco\rsc\scripts\rsc.js")) { throw 'falta el arnes' }; 'rsc.js' }
+Comprobar 'hay bash junto a git (lo piden las pruebas de conexion de RSC)' {
+  if (-not $git) { throw 'sin git no hay bash' }
+  $raiz = Split-Path -Parent (Split-Path -Parent $git)
+  $bash = @("$raiz\bin\bash.exe", "$raiz\usr\bin\bash.exe") | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if (-not $bash) { throw "no hay bash.exe en $raiz" }
+  $bash
+}
 
 Comprobar 'Node queda en el PATH del usuario (lo llaman los hooks)' {
   $ruta = [Environment]::GetEnvironmentVariable('Path', 'User')
@@ -87,15 +97,6 @@ Comprobar 'el registro de la instalacion no tiene errores' {
   if ($malos) { throw "$($malos.Count) errores: $($malos[0].Line)" }
   'limpio'
 }
-Comprobar 'el arnes preinstalado arranca' {
-  # Antes se le pedia `doctor` y se exigia "hookWired": true. Eso solo tiene
-  # sentido dentro de una carpeta con arnes, y aqui ya no hay ninguna: lo que
-  # se puede comprobar es que el arnes que viaja dentro se ejecuta con nuestro
-  # Node. Que este bien cableado se comprueba en la carpeta, desde el panel.
-  $salida = & "$app\runtime\node.exe" "$app\harness\node_modules\@ericrisco\rsc\scripts\rsc.js" --version 2>&1
-  if ($LASTEXITCODE -ne 0) { throw "el arnes no arranca: $salida" }
-  "$salida".Trim()
-}
 Comprobar 'VS Code y las dos extensiones' {
   $code = Join-Path $env:LOCALAPPDATA 'Programs\Microsoft VS Code\bin\code.cmd'
   if (-not (Test-Path $code)) { throw 'no se ha instalado VS Code' }
@@ -104,6 +105,33 @@ Comprobar 'VS Code y las dos extensiones' {
     if ("$lista" -notlike "*$ext*") { throw "falta la extension $ext" }
   }
   'las dos'
+}
+# El arnes tampoco viaja en la app: va dentro de la barra (el .vsix), que es
+# quien lo usa. Se busca donde lo deja el editor al instalarla.
+$rsc = Get-ChildItem -Path (Join-Path $env:USERPROFILE '.vscode\extensions') -Directory -Filter 'executivelab.arnes-ui-*' -ErrorAction SilentlyContinue |
+  ForEach-Object { Join-Path $_.FullName 'media\harness\node_modules\@ericrisco\rsc\scripts\rsc.js' } |
+  Where-Object { Test-Path $_ } | Select-Object -First 1
+Comprobar 'el arnes viaja dentro de la barra' {
+  if (-not $rsc) { throw 'la barra instalada no lleva el arnes dentro' }
+  $paquete = Join-Path (Split-Path -Parent (Split-Path -Parent $rsc)) 'package.json'
+  'version ' + (Get-Content $paquete -Raw | ConvertFrom-Json).version
+}
+Comprobar 'el arnes de la barra arranca con nuestro Node' {
+  # Antes se le pedia `--version`, y eso abre el menu de instalar: con la
+  # entrada cerrada sale con 0 y pintaba el cartel, asi que pasaba sin decir
+  # nada. `catalog` no pregunta nada y lista lo que se puede instalar. Que el
+  # arnes quede bien enganchado en una carpeta se comprueba desde el panel.
+  if (-not $rsc) { throw 'no hay arnes que arrancar' }
+  $vacia = Join-Path $env:TEMP ('arnes-' + [guid]::NewGuid())
+  New-Item -ItemType Directory -Path $vacia | Out-Null
+  Push-Location $vacia
+  $lineas = @(& "$app\runtime\node.exe" $rsc catalog 2>&1)
+  $codigo = $LASTEXITCODE
+  Pop-Location
+  Remove-Item -Recurse -Force $vacia
+  if ($codigo -ne 0) { throw "el arnes no arranca: $($lineas | Select-Object -First 3)" }
+  if (-not ($lineas -match '\tavailable\t')) { throw 'arranca, pero no lista el catalogo' }
+  "$($lineas.Count) habilidades en el catalogo"
 }
 Comprobar 'el acceso directo esta en el escritorio' {
   $atajo = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Executive Lab.lnk'

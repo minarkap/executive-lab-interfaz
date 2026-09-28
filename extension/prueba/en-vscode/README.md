@@ -19,9 +19,15 @@ ejecuta **todos** los comandos de la barra, uno por uno. No mira cómo se ve —
 eso se encargan las comprobaciones de contraste de `humo.js`— sino que nada
 reviente al tocarlo en un editor real.
 
+Y arranca el editor **sin ningún `node` en el PATH**, como el ordenador de un
+alumno, para medir el relevo de Node (C2): que la barra lo pone el primero, que
+un proceso hijo lo hereda, y que el freno de los raíles corre con él y deniega un
+`rm -rf`.
+
 ```
 npm run probar-en-vscode
 ```
 
-La primera vez se descarga un VS Code (unos 120 MB) en `.vscode-test/`, que está
-en el `.gitignore`. Por eso no va en `probar`: tarda y pide red.
+La primera vez se descarga un VS Code en `~/.cache/executive-lab-vscode-test/`,
+**fuera del proyecto** a propósito: dentro, el arnés lo tomaría por código de este
+proyecto (P8). Por eso no va en `probar`: tarda y pide red.
