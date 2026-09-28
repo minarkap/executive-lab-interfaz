@@ -22,6 +22,11 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
+      # git en Windows cambia los saltos de línea al sacar el código, y aquí hay
+      # copias que tienen que ser iguales byte a byte (la del freno) y ficheros que
+      # las pruebas leen como texto. La barra viaja en el .vsix, que se hace en un
+      # Mac: esto es solo para la copia de trabajo de la prueba.
+      - run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
 
       # El Node que lleva el instalador es el 24; el de VS Code, el de su Electron.
