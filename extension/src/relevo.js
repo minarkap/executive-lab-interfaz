@@ -89,13 +89,28 @@ function escribirElRelevo(carpeta, ejecutable, plataforma) {
   }
 }
 
-// En Windows las rutas no distinguen mayúsculas, y el almacén de la extensión
-// llega a veces con la unidad en minúscula (`c:\\…`) y otras en mayúscula.
-// Comparadas a pelo, el relevo no se reconocía a sí mismo: la barra decía que ya
-// había un node, que era el suyo (lo cazó la barra en un VS Code de Windows).
-const mismaCarpeta = (a, b, plataforma) => (plataforma === 'win32'
-  ? path.win32.normalize(String(a)).toLowerCase() === path.win32.normalize(String(b)).toLowerCase()
-  : a === b);
+// La misma carpeta en el disco, se escriba como se escriba. En Windows las rutas no
+// distinguen mayúsculas, y el almacén de la extensión llega a veces con la unidad en
+// minúscula (`c:\\…`); el macOS de fábrica tampoco las distingue; y una barra al
+// final no cambia la carpeta. Comparadas a pelo, el relevo no se reconocía a sí
+// mismo y la barra decía que ya había un node, que era el suyo. Lo cazó la barra en
+// un VS Code de Windows, y la revisión lo reprodujo en un Mac. Si las dos existen,
+// manda el disco (el dispositivo y el nodo); si no, la ruta, como la compara el
+// sistema.
+const sinBarraFinal = (ruta) => String(ruta).replace(/[\\/]+$/, '');
+function mismaCarpeta(a, b, plataforma) {
+  if (!a || !b) return false;
+  if (sinBarraFinal(a) === sinBarraFinal(b)) return true;
+  try {
+    const x = fs.statSync(a, { bigint: true });
+    const y = fs.statSync(b, { bigint: true });
+    return x.dev === y.dev && x.ino === y.ino && x.ino !== 0n;
+  } catch {
+    // alguna todavía no existe
+  }
+  return plataforma === 'win32'
+    && sinBarraFinal(path.win32.normalize(String(a))).toLowerCase() === sinBarraFinal(path.win32.normalize(String(b))).toLowerCase();
+}
 
 // Qué hay para los enganches, y dónde. Pone el relevo solo si hace falta.
 //

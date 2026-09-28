@@ -10131,6 +10131,51 @@ exec git "$@"
     return `git → ${path.basename(elegido.git)} · arnés → rsc.js`;
   });
 
+  await comprobar('el relevo se reconoce en un disco que no distingue mayúsculas, aunque llegue escrito de otra manera', () => {
+    // Revisión de lo que pedía una persona: el macOS de fábrica no distingue
+    // mayúsculas, como Windows, y el relevo en `…/relevo` con el PATH diciendo
+    // `…/Relevo` se tomaba por un node del sistema. Se compara la carpeta de
+    // verdad, la del disco, y no cómo se escribe; también con una barra al final.
+    const relevo = cargar('relevo');
+    const carpeta = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'relevo-caja-')), 'relevo');
+    relevo.escribirElRelevo(carpeta, process.execPath, process.platform);
+    const otra = path.join(path.dirname(carpeta), 'Relevo');
+    if (!fs.existsSync(otra)) return 'SALTADA: este disco distingue mayúsculas';
+    const clave = process.platform === 'win32' ? 'Path' : 'PATH';
+    const env = { [clave]: [`${otra}${path.sep}`, ...String(process.env[clave] || process.env.PATH || '').split(path.delimiter).filter((d) => d && !fs.existsSync(path.join(d, 'node')) && !fs.existsSync(path.join(d, 'node.exe')))].join(path.delimiter) };
+    const puesto = relevo.asegurar({ carpeta, ejecutable: process.execPath, env });
+    assert.equal(puesto.modo, 'relevoVSCode', `toma su propio relevo por un node del sistema: ${JSON.stringify(puesto)}`);
+    const suyas = env[clave].split(path.delimiter).filter((d) => d.replace(/[\\/]+$/, '').toLowerCase() === carpeta.toLowerCase());
+    assert.equal(suyas.length, 1, `el relevo sale ${suyas.length} veces en el PATH`);
+    return 'relevo y Relevo/, la misma carpeta';
+  });
+
+  await comprobar('el revisor de PowerShell caza un .Count sin @() en cualquier tubería o cmdlet', () => {
+    // Revisión de lo que pedía una persona: la regla solo veía el Where-Object
+    // más simple. Se le escapaban uno con paréntesis dentro, Select-String y
+    // Get-ChildItem, que en PowerShell 5.1 fallan igual con un solo resultado.
+    const cp = require('node:child_process');
+    const MALAS = [
+      '$a = ($resultados | Where-Object { $_.Ok }).Count',
+      '$b = ($resultados | Where-Object { $_.Ok -and (Test-Path $_.Que) }).Count',
+      "$c = (Select-String -Path $registro -Pattern 'WARN').Count",
+      '$d = (Get-ChildItem $carpeta -Filter *.log).Count',
+    ];
+    const BUENAS = [
+      '$e = @($resultados | Where-Object { $_.Ok }).Count',
+      '$f = ($resultados).Count',
+      'if ($malos.Count) { throw "$($malos.Count) errores" }',
+    ];
+    const texto = [...MALAS, ...BUENAS].join('\n');
+    const r = cp.spawnSync(process.execPath, ['-e', `const r = require(${JSON.stringify(path.join(RAIZ, '..', 'herramientas', 'revisar-powershell.js'))}); process.stdout.write('\\n' + JSON.stringify(r.revisar(${JSON.stringify(texto)})))`], { encoding: 'utf8' });
+    const ultima = r.stdout.trim().split('\n').pop();
+    let problemas;
+    try { problemas = JSON.parse(ultima); } catch { throw new Error(`el revisor no se deja usar desde una prueba: ${r.stdout.slice(0, 120)}`); }
+    const marcadas = problemas.filter((p) => /Count/.test(p.que)).map((p) => p.linea);
+    assert.deepEqual(marcadas, [1, 2, 3, 4], `marca las líneas ${marcadas.join(', ')} de las siete`);
+    return 'las cuatro de verdad, y ninguna de las tres buenas';
+  });
+
   await comprobar('el relevo lanza un guion con el Node de VS Code', () => {
     // C2 y la decisión 4 de Jose. RSC escribe sus enganches como `node …`, y
     // Claude Code los corre con `sh -c`. Sin un `node` en el PATH, cada

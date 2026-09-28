@@ -4285,6 +4285,22 @@ Lo que salió:
 - las reglas cargadas eran las de `siempre.md`, importadas desde `CLAUDE.md`;
 - los enganches de arranque salieron con 0.
 
+### Lo que encontró la revisión
+
+Un refutador de corrección sobre la rama entera, que comprobó lo gordo ejecutándolo. Leyó el registro de
+verdad de la máquina Windows y no el resumen, y repitió `probar-en-vscode`. Dejó dos importantes:
+
+- **La regla del `.Count` era demasiado estrecha.** Solo veía el `Where-Object` más simple. Se le
+  escapaban uno con paréntesis dentro, `Select-String` y `Get-ChildItem`, que en PowerShell 5.1 fallan
+  igual. Ahora busca el paréntesis que abre cada `).Count` y marca lo que lleve dentro una tubería o un
+  cmdlet. El revisor exporta su revisión, y una prueba le pasa las cuatro variantes malas y tres buenas.
+- **El macOS de fábrica tampoco distingue mayúsculas.** Con el relevo en `…/relevo` y el PATH diciendo
+  `…/Relevo`, en un Mac se tomaba por un node del sistema. Ahora `relevo.js` compara la carpeta de
+  verdad, por su dispositivo y su nodo en el disco, y la ruta solo si todavía no existe. Eso cubre
+  también la barra final, que era el menor.
+
+Tres mutaciones tumban las dos pruebas nuevas.
+
 ### Lo que no se pudo
 
 - **Codex hablando.** El Codex de este Mac (0.137.0) ya no puede hablar con los modelos que admite una
