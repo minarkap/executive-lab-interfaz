@@ -4157,3 +4157,59 @@ mano. Hoy no hay ninguna: las otras sesiones trabajaban en esta misma carpeta.
 Una carpeta montada con la 2.0.5 es ahora de una versión anterior a la de la clase. La barra lo dice en
 «Qué falta por montar» y la pone al día con su botón (B5). Las habilidades no cambian, así que ponerla
 al día solo cambia los enganches de `.rsc/`.
+
+## 128. La barra, probada en una máquina Windows
+
+**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `lo-que-queda`, punto 9
+
+Windows es donde están casi todos los alumnos, y todo lo de Windows quedaba «pendiente de una máquina»:
+el relevo de Node en Git Bash y en PowerShell, qué Python se elige, el `.exe`. Pero el repositorio es
+público, y para un repositorio público las máquinas Windows de GitHub no cuestan nada. Así que
+`.github/workflows/windows.yml` corre en una en cada cambio de la barra:
+
+- `extension/prueba/windows.js`, lo que solo se puede probar allí, con las funciones de la barra:
+  - que la barra encuentra Git Bash;
+  - que el relevo, con ningún otro `node` en el PATH, es el que encuentran Git Bash, PowerShell y cmd, y
+    lanza el Node de la barra;
+  - que el freno de los raíles, enganchado como lo deja `aplicar.js` y pasado por Git Bash como hace
+    Claude Code, deniega un `rm -rf`;
+  - que para los guiones en Python se elige `py -3`.
+- La batería de siempre y el contrato, en Windows.
+
+### Lo que salió
+
+La primera vuelta: lo de solo Windows, entero; la batería, 305 de 322. Diecisiete rojas, de tres clases:
+
+- **Saltos de línea.** git en Windows los cambia al sacar el código, y la copia del freno tiene que ser
+  igual byte a byte. Es de la copia de trabajo de la prueba, no de la barra (el `.vsix` se hace en un
+  Mac): el flujo lo apaga antes de sacar el código.
+- **Pruebas que no eran portables**:
+  - las del freno llamaban a `/bin/sh`, que allí no existe: ahora van por Git Bash, como Claude Code;
+  - la carpeta personal de mentira ponía `HOME` y Windows lee `USERPROFILE`;
+  - una ruta se buscaba con «/» y la app de mentira dejaba el Node donde no lo deja el instalador;
+  - una prueba no limpiaba su carpeta al fallar, y otras dos contaban una herramienta de más.
+- **Fallos de la barra**, cinco, y los cinco los vería un alumno:
+  - «Conocimiento» comparaba lo escrito con el índice por su ruta, y en Windows salía con «\». Todo lo
+    escrito salía como sin ordenar, y las carpetas de trabajo de RSC contaban como conocimiento.
+  - Las claves sueltas se apuntaban con «\». Ahora las rutas relativas van siempre con «/», que es lo
+    que devuelve git y lo que se compara; la barra ya lo hacía al guardar, así que las claves no se
+    colaban en la copia.
+  - Guardar una clave en un fichero de solo lectura da `EPERM` en Windows y no `EACCES`: salía el
+    mensaje genérico en vez de «No tengo permiso para guardar aquí».
+
+Después: lo de solo Windows, todo bien; la batería, 327; el contrato, 13. Seis pruebas se saltan allí,
+cada una con su porqué: dos usan un git de mentira que es un guion de sh, dos piden un bash que no es el
+de Git, una la mide `windows.js` y otra es de enlaces, que en Windows RSC no hace.
+
+### Lo que sigue sin medir en Windows
+
+- **El `.exe`**: compilarlo, instalarlo en silencio y correr `probar.ps1`. La carga lleva binarios de
+  terceros que no se versionan.
+- **Un Windows de alumno**: la máquina de GitHub es un Windows Server con administrador. SmartScreen, un
+  usuario sin administrador y el editor abierto de verdad siguen siendo de mirar.
+- **El relevo con el binario de VS Code**: en la máquina de GitHub el relevo lanza un `node.exe`. Con el
+  editor lanzaría `Code.exe` con `ELECTRON_RUN_AS_NODE`, que es como VS Code arranca sus extensiones.
+- **El corte de la URL a 2.048 caracteres** del puente, que pide el editor y una conversación.
+
+0.42.0. 327 comprobaciones, 335 con el arnés de verdad, 13 de contrato, 7 en un VS Code de verdad, y en
+Windows 7 de solo Windows, 327 y 13.

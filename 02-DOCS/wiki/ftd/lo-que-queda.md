@@ -41,10 +41,12 @@ Jose respondió el 28-09-2026: **«HAz tu lo que queda»**. Este documento es es
 - [x] 2. El motor de JavaScript, retirado — roja con la biblioteca al lado (`'js' !== 'binario'`) y verde.
 - [x] 3. Los instaladores al día — roja por la versión (0.9.0) y, después, por lo que buscaba `probar.ps1` (git, harness); verde.
 - [x] 4. `npm run probar-en-vscode` en verde, con el relevo — 7 de 7; la mutación del PATH lo tumba. Cazó «Diagnóstico del puente».
-- [ ] 5. Subida de verdad con el token en la cabecera.
-- [ ] 6. Rama subida, PR fusionada y versión publicada.
-- [ ] 7. La 2.0.15 leída, y la decisión escrita.
-- [ ] 8. Las issues, abiertas o descartadas con su motivo.
+- [x] 5. Subida de verdad con el token en la cabecera — la rama `todo-cuadra` subió así, con `historial.subir`; al fallar no enseña el token. Cazó que git iba al llavero: arreglado (`1f86860`).
+- [x] 6. Rama subida, PR fusionada y versión publicada — PR #1 fusionada en `f2f4575`, sin reescribir commits; la 0.41.0, publicada y la última: https://github.com/minarkap/executive-lab-interfaz/releases/tag/v0.41.0
+- [x] 7. La 2.0.15 leída, y la decisión escrita — leída entera; ensayada en una copia; la clase pasa a la 2.0.15 (decisión 127, `56575bb`).
+- [x] 8. Las issues, abiertas o descartadas con su motivo — las seis, reproducidas en la 2.0.15 y abiertas: de #273 a #278. La #258 ya estaba arreglada (2.0.6).
+- [x] 9. Windows, en una máquina Windows de GitHub: el relevo, el freno, Python y la batería — todo verde (`windows.js` todo bien, 327, 13), después de cazar cinco fallos que vería un alumno (decisión 128).
+- [ ] 10. La 0.42.0, con la 2.0.15 y lo de Windows, publicada.
 
 ## Evidence
 
@@ -58,6 +60,8 @@ Observado el 28-09-2026 en la rama `todo-cuadra`, sobre 9b34437.
   ejecutarlo»: `executiveLab.diagnosticoPuente (salida.clear is not a function)`. Arreglado, con prueba.
 - Pantallas: la sección «Lo que quedaba» en https://claude.ai/artifact/JRBxy4Mcbz7MMQ2uY8drre (v6).
 - Decisión 126 en `docs/decisiones.md`; diario en `02-DOCS/raw/worklog/2026-09-28-lo-que-queda.md`.
+- Windows: https://github.com/minarkap/executive-lab-interfaz/actions/runs/36394433641, en verde. La primera vuelta: https://github.com/minarkap/executive-lab-interfaz/actions/runs/36391516690.
+- Issues de RSC: de https://github.com/ericrisco/rsc-harness/issues/273 a la #278.
 - Revisión de `2c60e95` (refutador de corrección): un importante, aceptado a medias, con prueba del camino de verdad; un menor, arreglado (`disponible()`); y un menor descartado con evidencia. Detalle en la decisión 126.
 
 ## Next

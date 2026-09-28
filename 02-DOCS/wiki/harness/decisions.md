@@ -656,3 +656,15 @@ Decisión 127 en `docs/decisiones.md`. Vía rápida `lo-que-queda`, punto 7.
 - **Ensayada antes en una copia**: tres pruebas tenían las versiones escritas a mano, ninguna era del
   arnés.
 - **El rodeo de la #258, fuera**: `.rsc/` se ignora entero, y lo apagado viaja en `.rsc.json`.
+
+## La barra, probada en una máquina Windows — 28 de septiembre de 2026
+
+Decisión 128 en `docs/decisiones.md`. Vía rápida `lo-que-queda`, punto 9.
+
+- **Una máquina Windows de GitHub, en cada cambio**, gratis para un repositorio público.
+- **Medido allí**: el relevo en Git Bash, PowerShell y cmd; el freno pasado por Git Bash; `py -3`.
+- **Cinco fallos que vería un alumno de Windows**, arreglados: «Conocimiento» con todo sin ordenar y el
+  andamio de RSC dentro, las claves sueltas con «\», y el aviso de permiso que no salía.
+- **Sigue sin medir**: el `.exe`, un Windows de alumno sin administrador y el relevo con el editor.
+
+0.42.0. En Windows: 7 de solo Windows, 327 y 13.

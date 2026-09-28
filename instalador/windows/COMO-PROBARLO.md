@@ -49,10 +49,15 @@ Este Mac es arm64 y no tiene virtualización instalada. Por orden de fidelidad:
 
 ## Y para que no haya que repetirlo a mano
 
-El repo ya tiene remoto en GitHub, así que esto mismo cabe en un *workflow* sobre `windows-latest`:
-compilar con Inno, ejecutar el instalador en silencio y correr `probar.ps1`. Quedaría comprobado en
-cada cambio. Todavía no está montado: la carga lleva binarios de terceros que no se versionan
-(`preparar-carga.sh` dice cuáles), y el *workflow* tendría que bajarlos él.
+Media parte ya corre sola. En cada cambio de la barra, `.github/workflows/windows.yml` corre en una
+máquina Windows de GitHub, gratis para un repositorio público:
+- `extension/prueba/windows.js`, con el relevo de Node en Git Bash, PowerShell y cmd, el freno de los
+  raíles pasado por Git Bash y el Python que se elige (`py -3`);
+- la batería de siempre y el contrato.
+
+Lo que falta es el `.exe`: compilarlo con Inno, instalarlo en silencio y correr `probar.ps1`. La carga
+lleva binarios de terceros que no se versionan (`preparar-carga.sh` dice cuáles), y el *workflow*
+tendría que bajarlos él.
 
 Lo que un *runner* **no** puede responder sigue siendo lo mismo: SmartScreen y el usuario sin
 administrador.
