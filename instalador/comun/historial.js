@@ -135,12 +135,23 @@ function motorBinario(ejecutable) {
       // cabecera, por el entorno de esta sola invocación: ni en el disco ni en
       // la configuración del repositorio. Se suma a lo que ya hubiera en el
       // entorno con `GIT_CONFIG_COUNT`, sin pisarlo.
+      //
+      // Y esa es la única clave. Con una que no vale, git pide un usuario: el
+      // llavero de macOS probaría la cuenta que tenga guardada quien sea, y el
+      // gestor de credenciales de Git para Windows abriría una ventana para
+      // entrar en GitHub. Un `credential.helper` vacío deja la lista de
+      // ayudantes vacía, y sin terminal no hay a quién preguntar: si la clave no
+      // vale, lo dice la barra. Lo enseñó la subida de verdad (28-09-2026).
       const cuantas = Number.parseInt(process.env.GIT_CONFIG_COUNT || '0', 10) || 0;
-      const entorno = {
-        GIT_CONFIG_COUNT: String(cuantas + 1),
-        [`GIT_CONFIG_KEY_${cuantas}`]: 'http.extraHeader',
-        [`GIT_CONFIG_VALUE_${cuantas}`]: `Authorization: Basic ${Buffer.from(`${token}:x-oauth-basic`).toString('base64')}`,
-      };
+      const pares = [
+        ['http.extraHeader', `Authorization: Basic ${Buffer.from(`${token}:x-oauth-basic`).toString('base64')}`],
+        ['credential.helper', ''],
+      ];
+      const entorno = { GIT_CONFIG_COUNT: String(cuantas + pares.length), GIT_TERMINAL_PROMPT: '0' };
+      pares.forEach(([clave, valor], i) => {
+        entorno[`GIT_CONFIG_KEY_${cuantas + i}`] = clave;
+        entorno[`GIT_CONFIG_VALUE_${cuantas + i}`] = valor;
+      });
       await exigir(dir, ['push', url, `${rama}:${rama}`], entorno);
     },
 

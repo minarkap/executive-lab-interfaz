@@ -2157,6 +2157,46 @@ exec git "$@"
     }
   });
 
+  await comprobar('al subir, la única clave es la de la barra: sin llavero, sin ventanas y sin preguntas', async () => {
+    // Lo enseñó la subida de verdad a GitHub (28-09-2026): con un token que no
+    // vale, git pide un usuario. En un Windows, el gestor de credenciales de
+    // Git para Windows abriría una ventana para entrar en GitHub; en un Mac, el
+    // llavero probaría la cuenta que tenga guardada quien sea. La clave es la
+    // que el alumno puso en Conexiones, o la de su cuenta del editor, y si no
+    // vale lo dice la barra: «Revisa la clave en Conexiones».
+    if (process.platform === 'win32') return 'SALTADA: el git de mentira es un guion de sh';
+    const guardar = cargar('guardar');
+    if (!(await guardar.hayGit())) return 'SALTADA: sin git';
+    const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
+    const donde = fs.mkdtempSync(path.join(os.tmpdir(), 'subir-sin-ayudas-'));
+    const apuntes = path.join(donde, '..', `${path.basename(donde)}-entorno.txt`);
+    const falso = path.join(donde, '..', `${path.basename(donde)}-git`);
+    fs.writeFileSync(falso, `#!/bin/sh
+for a in "$@"; do
+  case "$a" in
+    push) env | grep -E '^(GIT_TERMINAL_PROMPT|GIT_CONFIG_(COUNT|KEY_[0-9]+|VALUE_[0-9]+))=' >> "${apuntes}"; exit 128;;
+  esac
+done
+exec git "$@"
+`, { mode: 0o755 });
+    try {
+      assert.ok((await historial.iniciar(donde)).ok);
+      fs.writeFileSync(path.join(donde, 'a.txt'), 'uno');
+      await historial.guardar(donde, 'Primera');
+      await historial.subir(donde, { url: 'https://github.com/empresa/copia.git', token: 'ghp_TOKENDEPRUEBA1234567890' }, { git: falso, recalcular: true });
+      const entorno = Object.fromEntries(fs.readFileSync(apuntes, 'utf8').split('\n').filter(Boolean).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+      assert.equal(entorno.GIT_TERMINAL_PROMPT, '0', 'git se queda esperando una respuesta que nadie va a dar');
+      const pares = Array.from({ length: Number(entorno.GIT_CONFIG_COUNT) }, (_, i) => [entorno[`GIT_CONFIG_KEY_${i}`], entorno[`GIT_CONFIG_VALUE_${i}`]]);
+      assert.ok(pares.some(([clave, valor]) => clave === 'credential.helper' && valor === ''), 'el llavero o el gestor de credenciales pueden meter otra cuenta');
+      assert.ok(pares.some(([clave]) => clave === 'http.extraHeader'), 'se ha perdido la cabecera');
+      return `${pares.length} ajustes de una sola orden, y ninguna pregunta`;
+    } finally {
+      historial.queMotor({ recalcular: true });
+      fs.rmSync(falso, { force: true });
+      fs.rmSync(apuntes, { force: true });
+    }
+  });
+
   await comprobar('volver atrás dice qué pasa con lo que tenías sin guardar', async () => {
     // Volver atrás hace lo que promete y guarda una copia de lo actual antes,
     // así que no se pierde nada. Pero el mensaje era «Listo. Tu empresa ha
