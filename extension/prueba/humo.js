@@ -510,17 +510,23 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     fs2.writeFileSync(env, 'B_API_KEY=antigua\n');
     fs2.chmodSync(env, 0o444);
 
-    let respuesta;
-    assert.doesNotThrow(() => { respuesta = conexiones.escribir('BLOQUEADA', 'B_API_KEY', 'nueva'); },
-      'no puede lanzar: se lo come el panel y el botón se queda mudo');
-    assert.equal(respuesta.ok, false);
-    assert.match(respuesta.mensaje, /permiso/, 'se dice qué ha pasado');
-    assert.match(respuesta.mensaje, /asistente/, 'y a quién pedírselo');
+    try {
+      let respuesta;
+      assert.doesNotThrow(() => { respuesta = conexiones.escribir('BLOQUEADA', 'B_API_KEY', 'nueva'); },
+        'no puede lanzar: se lo come el panel y el botón se queda mudo');
+      assert.equal(respuesta.ok, false);
+      assert.match(respuesta.mensaje, /permiso/, `se dice qué ha pasado: ${respuesta.mensaje}`);
+      assert.match(respuesta.mensaje, /asistente/, 'y a quién pedírselo');
 
-    fs2.chmodSync(env, 0o600);
-    assert.equal(conexiones.escribir('BLOQUEADA', 'B_API_KEY', 'nueva').ok, true, 'y desbloqueada vuelve a guardar');
-    fs2.rmSync(carpeta, { recursive: true, force: true });
-    return 'sin excepción y con qué hacer';
+      fs2.chmodSync(env, 0o600);
+      assert.equal(conexiones.escribir('BLOQUEADA', 'B_API_KEY', 'nueva').ok, true, 'y desbloqueada vuelve a guardar');
+      return 'sin excepción y con qué hacer';
+    } finally {
+      // Pase lo que pase: en Windows se quedaba en la empresa de mentira, y la
+      // brújula y la radiografía contaban una herramienta de más.
+      try { fs2.chmodSync(env, 0o600); } catch { /* ya no está */ }
+      fs2.rmSync(carpeta, { recursive: true, force: true });
+    }
   });
 
   await comprobar('una credencial de varias líneas no se aplasta en silencio', () => {
@@ -1105,10 +1111,14 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.deepEqual(rumboM.cuantasPreguntas({ recibo: null, railes: null, carpeta: { delicada: 'documentos' } }), mas(1));
     assert.deepEqual(rumboM.cuantasPreguntas({ recibo: null, railes: null, dentroDeOtro: { nombre: 'Proyectos' } }), mas(1));
     const antesHome = process.env.HOME;
+    const antesPerfil = process.env.USERPROFILE;
     const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'casa-de-mentira-'));
     const documentos = path.join(casa, 'Documents');
     fs.mkdirSync(documentos);
+    // En Windows, la carpeta personal es USERPROFILE: con HOME solo, la prueba
+    // miraba la de verdad.
     process.env.HOME = casa;
+    process.env.USERPROFILE = casa;
     vscode.guion.raiz = documentos;
     try {
       const { aviso } = await cargar('brujula').estado({ fresco: true });
@@ -1116,6 +1126,8 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
       return aviso;
     } finally {
       process.env.HOME = antesHome;
+      if (antesPerfil === undefined) delete process.env.USERPROFILE;
+      else process.env.USERPROFILE = antesPerfil;
       vscode.guion.raiz = empresa;
     }
   });
@@ -4745,8 +4757,10 @@ exec git "$@"
   };
   const elFrenoNuestro = (carpeta) => antesDeCadaOrden(carpeta).find((o) => o.includes('.claude/skills/executive-lab/freno.mjs'));
   // Una orden, pasada por un enganche como lo corre Claude Code: con `sh -c` y
-  // la carpeta en CLAUDE_PROJECT_DIR.
-  const pasarPor = (enganche, carpeta, orden) => require('node:child_process').spawnSync('/bin/sh', ['-c', enganche], {
+  // la carpeta en CLAUDE_PROJECT_DIR. En Windows, Claude Code usa Git Bash, y
+  // `/bin/sh` no existe: las cinco pruebas del freno no llegaban a correr.
+  const SH = process.platform === 'win32' ? cargar('entorno').bash() : '/bin/sh';
+  const pasarPor = (enganche, carpeta, orden) => require('node:child_process').spawnSync(SH, ['-c', enganche], {
     input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: orden } }),
     encoding: 'utf8',
     env: { ...process.env, CLAUDE_PROJECT_DIR: carpeta },
@@ -5279,7 +5293,7 @@ exec git "$@"
     // en escribir para esta carpeta— acababa contada como "cosas que trae de
     // serie" y no se veía por ningún lado.
     const saberes = cargar('saberes');
-    vscode.guion.raiz = RAIZ.replace(/\/extension$/, '');
+    vscode.guion.raiz = path.dirname(RAIZ);
     const suyo = saberes.queSabe(RAIZ);
     vscode.guion.raiz = empresa;
 
@@ -5863,6 +5877,44 @@ exec git "$@"
     assert.ok(!/Ver qué hay aquí/.test(pintado), 'la radiografía ya no tiene un cuarto nombre');
     assert.match(pintado, /Qué falta por montar/);
     return 'botón donde se le nombra';
+  });
+
+  await comprobar('una clave en una subcarpeta tampoco entra en la copia, y si ya estaba en git se dice', async () => {
+    // F1 con la clave fuera de la raíz: `auto/.env`. En Windows la ruta sale
+    // con «\\», y es git quien tiene que entenderla, tanto para dejarla fuera de
+    // la copia como para decir si ya estaba en el historial.
+    const guardarM = cargar('guardar');
+    if (!(await guardarM.hayGit())) return 'SALTADA: sin git';
+    const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
+    const cp = require('node:child_process');
+    const carpeta = fs.mkdtempSync(path.join(os.tmpdir(), 'clave-en-subcarpeta-'));
+    const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'casa-'));
+    const antes = process.env.GIT_CONFIG_GLOBAL;
+    process.env.GIT_CONFIG_GLOBAL = path.join(casa, '.gitconfig');
+    fs.writeFileSync(path.join(carpeta, '.rsc.json'), JSON.stringify({ version: 1, targets: ['claude'] }));
+    fs.mkdirSync(path.join(carpeta, 'auto'), { recursive: true });
+    fs.writeFileSync(path.join(carpeta, 'auto', 'publicar.md'), '# Publicar\n');
+    vscode.guion.raiz = carpeta;
+    try {
+      assert.ok((await historial.iniciar(carpeta)).ok);
+      fs.writeFileSync(path.join(carpeta, 'auto', '.env'), 'BUFFER_API_KEY=secreto_de_verdad\n');
+      const hecho = await guardarM.guardar('Con una clave en una subcarpeta');
+      assert.equal(hecho.ok, true, hecho.mensaje);
+      const enLaCopia = cp.execFileSync('git', ['-C', carpeta, 'ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean);
+      assert.ok(!enLaCopia.includes('auto/.env'), `la clave de la subcarpeta entra en la copia: ${enLaCopia.join(', ')}`);
+      assert.ok(enLaCopia.includes('auto/publicar.md'), 'lo demás de la subcarpeta no entra');
+
+      // Y una que ya estaba en git: se dice.
+      cp.execFileSync('git', ['-C', carpeta, 'add', '-f', 'auto/.env']);
+      cp.execFileSync('git', ['-C', carpeta, 'commit', '-q', '-m', 'Se coló']);
+      const hay = cargar('sueltas').resumen();
+      assert.equal(hay.subidas, 1, 'una clave de una subcarpeta que ya está en git no se ve subida');
+      return 'fuera de la copia, y subida se dice';
+    } finally {
+      if (antes === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+      else process.env.GIT_CONFIG_GLOBAL = antes;
+      vscode.guion.raiz = empresa;
+    }
   });
 
   await comprobar('cada clave suelta sabe a qué herramienta va', async () => {
@@ -7584,8 +7636,8 @@ exec git "$@"
       assert.deepEqual(sitios, [], 'fuera de Windows no hay nada que buscar: bash está en el PATH');
       return 'no es Windows: bash del sistema';
     }
-    assert.ok(sitios.some((s) => /Programs..Git/.test(s)), 'la instalación por usuario, que es la que hacemos');
-    assert.ok(sitios.some((s) => /Program Files..Git/.test(s)), 'y la de todo el sistema, por si ya lo tenía');
+    assert.ok(sitios.some((s) => /Programs[\\/]Git/.test(s)), 'la instalación por usuario, que es la que hacemos');
+    assert.ok(sitios.some((s) => /Program Files[\\/]Git/.test(s)), 'y la de todo el sistema, por si ya lo tenía');
     return `${sitios.length} sitios donde mirar`;
   });
 
@@ -8434,9 +8486,13 @@ exec git "$@"
     // Una instalación de escritorio de mentira: con ella, el Node de la barra
     // es el suyo, que es el caso en que se escribía la ruta.
     const app = fs.mkdtempSync(path.join(os.tmpdir(), 'app-de-mentira-'));
-    const suNode = path.join(app, 'runtime', 'bin', process.platform === 'win32' ? 'node.exe' : 'node');
+    // Donde lo deja cada instalador: el de Windows, en `runtime\\node.exe`; el de
+    // Mac, en `runtime/bin/node`. En Windows se copia: un enlace pide el modo de
+    // desarrollador.
+    const suNode = process.platform === 'win32' ? path.join(app, 'runtime', 'node.exe') : path.join(app, 'runtime', 'bin', 'node');
     fs.mkdirSync(path.dirname(suNode), { recursive: true });
-    fs.symlinkSync(process.execPath, suNode);
+    if (process.platform === 'win32') fs.copyFileSync(process.execPath, suNode);
+    else fs.symlinkSync(process.execPath, suNode);
     const antesApp = process.env.EXECUTIVE_LAB_HOME;
     process.env.EXECUTIVE_LAB_HOME = app;
     const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'ajuste-portable-git-'));
@@ -10082,6 +10138,7 @@ exec git "$@"
     // brújula y sin memoria. El relevo es un `node` que llama al de VS Code,
     // como la barra ya hace para correr RSC. Vive fuera de la carpeta del
     // alumno (P8), y del anfitrión solo toca el PATH.
+    if (process.platform === 'win32') return 'SALTADA: en Windows lo mide prueba/windows.js, en Git Bash, PowerShell y cmd';
     const relevo = cargar('relevo');
     const { spawnSync } = require('node:child_process');
     const carpeta = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'almacen-de-la-barra-')), 'relevo');
