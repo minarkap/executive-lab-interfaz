@@ -2,7 +2,7 @@
 type: ftd
 title: Lo que quedaba de «Todo cuadra»
 date: 2026-09-28
-status: en-curso
+status: hecho
 ---
 
 # Lo que quedaba de «Todo cuadra»
@@ -46,7 +46,7 @@ Jose respondió el 28-09-2026: **«HAz tu lo que queda»**. Este documento es es
 - [x] 7. La 2.0.15 leída, y la decisión escrita — leída entera; ensayada en una copia; la clase pasa a la 2.0.15 (decisión 127, `56575bb`).
 - [x] 8. Las issues, abiertas o descartadas con su motivo — las seis, reproducidas en la 2.0.15 y abiertas: de #273 a #278. La #258 ya estaba arreglada (2.0.6).
 - [x] 9. Windows, en una máquina Windows de GitHub: el relevo, el freno, Python y la batería — todo verde (`windows.js` todo bien, 327, 13), después de cazar cinco fallos que vería un alumno (decisión 128).
-- [ ] 10. La 0.42.0, con la 2.0.15 y lo de Windows, publicada.
+- [x] 10. La 0.42.0, con la 2.0.15 y lo de Windows, publicada — PR #2 fusionada en `2e3b10e`, sin reescribir commits; la 0.42.0, publicada y la última, con RSC 2.0.15 dentro: https://github.com/minarkap/executive-lab-interfaz/releases/tag/v0.42.0
 
 ## Evidence
 
@@ -66,4 +66,11 @@ Observado el 28-09-2026 en la rama `todo-cuadra`, sobre 9b34437.
 
 ## Next
 
-(al cerrar)
+Lo que sigue sin comprobar pide una persona o una máquina de alumno (decisión 128):
+- el `.exe` de Windows, instalado de verdad, con `probar.ps1`;
+- SmartScreen y un usuario sin administrador;
+- el relevo con el binario de VS Code en Windows;
+- el corte de la URL del puente a 2.048 caracteres;
+- una conversación de Claude o de Codex hablando, abierta desde la barra.
+
+Y las seis issues de RSC, de #273 a #278: cuando Eric arregle una, su rodeo en la barra se puede quitar.
