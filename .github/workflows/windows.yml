@@ -1,0 +1,45 @@
+# Lo que solo se puede probar en Windows, en una máquina Windows de GitHub.
+#
+# Windows es donde están casi todos los alumnos, y desde el Mac en el que se
+# hace la barra no se puede probar: el relevo de Node en Git Bash y en
+# PowerShell, qué Python se elige, y si la batería de siempre aguanta ahí. Para
+# un repositorio público, estas máquinas no cuestan nada.
+name: Windows
+
+on:
+  push:
+    paths:
+      - 'extension/**'
+      - 'skills/**'
+      - 'instalador/comun/**'
+      - '.github/workflows/windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # El Node que lleva el instalador es el 24; el de VS Code, el de su Electron.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Lo que solo se puede probar en Windows
+        run: node extension/prueba/windows.js
+
+      # El arnés de dentro no se versiona: se trae exacto, del package-lock.
+      - name: El arnés de dentro y los módulos comunes
+        run: |
+          npm ci --prefix extension/media/harness --no-audit --no-fund
+          node extension/preparar-paquete.js
+
+      - name: La batería de siempre
+        run: node extension/prueba/humo.js
+
+      - name: El contrato con el arnés
+        run: node extension/prueba/contrato.js
