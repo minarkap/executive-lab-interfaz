@@ -95,6 +95,11 @@ function mirar(rutaRelativa, encontradas) {
   });
 }
 
+// Las rutas relativas de aquí van siempre con «/», en cualquier sistema: se
+// comparan entre sí, se le pasan a git, que contesta con «/», y se le leen al
+// asistente. Con `path.join`, en Windows salían con «\» (lo cazó la máquina
+// Windows de GitHub, 28-09-2026). `proyecto.ruta` las resuelve igual.
+//
 // Los ficheros de claves que hay en una carpeta, salvo los que se le digan.
 function ficherosDeClavesEn(carpetaRelativa, salvo = []) {
   const completa = carpetaRelativa ? proyecto.ruta(carpetaRelativa) : proyecto.raiz();
@@ -102,7 +107,7 @@ function ficherosDeClavesEn(carpetaRelativa, salvo = []) {
   try {
     return fs.readdirSync(completa)
       .filter((n) => ES_DE_CLAVES.test(n) && !ES_EJEMPLO.test(n) && !salvo.includes(n))
-      .map((n) => (carpetaRelativa ? path.join(carpetaRelativa, n) : n));
+      .map((n) => (carpetaRelativa ? path.posix.join(carpetaRelativa, n) : n));
   } catch {
     return [];
   }
@@ -147,7 +152,7 @@ function buscar() {
   // ahí también está fuera de sitio, porque ni la barra ni la prueba de
   // conexión lo leen.
   for (const h of herramientas()) {
-    for (const fichero of ficherosDeClavesEn(path.join(HERRAMIENTAS, h.id), ['.env'])) mirar(fichero, encontradas);
+    for (const fichero of ficherosDeClavesEn(path.posix.join(HERRAMIENTAS, h.id), ['.env'])) mirar(fichero, encontradas);
   }
 
   return encontradas;
@@ -281,7 +286,7 @@ function ficherosDeAcceso(lasHerramientas = herramientas()) {
 
       const suyo = queEs(entrada.name, path.join(completa, entrada.name));
       if (!suyo) continue;
-      const donde = relativa ? path.join(relativa, entrada.name) : entrada.name;
+      const donde = relativa ? path.posix.join(relativa, entrada.name) : entrada.name;
       if (encontrados.some((f) => f.donde === donde)) continue;
 
       // De quién es, por el orden de la aclaración C3 de la spec.
@@ -321,7 +326,7 @@ function ficherosDeAcceso(lasHerramientas = herramientas()) {
 
   // Dentro de cada herramienta, lo que esté FUERA de su `keys/`. Lo que hay en
   // `keys/` está en su casa y no se cuenta como desorden.
-  for (const h of lasHerramientas) mirarCarpeta(path.join(HERRAMIENTAS, h.id), h.id);
+  for (const h of lasHerramientas) mirarCarpeta(path.posix.join(HERRAMIENTAS, h.id), h.id);
 
   return encontrados;
 }

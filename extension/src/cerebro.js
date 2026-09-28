@@ -68,7 +68,7 @@ const NO_SON_TEMAS = new Set(['harness', 'brand', 'sdd', 'ftd', 'decisions', 'de
 // piden al asistente que indexe lo suyo—: se aplica fila a fila, y un tema que se
 // queda sin filas no sale (revisión de F7, importante 1). Y lo archivado, que RSC
 // mueve a `<tema>/_archive/`.
-const esAndamio = (ruta) => NO_SON_TEMAS.has(String(ruta).replace(/^\.\//, '').split('/')[0].trim().toLowerCase());
+const esAndamio = (ruta) => NO_SON_TEMAS.has(String(ruta).replace(/^\.[\\/]/, '').split(/[\\/]/)[0].trim().toLowerCase());
 const esArchivado = (ruta) => /(^|\/)_archive\//.test(String(ruta));
 
 function delDisco() {
@@ -245,7 +245,10 @@ function todosLosDocumentos() {
     for (const entrada of entradas) {
       if (entrada.name.startsWith('.')) continue;
       const completa = path.join(carpeta, entrada.name);
-      const relativa = path.relative(wiki, completa);
+      // Con «/», como las escribe el índice: con `path.relative` a secas, en
+      // Windows salían con «\», no casaban con ninguna del índice, y todo lo
+      // escrito salía como sin ordenar (máquina Windows de GitHub, 28-09-2026).
+      const relativa = path.relative(wiki, completa).split(path.sep).join('/');
       if (entrada.isDirectory()) {
         // El andamio, arriba del todo; lo archivado, en cualquier tema. Tenía su
         // propia lista, la de antes, y «sin ordenar» enseñaba `ftd/`, `stack/` y

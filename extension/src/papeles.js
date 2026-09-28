@@ -59,7 +59,7 @@ function listar(partes, { saltar = [], hondo = true } = {}) {
         nombre: entrada.name,
         // Relativa a la carpeta de trabajo: es lo que viaja al panel y lo que
         // vuelve para abrirlo, y nunca se enseña en pantalla.
-        ruta: path.relative(proyecto.raiz(), completa),
+        ruta: path.relative(proyecto.raiz(), completa).split(path.sep).join('/'),
         cuando,
       });
     }

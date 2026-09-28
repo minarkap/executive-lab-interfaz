@@ -436,7 +436,7 @@ function escribir(proveedorId, clave, valorBruto) {
   } catch (fallo) {
     return {
       ok: false,
-      mensaje: fallo && fallo.code === 'EACCES'
+      mensaje: fallo && ['EACCES', 'EPERM'].includes(fallo.code)
         ? 'No tengo permiso para guardar aquí. Pídeselo al asistente, que puede mirar por qué.'
         : 'No he podido guardarlo. Prueba otra vez, y si sigue igual pídeselo al asistente.',
     };

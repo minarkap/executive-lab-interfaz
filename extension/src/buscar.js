@@ -102,7 +102,7 @@ function armarElIndice() {
 
         const cuerpo = crudo.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
         const titulo = (cuerpo.match(/^#\s+(.+)$/m) || [])[1] || path.basename(completa, '.md').replace(/[-_]+/g, ' ');
-        const relativa = path.relative(wiki, completa);
+        const relativa = path.relative(wiki, completa).split(path.sep).join('/');
         // index.md, log.md y gaps.md son el andamio de la wiki, no cosas que
         // sepa: si salieran, cualquier búsqueda los sacaría todos.
         if (['index.md', 'log.md', 'gaps.md'].includes(relativa)) return;
