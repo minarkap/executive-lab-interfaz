@@ -24,6 +24,10 @@ HOME=/tmp/casa-falsa node "escenario/Instalar Executive Lab.app/Contents/Resourc
 `--sin-dock` es importante: el Dock **no** vive en la carpeta personal, así que sin esa opción te
 cambiaría el tuyo de verdad.
 
+Esto mismo corre solo en cada cambio, en una máquina macOS de GitHub (el trabajo `el-dmg` de
+`.github/workflows/windows.yml`, decisión 130). Allí no hay certificado, así que `probar.sh --sin-firma`
+anota la firma en vez de darla por mala.
+
 Para ver también la parte que sale por pantalla (los diálogos y la barra de progreso), abre la app:
 
 ```bash

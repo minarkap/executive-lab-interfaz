@@ -1,9 +1,11 @@
-# Lo que solo se puede probar en Windows, en una máquina Windows de GitHub.
+# Lo que solo se puede probar en Windows, en una máquina Windows de GitHub, y el
+# instalador de macOS, en una macOS.
 #
 # Windows es donde están casi todos los alumnos, y desde el Mac en el que se
 # hace la barra no se puede probar: el relevo de Node en Git Bash y en
 # PowerShell, qué Python se elige, la barra en un VS Code de Windows y el
-# instalador. Para un repositorio público, estas máquinas no cuestan nada.
+# instalador. Y el de macOS se prueba mejor en una máquina limpia que en la de
+# quien lo hace. Para un repositorio público, estas máquinas no cuestan nada.
 name: Windows
 
 on:
@@ -13,6 +15,7 @@ on:
       - 'skills/**'
       - 'instalador/comun/**'
       - 'instalador/windows/**'
+      - 'instalador/mac/**'
       - '.github/workflows/windows.yml'
   workflow_dispatch:
 
@@ -68,6 +71,41 @@ jobs:
       - name: La barra en un VS Code de verdad
         working-directory: extension
         run: npm run probar-en-vscode
+
+  # Y el instalador de macOS, en una máquina macOS: se construye el .dmg, se instala
+  # en una carpeta personal de mentira, como en COMO-PROBARLO.md, y se comprueba con
+  # probar.sh. Sin certificado, la firma se anota y no se mira.
+  el-dmg:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: El arnés de dentro y los módulos comunes
+        run: |
+          npm ci --prefix extension/media/harness --no-audit --no-fund
+          node extension/preparar-paquete.js
+      - name: Construir el .dmg
+        run: bash instalador/mac/construir.sh
+      - name: Instalarlo en una carpeta personal de mentira
+        run: |
+          mkdir -p "$RUNNER_TEMP/casa-falsa/Documents"
+          HOME="$RUNNER_TEMP/casa-falsa" node "instalador/mac/escenario/Instalar Executive Lab.app/Contents/Resources/instalar.js" --progreso "$RUNNER_TEMP/progreso.txt" --sin-dock
+      - name: Comprobarlo
+        run: bash instalador/mac/probar.sh --casa "$RUNNER_TEMP/casa-falsa" --sin-firma
+      - name: El informe y el registro de la instalación
+        if: always()
+        run: cp "${TMPDIR:-/tmp}/executive-lab-instalacion.log" instalador/mac/ 2>/dev/null || true
+      - name: Subirlos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: el-dmg-informe
+          path: |
+            instalador/mac/informe-*.txt
+            instalador/mac/executive-lab-instalacion.log
+          if-no-files-found: warn
 
   # El .exe: se compila, se instala en silencio y se comprueba con probar.ps1,
   # como en un Windows limpio. Lo que esto no responde está en COMO-PROBARLO.md:

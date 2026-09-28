@@ -1194,6 +1194,83 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'claude-vscode.editor.open, de repuesto';
   });
 
+  await comprobar('en Windows, un encargo largo va por el portapapeles para que llegue entero', async () => {
+    // El enlace lleva el texto dentro de la URL, y en Windows ShellExecute corta
+    // las URL sobre los 2.048 caracteres: el encargo de ordenar 120 claves ocupa
+    // 8.448. No se ha podido medir si VS Code manda allí su propia URL por el
+    // sistema (decisión 129), así que se va a lo seguro. Corre en las dos
+    // máquinas: en el Mac, por el enlace; en la de Windows, por el portapapeles.
+    assert.equal(puente.cabeEnElEnlace('x'.repeat(2500), 'win32'), false, 'en Windows, una URL de 2.500 caracteres cabe');
+    assert.equal(puente.cabeEnElEnlace('x'.repeat(2500), 'darwin'), true, 'fuera de Windows no hay por qué cortar');
+    assert.equal(puente.cabeEnElEnlace('x'.repeat(300), 'win32'), true, 'uno corto en Windows no va al portapapeles');
+    // El borde, justo (revisión: ninguna prueba lo tocaba).
+    assert.equal(puente.cabeEnElEnlace('x'.repeat(2000), 'win32'), true, 'la de 2.000 ya no cabe');
+    assert.equal(puente.cabeEnElEnlace('x'.repeat(2001), 'win32'), false, 'la de 2.001 cabe');
+
+    // Lo que se mide es la URL, codificada, y no el texto: en español, las tildes
+    // y los espacios la inflan. Con este, el texto no llega a 2.000 y la URL sí
+    // (revisión: medir el texto pasaba en verde). Se prueba como si fuera Windows
+    // desde cualquier máquina.
+    const medio = 'Ordena las claves de acceso de esta carpeta según el protocolo de la barra. '.repeat(20);
+    const suUri = `vscode://anthropic.claude-code/open?prompt=${encodeURIComponent(medio)}`;
+    assert.ok(medio.length < 2000 && suUri.length > 2000, `el texto de la prueba no está en la zona: ${medio.length} y ${suUri.length}`);
+    {
+      vscode.registrado.abiertos.length = 0;
+      const antesAviso = vscode.window.showWarningMessage;
+      vscode.window.showWarningMessage = () => Promise.resolve(undefined);
+      try {
+        assert.equal(await puente.enviar(medio, null, { plataforma: 'win32' }), 'copiado', 'se mide el texto y no la URL: la URL codificada no cabe');
+        assert.deepEqual(vscode.registrado.abiertos, [], 'y se manda igual por el enlace');
+      } finally {
+        vscode.window.showWarningMessage = antesAviso;
+      }
+    }
+
+    const largo = 'Ordena las claves de acceso de esta carpeta según el protocolo de la barra. '.repeat(30);
+    vscode.registrado.ejecutados.length = 0;
+    vscode.registrado.abiertos.length = 0;
+    vscode.registrado.portapapeles = '';
+    const avisos = [];
+    const antes = vscode.window.showWarningMessage;
+    vscode.window.showWarningMessage = (m) => { avisos.push(m); return Promise.resolve(undefined); };
+    try {
+      const como = await puente.enviar(largo);
+      if (process.platform === 'win32') {
+        assert.equal(como, 'copiado', 'en Windows, un encargo largo va por el enlace, y puede llegar a medias');
+        assert.equal(vscode.registrado.portapapeles, largo, 'no se copia entero');
+        assert.deepEqual(vscode.registrado.abiertos, [], 'y además se manda por el enlace');
+        assert.ok(!vscode.registrado.ejecutados.some((e) => /editor\.open$/.test(e.id) && e.args && e.args[1]), 'y por un comando que tira el texto');
+        assert.match(avisos.join(' '), /largo.*llegue entero/, `no se dice por qué va copiado: ${avisos.join(' ')}`);
+        return 'en Windows, copiado entero y dicho';
+      }
+      assert.equal(como, 'directo');
+      assert.equal(vscode.registrado.abiertos.length, 1);
+      return 'en el Mac, por el enlace';
+    } finally {
+      vscode.window.showWarningMessage = antes;
+    }
+  });
+
+  await comprobar('probar.sh de Mac, con --casa y sin carpeta, se para antes de mirar nada', () => {
+    // Revisión del encargo largo y el Mac: con `--casa --sin-firma`, la carpeta
+    // olvidada, se tomaba «--sin-firma» por la carpeta, en silencio, y la firma se
+    // miraba igual. Ahora se para y lo dice, antes de comprobar nada.
+    if (process.platform !== 'darwin') return 'SALTADA: probar.sh es de macOS';
+    const cp = require('node:child_process');
+    const script = path.join(RAIZ, '..', 'instalador', 'mac', 'probar.sh');
+    const carpeta = path.dirname(script);
+    const antes = new Set(fs.readdirSync(carpeta).filter((n) => n.startsWith('informe-')));
+    try {
+      const r = cp.spawnSync('bash', [script, '--casa', '--sin-firma'], { encoding: 'utf8', timeout: 60000 });
+      assert.notEqual(r.status, 0, 'sin la carpeta de --casa, sigue como si nada');
+      assert.doesNotMatch(r.stdout, /Comprobando Executive Lab/, 'y llega a comprobar cosas');
+      assert.match(`${r.stdout}${r.stderr}`, /carpeta/, 'y no dice qué falta');
+      return 'se para, y dice que falta la carpeta';
+    } finally {
+      for (const n of fs.readdirSync(carpeta)) if (n.startsWith('informe-') && !antes.has(n)) fs.rmSync(path.join(carpeta, n), { force: true });
+    }
+  });
+
   await comprobar('sin la extensión de Claude, al portapapeles', async () => {
     // Sin la extensión puesta no hay ni comandos suyos ni nadie que recoja el
     // enlace: es el único caso en el que el texto acaba en el portapapeles.

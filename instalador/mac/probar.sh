@@ -4,6 +4,7 @@
 #
 #   ./probar.sh                       # sobre esta máquina
 #   ./probar.sh --casa /tmp/casa-falsa   # sobre una carpeta personal de mentira
+#   ./probar.sh --sin-firma              # donde no hay certificado (la máquina macOS de GitHub)
 #
 # Deja un informe de texto al lado. Las comprobaciones que no vienen a cuento
 # (por ejemplo, las de "ya instalado" cuando todavía no lo está) salen como "·"
@@ -13,7 +14,21 @@ set -uo pipefail
 
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 CASA="$HOME"
-[ "${1:-}" = "--casa" ] && CASA="$2"
+SIN_FIRMA=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    # Sin carpeta detrás, se para: con `--casa --sin-firma` se tomaba «--sin-firma»
+    # por la carpeta, en silencio, y la firma se miraba igual.
+    --casa)
+      if [ -z "${2:-}" ] || [ "${2#--}" != "$2" ]; then
+        echo "Falta la carpeta de --casa. Por ejemplo: ./probar.sh --casa /tmp/casa-falsa" >&2
+        exit 2
+      fi
+      CASA="$2"; shift ;;
+    --sin-firma) SIN_FIRMA=1 ;;
+  esac
+  shift
+done
 
 APP="$CASA/Library/Application Support/ExecutiveLab"
 ACCESO="$CASA/Applications/Mi Empresa.app"
@@ -120,9 +135,13 @@ comprobar 'preparar.js tiene al lado lo que necesita' bash -c '
   done
   echo "los tres módulos"'
 
+# Sin certificado Developer ID no se puede firmar, y en la máquina macOS de GitHub
+# no lo hay: ahí se anota que no se ha mirado, en vez de darla por mala. Todo lo
+# demás cuenta igual.
 comprobar 'la app va firmada' bash -c '
   app="'"$AQUI"'/escenario/Instalar Executive Lab.app"
   [ -d "$app" ] || { echo "SALTADA"; exit 0; }
+  [ "'"$SIN_FIRMA"'" = "1" ] && { echo "SALTADA"; exit 0; }
   quien="$(codesign -dv "$app" 2>&1 | grep "^Authority=" | head -1 | cut -d= -f2)"
   case "$quien" in
     "Developer ID"*) echo "$quien" ;;
@@ -202,6 +221,7 @@ echo
 # ────────────────────────────────────────────────────────────────── resumen
 
 echo
+[ "$SIN_FIRMA" = "1" ] && echo "  (la firma no se ha mirado: sin certificado en esta máquina)"
 printf '\033[1m%s bien · %s mal · %s sin venir a cuento\033[0m\n' "$BIEN" "$MAL" "$SALTADAS"
 echo "Informe: $INFORME"
 { echo; echo "$BIEN bien · $MAL mal · $SALTADAS saltadas"; } >> "$INFORME"

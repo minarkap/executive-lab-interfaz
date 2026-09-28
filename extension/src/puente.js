@@ -75,7 +75,32 @@ const abrirConversacion = () => ejecutarSiExiste(asistentes.elDeAhora().abrir);
 //
 // Y nada de enfocar después. Ver `darFoco`: eso abría una conversación nueva
 // vacía encima de la que acababa de recibir el texto.
-async function enviar(texto, salida) {
+// ── Un encargo largo, en Windows, por el portapapeles ─────────────────
+//
+// El enlace lleva el texto dentro de la URL, y en Windows `ShellExecute` corta
+// las URL sobre los 2.048 caracteres. Si VS Code manda allí su propia URL por el
+// sistema, el encargo de ordenar 120 claves —8.448 caracteres— llegaría a medias,
+// y `openExternal` diría que sí igual. No se pudo medir sin una persona delante
+// (decisión 129), así que se va a lo seguro: en Windows, lo que no cabe va por el
+// portapapeles, que no tiene límite. Los comandos no valen para esto: abren una
+// conversación vacía y tiran el texto (arriba).
+const CABE_EN_UNA_URL_DE_WINDOWS = 2000;
+const cabeEnElEnlace = (uri, plataforma = process.platform) => plataforma !== 'win32' || String(uri).length <= CABE_EN_UNA_URL_DE_WINDOWS;
+
+// Al portapapeles, y se abre la conversación para pegarlo. Se dice por qué: no es
+// lo mismo un asistente al que no se le puede escribir que un texto largo.
+async function alPortapapeles(quien, texto, salida, porLargo = false) {
+  await vscode.env.clipboard.writeText(texto);
+  await abrirConversacion();
+  if (salida) salida.appendLine(`[puente] ${porLargo ? 'encargo largo en Windows' : `sin canal directo con ${quien.nombre}`}: al portapapeles`); // diccionario: interno
+  vscode.window.showWarningMessage(porLargo
+    ? `Es un texto largo: te lo he copiado para que llegue entero. Pégalo con Ctrl+V en la caja de ${quien.nombre} y dale a enviar.`
+    : `Con ${quien.nombre} no puedo escribirle yo. Te lo he copiado: pégalo con Ctrl+V en su caja y dale a enviar.`);
+  return 'copiado';
+}
+
+// `plataforma` es para las pruebas: así se prueba lo de Windows desde cualquier máquina.
+async function enviar(texto, salida, { plataforma = process.platform } = {}) {
   // ── Nada de abrir una conversación con la caja vacía ────────────────────
   //
   // Ya pasó una vez y costó tres versiones: un botón mandaba `undefined` y esa
@@ -93,8 +118,9 @@ async function enviar(texto, salida) {
   // openExternal dice que sí en cuanto entrega la URI, sin mirar si alguien la
   // recoge: por eso se comprueba antes que su extensión está instalada.
   if (quien.enlace && asistentes.estaInstalado(quien)) {
+    const uri = `${quien.enlace}?${quien.parametro}=${encodeURIComponent(texto)}`;
+    if (!cabeEnElEnlace(uri, plataforma)) return alPortapapeles(quien, texto, salida, true);
     try {
-      const uri = `${quien.enlace}?${quien.parametro}=${encodeURIComponent(texto)}`;
       if (await vscode.env.openExternal(vscode.Uri.parse(uri))) return 'directo';
     } catch (error) {
       if (salida) salida.appendLine(`[puente] el enlace ha fallado: ${error.message}`); // diccionario: interno
@@ -112,14 +138,7 @@ async function enviar(texto, salida) {
     }
   }
 
-  await vscode.env.clipboard.writeText(texto);
-  await abrirConversacion();
-
-  if (salida) salida.appendLine(`[puente] sin canal directo con ${quien.nombre}: al portapapeles`); // diccionario: interno
-  vscode.window.showWarningMessage(
-    `Con ${quien.nombre} no puedo escribirle yo. Te lo he copiado: pégalo con Ctrl+V en su caja y dale a enviar.`,
-  );
-  return 'copiado';
+  return alPortapapeles(quien, texto, salida);
 }
 
 // Vuelca lo que hay. Sirve para saber qué expone cada asistente sin leer código.
@@ -144,4 +163,4 @@ async function diagnostico(salida) {
   salida.show(true);
 }
 
-module.exports = { enviar, darFoco, abrirConversacion, diagnostico, primeroDisponible };
+module.exports = { enviar, darFoco, abrirConversacion, diagnostico, primeroDisponible, cabeEnElEnlace };
