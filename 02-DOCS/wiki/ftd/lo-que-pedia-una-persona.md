@@ -2,7 +2,7 @@
 type: ftd
 title: Lo que pedía una persona delante
 date: 2026-09-28
-status: en-curso
+status: hecho
 ---
 
 # Lo que pedía una persona delante
@@ -36,8 +36,8 @@ verdad lanzada desde aquí.
 
 ## Checklist
 
-- [ ] 1. El `.exe`, compilado, instalado en silencio y comprobado con `probar.ps1`.
-- [ ] 2. La barra en un VS Code de Windows, 7 de 7.
+- [x] 1. El `.exe`, compilado, instalado en silencio y comprobado con `probar.ps1` — 14 de 14, después de arreglar `probar.ps1`, que no se podía leer en Windows y salía con 0 con un fallo.
+- [x] 2. La barra en un VS Code de Windows, 7 de 7 — el relevo lanza el `Code.exe`; antes, no se reconocía con la unidad en otra caja.
 - [x] 3. Una conversación de verdad con Claude, con el relevo — `which node` da el relevo, el freno para
   el `rm -rf` y las reglas de `siempre.md` están cargadas. Los enganches de arranque salen con 0.
 - [ ] 4. Una conversación de verdad con Codex — **bloqueada**: el Codex de este Mac (0.137.0) no puede
@@ -67,7 +67,9 @@ Observado el 28-09-2026 en la rama `lo-que-pedia-una-persona`.
     arreglado;
   - la barra en un VS Code de Windows pasó 6 de 7, y la séptima era de la propia prueba y del relevo,
     que no se reconocía con la unidad en otra caja; las dos cosas están arregladas.
+- **Windows, todo verde**: https://github.com/minarkap/executive-lab-interfaz/actions/runs/36438957469 (`el-exe` 14 de 14, `vscode-de-verdad` 7 de 7, `windows` todo bien, 327 y 14).
 
 ## Next
 
-(al cerrar)
+- Codex hablando: actualizar el Codex de este Mac, que es de Jose, y repetir la pregunta.
+- El corte de la URL del puente y SmartScreen: con una persona y el editor delante.

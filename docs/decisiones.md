@@ -4227,3 +4227,70 @@ de Git, una la mide `windows.js` y otra es de enlaces, que en Windows RSC no hac
 
 0.42.0. 327 comprobaciones, 335 con el arnés de verdad, 14 de contrato, 7 en un VS Code de verdad, y en
 Windows 7 de solo Windows, 327 y 14.
+
+## 129. El .exe, la barra en un VS Code de Windows y una conversación de verdad
+
+**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `lo-que-pedia-una-persona`
+
+La decisión 128 dejó cuatro cosas como «pide una persona o una máquina de alumno». Con «sigamos», se
+miró cuáles no la pedían de verdad, y eran tres.
+
+### El `.exe`, en la máquina Windows de GitHub
+
+El flujo `el-exe` hace lo que haría alguien con un Windows limpio:
+- baja el Node portable de nodejs.org, el mismo que lleva el de macOS;
+- arma la carga con `preparar-carga.sh`, compila con Inno e instala en silencio;
+- corre `probar.ps1` con el PowerShell de Windows.
+
+El icono pasa a versionarse (`instalador/windows/executivelab.ico`), porque es nuestro y no de terceros.
+
+En el camino salieron cuatro fallos. Dos eran de la carga y la prueba del editor; los otros dos, de
+`probar.ps1`, que **nunca había corrido en Windows**:
+- `preparar-carga.sh` le pasaba al Node de Windows una ruta de Git Bash (`/d/a/…`).
+- `probar.ps1` **no llegaba ni a leerse** en el PowerShell de Windows (`MissingEndCurlyBrace`). Tenía
+  rayas «—»: PowerShell 5.1 lee un UTF-8 sin BOM como Windows-1252, la raya acaba en 0x94, que ahí es la
+  comilla «”», y la toma por el final de la cadena.
+- Con una sola comprobación mal, **salía con 0**. En PowerShell 5.1 el `.Count` de un objeto suelto es
+  nulo, así que decía «13 bien,  mal», y `$null -gt 0` es falso.
+- Su comprobación del registro tomaba por un error el «errors» de un aviso de Node.
+
+`revisar-powershell.js` marca ahora cualquier cosa que no sea ASCII y un `.Count` sin `@()`, y las dos
+reglas se vieron rojas antes de arreglar `probar.ps1`.
+
+El resultado: se compila en 21 s, se instala en silencio en 74 s y **pasan 14 de 14**. Lleva:
+- Node 24.21.0 dentro, y en el PATH del usuario;
+- git de verdad y bash;
+- VS Code con las dos extensiones;
+- el arnés 2.0.15 dentro de la barra, que arranca con nuestro Node;
+- el acceso directo.
+
+### La barra en un VS Code de Windows
+
+`npm run probar-en-vscode`, en Windows, sin node en el PATH y sin la app: **7 de 7**. El relevo lanza el
+`Code.exe` del editor y el freno deniega. Primero salió que la barra no reconocía su propio relevo:
+`relevo.js` comparaba carpetas con `===`, y en Windows las rutas no distinguen mayúsculas. La prueba
+de `windows.js` que lo reproduce, con la unidad en otra caja, salió roja antes del arreglo.
+
+### Una conversación de verdad con Claude (T032 (3))
+
+Se abrió una sesión con Claude Code 2.1.276:
+- en una carpeta con un arnés de «operaciones» de la 2.0.15 y los raíles, que es donde RSC no pone su
+  freno;
+- con el PATH solo con el relevo, que lanzaba el binario del VS Code descargado.
+
+Lo que salió:
+- `which node` dio el relevo;
+- el `rm -rf ./informes` lo paró el freno («BLOCKED for a non-technical user…»), y el fichero siguió en
+  su sitio;
+- las reglas cargadas eran las de `siempre.md`, importadas desde `CLAUDE.md`;
+- los enganches de arranque salieron con 0.
+
+### Lo que no se pudo
+
+- **Codex hablando.** El Codex de este Mac (0.137.0) ya no puede hablar con los modelos que admite una
+  cuenta de ChatGPT. Actualizarlo toca la instalación del sistema y quizá `~/.codex`, así que se deja
+  para Jose.
+- **El corte de la URL del puente a 2.048 caracteres.** Medirlo pediría una extensión que se hiciera
+  pasar por la de Claude, y aun así no se sabría si Windows manda la URL por el sistema o si VS Code la
+  resuelve dentro. En un Mac, además, podría acabar en el VS Code de verdad de Jose.
+- **SmartScreen y un usuario sin administrador**, que son de mirar.

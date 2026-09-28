@@ -1,7 +1,9 @@
 # Cómo probar el `.exe`
 
-El instalador está compilado (`Output/ExecutiveLab-Setup.exe`, 291 MB) pero **nunca se ha ejecutado
-en Windows**. Esto es lo que falta, y es lo único que impide sentar a un alumno delante.
+El instalador (`Output/ExecutiveLab-Setup.exe`, unos 30 MB: el editor se descarga al instalar) se
+compila, se instala en silencio y se comprueba solo, en cada cambio, en una máquina Windows de GitHub
+(abajo, y decisión 129). Lo que sigue pidiendo una persona es lo que se ve con los ojos: SmartScreen,
+un usuario sin administrador y la ventana.
 
 ## Lo que se comprueba solo
 
@@ -49,15 +51,15 @@ Este Mac es arm64 y no tiene virtualización instalada. Por orden de fidelidad:
 
 ## Y para que no haya que repetirlo a mano
 
-Media parte ya corre sola. En cada cambio de la barra, `.github/workflows/windows.yml` corre en una
-máquina Windows de GitHub, gratis para un repositorio público:
-- `extension/prueba/windows.js`, con el relevo de Node en Git Bash, PowerShell y cmd, el freno de los
-  raíles pasado por Git Bash y el Python que se elige (`py -3`);
+Ya corre solo. En cada cambio, `.github/workflows/windows.yml` hace esto en una máquina Windows de GitHub,
+gratis para un repositorio público:
+- **el `.exe`**: baja el Node portable, arma la carga, lo compila con Inno, lo instala en silencio y corre
+  `probar.ps1` con el PowerShell de Windows. El informe y el registro quedan como artefacto. La
+  primera vez, el 28-09-2026, fueron 14 de 14 (decisión 129);
+- **la barra en un VS Code de Windows**, sin node, con el relevo lanzando el binario del editor;
+- `extension/prueba/windows.js`, con el relevo en Git Bash, PowerShell y cmd, el freno pasado por Git
+  Bash y el Python que se elige (`py -3`);
 - la batería de siempre y el contrato.
-
-Lo que falta es el `.exe`: compilarlo con Inno, instalarlo en silencio y correr `probar.ps1`. La carga
-lleva binarios de terceros que no se versionan (`preparar-carga.sh` dice cuáles), y el *workflow*
-tendría que bajarlos él.
 
 Lo que un *runner* **no** puede responder sigue siendo lo mismo: SmartScreen y el usuario sin
 administrador.

@@ -668,3 +668,14 @@ Decisión 128 en `docs/decisiones.md`. Vía rápida `lo-que-queda`, punto 9.
 - **Sigue sin medir**: el `.exe`, un Windows de alumno sin administrador y el relevo con el editor.
 
 0.42.0. En Windows: 7 de solo Windows, 327 y 14.
+
+## El .exe, la barra en un VS Code de Windows y una conversación de verdad — 28 de septiembre de 2026
+
+Decisión 129 en `docs/decisiones.md`. Vía rápida `lo-que-pedia-una-persona`.
+
+- **El `.exe`, en la máquina Windows de GitHub**: se compila, se instala en silencio y `probar.ps1` da 14
+  de 14. Antes, `probar.ps1` no llegaba ni a leerse en el PowerShell de Windows.
+- **La barra en un VS Code de Windows**, 7 de 7, con el relevo lanzando el `Code.exe`.
+- **Una conversación de verdad con Claude**, sin node: `which node` da el relevo, el freno para el
+  `rm -rf` y están cargadas las reglas de los raíles.
+- **Sin hacer**: Codex hablando, porque el de este Mac es viejo; el corte de la URL; y SmartScreen.
