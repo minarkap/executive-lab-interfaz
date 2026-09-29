@@ -233,6 +233,11 @@ ls .claude/skills/executive-lab/SKILL.md              # los raíles
 Dentro del panel hay un botón **Algo va mal** que revisa, arregla lo que puede y da un código de seis
 letras para el tutor.
 
+Y en Ayuda, **Contárselo a Executive Lab** abre una incidencia en este repositorio con la cuenta de GitHub
+del alumno: un fallo, algo que no se entiende o una mejora. El asistente del alumno también las deja
+preparadas, y la barra cuando un botón le falla por dentro, pero ninguna sale sin que el alumno la vea y
+pulse «Mandarlo». Llegan con las etiquetas `aviso de alumno` y `por revisar` (decisión 131).
+
 ---
 
 ## Qué lleva cada forma de distribución

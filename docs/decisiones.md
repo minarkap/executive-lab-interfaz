@@ -4362,3 +4362,140 @@ Un refutador de corrección. Dejó dos importantes y un menor, los tres de las p
 - El borde de los 2.000 caracteres, sin probar: ahora se prueban 2.000 y 2.001.
 
 Tres mutaciones, una por hallazgo, tumban las pruebas nuevas.
+
+## 131. Lo que falla, lo que no se entiende y lo que se echa en falta llega a Jose, con el sí del alumno
+
+**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `lo-que-dicen-los-alumnos`
+
+Jose: *«alguna forma de detectar cuando la extensión no va bien o cuando el alumno no se aclara bien con
+ella […] que sus agentes lo detecten […] y se envíe una issue al repo para que yo pueda revisarla y
+aprobarla»*. No sabía si mandarlo con permiso o sin él, ni si poner además un botón.
+
+Hasta hoy, lo que fallaba en el ordenador de un alumno se quedaba allí. «Algo va mal» deja un informe y un
+código para el tutor, y a Jose no le llegaba nada. Lo que no se entendía y lo que se echaba en falta no lo
+recogía nadie.
+
+### Con permiso, aviso por aviso
+
+`minarkap/executive-lab-interfaz` es público, y la incidencia sale con la cuenta de GitHub del alumno: su
+nombre queda a la vista de cualquiera, junto a lo que cuente. Mandarla sin preguntar sería publicar en su
+nombre. Así que:
+
+- **Preparar no pide permiso.** El asistente o la barra dejan el aviso escrito en `02-DOCS/raw/avisos/`,
+  que no sale de su ordenador ni entra en git.
+- **Mandar, sí.** La barra lo enseña entero y se puede cambiar. Dice dónde va y quién lo puede leer
+  («Se publica en GitHub con tu cuenta, y lo puede leer cualquiera»), y solo sale con «Mandarlo».
+- **Lo que dice que no, no vuelve.** Va a `descartados/`, y ni la barra ni el asistente lo proponen otra
+  vez. Lo mandado va a `mandados/` con su enlace, por lo mismo.
+
+### Tres entradas, una salida
+
+1. **El alumno**: *Contárselo a Executive Lab*, en Ayuda (en *Mejorar esta barra*), con tres opciones
+   hechas: algo no funciona, algo que no entiendo, una mejora. Y en «Algo va mal», que manda el aviso con
+   el informe y su código, para que Jose y el tutor hablen de lo mismo.
+2. **Su asistente**: la regla 8 de `siempre.md`, que se carga en cada conversación, le dice que lo
+   prepare. La sección «Cuando la barra falla o no se entiende» de `SKILL.md` le dice qué se cuenta, qué
+   no se cuenta nunca (nada de su trabajo, porque el sitio es público), cómo se escribe, que mire antes si
+   ya está contado y que **nunca lo mande él**.
+3. **La barra**: un botón que revienta por dentro deja apuntado un aviso con la pila y lo último que se
+   apuntó. Se apunta una vez por fallo, y las repeticiones se cuentan.
+
+Y en la pantalla principal sale el que espera, como el consejo: uno, con «Verlo antes de mandarlo» y
+«Ahora no».
+
+### Cómo sale
+
+Con la sesión de GitHub que la barra ya tiene para «Subir a GitHub»: `repo` basta para abrir una
+incidencia en un sitio público, así que no se le pide nada nuevo a nadie. Sin sesión, pulsar «Mandarlo»
+abre el diálogo de entrar. Si no entra, o GitHub no lo acepta, se queda guardado en Ayuda para volver a
+intentarlo, y no se da por mandado.
+
+Antes de salir, `avisos.limpiar` quita varias cosas. Los valores de sus claves van enteros, porque el
+`••••1234` del informe enseña cuatro caracteres y aquí no vale ni eso. También quita lo que tiene forma
+de clave aunque no esté en ningún fichero, la carpeta de trabajo y la personal (en Mac, Linux y
+Windows), su sitio en GitHub, los nombres de la empresa, de la carpeta y de su cuenta, los correos y las
+@ que avisarían a alguien. En la pantalla se ven los datos que van debajo ya limpios, que son los que
+salen.
+
+### Para que Jose los revise
+
+`.github/workflows/avisos.yml` les pone etiquetas al llegar: `aviso de alumno`, `por revisar` y su tipo
+(`falla`, `no se entiende`, `mejora`). Quien no es del repositorio no puede ponerlas, así que las pone
+el flujo, leyendo una marca al principio del cuerpo. El cuerpo lo ha escrito cualquiera, así que se lee
+en JavaScript y no pasa por la consola. Quitar `por revisar` es darlo por visto.
+
+### Lo que salió por el camino: cuatro cosas de la pantalla principal no se veían nunca
+
+La extensión manda el consejo, la versión nueva, si hay proyectos y si hay agentes **al lado** del estado,
+y la pantalla los leía **dentro**. Desde el 18 de septiembre no salían nunca:
+
+- el consejo;
+- «Hay una versión más nueva de esto»;
+- el grupo «En qué estamos»;
+- el botón de Agentes de la principal.
+
+Ninguna prueba lo veía, porque las del panel le pasaban el estado ya con todo dentro. El aviso nuevo iba
+por el mismo camino. Ahora la pantalla los copia dentro, y una prueba pinta el mensaje tal cual lo manda
+la extensión. **A partir de esta versión, los alumnos empezarán a ver esas cuatro cosas.**
+
+### Fuera, y por qué
+
+- **Mandar sin cuenta de GitHub.** Pediría un servidor intermedio con una clave de Jose, que es
+  infraestructura suya y de pago. Sin cuenta, el aviso se queda guardado y el tutor tiene el código.
+- **Pull requests**, porque lo dijo Jose.
+- **Mandar sin preguntar**: ver arriba.
+
+### Lo que encontró la revisión
+
+Dos refutadores, uno de seguridad y privacidad y otro de corrección, con la batería en verde. Hubo dos
+críticos y cinco importantes, y están todos arreglados con su prueba:
+
+- **Crítico: el nombre de la empresa salía en la forma que le da «Subir a GitHub».** El sitio de la
+  copia se llama como la carpeta, sin tildes, en minúsculas y con guiones (`ferreteria-soler`), y así
+  sale en el informe de «Algo va mal». `limpiar` solo conocía la forma de la pantalla. Ahora tapa cada
+  nombre en todas sus formas, y también el usuario de GitHub y el sitio de su copia, que la barra sabe.
+  Los correos van antes que los nombres: con la empresa tapada dentro, `pepe@ferreteria-soler.es` ya no
+  parecía un correo.
+- **Crítico: el título no se enseñaba nunca**, y el de un aviso del asistente lo escribe el asistente.
+  Ahora se enseña y se puede cambiar.
+- **Lo que sale es lo que se ha visto.** Si al pulsar «Mandarlo» la limpieza cambia algo de lo que
+  escribió, no se manda: se le enseña limpio, con «He quitado lo que no debe salir de aquí», y lo
+  manda si le parece bien.
+- **Un doble clic abría dos incidencias.** El aviso se coge y se suelta antes de esperar a nada.
+- **«casa» o «Contabilidad» se tapaban en medio de la frase.** El nombre de la carpeta y el de esto
+  solo se tapan si son más de una palabra (`nexus-consulting`, «Proyecto Nexus»). La empresa se tapa
+  siempre.
+- **Las carpetas de la red de la oficina** (`\\NAS\recurso\…`) y **las claves de Stripe** (`sk_live_…`)
+  pasaban tal cual.
+- **El flujo etiquetaba cualquier incidencia que citara la marca.** Ahora la exige al principio. Y la
+  etiqueta dice lo que es: la marca la puede escribir cualquiera, así que ordena, no prueba nada.
+- Dos menores. La parte de la barra de un aviso ya no se corta donde el asistente cite su cabecera. Y
+  se archiva junto al original, aunque el arnés aparezca o se vaya entre enseñarlo y mandarlo.
+
+Dieciséis mutaciones, una por arreglo y por pieza, tumban las pruebas. La que quitaba las formas del
+nombre sobrevivió a la primera, porque el sitio de GitHub llegaba por otro lado, y ahora tiene su caso.
+
+### La auditoría final
+
+Tres revisores más, con las dos ramas ya juntas: el vigía del diccionario, el guardián de las pruebas y un
+refutador de todo el conjunto. Del conjunto no salió nada importante. Lo que salió:
+
+- **Tres huecos por los que se colaba un fallo sin que nada se pusiera rojo.**
+  - Lo que va con el informe de «Algo va mal» podía salir sin limpiar, porque ninguna prueba recorría
+    ese camino.
+  - El clic de verdad en «Mandarlo» no lo probaba nadie: el panel de mentira no tenía clics, y ahora
+    hay uno que sí (`panel-con-clics.js`).
+  - Si faltaba un campo en la lista de lo que la pantalla lee al lado del estado, desaparecía un botón
+    sin avisar.
+
+  Los tres tienen ya su prueba. Y los datos se vuelven a limpiar al armar la incidencia, además de
+  al enseñarlos.
+- **Una carpeta con otra mayúscula** (`D:` frente a `d:`) salía tal cual. Ahora las carpetas se tapan sin
+  distinguir mayúsculas.
+- **El título de un aviso de la barra llevaba el nombre de dentro del botón**, y ahora se enseña y se
+  puede cambiar. Pasa a ser «Un botón de la barra ha fallado por dentro», y el botón va en los datos.
+  Los datos que se enseñan tal cual en «Qué más va con esto» están ya en el diccionario, y no marcados
+  como si no llegaran a la pantalla.
+- Lo apartado con «Ahora no» de un aviso que ya no espera se olvida.
+
+Diez mutaciones más, una por hueco, tumban las pruebas.

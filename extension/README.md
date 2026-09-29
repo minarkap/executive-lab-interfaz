@@ -18,6 +18,9 @@ y se apoya en [RSC](https://github.com/ericrisco/rsc-harness), que es quien mont
 - **Qué hay en esta carpeta**: pieza por pieza, hasta qué punto está montada. Incluidas las claves
   que ya tuvieras en un `.env` de antes, que se detectan sin tocarlas.
 - **Algo va mal**: revisa, arregla y da un código de seis letras para el tutor.
+- **Contárselo a Executive Lab**: un fallo, algo que no se entiende o una idea, como una incidencia en el
+  GitHub de la barra. También lo puede dejar preparado el asistente, o la barra cuando falla por dentro;
+  siempre se enseña entero y solo sale si la persona dice que sí.
 - **Tu marca**: si dices cuál es la web de tu empresa, la barra se pinta con sus colores y su logotipo.
 
 Nada de eso está escrito en el código: sale de leer lo que el arnés tenga montado en tu carpeta. Una

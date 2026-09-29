@@ -334,7 +334,7 @@ button.discreto:hover { background: var(--superficie-2, var(--superficie)); colo
   padding-left: 2px;
 }
 
-input[type="text"], input[type="password"] {
+input[type="text"], input[type="password"], textarea.caja {
   width: 100%;
   min-height: 40px;
   padding: 8px 11px;
@@ -346,8 +346,24 @@ input[type="text"], input[type="password"] {
   border: 1px solid var(--borde);
   border-radius: 8px;
 }
-body.vscode-dark input { background: var(--vscode-input-background); color: var(--vscode-input-foreground); }
-input:focus-visible { outline: 3px solid var(--acento); outline-offset: 1px; }
+body.vscode-dark input, body.vscode-dark textarea.caja { background: var(--vscode-input-background); color: var(--vscode-input-foreground); }
+input:focus-visible, textarea.caja:focus-visible { outline: 3px solid var(--acento); outline-offset: 1px; }
+
+/* Lo que se cuenta a Executive Lab: se escribe con calma y se lee entero antes
+   de mandarlo. */
+textarea.caja { line-height: 1.5; resize: vertical; }
+pre.datos {
+  max-height: 220px;
+  overflow: auto;
+  padding: 8px 10px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+}
 
 .fila { display: flex; gap: 8px; }
 .fila button { margin-bottom: 0; }

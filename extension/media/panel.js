@@ -1060,7 +1060,7 @@ function pantallaFijadas({ grupos = [], elegidas = [], tope = 5, aviso: avisoLoc
 // repartido: el SOS en un grupo, la revisión de la carpeta en otro, y "¿y ahora
 // qué hago?" en ningún sitio — que es la pregunta más frecuente de todas y no
 // tenía botón.
-function pantallaAyuda({ github }) {
+function pantallaAyuda({ github, avisos = [] }) {
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Ayuda' }])}
     ${bloqueAviso()}
@@ -1105,6 +1105,24 @@ function pantallaAyuda({ github }) {
     ${boton({ etiqueta: 'No hace lo que le pido', icono: '💬', pequeno: true, discreto: true, accion: { tipo: 'resolverIncidencia', cual: 'noHace' } })}
     ${boton({ etiqueta: 'Qué falta por montar', icono: '🔎', accion: { tipo: 'verRadiografia' } })}
     ${boton({ etiqueta: 'Algo va mal', icono: '🆘', accion: { tipo: 'algoVaMal' } })}
+
+    <hr class="separador">
+    ${/* Lo que falla, lo que no se entiende y lo que se echa en falta, para
+          quien hace la barra (decisión 131). Aquí están también los que
+          esperan: los que preparó el asistente, los que apuntó la barra al
+          fallar y los que no se pudieron mandar. */''}
+    <h2>Mejorar esta barra</h2>
+    ${boton({ etiqueta: 'Contárselo a Executive Lab', icono: '📣', accion: { tipo: 'verContar' } })}
+    <p class="detalle">Un fallo, algo que no se entiende o una idea. Lo lee quien hace esta barra.</p>
+    ${avisos.length ? `
+      <p class="detalle">${texto(plural(avisos.length, 'Tienes 1 aviso sin mandar:', 'Tienes {n} avisos sin mandar:'))}</p>
+      ${avisos.map((a) => boton({
+        etiqueta: a.origen === 'barra' ? 'Un botón de la barra ha fallado por dentro' : a.titulo,
+        icono: '✉️',
+        pequeno: true,
+        discreto: true,
+        accion: { tipo: 'verElAviso', fichero: a.fichero },
+      })).join('')}` : ''}
 
     <hr class="separador">
     <h2>Guías</h2>
@@ -1659,6 +1677,23 @@ function pantallaPrincipal() {
       ${boton({ etiqueta: 'Ahora no', discreto: true, accion: { tipo: 'ahoraNo', id: estado.consejo.id } })}
     </div>` : '';
 
+  // Un aviso para Executive Lab que espera a que esta persona diga si se manda
+  // (decisión 131). Como el consejo: uno, con su botón y su «Ahora no», y
+  // diciendo cuántos más hay.
+  const avisoQueEspera = estado.avisoParaExecutiveLab;
+  const QUE_AVISO = {
+    asistente: (a) => `Tu asistente ha preparado un aviso para Executive Lab: «${a.titulo}».`,
+    barra: () => 'Algo de la barra ha fallado por dentro. Lo tengo apuntado para Executive Lab.',
+    alumno: (a) => `Tienes un aviso para Executive Lab sin mandar: «${a.titulo}».`,
+  };
+  const elAvisoQueEspera = avisoQueEspera ? `
+    <div class="consejo">
+      <p class="que">${texto((QUE_AVISO[avisoQueEspera.origen] || QUE_AVISO.asistente)(avisoQueEspera))}</p>
+      ${avisoQueEspera.cuantos > 1 ? `<p class="detalle">${texto(plural(avisoQueEspera.cuantos - 1, 'Y 1 más en Ayuda.', 'Y {n} más en Ayuda.'))}</p>` : ''}
+      ${boton({ etiqueta: 'Verlo antes de mandarlo', icono: '📣', principal: true, accion: { tipo: 'verElAviso', fichero: avisoQueEspera.fichero } })}
+      ${boton({ etiqueta: 'Ahora no', discreto: true, accion: { tipo: 'ahoraNo', id: `aviso:${avisoQueEspera.nombre}` } })}
+    </div>` : '';
+
   const documentos = estado.esperando
     ? boton({
       etiqueta: plural(estado.esperando, 'Tienes 1 documento sin leer', 'Tienes {n} documentos sin leer'),
@@ -1682,6 +1717,7 @@ function pantallaPrincipal() {
     ${sinAjustar}
     ${primerPaso}
     ${elConsejo}
+    ${elAvisoQueEspera}
     ${documentos}
     ${/* Lo más alto de la barra, para lo que esa persona use de verdad. Lo
           elige ella entre sus botones, las consultas de sus programas y sus
@@ -2218,6 +2254,53 @@ function pantallaCopias({ copias }) {
   `;
 }
 
+// ── Contárselo a Executive Lab ──────────────────────────────────────────
+//
+// Qué se quiere contar, con tres opciones hechas: una caja vacía delante de
+// alguien que no sabe qué escribir es una pared (regla 5 del diccionario). Los
+// rótulos vienen de `avisos.js`, que es de donde salen también en GitHub.
+function pantallaContar({ tipos = [] }) {
+  return `
+    <p class="titulo">Contárselo a Executive Lab</p>
+    ${volver({ tipo: 'verAyuda' })}
+    <p>Lo lee quien hace esta barra, para arreglarla o mejorarla. ¿Qué le quieres contar?</p>
+    ${tipos.map((t) => boton({ etiqueta: t.etiqueta, icono: t.icono, accion: { tipo: 'contar', cual: t.id } })).join('')}
+  `;
+}
+
+// Lo que se va a mandar, entero, antes de mandarlo. La caja se puede cambiar, y
+// lo que va debajo se ve en «Qué más va con esto»: es lo mismo que sale, ya
+// limpio. Y se dice dónde va y quién lo puede leer, porque eso es lo que se le
+// está pidiendo que decida (decisión 131).
+function pantallaElAviso({ etiqueta, icono, ejemplo, origen, texto: loQueDice = '', titulo = null, datos = '', nota = null, guardado = false, hayQueEscribir = false }) {
+  const QUIEN = {
+    alumno: 'Cuéntalo con tus palabras. Lo demás lo pongo yo.',
+    asistente: 'Lo ha preparado tu asistente. Léelo y cámbialo si quieres.',
+    barra: 'Lo ha apuntado la barra al fallar. Si sabes qué estabas haciendo, añádelo; si no, mándalo tal cual.',
+  };
+  return `
+    <p class="titulo">Contárselo a Executive Lab</p>
+    ${volver()}
+    ${nota ? `<div class="aviso">${texto(nota)}</div>` : ''}
+    <p class="que">${icono ? `<span aria-hidden="true">${icono}</span> ` : ''}${texto(etiqueta)}</p>
+    <p class="detalle">${texto(QUIEN[origen] || QUIEN.alumno)}</p>
+    ${/* El título es lo primero que se ve en GitHub. El del alumno sale de lo
+          que escribe; el que puso otro, se enseña y se puede cambiar. */''}
+    ${titulo !== null && titulo !== undefined ? `
+      <p class="detalle">Va con este título:</p>
+      <input type="text" data-aviso-titulo value="${atributo(titulo)}">` : ''}
+    <textarea class="caja" data-aviso rows="7"${hayQueEscribir ? ' data-hace-falta' : ''} placeholder="${atributo(ejemplo || '')}">${texto(loQueDice)}</textarea>
+    <details class="acordeon">
+      <summary>Qué más va con esto</summary>
+      <p class="detalle">Va debajo de lo que escribas. Antes de mandarlo quito de todo tus claves de acceso, el nombre de tu empresa y las carpetas de tu ordenador.</p>
+      <pre class="datos">${texto(datos)}</pre>
+    </details>
+    <p class="detalle">Se publica en GitHub con tu cuenta, y lo puede leer cualquiera. No pongas nada de tu empresa.</p>
+    ${boton({ etiqueta: 'Mandarlo', icono: '📨', principal: true, accion: { tipo: 'mandarElAviso' } })}
+    ${guardado ? boton({ etiqueta: 'No mandarlo', discreto: true, accion: { tipo: 'noMandarElAviso' } }) : ''}
+  `;
+}
+
 function pantallaIncidencia({ codigo, fichero, sano, desconocido, hayQueTocarAlgo, faltaGit, comoSeInstalaGit }) {
   // Si lo que falta es git, arreglar el arnés no sirve de nada: la pieza no
   // está. Se dice eso y se ofrece ponerla, en vez de un botón que no puede.
@@ -2241,6 +2324,9 @@ function pantallaIncidencia({ codigo, fichero, sano, desconocido, hayQueTocarAlg
       ? boton({ etiqueta: 'Ponerla ahora', icono: '⬇️', principal: true, accion: { tipo: 'instalarGit' } })
       : ((!sano && !desconocido) || hayQueTocarAlgo ? boton({ etiqueta: 'Arreglarlo ahora', icono: '🛠️', principal: true, accion: { tipo: 'arreglar' } }) : '')}
     ${fichero ? boton({ etiqueta: 'Enseñar el informe', icono: '📄', accion: { tipo: 'verElInforme', fichero } }) : ''}
+    ${/* Y que le llegue a quien hace la barra, con el informe y su código:
+          así Jose y el tutor hablan de lo mismo (decisión 131). */''}
+    ${boton({ etiqueta: 'Contárselo a Executive Lab', icono: '📣', accion: { tipo: 'contarLaIncidencia' } })}
   `;
 }
 
@@ -2266,6 +2352,19 @@ function pintar(html) {
         const campo = b.closest('.conexion').querySelector('input[data-clave]');
         if (!campo.value.trim()) return;
         accion.valor = campo.value;
+      }
+      // Lo que diga la caja en el momento de pulsar, que es lo que ha leído.
+      // Si lo cuenta el alumno y está vacía, no se manda: se le pone ahí.
+      if (accion.tipo === 'mandarElAviso') {
+        const caja = app.querySelector('textarea[data-aviso]');
+        const escrito = caja ? caja.value : '';
+        if (caja && caja.hasAttribute('data-hace-falta') && !escrito.trim()) {
+          caja.focus();
+          return;
+        }
+        accion.texto = escrito;
+        const campoDelTitulo = app.querySelector('input[data-aviso-titulo]');
+        if (campoDelTitulo) accion.titulo = campoDelTitulo.value;
       }
       aviso = null;
       pedir(accion.tipo, accion);
@@ -2362,7 +2461,17 @@ function atender(data) {
       pintar(pantallaEsperando(data.que));
       return arrancarElReloj();
     case 'estado':
-      estado = data.estado;
+      // Lo que la extensión manda al lado del estado y esta pantalla lee
+      // dentro de él. Se leía solo `data.estado`, así que el consejo, el aviso
+      // de versión nueva, «En qué estamos» y el botón de Agentes no salían
+      // nunca, y ninguna prueba lo veía: las del panel les pasaban el estado ya
+      // con todo dentro (decisión 131).
+      estado = data.estado ? { ...data.estado } : data.estado;
+      if (estado) {
+        for (const campo of ['consejo', 'hayVersionNueva', 'hayProyectos', 'hayAgentes', 'avisoParaExecutiveLab']) {
+          if (data[campo] !== undefined) estado[campo] = data[campo];
+        }
+      }
       accionesDescubiertas = data.acciones || [];
       puedeTenerBotones = data.puedeTenerBotones !== false;
       pulso = data.pulso || [];
@@ -2407,6 +2516,8 @@ function atender(data) {
     case 'diario': return pintar(pantallaDiario(data));
     case 'trato': return pintar(pantallaTrato(data));
     case 'incidencia': return pintar(pantallaIncidencia(data));
+    case 'contar': return pintar(pantallaContar(data));
+    case 'elAviso': return pintar(pantallaElAviso(data));
     case 'aviso':
       aviso = { texto: data.texto, malo: data.malo, boton: data.boton };
       return pintar(pantallaPrincipal());

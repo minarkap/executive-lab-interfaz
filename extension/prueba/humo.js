@@ -1473,6 +1473,257 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     return 'el informe se queda fuera';
   });
 
+  // ── Los avisos para Executive Lab (decisión 131) ─────────────────────
+  //
+  // Lo que falla, lo que no se entiende y lo que se echa en falta, contado por
+  // el alumno, por su asistente o por la barra, y mandado a GitHub solo con su
+  // sí. Lo que más importa es lo que NO sale: el sitio es público.
+  const avisosM = cargar('avisos');
+  const carpetaDeAvisos = () => path.join(empresa, ...avisosM.CARPETA);
+  const vaciarLosAvisos = () => fs.rmSync(carpetaDeAvisos(), { recursive: true, force: true });
+
+  // Claves de mentira, montadas al correr. Escritas enteras en el código, el
+  // detector de GitHub las toma por de verdad y no deja subir la rama.
+  const deMentira = (...trozos) => trozos.join('');
+
+  await comprobar('un aviso sale limpio: ni claves, ni carpetas, ni su empresa, ni correos', () => {
+    const clave = conexiones.leerEnv(path.join(empresa, '01-TOOLS', 'HOLDED', '.env')).get('HOLDED_API_KEY');
+    assert.ok(clave && clave.length >= 6, 'la empresa de mentira no tiene clave con la que probar');
+    const sucio = [
+      `la prueba dijo: Authorization: Bearer ${clave}`,
+      `no encuentro ${empresa}/02-DOCS/inbox/contrato.pdf`,
+      `    at leer (${os.homedir()}/.vscode/extensions/executivelab.arnes-ui-0.42.0/src/extension.js:455:12)`,
+      '    at C:\\Users\\maria\\AppData\\Local\\Programs\\x.js:3:1',
+      'lo de Ferretería Soler, en Facturación',
+      'escríbele a pepe@ferreteria-soler.es',
+      'remoto: git@github.com:maria/facturacion-soler.git',
+      `subiendo a https://x-access-token:${deMentira('gh', 's_', 'abcdefghijklmnopqrstuvwxyz0123')}@github.com/maria/facturacion.git`,
+      `y una suelta: ${deMentira('sk', '-ant-', 'api03-abcdefghijklmnopqrstu')}`,
+      `y una de Stripe: ${deMentira('sk', '_live_', '51H8x9FAKESTRIPEKEYFORTEST0000')}`,
+      'gracias @jose',
+      // Revisión de seguridad: la forma que le da «Subir a GitHub», sin tildes y
+      // con guiones, se publicaba tal cual; y una carpeta de la red de la oficina.
+      '  copia fuera apunta a:    mariaGH/ferreteria-soler',
+      'en \\\\NAS-OFICINA\\Ferreteria Soler\\facturas\\2026.xlsx',
+      'y en JSON: "\\\\\\\\NAS-OFICINA\\\\compartida\\\\x.pdf"',
+    ].join('\n');
+    const limpio = avisosM.limpiar(sucio, { otros: ['mariaGH', 'mariaGH/ferreteria-soler'] });
+    assert.ok(!limpio.includes(clave), 'lleva la clave entera');
+    assert.ok(!limpio.includes(`••••${clave.slice(-4)}`), 'ni el final: aquí no vale ni eso');
+    assert.ok(!limpio.includes(empresa), 'lleva la carpeta de trabajo');
+    assert.ok(!limpio.includes(os.homedir()), 'lleva la carpeta personal');
+    assert.ok(!/maria/i.test(limpio), 'lleva su nombre de usuario, de una carpeta de Windows o de su sitio en GitHub');
+    assert.ok(!/Ferreter[ií]a[ _-]Soler/i.test(limpio), 'lleva el nombre de su empresa, en alguna de sus formas');
+    assert.ok(!/NAS-OFICINA|compartida/.test(limpio), 'lleva una carpeta de la red de la oficina');
+    assert.ok(!limpio.includes('pepe@'), 'lleva un correo');
+    assert.ok(!/ghs_|sk-ant-|sk_live_/.test(limpio), 'lleva una clave que no está en ningún fichero');
+    // «Facturación» es el nombre de esto, pero también una palabra de la frase:
+    // taparlo deja un aviso que no se entiende (revisión de corrección).
+    assert.match(limpio, /en Facturación/, 'tapa una palabra de la frase porque es el nombre de esto');
+    assert.equal(avisosM.limpiar('los datos de mi casa de contabilidad', { raiz: '/x/casa' }), 'los datos de mi casa de contabilidad',
+      'una carpeta de una palabra le quita palabras al texto');
+    // Sin saber su sitio de GitHub, el nombre de la empresa en esa forma se tapa
+    // igual: sin tildes, en minúsculas, con guiones o con guiones bajos.
+    const sinSaberElSitio = avisosM.limpiar('subía a ferreteria-soler, en ferreteria_soler.csv, de FERRETERIA SOLER');
+    assert.ok(!/ferreteria/i.test(sinSaberElSitio), `se publica en alguna forma: ${sinSaberElSitio}`);
+    // La misma carpeta con otra mayúscula: en Windows y en un Mac de fábrica es la misma.
+    assert.equal(avisosM.limpiar('D:\\Clientes\\Soler\\x.xlsx', { raiz: 'd:\\clientes\\soler', casa: 'c:\\x' }), '<la carpeta>\\x.xlsx', 'con otra mayúscula, la carpeta sale');
+    // Y limpiar lo ya limpio lo deja igual: si no, pulsar «Mandarlo» otra vez no saldría nunca.
+    assert.equal(avisosM.limpiar(limpio, { otros: ['mariaGH', 'mariaGH/ferreteria-soler'] }), limpio, 'limpiar dos veces cambia algo');
+    assert.ok(!/(^|\s)@jose/.test(limpio), 'una @ avisaría a alguien en GitHub');
+    // Y se sigue entendiendo, que es para lo que se manda.
+    assert.match(limpio, /no encuentro <la carpeta>\/02-DOCS\/inbox\/contrato\.pdf/);
+    assert.match(limpio, /at leer \(~\/\.vscode\/extensions\/executivelab\.arnes-ui-0\.42\.0\/src\/extension\.js:455:12\)/);
+    assert.match(limpio, /github\.com\/<su sitio>/);
+    return 'limpio y se entiende';
+  });
+
+  await comprobar('lo que deja el asistente, como lo dice la habilidad, se lee y sale en la principal', () => {
+    // Los raíles le dicen al asistente dónde y cómo escribirlo, y la barra lo lee.
+    // Si uno de los dos cambia sin el otro, los avisos se escriben donde nadie mira.
+    vaciarLosAvisos();
+    for (const donde of [path.join(RAIZ, '..', 'skills'), path.join(RAIZ, 'media', 'railes')]) {
+      const skill = fs.readFileSync(path.join(donde, 'executive-lab', 'SKILL.md'), 'utf8');
+      const siempre = fs.readFileSync(path.join(donde, 'executive-lab', 'siempre.md'), 'utf8');
+      assert.ok(siempre.includes(`\`${avisosM.CARPETA.join('/')}/\``), 'siempre.md manda a otra carpeta');
+      const seccion = skill.slice(skill.indexOf('## Cuando la barra falla o no se entiende'));
+      assert.ok(seccion.length > 500 && siempre.includes('«Cuando la barra falla o no se entiende»'), 'siempre.md nombra una sección que no está');
+      assert.ok(seccion.includes(avisosM.CARPETA.join('/')), 'la habilidad manda a otra carpeta');
+      for (const tipo of Object.keys(avisosM.TIPOS)) assert.ok(seccion.includes(`\`tipo: ${tipo}\``), `la habilidad no dice «tipo: ${tipo}»`);
+      for (const sub of [avisosM.MANDADOS, avisosM.DESCARTADOS]) assert.ok(seccion.includes(`\`${sub}/\``), `no le dice que mire en ${sub}/`);
+      assert.ok(seccion.includes(avisosM.DEBAJO), 'no le dice qué parte es de la barra');
+      assert.match(seccion, /nunca lo mandes tú/i, 'no le dice que no lo mande él');
+    }
+    const skill = fs.readFileSync(path.join(RAIZ, '..', 'skills', 'executive-lab', 'SKILL.md'), 'utf8');
+    const ejemplo = (skill.slice(skill.indexOf('## Cuando la barra falla o no se entiende')).match(/```markdown\n([\s\S]*?)```/) || [])[1];
+    assert.ok(ejemplo, 'la habilidad no trae el ejemplo');
+    fs.mkdirSync(carpetaDeAvisos(), { recursive: true });
+    fs.writeFileSync(path.join(carpetaDeAvisos(), '2026-09-28-guardar-en-git.md'), ejemplo);
+
+    const [leido, ...mas] = avisosM.pendientes();
+    assert.equal(mas.length, 0);
+    assert.equal(leido.tipo, 'falla');
+    assert.equal(leido.origen, 'asistente');
+    assert.match(leido.titulo, /«Guardar en git» dice que no hay nada nuevo/);
+    assert.match(leido.texto, /^Le pidió guardar/);
+    assert.equal(leido.detalle, '', 'lo del asistente no tiene parte de la barra');
+
+    const toca = avisosM.elQueToca({});
+    assert.equal(toca.fichero, leido.fichero);
+    assert.equal(avisosM.elQueToca({ [`aviso:${leido.nombre}`]: Date.now() }), null, '«Ahora no» no lo aparta');
+    assert.ok(avisosM.elQueToca({ [`aviso:${leido.nombre}`]: Date.now() - 8 * 86400000 }), 'a la semana no vuelve');
+
+    const { montarPanel } = require('./panel-falso');
+    // Como lo manda la extensión: al lado del estado, no dentro.
+    const pintada = montarPanel().mandar({ tipo: 'estado', estado: { listo: true }, avisoParaExecutiveLab: toca });
+    assert.match(pintada, /Tu asistente ha preparado un aviso para Executive Lab: «/);
+    assert.match(pintada, /Verlo antes de mandarlo/);
+    assert.match(pintada, /aviso:2026-09-28-guardar-en-git\.md/, 'el «Ahora no» no lleva su nombre');
+    vaciarLosAvisos();
+    return 'se escribe donde la barra mira';
+  });
+
+  await comprobar('sin arnés, los avisos esperan en la carpeta de la barra, y no se fabrica 02-DOCS', () => {
+    const suelta = fs.mkdtempSync(path.join(os.tmpdir(), 'sin-arnes-'));
+    const aparte = fs.mkdtempSync(path.join(os.tmpdir(), 'almacen-de-la-barra-'));
+    vscode.guion.raiz = suelta;
+    try {
+      avisosM.dondeSinArnes(null);
+      assert.equal(avisosM.carpeta(), null, 'sin arnés y sin carpeta de la barra, se inventa un sitio');
+      avisosM.dondeSinArnes(aparte);
+      assert.equal(avisosM.carpeta(), path.join(aparte, 'avisos'));
+      assert.ok(avisosM.preparar({ tipo: 'falla', texto: 'No me monta' }), 'no se deja escrito');
+      assert.ok(!fs.existsSync(path.join(suelta, '02-DOCS')), 'fabrica media pieza del suelo que está contando');
+      assert.equal(avisosM.pendientes().length, 1);
+      return 'fuera de la carpeta';
+    } finally {
+      vscode.guion.raiz = empresa;
+      avisosM.dondeSinArnes(null);
+    }
+  });
+
+  await comprobar('un fallo por dentro se apunta una vez, y no vuelve si ya se contó o se dijo que no', () => {
+    vaciarLosAvisos();
+    const fallo = (linea) => {
+      const e = new TypeError(`no puedo leer ${empresa}/02-DOCS/x.json en la línea ${linea}`);
+      return avisosM.apuntarUnFallo({ accion: 'verSaberes', error: e, lineas: ['10:00:00 [saberes] leyendo el catálogo'] });
+    };
+    assert.ok(fallo(12), 'no se ha apuntado');
+    fallo(40);
+    let esperan = avisosM.pendientes();
+    assert.equal(esperan.length, 1, 'el mismo fallo, apuntado dos veces');
+    assert.equal(esperan[0].veces, 2, 'no cuenta las veces');
+    assert.equal(esperan[0].origen, 'barra');
+    assert.match(esperan[0].detalle, /Botón: verSaberes/);
+    assert.match(esperan[0].detalle, /leyendo el catálogo/, 'no lleva lo que la barra apuntó justo antes');
+    // Una carpeta sin números, que la firma no cambiaría por #: así se ve si se limpia.
+    avisosM.apuntarUnFallo({ accion: 'verDiario', error: new Error('no puedo leer /Users/mariadelcarmen/documentos/diario.md') });
+    const conCarpeta = avisosM.pendientes().find((a) => a.firma && a.firma.startsWith('verDiario'));
+    assert.ok(conCarpeta && !conCarpeta.firma.includes('mariadelcarmen'), 'la firma lleva la carpeta personal');
+    avisosM.archivar(conCarpeta, avisosM.DESCARTADOS);
+
+    // Otro distinto, sí.
+    avisosM.apuntarUnFallo({ accion: 'verAgentes', error: new Error('otra cosa') });
+    assert.equal(avisosM.pendientes().length, 2);
+
+    // Dicho que no, no vuelve.
+    avisosM.archivar(esperan[0], avisosM.DESCARTADOS);
+    assert.equal(fallo(7), null, 'lo descartado se vuelve a apuntar');
+    esperan = avisosM.pendientes();
+    assert.equal(esperan.length, 1);
+    // Y mandado, tampoco.
+    avisosM.archivar(esperan[0], avisosM.MANDADOS, { enlace: 'https://github.com/minarkap/executive-lab-interfaz/issues/1' });
+    assert.equal(avisosM.apuntarUnFallo({ accion: 'verAgentes', error: new Error('otra cosa') }), null, 'lo mandado se vuelve a apuntar');
+    assert.equal(avisosM.pendientes().length, 0);
+    assert.match(fs.readFileSync(path.join(carpetaDeAvisos(), avisosM.MANDADOS, fs.readdirSync(path.join(carpetaDeAvisos(), avisosM.MANDADOS))[0]), 'utf8'), /enlace: https:\/\/github\.com\/minarkap/);
+    vaciarLosAvisos();
+    return 'una vez, y ni una más';
+  });
+
+  await comprobar('la incidencia lleva la marca que busca el flujo de GitHub, y su tipo', async () => {
+    // `.github/workflows/avisos.yml` les pone etiquetas buscando la marca. Si la
+    // barra la escribe de otra forma, llegan sin etiquetar y Jose no las ve.
+    const { titulo, cuerpo } = avisosM.componer({
+      tipo: 'no-se-entiende',
+      origen: 'asistente',
+      titulo: 'No sé para qué sirve Qué falta por montar',
+      texto: 'Me lo preguntó dos veces. Escríbele a pepe@ferreteria-soler.es',
+      datos: 'Barra: 0.42.0\n```\nesto cerraría el bloque\n```',
+      barra: '0.42.0',
+    });
+    assert.match(titulo, /^❓ No sé para qué sirve/);
+    assert.ok(!cuerpo.includes('pepe@'), 'lo que escribe se manda sin limpiar');
+    assert.equal((cuerpo.match(/```/g) || []).length, 2, 'lo de dentro cierra el bloque de los datos');
+    // Y los datos se limpian también aquí, aunque lleguen sin limpiar.
+    assert.ok(!avisosM.componer({ tipo: 'falla', origen: 'barra', titulo: 't', texto: '', datos: `en ${empresa}/x.json` }).cuerpo.includes(empresa), 'los datos salen como lleguen');
+
+    const flujo = fs.readFileSync(path.join(RAIZ, '..', '.github', 'workflows', 'avisos.yml'), 'utf8');
+    // Al principio, y no en cualquier sitio: citarla en otra incidencia no la hace un aviso.
+    assert.ok(flujo.includes(`startsWith(github.event.issue.body, '<!-- ${avisosM.MARCA} ')`), 'el flujo busca otra marca, o en cualquier sitio');
+    assert.ok(cuerpo.startsWith(`<!-- ${avisosM.MARCA} `), 'la barra no la pone al principio');
+    const patron = (flujo.match(/cuerpo\.match\(\/(.+?)\/\);/) || [])[1];
+    assert.ok(patron, 'no encuentro cómo lee la marca el flujo');
+    const marca = cuerpo.match(new RegExp(patron));
+    assert.ok(marca, 'el flujo no reconoce la marca que escribe la barra');
+    assert.equal((marca[1].match(/\btipo=([a-z-]+)/) || [])[1], 'no-se-entiende');
+    const delTipo = Function(`return ${(flujo.match(/const DEL_TIPO = (\{.*\});/) || [])[1]}`)();
+    assert.deepEqual(Object.keys(delTipo).sort(), Object.keys(avisosM.TIPOS).sort(), 'el flujo no conoce los mismos tipos');
+    // Y el guion entero, con un GitHub de mentira: qué etiquetas pone de verdad.
+    const guion = flujo.split('script: |')[1].split('\n').map((l) => l.replace(/^ {12}/, '')).join('\n');
+    const puestas = [];
+    const creadas = [];
+    const github = { rest: { issues: {
+      createLabel: async ({ name }) => { creadas.push(name); if (name === 'por revisar') { const e = new Error('ya existe'); e.status = 422; throw e; } },
+      addLabels: async ({ labels, issue_number: numero }) => puestas.push({ labels, numero }),
+    } } };
+    const context = { payload: { issue: { number: 12, body: cuerpo } }, repo: { owner: 'minarkap', repo: 'executive-lab-interfaz' } };
+    await Function('context', 'github', `return (async () => {\n${guion}\n})();`)(context, github);
+    assert.deepEqual(puestas, [{ labels: ['aviso de alumno', 'por revisar', 'no se entiende'], numero: 12 }], 'el flujo no le pone sus etiquetas');
+    assert.deepEqual(creadas, ['aviso de alumno', 'por revisar', 'no se entiende'], 'una que ya existe lo para');
+    // Sin marca, o con ella citada en medio, nada.
+    for (const otra of ['una cualquiera', `Mirad lo que escribe la barra:\n${cuerpo}`]) {
+      puestas.length = 0;
+      await Function('context', 'github', `return (async () => {\n${guion}\n})();`)({ ...context, payload: { issue: { number: 13, body: otra } } }, github);
+      assert.deepEqual(puestas, [], 'le pone etiquetas a una que no viene de la barra');
+    }
+    // Lo que trae una incidencia lo ha escrito cualquiera: nunca pasa por la consola.
+    assert.ok(!/^\s*(-\s*)?run:/m.test(flujo), 'el flujo tiene una orden de consola');
+    assert.match(flujo, /permissions:\s*\n\s*issues: write\s*\n\s*\n/, 'pide más permisos que poner etiquetas');
+    return 'la misma marca en los dos sitios';
+  });
+
+  await comprobar('mandar abre la incidencia en el sitio de la barra, con su cuenta, y dice qué pasó si no sale', async () => {
+    const antes = global.fetch;
+    const pedidas = [];
+    try {
+      global.fetch = async (url, opciones) => {
+        pedidas.push({ url, opciones });
+        return { status: 201, json: async () => ({ number: 7, html_url: 'https://github.com/minarkap/executive-lab-interfaz/issues/7' }) };
+      };
+      assert.deepEqual(await avisosM.mandar({ titulo: 'Un título', cuerpo: 'Un cuerpo' }, 'clave-de-prueba'),
+        { ok: true, numero: 7, url: 'https://github.com/minarkap/executive-lab-interfaz/issues/7' });
+      assert.equal(pedidas[0].url, 'https://api.github.com/repos/minarkap/executive-lab-interfaz/issues');
+      assert.equal(pedidas[0].opciones.method, 'POST');
+      assert.equal(pedidas[0].opciones.headers.Authorization, 'Bearer clave-de-prueba');
+      assert.deepEqual(JSON.parse(pedidas[0].opciones.body), { title: 'Un título', body: 'Un cuerpo' }, 'le pone etiquetas o algo más');
+
+      assert.deepEqual(await avisosM.mandar({ titulo: 't', cuerpo: 'c' }, null), { ok: false, motivo: 'sinCuenta' });
+      assert.equal(pedidas.length, 1, 'sin cuenta, sale igual');
+      global.fetch = async () => ({ status: 403, json: async () => ({}) });
+      assert.deepEqual(await avisosM.mandar({ titulo: 't', cuerpo: 'c' }, 'x'), { ok: false, motivo: 'rechazado', estado: 403 });
+      global.fetch = async () => ({ status: 401 });
+      assert.equal((await avisosM.mandar({ titulo: 't', cuerpo: 'c' }, 'x')).motivo, 'sinPermiso');
+      global.fetch = async () => { throw new Error('sin red'); };
+      assert.equal((await avisosM.mandar({ titulo: 't', cuerpo: 'c' }, 'x')).motivo, 'sinRespuesta');
+      // Y sin respuesta a tiempo no se queda esperando para siempre.
+      global.fetch = () => new Promise(() => {});
+      assert.equal((await avisosM.mandar({ titulo: 't', cuerpo: 'c' }, 'x', { esperar: 30 })).motivo, 'sinRespuesta');
+      return 'con su cuenta, y sin colgarse';
+    } finally {
+      global.fetch = antes;
+    }
+  });
+
   await comprobar('esto se llama como lo llamó el alumno, no "empresa"', () => {
     const identidad = cargar('identidad');
     const { arnes, empresa, puesto } = identidad.leer();
@@ -5197,7 +5448,7 @@ exec git "$@"
   // Con Claude, la habilidad de los raíles solo se cargaba si el asistente decidía
   // invocarla, y es la que fija el español, prohíbe la terminal y trae la regla 7.
   // Claude Code importa al empezar cada conversación lo que `CLAUDE.md` nombra con
-  // `@`, así que un bloque nuestro nombra `siempre.md`, que es corto: las siete
+  // `@`, así que un bloque nuestro nombra `siempre.md`, que es corto: las ocho
   // innegociables y dónde está el resto.
   const BLOQUE_DE_CLAUDE = /<!-- executive-lab:start -->\n@\.claude\/skills\/executive-lab\/siempre\.md\n(?:@AGENTS\.md\n)?<!-- executive-lab:end -->/;
 
@@ -5358,11 +5609,11 @@ exec git "$@"
       const siempre = fs.readFileSync(path.join(donde, 'executive-lab', 'siempre.md'), 'utf8');
       const skill = fs.readFileSync(path.join(donde, 'executive-lab', 'SKILL.md'), 'utf8');
       const reglas = [...siempre.matchAll(/^\d+\.\s+\*\*(.+?)\*\*/gm)].map((m) => m[1]);
-      assert.equal(reglas.length, 7, `siempre.md no trae las siete: ${reglas.join(' · ')}`);
+      assert.equal(reglas.length, 8, `siempre.md no trae las ocho: ${reglas.join(' · ')}`);
       for (const regla of reglas) assert.ok(!skill.includes(regla), `SKILL.md copia «${regla}»`);
       assert.match(skill, /siempre\.md/, 'SKILL.md no dice dónde están');
     }
-    return 'siete, en un solo sitio';
+    return 'ocho, en un solo sitio';
   });
 
   await comprobar('una habilidad escrita aquí no se cuenta como fontanería', () => {
@@ -6782,7 +7033,17 @@ exec git "$@"
       ['conexiones', { tipo: 'conexiones', proveedores: conexiones.proveedores() }, /Holded/],
       ['copias', { tipo: 'copias', copias: [] }, /./],
       ['copiaFuera', { tipo: 'copiaFuera', github: { conectado: false, usuario: null, remoto: null } }, /Entrar en mi cuenta/],
-      ['incidencia', { tipo: 'incidencia', codigo: 'ABC234', sano: true }, /ABC234/],
+      ['incidencia', { tipo: 'incidencia', codigo: 'ABC234', sano: true }, /ABC234.*contarLaIncidencia/s],
+      ['contar', { tipo: 'contar', tipos: Object.entries(cargar('avisos').TIPOS).map(([id, t]) => ({ id, etiqueta: t.etiqueta, icono: t.icono })) },
+        /Algo no funciona como debería.*Hay algo que no entiendo.*Se me ocurre una mejora/s],
+      ['elAviso de su asistente', {
+        tipo: 'elAviso', cual: 'falla', etiqueta: 'Algo no funciona como debería', icono: '🐛', ejemplo: 'Por ejemplo: x', origen: 'asistente',
+        texto: '<b>Lo preparó</b>', datos: 'Barra: 0.42.0', guardado: true, hayQueEscribir: false,
+      }, /Lo ha preparado tu asistente.*&lt;b&gt;Lo preparó.*Se publica en GitHub con tu cuenta, y lo puede leer cualquiera.*Mandarlo.*No mandarlo/s],
+      ['elAviso del alumno', {
+        tipo: 'elAviso', cual: 'mejora', etiqueta: 'Se me ocurre una mejora', icono: '💡', ejemplo: 'Por ejemplo: y', origen: 'alumno',
+        texto: '', datos: 'Barra: 0.42.0', guardado: false, hayQueEscribir: true,
+      }, /Cuéntalo con tus palabras.*data-hace-falta.*placeholder="Por ejemplo: y".*Mandarlo/s],
       ['diario', {
         tipo: 'diario',
         sesiones: diarioM.sesiones(),
@@ -6798,6 +7059,8 @@ exec git "$@"
       // que no tendría dónde vivir.
       ['comandos con un asistente sin comandos', { tipo: 'comandos', comandos: [], puedeTenerBotones: false }, /no trabaja con comandos/],
       ['ayuda', { tipo: 'ayuda', github: { conectado: false } }, /Estoy atascado|por dónde seguir/],
+      ['ayuda, con avisos sin mandar', { tipo: 'ayuda', github: { conectado: false }, avisos: [{ fichero: '/x/a.md', titulo: 'Uno mío', origen: 'alumno' }, { fichero: '/x/b.md', titulo: 'x', origen: 'barra' }] },
+        /Contárselo a Executive Lab.*Tienes 2 avisos sin mandar:.*Uno mío.*Un botón de la barra ha fallado por dentro/s],
       ['reglas', { tipo: 'reglas', ...cargar('reglas').queHay() }, /albarán firmado/],
       ['reglas con guardianes', { tipo: 'reglas', ...cargar('reglas').queHay(), guardianes: [{ id: 'danger-guard', nombre: 'Freno ante órdenes peligrosas', queHace: 'Para una orden peligrosa.', estado: 'armado', porQue: '' }] }, /Lo que se comprueba solo/],
       // Y lo que hace solo sin parar nada, en el mismo desplegable (decisión 102).
@@ -8344,11 +8607,13 @@ exec git "$@"
     assert.equal((texto.match(/# executive-lab:start/g) || []).length, 1, 'el bloque no está, o está dos veces');
     // Y el informe de «Algo va mal», que se escribe dentro de la carpeta con las
     // rutas de este ordenador (revisión final, seguridad). Lo demás de raw/ sí entra.
-    for (const [rel, txt] of [['02-DOCS/raw/incidencias/AB12CD.txt', 'Incidencia AB12CD\n'], ['02-DOCS/raw/worklog/dia.md', '# Día\n']]) {
+    for (const [rel, txt] of [['02-DOCS/raw/incidencias/AB12CD.txt', 'Incidencia AB12CD\n'], ['02-DOCS/raw/worklog/dia.md', '# Día\n'],
+      ['02-DOCS/raw/avisos/2026-09-28-x.md', '---\ntipo: falla\n---\n'], ['02-DOCS/raw/avisos/mandados/2026-09-28-y.md', '---\ntipo: mejora\n---\n']]) {
       fs.mkdirSync(path.dirname(path.join(carpeta, rel)), { recursive: true });
       fs.writeFileSync(path.join(carpeta, rel), txt);
     }
-    for (const f of ['otra/.env', '.env.local', 'x.pem', 'credentials.json', 'client_secret_123.json', 'mi-service-account.json', 'id_rsa', 'token.json', 'cert.p12', '02-DOCS/raw/incidencias/AB12CD.txt']) {
+    for (const f of ['otra/.env', '.env.local', 'x.pem', 'credentials.json', 'client_secret_123.json', 'mi-service-account.json', 'id_rsa', 'token.json', 'cert.p12', '02-DOCS/raw/incidencias/AB12CD.txt',
+      '02-DOCS/raw/avisos/2026-09-28-x.md', '02-DOCS/raw/avisos/mandados/2026-09-28-y.md']) {
       assert.ok(ignora(carpeta, f), `«${f}» entra en la copia`);
     }
     for (const f of ['.env.example', 'presentacion.key', 'facturas.json', 'README.md', '02-DOCS/raw/worklog/dia.md']) {
@@ -10369,6 +10634,291 @@ exec git "$@"
     return `${escrito.length} líneas, empezando limpio`;
   });
 
+  // ── Lo que encontró el guardián de las pruebas en la auditoría final ──
+  //
+  // Tres huecos por los que se colaba un fallo sin que nada se pusiera rojo: lo
+  // que va con el informe de «Algo va mal», el clic de verdad en «Mandarlo», y
+  // la lista de lo que la pantalla lee al lado del estado (decisión 131).
+  await comprobar('lo que va debajo sale limpio, y con el código de «Algo va mal»', async () => {
+    const proveedor = vscode.registrado.proveedor;
+    const avisos = cargar('avisos');
+    const rscM = cargar('rsc');
+    const carpeta = path.join(empresa, ...avisos.CARPETA);
+    fs.rmSync(carpeta, { recursive: true, force: true });
+    const enviados = [];
+    const antes = { enviar: proveedor.enviar, fetch: global.fetch, sesion: vscode.guion.sesionGitHub, verAgentes: proveedor.verAgentes, salud: rscM.salud, arreglarEnSeco: rscM.arreglarEnSeco, reevaluar: rscM.reevaluar, revisar: rscM.revisar };
+    proveedor.enviar = (m) => enviados.push(m);
+    rscM.salud = async () => ({ codigo: 1, salida: `no encuentro ${empresa}/.rsc.json (cache en ${os.homedir()}/.cache/rsc)` });
+    rscM.arreglarEnSeco = async () => ({ codigo: 0, salida: 'Nothing to repair' });
+    rscM.reevaluar = async () => ({ codigo: 0, salida: 'RSC_REASSESSMENT_NO_CHANGE' });
+    rscM.revisar = async () => ({ codigo: 0, salida: '' });
+    const pedidas = [];
+    global.fetch = async (url, opciones) => { pedidas.push({ url: String(url), opciones }); return { status: 201, ok: true, json: async () => ({ number: 9, html_url: 'https://github.com/minarkap/executive-lab-interfaz/issues/9' }) }; };
+    const abiertas = () => pedidas.filter((p) => p.url.endsWith('/issues'));
+    const ultimo = (tipo) => [...enviados].reverse().find((m) => m.tipo === tipo);
+    try {
+      vscode.guion.sesionGitHub = { accessToken: 'tok', account: { label: 'mariaGH' } };
+      await proveedor.algoVaMal();
+      const { codigo } = ultimo('incidencia');
+      await proveedor.manejar({ tipo: 'contarLaIncidencia' });
+      // Lo que se enseña ya va limpio: si no, se vería una cosa y saldría otra.
+      const enPantalla = ultimo('elAviso').datos;
+      assert.ok(enPantalla.includes(`Código de incidencia: ${codigo}`), 'no se enseña el código');
+      for (const cosa of ['mariaGH', empresa, os.homedir()]) assert.ok(!enPantalla.includes(cosa), `se enseña «${cosa}» antes de limpiar`);
+      await proveedor.manejar({ tipo: 'mandarElAviso', texto: 'No me arranca' });
+      assert.equal(abiertas().length, 1, 'no ha salido');
+      const cuerpo = JSON.parse(abiertas()[0].opciones.body).body;
+      assert.ok(cuerpo.includes(`Código de incidencia: ${codigo}`), 'sale sin el código que tiene el tutor');
+      for (const [que, cosa] of [['su usuario de GitHub', 'mariaGH'], ['la carpeta de trabajo', empresa], ['su carpeta personal', os.homedir()]]) {
+        assert.ok(!cuerpo.includes(cosa), `sale ${que}`);
+      }
+      proveedor.verAgentes = async () => { throw new Error(`no puedo leer ${empresa}/02-DOCS/x.json`); };
+      await proveedor.manejar({ tipo: 'verAgentes' });
+      const [apuntado] = avisos.pendientes();
+      await proveedor.manejar({ tipo: 'verElAviso', fichero: apuntado.fichero });
+      await proveedor.manejar({ tipo: 'mandarElAviso', texto: '', titulo: ultimo('elAviso').titulo });
+      assert.equal(abiertas().length, 2, 'el de la barra no ha salido');
+      assert.ok(!JSON.parse(abiertas()[1].opciones.body).body.includes(empresa), 'la pila sale con la carpeta');
+      return 'limpio y con su código';
+    } finally {
+      proveedor.enviar = antes.enviar;
+      global.fetch = antes.fetch;
+      vscode.guion.sesionGitHub = antes.sesion;
+      proveedor.verAgentes = antes.verAgentes;
+      Object.assign(rscM, { salud: antes.salud, arreglarEnSeco: antes.arreglarEnSeco, reevaluar: antes.reevaluar, revisar: antes.revisar });
+      fs.rmSync(carpeta, { recursive: true, force: true });
+    }
+  });
+
+  await comprobar('«Mandarlo» manda lo que dicen la caja y el título al pulsar', () => {
+    const { montarPanelConClics } = require('./panel-con-clics');
+    const p = montarPanelConClics();
+    const base = { tipo: 'elAviso', cual: 'falla', etiqueta: 'Algo no funciona como debería', icono: '🐛', ejemplo: 'Por ejemplo: x', datos: 'Barra: 0.42.0' };
+    p.mandar({ ...base, origen: 'asistente', texto: 'En Construcciones Pérez no guarda', titulo: 'Construcciones Pérez: no guarda', guardado: true, hayQueEscribir: false });
+    p.escribir('textarea[data-aviso]', 'Un cliente: no guarda');
+    p.escribir('input[data-aviso-titulo]', 'El botón no guarda');
+    p.pulsar('mandarElAviso');
+    const ultimo = p.enviados[p.enviados.length - 1];
+    assert.equal(ultimo.tipo, 'mandarElAviso');
+    assert.equal(ultimo.texto, 'Un cliente: no guarda', 'no sale lo que dice la caja');
+    assert.equal(ultimo.titulo, 'El botón no guarda', 'no sale el título que dejó');
+    p.mandar({ ...base, origen: 'alumno', texto: '', guardado: false, hayQueEscribir: true });
+    const antes = p.enviados.length;
+    p.pulsar('mandarElAviso');
+    assert.equal(p.enviados.length, antes, 'vacía, se manda');
+    p.escribir('textarea[data-aviso]', 'Pulso y no pasa nada');
+    p.pulsar('mandarElAviso');
+    assert.equal(p.enviados[p.enviados.length - 1].texto, 'Pulso y no pasa nada', 'lo del alumno no sale');
+    return 'lo de la pantalla, al pulsar';
+  });
+
+  await comprobar('lo que la extensión manda al lado del estado y el panel lee dentro, llega', async () => {
+    const proveedor = vscode.registrado.proveedor;
+    const enviados = [];
+    const antes = proveedor.enviar;
+    proveedor.enviar = (m) => enviados.push(m);
+    try { await proveedor.refrescar(true); } finally { proveedor.enviar = antes; }
+    const mensaje = [...enviados].reverse().find((m) => m.tipo === 'estado');
+    const panel = fs.readFileSync(path.join(RAIZ, 'media', 'panel.js'), 'utf8');
+    const leidos = new Set([...panel.matchAll(/\bestado\.(\w+)/g)].map((m) => m[1]));
+    const alLado = Object.keys(mensaje).filter((k) => !['tipo', 'estado'].includes(k) && leidos.has(k) && !(k in (mensaje.estado || {})));
+    const lista = Function(`return ${(panel.match(/for \(const campo of (\[[^\]]*\])\)/) || [])[1]}`)();
+    const perdidos = alLado.filter((k) => !lista.includes(k));
+    assert.deepEqual(perdidos, [], `la extensión los manda al lado y la pantalla no los lee: ${perdidos.join(', ')}`);
+    return `${alLado.length} al lado, todos leídos`;
+  });
+
+  await comprobar('contárselo a Executive Lab, de principio a fin: sin cuenta se guarda, con su sí sale, y lo que no quiere no vuelve', async () => {
+    // Decisión 131. Por los manejadores de verdad, con la red fingida: lo que
+    // importa es qué sale, con qué cuenta, y qué queda en su carpeta.
+    const proveedor = vscode.registrado.proveedor;
+    const avisos = cargar('avisos');
+    const carpeta = path.join(empresa, ...avisos.CARPETA);
+    fs.rmSync(carpeta, { recursive: true, force: true });
+    const enviados = [];
+    const antes = { enviar: proveedor.enviar, fetch: global.fetch, sesion: vscode.guion.sesionGitHub };
+    proveedor.enviar = (m) => enviados.push(m);
+    const pedidas = [];
+    global.fetch = async (url, opciones) => {
+      pedidas.push({ url: String(url), opciones });
+      return { status: 201, ok: true, json: async () => ({ number: 9, html_url: 'https://github.com/minarkap/executive-lab-interfaz/issues/9' }) };
+    };
+    // La versión nueva también pregunta a GitHub: aquí solo cuentan las incidencias.
+    const abiertas = () => pedidas.filter((p) => p.url.endsWith('/issues'));
+    const ultimo = (tipo) => [...enviados].reverse().find((m) => m.tipo === tipo);
+    try {
+      // 1. Sin cuenta: se le pide entrar, no sale nada, y lo que escribió se queda guardado.
+      vscode.guion.sesionGitHub = null;
+      const pedirEntrar = vscode.authentication.getSession;
+      let seLePidio = 0;
+      vscode.authentication.getSession = (...a) => { if (a[2] && a[2].createIfNone) seLePidio += 1; return pedirEntrar(...a); };
+      await proveedor.manejar({ tipo: 'contar', cual: 'mejora' });
+      const pantalla = ultimo('elAviso');
+      assert.ok(pantalla, 'no se enseña lo que se va a mandar');
+      assert.equal(pantalla.cual, 'mejora');
+      assert.equal(pantalla.hayQueEscribir, true, 'lo del alumno se puede mandar vacío');
+      assert.match(pantalla.datos, /^Barra: /);
+      assert.doesNotMatch(pantalla.datos, /lo último que apuntó la barra/, 'una idea lleva lo que la barra apuntó por dentro');
+      await proveedor.manejar({ tipo: 'mandarElAviso', texto: 'Me vendría bien ver aquí lo último que le pedí' });
+      vscode.authentication.getSession = pedirEntrar;
+      assert.equal(seLePidio, 1, 'sin cuenta, no se le pide que entre');
+      assert.equal(abiertas().length, 0, 'sin cuenta, ha salido algo');
+      let esperan = avisos.pendientes();
+      assert.equal(esperan.length, 1, 'lo que escribió se ha perdido');
+      assert.equal(esperan[0].texto, 'Me vendría bien ver aquí lo último que le pedí');
+      assert.equal(esperan[0].tipo, 'mejora');
+      assert.equal(esperan[0].origen, 'alumno');
+      assert.match(ultimo('aviso').texto, /hace falta entrar en tu cuenta de GitHub/);
+
+      // 2. Ya dentro, lo guardado sale con su cuenta, limpio, y se aparta.
+      vscode.guion.sesionGitHub = { accessToken: 'token-de-prueba', account: { label: 'maria' } };
+      await proveedor.manejar({ tipo: 'verElAviso', fichero: esperan[0].fichero });
+      assert.equal(ultimo('elAviso').texto, 'Me vendría bien ver aquí lo último que le pedí', 'no se enseña lo que escribió');
+      assert.equal(ultimo('elAviso').guardado, true);
+      // Con su empresa en el texto, no sale: se le enseña limpio, y sale al volver a pulsar.
+      await proveedor.manejar({ tipo: 'mandarElAviso', texto: 'Me vendría bien ver aquí lo último que le pedí, en Ferretería Soler' });
+      assert.equal(abiertas().length, 0, 'ha salido algo distinto de lo que vio');
+      const limpia = ultimo('elAviso');
+      assert.equal(limpia.texto, 'Me vendría bien ver aquí lo último que le pedí, en <su nombre>');
+      assert.match(limpia.nota, /He quitado lo que no debe salir de aquí/);
+      await proveedor.manejar({ tipo: 'mandarElAviso', texto: limpia.texto });
+      assert.equal(abiertas().length, 1, 'con su sí, no ha salido');
+      const [abierta] = abiertas();
+      assert.equal(abierta.opciones.headers.Authorization, 'Bearer token-de-prueba', 'no sale con su cuenta');
+      const { title, body } = JSON.parse(abierta.opciones.body);
+      assert.match(title, /^💡 Me vendría bien/);
+      assert.ok(body.includes('Me vendría bien ver aquí lo último que le pedí, en <su nombre>'), 'no sale lo que vio');
+      assert.ok(body.includes(`<!-- ${avisos.MARCA} tipo=mejora origen=alumno`), 'sin la marca, el flujo no le pone etiquetas');
+      assert.ok(!/Ferreter[ií]a/.test(body), 'lleva el nombre de su empresa');
+      assert.equal(avisos.pendientes().length, 0, 'mandado, y sigue esperando');
+      const mandados = fs.readdirSync(path.join(carpeta, avisos.MANDADOS));
+      assert.equal(mandados.length, 1);
+      assert.match(fs.readFileSync(path.join(carpeta, avisos.MANDADOS, mandados[0]), 'utf8'), /enlace: https:\/\/github\.com\/minarkap\/executive-lab-interfaz\/issues\/9/);
+      const dicho = ultimo('aviso');
+      assert.match(dicho.texto, /^Mandado\./);
+      assert.equal(dicho.boton.accion.url, 'https://github.com/minarkap/executive-lab-interfaz/issues/9');
+
+      // 3. El título que puso su asistente se enseña, y sale el que ella deja.
+      fs.writeFileSync(path.join(carpeta, '2026-09-28-su-titulo.md'),
+        '---\ntipo: falla\norigen: asistente\ntitulo: En Ferretería Soler el botón no guarda\n---\n\nLe pasó dos veces. Cito la habilidad:\n## Lo que apuntó la barra\ny esto también es suyo.\n');
+      const conTitulo = avisos.pendientes()[0];
+      assert.match(conTitulo.texto, /y esto también es suyo/, 'lo que escribe el asistente se va a la parte de la barra');
+      await proveedor.manejar({ tipo: 'verElAviso', fichero: conTitulo.fichero });
+      assert.equal(ultimo('elAviso').titulo, 'En <su nombre> el botón no guarda', 'el título no se enseña, o se enseña sin limpiar');
+      // Un título con su empresa no sale: se le enseña limpio.
+      await proveedor.manejar({ tipo: 'mandarElAviso', texto: ultimo('elAviso').texto, titulo: 'Lo de Ferretería Soler no guarda' });
+      assert.equal(abiertas().length, 1, 'sale un título con el nombre de su empresa');
+      assert.equal(ultimo('elAviso').titulo, 'Lo de <su nombre> no guarda');
+      // Dos clics seguidos: una sola incidencia.
+      await Promise.all([
+        proveedor.manejar({ tipo: 'mandarElAviso', texto: ultimo('elAviso').texto, titulo: 'El botón de guardar no guarda' }),
+        proveedor.manejar({ tipo: 'mandarElAviso', texto: ultimo('elAviso').texto, titulo: 'El botón de guardar no guarda' }),
+      ]);
+      assert.equal(abiertas().length, 2, 'un doble clic abre dos incidencias');
+      assert.match(JSON.parse(abiertas()[1].opciones.body).title, /^🐛 El botón de guardar no guarda$/, 'no sale el título que dejó');
+
+      // 4. Uno de su asistente que no quiere mandar: a descartados, sin salir.
+      fs.writeFileSync(path.join(carpeta, '2026-09-28-no-entiendo.md'), '---\ntipo: no-se-entiende\norigen: asistente\ntitulo: No entiende qué es Qué falta por montar\n---\n\nLo preguntó dos veces.\n');
+      const suyo = avisos.pendientes()[0];
+      await proveedor.ahoraNo(`aviso:${suyo.nombre}`);
+      await proveedor.manejar({ tipo: 'verElAviso', fichero: suyo.fichero });
+      assert.equal(ultimo('elAviso').origen, 'asistente');
+      assert.equal(ultimo('elAviso').hayQueEscribir, false);
+      await proveedor.manejar({ tipo: 'noMandarElAviso' });
+      assert.equal(abiertas().length, 2, 'ha salido lo que dijo que no');
+      assert.equal(avisos.pendientes().length, 0);
+      assert.equal(fs.readdirSync(path.join(carpeta, avisos.DESCARTADOS)).length, 1);
+      assert.match(ultimo('aviso').texto, /no te lo vuelvo a proponer/);
+      assert.ok(!(`aviso:${suyo.nombre}` in (contexto.workspaceState.get('executiveLab.consejosApartados') || {})), 'lo apartado de uno que ya no espera se queda para siempre');
+
+      // 5. Si GitHub no lo acepta, no se pierde ni se da por mandado.
+      global.fetch = async (url) => { pedidas.push({ url: String(url) }); return { status: 403, json: async () => ({}) }; };
+      await proveedor.manejar({ tipo: 'contar', cual: 'falla' });
+      await proveedor.manejar({ tipo: 'mandarElAviso', texto: 'Pulso Guardar en git y no pasa nada' });
+      assert.equal(avisos.pendientes().length, 1, 'no ha salido, y no se ha guardado');
+      assert.equal(fs.readdirSync(path.join(carpeta, avisos.MANDADOS)).length, 2, 'no ha salido, y se da por mandado');
+      assert.match(ultimo('aviso').texto, /No he podido mandarlo\. Lo dejo guardado/);
+      // 6. Enseñado con una carpeta y mandado con otra (el arnés apareció o se
+      // fue por medio): se aparta junto al original, y el original no se queda.
+      const otraCarpeta = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'otra-')), ...avisos.CARPETA);
+      fs.mkdirSync(otraCarpeta, { recursive: true });
+      const deOtra = path.join(otraCarpeta, '2026-09-28-de-otra.md');
+      fs.writeFileSync(deOtra, '---\ntipo: mejora\norigen: asistente\ntitulo: Otra\n---\n\nx\n');
+      assert.ok(avisos.archivar(avisos.leer(deOtra), avisos.DESCARTADOS));
+      assert.ok(!fs.existsSync(deOtra), 'el original se queda esperando en la otra carpeta');
+      assert.ok(fs.existsSync(path.join(otraCarpeta, avisos.DESCARTADOS, '2026-09-28-de-otra.md')), 'no se aparta junto a él');
+      return 'guardado · limpio antes de salir · con su título · un clic, una · descartado · y lo que no sale, se queda';
+    } finally {
+      proveedor.enviar = antes.enviar;
+      global.fetch = antes.fetch;
+      vscode.guion.sesionGitHub = antes.sesion;
+      fs.rmSync(carpeta, { recursive: true, force: true });
+    }
+  });
+
+  await comprobar('un botón que revienta deja apuntado un aviso para Executive Lab, y la principal lo enseña', async () => {
+    // La barra, al fallar por dentro, era justo lo que no le llegaba nunca a Jose.
+    // Y lo que la extensión manda al lado del estado se tiene que ver en la
+    // pantalla: antes se leía solo lo de dentro, y el consejo no salía nunca.
+    const proveedor = vscode.registrado.proveedor;
+    const avisos = cargar('avisos');
+    const carpeta = path.join(empresa, ...avisos.CARPETA);
+    fs.rmSync(carpeta, { recursive: true, force: true });
+    const enviados = [];
+    const antes = { enviar: proveedor.enviar, verAgentes: proveedor.verAgentes };
+    proveedor.enviar = (m) => enviados.push(m);
+    proveedor.verAgentes = async () => { throw new TypeError('Cannot read properties of undefined (reading \'nombre\')'); };
+    try {
+      await proveedor.manejar({ tipo: 'verAgentes' });
+      await proveedor.manejar({ tipo: 'verAgentes' });
+      const [apuntado, ...mas] = avisos.pendientes();
+      assert.ok(apuntado, 'el fallo no se apunta');
+      assert.equal(mas.length, 0, 'el mismo fallo, dos veces');
+      assert.equal(apuntado.origen, 'barra');
+      assert.equal(apuntado.veces, 2);
+      assert.match(apuntado.detalle, /Botón: verAgentes\nTypeError: Cannot read properties/);
+
+      await proveedor.refrescar(true);
+      const estado = [...enviados].reverse().find((m) => m.tipo === 'estado');
+      assert.equal(estado.avisoParaExecutiveLab.fichero, apuntado.fichero, 'la extensión no lo manda');
+      const pintada = require('./panel-falso').montarPanel().mandar(estado);
+      assert.match(pintada, /Algo de la barra ha fallado por dentro\. Lo tengo apuntado para Executive Lab\./, 'la principal no lo enseña');
+
+      // Lo mismo con el consejo y la versión nueva, que iban por el mismo camino.
+      const conTodo = require('./panel-falso').montarPanel().mandar({
+        ...estado,
+        consejo: { id: 'x', texto: 'UN CONSEJO DE PRUEBA', boton: 'Hacerlo', accion: { tipo: 'verCerebro' } },
+        hayVersionNueva: '99.0.0',
+        hayProyectos: true,
+      });
+      assert.match(conTodo, /UN CONSEJO DE PRUEBA/, 'el consejo no sale');
+      assert.match(conTodo, /Hay una versión más nueva de esto \(99\.0\.0\)/, 'la versión nueva no sale');
+      assert.match(conTodo, /En qué estamos/, '«En qué estamos» no sale');
+
+      // Y en Ayuda, por su nombre y no por el del botón.
+      await proveedor.verAyuda();
+      const ayuda = [...enviados].reverse().find((m) => m.tipo === 'ayuda');
+      assert.equal(ayuda.avisos.length, 1);
+      const enAyuda = require('./panel-falso').montarPanel().mandar(ayuda);
+      assert.match(enAyuda, /Tienes 1 aviso sin mandar:/);
+      assert.match(enAyuda, /Un botón de la barra ha fallado por dentro/);
+      assert.doesNotMatch(enAyuda, /verAgentes\)/, 'enseña el nombre de dentro del botón');
+      return 'apuntado una vez, y a la vista';
+    } finally {
+      proveedor.enviar = antes.enviar;
+      proveedor.verAgentes = antes.verAgentes;
+      fs.rmSync(carpeta, { recursive: true, force: true });
+    }
+  });
+
+  await comprobar('lo que deja el asistente se vigila, y no entra en git', () => {
+    const avisos = cargar('avisos');
+    const { LO_QUE_NO_ENTRA } = require(path.join(RAIZ, 'media', 'railes', 'no-entra-en-git.js'));
+    assert.ok(LO_QUE_NO_ENTRA.includes(`${avisos.CARPETA.join('/')}/`), 'los avisos entran en las copias');
+    assert.ok(vscode.registrado.vigia && vscode.registrado.vigia.patron.includes(`${avisos.CARPETA.join('/')}/*`), 'la barra no se entera de que el asistente ha dejado uno');
+    return 'vigilados y fuera de git';
+  });
+
   await comprobar('todo tipo que manda el panel se despacha sin excepción', async () => {
     // G1 e I2. «Resolver una incidencia» reventaba siempre: `encargos` se usaba y
     // no se importaba, y ninguna prueba pasaba por los manejadores del panel. La
@@ -10399,7 +10949,7 @@ exec git "$@"
     fs.cpSync(empresa, copia, { recursive: true });
     vscode.guion.raiz = copia;
     const FINGIDOS = ['arrancar', 'arreglar', 'instalarGit', 'subirCopia', 'conectarGitHub', 'aprenderCapacidad', 'ponerLaCara',
-      'ponerComoLaDeLaClase', 'elegirCarpeta', 'arreglarElRelevo', 'pedir'];
+      'ponerComoLaDeLaClase', 'elegirCarpeta', 'arreglarElRelevo', 'pedir', 'mandarElAviso'];
     const antes = {};
     for (const nombre of FINGIDOS) {
       antes[nombre] = proveedor[nombre];

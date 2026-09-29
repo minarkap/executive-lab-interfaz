@@ -53,6 +53,9 @@ const LO_QUE_NO_ENTRA = [
   // El informe de «Algo va mal»: la barra lo deja aquí para que el asistente lo
   // lea, con las rutas de este ordenador. No sale de él (revisión final, seguridad).
   '02-DOCS/raw/incidencias/',
+  // Los avisos para Executive Lab, mandados o no: llevan lo que la barra apuntó
+  // por dentro, y lo que sale de aquí sale limpio y solo con su sí (decisión 131).
+  '02-DOCS/raw/avisos/',
 ];
 
 // Las marcas van como comentarios de `.gitignore`: una línea con `<!--`, como las
