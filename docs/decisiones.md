@@ -4365,7 +4365,7 @@ Tres mutaciones, una por hallazgo, tumban las pruebas nuevas.
 
 ## 131. Lo que falla, lo que no se entiende y lo que se echa en falta llega a Jose, con el sí del alumno
 
-**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `lo-que-dicen-los-alumnos`
+**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `lo-que-dicen-los-alumnos` · **En la 0.43.0**
 
 Jose: *«alguna forma de detectar cuando la extensión no va bien o cuando el alumno no se aclara bien con
 ella […] que sus agentes lo detecten […] y se envíe una issue al repo para que yo pueda revisarla y
@@ -4502,7 +4502,7 @@ Diez mutaciones más, una por hueco, tumban las pruebas.
 
 ## 132. La barra se pone al día con un clic
 
-**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `la-barra-se-pone-al-dia`
+**Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `la-barra-se-pone-al-dia` · **En la 0.43.0**
 
 Jose: *«si un alumno instala la extensión y la actualizamos en github […] tendrá que enterarse el alumno
 y actualizarla […] tenemos que hacer que los alumnos puedan actualizar la extensión también»*. La barra
