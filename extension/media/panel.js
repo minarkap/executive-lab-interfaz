@@ -1144,9 +1144,16 @@ function pantallaAyuda({ github, avisos = [], version = null }) {
       ${version.nueva && version.puesta === version.nueva ? `
         <p class="detalle">${texto(`Ya está puesta la ${version.nueva}. Recarga la ventana para empezar a usarla: no se pierde nada.`)}</p>
         ${boton({ etiqueta: 'Recargar ahora', icono: '🔄', accion: { tipo: 'recargar' } })}` : (version.nueva ? `
-        <p class="detalle">${texto(`Tienes la ${version.esta}. Hay una más nueva: la ${version.nueva}.`)}</p>
+        <p class="detalle">${texto(version.deprueba ? `Tienes la ${version.esta}. Hay una de prueba más nueva: la ${version.nueva}.` : `Tienes la ${version.esta}. Hay una más nueva: la ${version.nueva}.`)}</p>
         ${boton({ etiqueta: 'Actualizar ahora', icono: '⬆️', accion: { tipo: 'ponerLaNueva' } })}` : `
-        <p class="detalle">${texto(`Tienes la ${version.esta}.`)}</p>`)}` : ''}
+        <p class="detalle">${texto(`Tienes la ${version.esta}.`)}</p>`)}
+      ${/* Quien quiera, recibe también las de prueba: así el freno de la
+            prerelease lo prueba alguien antes de llegar a todos (decisión 134). */''}
+      ${version.probarAntes ? `
+        <p class="detalle">Te llegan las versiones de prueba antes que a nadie.</p>
+        ${boton({ etiqueta: 'Dejar de probarlas antes', pequeno: true, discreto: true, accion: { tipo: 'probarAntes', cual: false } })}` : `
+        ${boton({ etiqueta: 'Probar las versiones nuevas antes', icono: '🧪', pequeno: true, discreto: true, accion: { tipo: 'probarAntes', cual: true } })}
+        <p class="detalle">Te llegan antes que a nadie, para ver si van bien. Alguna puede fallar.</p>`}` : ''}
 
   `;
 }
@@ -1646,7 +1653,7 @@ function pantallaPrincipal() {
       ${boton({ etiqueta: 'Recargar ahora', icono: '🔄', principal: true, accion: { tipo: 'recargar' } })}
     </div>` : `
     <div class="consejo">
-      <p class="que">${texto(`Hay una versión nueva de la barra: la ${laNueva}.`)}</p>
+      <p class="que">${texto(estado.versionDePrueba ? `Hay una versión de prueba de la barra: la ${laNueva}.` : `Hay una versión nueva de la barra: la ${laNueva}.`)}</p>
       ${boton({ etiqueta: 'Actualizar ahora', icono: '⬆️', principal: true, accion: { tipo: 'ponerLaNueva' } })}
       ${boton({ etiqueta: 'Ahora no', discreto: true, accion: { tipo: 'ahoraNo', id: `version:${laNueva}` } })}
     </div>`);
@@ -1714,6 +1721,36 @@ function pantallaPrincipal() {
       ${boton({ etiqueta: 'Ahora no', discreto: true, accion: { tipo: 'ahoraNo', id: `aviso:${avisoQueEspera.nombre}` } })}
     </div>` : '';
 
+  // Lo nuevo de la versión que acaba de poner, una vez (decisión 134): un botón
+  // nuevo que nadie ve es un botón que no existe.
+  const nuevo = estado.queTrae;
+  const loNuevo = nuevo ? `
+    <div class="consejo">
+      <p class="que">${texto(nuevo.cosas && nuevo.cosas.length ? `Ya tienes la ${nuevo.version}. Esto es lo nuevo:` : `Ya tienes la ${nuevo.version}.`)}</p>
+      ${nuevo.cosas && nuevo.cosas.length ? `<ul class="lo-nuevo">${nuevo.cosas.map((c) => `<li>${texto(c)}</li>`).join('')}</ul>`
+        : boton({ etiqueta: 'Ver qué trae', icono: '📰', accion: { tipo: 'verLaRelease' } })}
+      ${boton({ etiqueta: 'Entendido', discreto: true, accion: { tipo: 'yaLoHeVisto' } })}
+    </div>` : '';
+
+  // Y lo que pasó con algo que contó: quien no sabe si sirvió de algo, deja de
+  // contar cosas (decisión 134).
+  const contado = estado.arreglado;
+  // Lo que se dice depende de lo que se contó: una pregunta contestada no «está
+  // arreglada» ni «llega con la próxima versión» (revisión).
+  const HECHO = {
+    falla: (t) => `Lo que contaste ya está arreglado: «${t}». Te llega con la próxima versión de la barra, si no la tienes ya.`,
+    mejora: (t) => `Lo que propusiste ya está hecho: «${t}». Te llega con la próxima versión de la barra, si no la tienes ya.`,
+    'no-se-entiende': (t) => `Executive Lab ha contestado a lo que contaste: «${t}». Lo tienes en GitHub.`,
+  };
+  const leido = (t) => `Executive Lab ha leído lo que contaste: «${t}». De momento se queda como está.`;
+  const queLePaso = contado ? (contado.como === 'hecho' ? (HECHO[contado.tipo] || HECHO.falla) : leido)(contado.titulo) : '';
+  const loQueContaste = contado ? `
+    <div class="consejo">
+      <p class="que">${texto(queLePaso)}</p>
+      ${boton({ etiqueta: 'Verlo en GitHub', icono: '↗', pequeno: true, accion: { tipo: 'abrir', url: contado.enlace } })}
+      ${boton({ etiqueta: 'Entendido', discreto: true, accion: { tipo: 'yaLoSe', numero: contado.numero } })}
+    </div>` : '';
+
   const documentos = estado.esperando
     ? boton({
       etiqueta: plural(estado.esperando, 'Tienes 1 documento sin leer', 'Tienes {n} documentos sin leer'),
@@ -1736,7 +1773,9 @@ function pantallaPrincipal() {
     ${sinAsistente}
     ${sinAjustar}
     ${primerPaso}
+    ${loNuevo}
     ${elConsejo}
+    ${loQueContaste}
     ${elAvisoQueEspera}
     ${versionNueva}
     ${documentos}
@@ -2488,7 +2527,7 @@ function atender(data) {
       // con todo dentro (decisión 131).
       estado = data.estado ? { ...data.estado } : data.estado;
       if (estado) {
-        for (const campo of ['consejo', 'hayVersionNueva', 'versionPuesta', 'hayProyectos', 'hayAgentes', 'avisoParaExecutiveLab']) {
+        for (const campo of ['consejo', 'hayVersionNueva', 'versionPuesta', 'versionDePrueba', 'hayProyectos', 'hayAgentes', 'avisoParaExecutiveLab', 'arreglado', 'queTrae']) {
           if (data[campo] !== undefined) estado[campo] = data[campo];
         }
       }

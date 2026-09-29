@@ -75,6 +75,13 @@ const LO_QUE_SE_HIZO = {
 
 const CLAVE_PETICIONES = 'executiveLab.peticiones';
 const CLAVE_SILENCIADOS = 'executiveLab.consejosApartados';
+// La última versión de la barra que se abrió aquí, para saber si hay que decir
+// qué trae la de ahora; y cuándo se miró en GitHub lo que pasó con los avisos
+// mandados de esta carpeta (decisión 134).
+const CLAVE_VERSION_VISTA = 'executiveLab.versionVista';
+const CLAVE_ARREGLADOS_MIRADOS = 'executiveLab.arregladosMirados';
+const CLAVE_MANDADOS = 'executiveLab.avisosMandados';
+const UN_DIA = 24 * 60 * 60 * 1000;
 // Una versión nueva apartada con «Ahora no» vuelve a salir a los tres días: no
 // es urgente, pero quedarse atrás tampoco es gratis (decisión 132).
 const VERSION_APARTADA_DURANTE = 3 * 24 * 60 * 60 * 1000;
@@ -84,6 +91,10 @@ class Panel {
     this.contexto = contexto;
     this.salida = salida;
     this.vista = null;
+    // Si esta barra ya se usaba antes de abrirse ahora: una de antes dejó
+    // apuntado cuándo miró si había versión nueva. Se mira al arrancar, antes
+    // de que Ayuda o la principal lo apunten ellas (revisión de la decisión 134).
+    this.yaSeUsaba = Boolean(contexto.globalState && contexto.globalState.get(version.CLAVE));
     // En qué pantalla está el alumno. Cuando el arnés cambia algo por detrás
     // se repinta la que tiene delante, no se le devuelve a la principal: que
     // te saquen de donde estabas mientras rellenas una clave es peor que no
@@ -269,6 +280,11 @@ ${cabecera}
       // manda: lo ha preparado su asistente, la barra al fallar, o ella misma
       // sin poder mandarlo. Como mucho uno; los demás, en Ayuda.
       avisoParaExecutiveLab: this.elAvisoQueToca(),
+      // Y lo que pasó con uno que ya mandó: arreglado, o leído (decisión 134).
+      arreglado: this.elArregladoQueToca(),
+      // Lo nuevo de la versión que acaba de poner. Antes de mirar si hay otra:
+      // mirar deja escrito en el almacén que esta barra ya se usaba.
+      queTrae: await this.queTraeLaDeAhora(),
       // Con la sesión de GitHub del editor basta; si no la hay, el botón no
       // desaparece — lleva a la guía, que es lo que hace falta cuando no sabes
       // qué es una cuenta de esas.
@@ -278,6 +294,8 @@ ${cabecera}
       // pulsa «Actualizar ahora» (decisión 132).
       ...(await this.laVersionQueToca()),
     });
+    // Sin esperar: si hay algo que decir, repinta ella sola.
+    this.mirarLosArregladosSiToca().catch((error) => this.salida.appendLine(`[avisos] ${error.stack || error.message}`)); // diccionario: interno
   }
 
   // ------------------------------------------------------- la versión
@@ -286,13 +304,60 @@ ${cabecera}
   // puso y falta recargar, eso, que si no el aviso seguiría diciendo que hay una
   // nueva cuando ya está bajada.
   async laVersionQueToca() {
-    const nueva = await version.hayUnaNueva(this.contexto, this.versionDeLaBarra());
+    const laNueva = await version.laNuevaSiHay(this.contexto, this.versionDeLaBarra());
+    const nueva = laNueva && laNueva.version;
     const apartada = (this.almacen().get(CLAVE_SILENCIADOS) || {})[`version:${nueva}`];
     const hacePoco = apartada && Date.now() - apartada < VERSION_APARTADA_DURANTE;
     return {
       hayVersionNueva: nueva && (!hacePoco || this.versionPuesta === nueva) ? nueva : null,
+      // Una de prueba, para quien se ofreció a probarlas antes (decisión 134).
+      versionDePrueba: Boolean(laNueva && laNueva.deprueba),
       versionPuesta: this.versionPuesta || null,
     };
+  }
+
+  // ── Lo que trae la que acaba de poner ─────────────────────────────────
+  //
+  // Una vez, al abrir una versión más nueva que la última que vio (decisión
+  // 134). La primera vez que se abre la barra no hay nada con qué comparar: si
+  // ya se usaba antes —una de antes de esto dejó apuntado cuándo miró si había
+  // versión nueva—, viene de una más vieja y se le enseña; si no, es una
+  // instalación nueva y se calla.
+  async queTraeLaDeAhora() {
+    try {
+      const actual = this.versionDeLaBarra();
+      if (!actual) return null;
+      const almacen = this.contexto.globalState;
+      let vista = almacen.get(CLAVE_VERSION_VISTA);
+      if (!vista) {
+        vista = this.yaSeUsaba ? '0.0.0' : actual;
+        await almacen.update(CLAVE_VERSION_VISTA, vista);
+      }
+      if (!version.esMasNueva(actual, vista)) return null;
+      return { version: actual, cosas: await version.queTrae(this.contexto, actual) };
+    } catch (error) {
+      this.salida.appendLine(`[version] qué trae: ${error.stack || error.message}`); // diccionario: interno
+      return null;
+    }
+  }
+
+  async yaLoHeVisto() {
+    await this.contexto.globalState.update(CLAVE_VERSION_VISTA, this.versionDeLaBarra());
+    return this.refrescar(true);
+  }
+
+  // Quien quiera, recibe también las de prueba. Lo recordado del otro canal no
+  // vale: se vuelve a mirar al pintar.
+  async probarAntes(si) {
+    try {
+      await vscode.workspace.getConfiguration().update(version.AJUSTE_PROBAR_ANTES, si === true, vscode.ConfigurationTarget.Global);
+    } catch (error) {
+      // Unos ajustes del editor rotos, o de solo lectura (revisión).
+      this.salida.appendLine(`[version] no se guarda probar antes: ${error.message}`); // diccionario: interno
+      return this.enviar({ tipo: 'aviso', texto: 'No he podido guardar el ajuste. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
+    }
+    await this.contexto.globalState.update(version.CLAVE, undefined);
+    return this.verAyuda();
   }
 
   // Solo desde el botón: bajarla, comprobarla e instalarla es de `version.js`.
@@ -425,6 +490,10 @@ ${cabecera}
       pedir: () => this.pedir(mensaje.prompt),
       abrir: () => vscode.env.openExternal(vscode.Uri.parse(mensaje.url)),
       bajarLaNueva: () => vscode.env.openExternal(version.dondeBajarla()),
+      verLaRelease: () => vscode.env.openExternal(version.dondeVerla(this.versionDeLaBarra())),
+      yaLoHeVisto: () => this.yaLoHeVisto(),
+      probarAntes: () => this.probarAntes(mensaje.cual),
+      yaLoSe: () => this.yaLoSe(mensaje.numero),
       ponerLaNueva: () => this.ponerLaNueva(),
       recargar: () => vscode.commands.executeCommand('workbench.action.reloadWindow'),
 
@@ -798,6 +867,7 @@ ${cabecera}
   // la pregunta más frecuente que hay y no tenía botón en ningún sitio.
   async verAyuda() {
     this.donde = { tipo: 'quieto' };
+    const laNueva = await version.laNuevaSiHay(this.contexto, this.versionDeLaBarra());
     this.enviar({
       tipo: 'ayuda',
       github: await github.estado(),
@@ -805,8 +875,10 @@ ${cabecera}
       // Qué barra es esta, y si hay otra: aquí sale aunque se apartara con «Ahora no».
       version: {
         esta: this.versionDeLaBarra(),
-        nueva: await version.hayUnaNueva(this.contexto, this.versionDeLaBarra()),
+        nueva: laNueva ? laNueva.version : null,
+        deprueba: Boolean(laNueva && laNueva.deprueba),
         puesta: this.versionPuesta || null,
+        probarAntes: version.probarAntes(),
       },
     });
   }
@@ -1311,6 +1383,67 @@ ${cabecera}
     }
   }
 
+  // ── Lo que pasó con lo que se mandó (decisión 134) ─────────────────────
+  //
+  // Se recuerda en el almacén de esta carpeta, que no ve ni toca nadie más: un
+  // fichero de la carpeta lo podría escribir cualquiera, y la tarjeta diría lo
+  // que él quisiera con la cara de Executive Lab (revisión de seguridad).
+  async apuntarElMandado(numero, aviso) {
+    if (!Number.isInteger(numero)) return;
+    const mandados = { ...(this.almacen().get(CLAVE_MANDADOS) || {}) };
+    mandados[numero] = { titulo: aviso.titulo, tipo: aviso.tipo, cuando: new Date().toISOString() };
+    // Los cincuenta más nuevos bastan: de uno más viejo ya no se espera nada.
+    const guardados = Object.entries(mandados).sort(([, a], [, b]) => String(b.cuando).localeCompare(String(a.cuando))).slice(0, 50);
+    await this.almacen().update(CLAVE_MANDADOS, Object.fromEntries(guardados));
+  }
+
+  elArregladoQueToca() {
+    const mandados = this.almacen().get(CLAVE_MANDADOS) || {};
+    const [numero, cual] = Object.entries(mandados).find(([, m]) => m && m.cerrado && !m.avisado) || [];
+    return numero ? { numero: Number(numero), titulo: cual.titulo, tipo: cual.tipo, como: cual.como, enlace: avisos.enlaceDe(numero) } : null;
+  }
+
+  // Una vez al día por carpeta, sin que nadie espere, y solo si hay algo que
+  // esperar: pintar no puede depender de GitHub. La hora se apunta antes de
+  // mirar, así que un fallo de red no hace que se pregunte en cada repintado.
+  async mirarLosArregladosSiToca() {
+    const almacen = this.almacen();
+    const mandados = almacen.get(CLAVE_MANDADOS) || {};
+    const abiertos = Object.entries(mandados).filter(([, m]) => m && !m.cerrado);
+    if (!abiertos.length) return;
+    if (Date.now() - (almacen.get(CLAVE_ARREGLADOS_MIRADOS) || 0) < UN_DIA) return;
+    await almacen.update(CLAVE_ARREGLADOS_MIRADOS, Date.now());
+
+    const desde = abiertos.map(([, m]) => m.cuando).filter(Boolean).sort()[0] || new Date(0).toISOString();
+    const cerradas = await avisos.lasCerradas(abiertos.map(([n]) => Number(n)), { desde });
+    if (!cerradas) {
+      this.salida.appendLine('[avisos] no he podido mirar en GitHub: mañana otra vez'); // diccionario: interno
+      return;
+    }
+    const ahora = Date.now();
+    const puestos = { ...(almacen.get(CLAVE_MANDADOS) || {}) };
+    let nuevas = 0;
+    for (const [numero, cerrada] of Object.entries(cerradas)) {
+      if (!puestos[numero]) continue;
+      // Una cerrada hace más de dos meses ya no es noticia: se apunta y se calla.
+      const vieja = cerrada.cuando && ahora - new Date(cerrada.cuando).getTime() > 60 * UN_DIA;
+      puestos[numero] = { ...puestos[numero], cerrado: cerrada.cuando || new Date(ahora).toISOString(), como: cerrada.como, avisado: vieja ? true : undefined };
+      if (!vieja) nuevas += 1;
+    }
+    await almacen.update(CLAVE_MANDADOS, puestos);
+    this.salida.appendLine(`[avisos] mirado en GitHub: ${Object.keys(cerradas).length} cerradas, ${nuevas} por decir`); // diccionario: interno
+    if (nuevas) await this.repintarLoQueHaya();
+  }
+
+  async yaLoSe(numero) {
+    const mandados = { ...(this.almacen().get(CLAVE_MANDADOS) || {}) };
+    if (mandados[numero]) {
+      mandados[numero] = { ...mandados[numero], avisado: true };
+      await this.almacen().update(CLAVE_MANDADOS, mandados);
+    }
+    return this.refrescar(true);
+  }
+
   elAvisoQueToca() {
     try {
       return avisos.elQueToca(this.almacen().get(CLAVE_SILENCIADOS) || {});
@@ -1436,6 +1569,8 @@ ${cabecera}
       this.salida.appendLine('[avisos] mandado, pero no he podido apuntarlo como mandado'); // diccionario: interno
     }
     await this.olvidarElApartado(aviso);
+    // Y se recuerda aquí, para decirle lo que pase con él (decisión 134).
+    await this.apuntarElMandado(hecho.numero, aviso);
     await this.refrescar(true);
     return this.enviar({
       tipo: 'aviso',
