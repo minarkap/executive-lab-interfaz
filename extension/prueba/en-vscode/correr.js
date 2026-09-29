@@ -8,7 +8,37 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const cp = require('node:child_process');
 const { runTests } = require('@vscode/test-electron');
+
+// ── Un paquete de verdad para «Actualizar ahora» (decisión 133) ─────────
+//
+// Instalar lo que baja la barra solo se había fingido: en `humo.js`, el editor
+// es de mentira y dice que sí a todo. Aquí se hace un `.vsix` de verdad, con
+// `vsce` como el de la barra, de una extensión de prueba que no hace nada, y
+// el editor de verdad lo tiene que instalar. Se llama como los de las
+// releases (`executive-lab-<versión>.vsix`), que es lo único que mira la barra
+// del nombre.
+function unPaqueteDePrueba(datos) {
+  const carpeta = path.join(datos, 'paquete-de-prueba');
+  fs.mkdirSync(carpeta, { recursive: true });
+  fs.writeFileSync(path.join(carpeta, 'package.json'), JSON.stringify({
+    name: 'prueba-de-actualizar',
+    displayName: 'Prueba de actualizar',
+    description: 'La instala la prueba de «Actualizar ahora» en un VS Code de prueba.',
+    publisher: 'executivelab',
+    version: '99.0.0',
+    engines: { vscode: '^1.98.0' },
+  }, null, 2));
+  fs.writeFileSync(path.join(carpeta, 'README.md'), '# Prueba de actualizar\n\nLa instala una prueba y no hace nada.\n');
+  const fuera = path.join(datos, 'executive-lab-99.0.0.vsix');
+  // En Windows, `npx` es un `.cmd`, y un `.cmd` solo se lanza con consola.
+  const enWindows = process.platform === 'win32';
+  cp.execFileSync(enWindows ? 'npx.cmd' : 'npx',
+    ['--yes', '@vscode/vsce', 'package', '--out', fuera, '--allow-missing-repository', '--skip-license'],
+    { cwd: carpeta, stdio: 'pipe', shell: enWindows });
+  return fuera;
+}
 
 async function main() {
   const extension = path.resolve(__dirname, '..', '..');
@@ -48,6 +78,8 @@ async function main() {
   // prueba que había en este Mac).
   const sinApp = path.join(datos, 'sin-app');
   fs.mkdirSync(sinApp);
+  const extensiones = path.join(datos, 'extensiones');
+  const paquete = unPaqueteDePrueba(datos);
 
   // ── El editor descargado NO vive dentro del proyecto ──────────────────
   //
@@ -70,7 +102,13 @@ async function main() {
       cachePath: cacheFueraDelProyecto,
       extensionDevelopmentPath: extension,
       extensionTestsPath: path.resolve(__dirname, 'suite.js'),
-      extensionTestsEnv: { PATH: sinNode, EXECUTIVE_LAB_HOME: sinApp, EXECUTIVE_LAB_PRUEBA_SIN_NODE: '1' },
+      extensionTestsEnv: {
+        PATH: sinNode,
+        EXECUTIVE_LAB_HOME: sinApp,
+        EXECUTIVE_LAB_PRUEBA_SIN_NODE: '1',
+        EXECUTIVE_LAB_PRUEBA_PAQUETE: paquete,
+        EXECUTIVE_LAB_PRUEBA_EXTENSIONES: extensiones,
+      },
       // La carpeta de mentira, como URI y no como ruta suelta: pasada a pelo,
       // el proceso de pruebas se la queda como si fuera su punto de entrada e
       // intenta ejecutarla. `--folder-uri` no deja lugar a dudas.
@@ -85,7 +123,7 @@ async function main() {
         // carpeta y el sistema no admite rutas de más de 103 caracteres para
         // eso; la de este proyecto ya se come casi todas ella sola.
         `--user-data-dir=${datos}`,
-        `--extensions-dir=${path.join(datos, 'extensiones')}`,
+        `--extensions-dir=${extensiones}`,
         '--disable-gpu',
         '--force-disable-user-env',
       ],

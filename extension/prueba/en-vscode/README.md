@@ -24,6 +24,11 @@ alumno, para medir el relevo de Node (C2): que la barra lo pone el primero, que
 un proceso hijo lo hereda, y que el freno de los raíles corre con él y deniega un
 `rm -rf`.
 
+Y «Actualizar ahora» (decisión 132): con GitHub fingido dentro del editor y un
+`.vsix` de verdad que hace `correr.js` con `vsce`, el editor tiene que dejarlo
+instalado en su carpeta de extensiones. En `humo.js` el editor es de mentira y
+dice que sí a todo; aquí no.
+
 ```
 npm run probar-en-vscode
 ```
