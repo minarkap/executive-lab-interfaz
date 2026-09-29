@@ -111,6 +111,13 @@ verás tú—:
 5. **Si ya estaban guardadas en git**, moverlas no las saca del historial: díselo y explícale que lo
    único que las inutiliza es cambiarlas en el proveedor.
 
+**Lo de una aplicación no se mueve.** Una carpeta de primer nivel con `package.json`,
+`pyproject.toml`, `pubspec.yaml`, `Cargo.toml` o `go.mod` es una aplicación, y su `.env.local` —o su
+`.env`, o su cuenta de servicio— está donde ella lo lee: Next.js, por ejemplo, solo carga los de su
+propia carpeta. Para RSC es un subproyecto y lo de dentro no se toca, y el panel no lo cuenta como
+fuera de sitio. Si una herramienta de `01-TOOLS` necesita esa misma clave, pónsela también en
+su `.env`, sin quitársela a la aplicación: son dos sitios que la leen, no una clave mal guardada.
+
 **Las credenciales que no son variables** —una cuenta de servicio de Google, un `.pem`, un `.p12`—
 son ficheros enteros, no líneas, y van a **`01-TOOLS/<HERRAMIENTA>/keys/`**, que la plantilla ya
 excluye de las copias. Tres cosas al moverlas:

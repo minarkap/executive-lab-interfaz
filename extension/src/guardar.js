@@ -89,13 +89,15 @@ async function iniciar() {
 }
 
 // Lo que no entra en una copia (F1): las credenciales que el inventario reconoce
-// sueltas, ficheros de claves y ficheros de acceso. `historial` deja fuera las que
-// git todavía no seguía; una que ya estaba en git sigue ahí, porque sacarla lo
-// decide la persona, y la barra ya lo avisa aparte. Por aquí pasan el botón y el
-// guardado solo.
+// sueltas, ficheros de claves y ficheros de acceso, también las de una
+// aplicación, que están en su sitio pero son claves igual. `historial` deja fuera
+// las que git todavía no seguía; una que ya estaba en git sigue ahí, porque
+// sacarla lo decide la persona, y la barra lo avisa aparte. Las de una aplicación
+// todavía no: ese aviso va con las de fuera de sitio (decisión 135, pendiente).
+// Por aquí pasan el botón y el guardado solo.
 function loQueNoEntra() {
-  const sueltas = require('./sueltas');
-  return [...new Set([...sueltas.buscar(), ...sueltas.ficherosDeAcceso()].map((s) => s.donde.split(path.sep).join('/')))].sort();
+  const { claves, ficheros } = require('./sueltas').paraProteger();
+  return [...new Set([...claves, ...ficheros].map((s) => s.donde.split(path.sep).join('/')))].sort();
 }
 
 // Lo que se ha dejado fuera, dicho como en el diccionario, y el botón que lo
