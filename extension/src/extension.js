@@ -75,6 +75,9 @@ const LO_QUE_SE_HIZO = {
 
 const CLAVE_PETICIONES = 'executiveLab.peticiones';
 const CLAVE_SILENCIADOS = 'executiveLab.consejosApartados';
+// Una versión nueva apartada con «Ahora no» vuelve a salir a los tres días: no
+// es urgente, pero quedarse atrás tampoco es gratis (decisión 132).
+const VERSION_APARTADA_DURANTE = 3 * 24 * 60 * 60 * 1000;
 
 class Panel {
   constructor(contexto, salida) {
@@ -270,9 +273,62 @@ ${cabecera}
       // desaparece — lleva a la guía, que es lo que hace falta cuando no sabes
       // qué es una cuenta de esas.
       puedeSubir: await copias.puedeSubir(),
-      // Mientras esto se reparta a mano, nadie se entera de que hay algo
-      // mejor. Se mira una vez al día y solo se avisa: no se instala nada.
-      hayVersionNueva: await version.hayUnaNueva(this.contexto, this.contexto.extension ? this.contexto.extension.packageJSON.version : null),
+      // La barra no está en la tienda del editor, y nadie se enteraría de que
+      // hay algo mejor. Se mira una vez al día, y se pone solo si la persona
+      // pulsa «Actualizar ahora» (decisión 132).
+      ...(await this.laVersionQueToca()),
+    });
+  }
+
+  // ------------------------------------------------------- la versión
+
+  // La nueva, si la hay y no se apartó con «Ahora no» hace poco; y si ya se
+  // puso y falta recargar, eso, que si no el aviso seguiría diciendo que hay una
+  // nueva cuando ya está bajada.
+  async laVersionQueToca() {
+    const nueva = await version.hayUnaNueva(this.contexto, this.versionDeLaBarra());
+    const apartada = (this.almacen().get(CLAVE_SILENCIADOS) || {})[`version:${nueva}`];
+    const hacePoco = apartada && Date.now() - apartada < VERSION_APARTADA_DURANTE;
+    return {
+      hayVersionNueva: nueva && (!hacePoco || this.versionPuesta === nueva) ? nueva : null,
+      versionPuesta: this.versionPuesta || null,
+    };
+  }
+
+  // Solo desde el botón: bajarla, comprobarla e instalarla es de `version.js`.
+  async ponerLaNueva() {
+    // Un doble clic serían dos descargas escribiendo en el mismo fichero.
+    if (this.poniendoLaNueva) return undefined;
+    this.poniendoLaNueva = true;
+    try {
+      return await this.ponerLaNuevaYa();
+    } finally {
+      this.poniendoLaNueva = false;
+    }
+  }
+
+  async ponerLaNuevaYa() {
+    this.enviar({ tipo: 'esperando', que: 'Bajando la versión nueva…' });
+    const hecho = await version.ponerLaNueva(this.contexto, this.versionDeLaBarra());
+    this.salida.appendLine(`[version] ${hecho.ok ? `puesta la ${hecho.version}` : `no se ha puesto${hecho.version ? ` la ${hecho.version}` : ''}: ${hecho.motivo}${hecho.detalle ? ` (${hecho.detalle})` : ''}`}`); // diccionario: interno
+    if (hecho.ok) {
+      this.versionPuesta = hecho.version;
+      await this.refrescar(true);
+      return this.enviar({
+        tipo: 'aviso',
+        texto: `Ya está puesta la ${hecho.version}. Recarga la ventana para empezar a usarla: no se pierde nada.`,
+        boton: { etiqueta: 'Recargar ahora', accion: { tipo: 'recargar' } },
+      });
+    }
+    await this.refrescar(true);
+    if (hecho.motivo === 'yaEstaAlDia') return this.enviar({ tipo: 'aviso', texto: 'Ya tienes la última.' });
+    // De repuesto, la página: es lo que había antes, y con un fallo de aquí
+    // sigue sirviendo a quien le ayude.
+    return this.enviar({
+      tipo: 'aviso',
+      texto: 'No he podido ponerla. Pulsa «Algo va mal» y pásale el código a tu tutor.',
+      malo: true,
+      boton: { etiqueta: 'Abrir su página', accion: { tipo: 'bajarLaNueva' } },
     });
   }
 
@@ -369,6 +425,8 @@ ${cabecera}
       pedir: () => this.pedir(mensaje.prompt),
       abrir: () => vscode.env.openExternal(vscode.Uri.parse(mensaje.url)),
       bajarLaNueva: () => vscode.env.openExternal(version.dondeBajarla()),
+      ponerLaNueva: () => this.ponerLaNueva(),
+      recargar: () => vscode.commands.executeCommand('workbench.action.reloadWindow'),
 
       verConexiones: () => this.verConexiones(),
       verConexion: () => this.verConexion(mensaje.proveedor),
@@ -740,7 +798,17 @@ ${cabecera}
   // la pregunta más frecuente que hay y no tenía botón en ningún sitio.
   async verAyuda() {
     this.donde = { tipo: 'quieto' };
-    this.enviar({ tipo: 'ayuda', github: await github.estado(), avisos: this.losAvisosQueEsperan() });
+    this.enviar({
+      tipo: 'ayuda',
+      github: await github.estado(),
+      avisos: this.losAvisosQueEsperan(),
+      // Qué barra es esta, y si hay otra: aquí sale aunque se apartara con «Ahora no».
+      version: {
+        esta: this.versionDeLaBarra(),
+        nueva: await version.hayUnaNueva(this.contexto, this.versionDeLaBarra()),
+        puesta: this.versionPuesta || null,
+      },
+    });
   }
 
   // ── Resolver una incidencia ────────────────────────────────────────────

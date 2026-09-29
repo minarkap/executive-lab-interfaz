@@ -1060,7 +1060,7 @@ function pantallaFijadas({ grupos = [], elegidas = [], tope = 5, aviso: avisoLoc
 // repartido: el SOS en un grupo, la revisión de la carpeta en otro, y "¿y ahora
 // qué hago?" en ningún sitio — que es la pregunta más frecuente de todas y no
 // tenía botón.
-function pantallaAyuda({ github, avisos = [] }) {
+function pantallaAyuda({ github, avisos = [], version = null }) {
   return `
     ${migas([{ etiqueta: 'Principal', accion: { tipo: 'volver' } }, { etiqueta: 'Ayuda' }])}
     ${bloqueAviso()}
@@ -1136,6 +1136,17 @@ function pantallaAyuda({ github, avisos = [] }) {
       icono: '📖',
       accion: { tipo: 'pedir', prompt: 'Explícame de cero cómo funciona esto: qué es esta carpeta, qué haces tú, qué hago yo, y qué gano. Sin palabras técnicas y con ejemplos de mi trabajo.' },
     })}
+    ${/* Qué barra es esta, y si hay otra. Sale aunque la de la principal se
+          apartara con «Ahora no»: aquí es donde se viene a buscarla. */''}
+    ${version && version.esta ? `
+      <hr class="separador">
+      <h2>Esta barra</h2>
+      ${version.nueva && version.puesta === version.nueva ? `
+        <p class="detalle">${texto(`Ya está puesta la ${version.nueva}. Recarga la ventana para empezar a usarla: no se pierde nada.`)}</p>
+        ${boton({ etiqueta: 'Recargar ahora', icono: '🔄', accion: { tipo: 'recargar' } })}` : (version.nueva ? `
+        <p class="detalle">${texto(`Tienes la ${version.esta}. Hay una más nueva: la ${version.nueva}.`)}</p>
+        ${boton({ etiqueta: 'Actualizar ahora', icono: '⬆️', accion: { tipo: 'ponerLaNueva' } })}` : `
+        <p class="detalle">${texto(`Tienes la ${version.esta}.`)}</p>`)}` : ''}
 
   `;
 }
@@ -1624,12 +1635,21 @@ function pantallaPrincipal() {
   // Sin el asistente instalado, todo lo demás de esta pantalla es decorado: los
   // botones mandan texto a algo que no está. Se dice arriba del todo y en
   // cuanto pasa, no solo el primer día.
-  // Hay algo mejor y quien lo usa no se ha enterado. Va discreto y abajo: no
-  // es urgente, y una barra que te da la lata con actualizaciones es peor que
-  // una barra desactualizada.
-  const versionNueva = estado.hayVersionNueva ? `
-    <p class="detalle">Hay una versión más nueva de esto (${texto(estado.hayVersionNueva)}).</p>
-    ${boton({ etiqueta: 'Ir a por ella', icono: '⬆', discreto: true, pequeno: true, accion: { tipo: 'bajarLaNueva' } })}` : '';
+  // Hay algo mejor y quien lo usa no se ha enterado. Iba discreto y abajo, al
+  // final de Ajustes, plegado: con eso no se enteraba nadie, y la barra no está
+  // en la tienda del editor, que la pondría al día sola. Ahora va arriba, como el
+  // consejo, con su «Ahora no»; y lo pone ella con un clic (decisión 132).
+  const laNueva = estado.hayVersionNueva;
+  const versionNueva = !laNueva ? '' : (estado.versionPuesta === laNueva ? `
+    <div class="consejo">
+      <p class="que">${texto(`Ya está puesta la ${laNueva}. Recarga la ventana para empezar a usarla: no se pierde nada.`)}</p>
+      ${boton({ etiqueta: 'Recargar ahora', icono: '🔄', principal: true, accion: { tipo: 'recargar' } })}
+    </div>` : `
+    <div class="consejo">
+      <p class="que">${texto(`Hay una versión nueva de la barra: la ${laNueva}.`)}</p>
+      ${boton({ etiqueta: 'Actualizar ahora', icono: '⬆️', principal: true, accion: { tipo: 'ponerLaNueva' } })}
+      ${boton({ etiqueta: 'Ahora no', discreto: true, accion: { tipo: 'ahoraNo', id: `version:${laNueva}` } })}
+    </div>`);
 
   const sinAsistente = estado.faltaElAsistente && !estado.primerPaso ? `
     <div class="aviso malo">
@@ -1718,6 +1738,7 @@ function pantallaPrincipal() {
     ${primerPaso}
     ${elConsejo}
     ${elAvisoQueEspera}
+    ${versionNueva}
     ${documentos}
     ${/* Lo más alto de la barra, para lo que esa persona use de verdad. Lo
           elige ella entre sus botones, las consultas de sus programas y sus
@@ -1842,8 +1863,7 @@ function pantallaPrincipal() {
         ${boton({ etiqueta: 'Cambiar de proyecto', icono: '📂', pequeno: true, accion: { tipo: 'elegirCarpeta' } })}
         ${modo === 'avanzado'
           ? boton({ etiqueta: 'Volver al modo sencillo', icono: '◂', pequeno: true, accion: { tipo: 'modoSencillo' } })
-          : boton({ etiqueta: 'Ver el editor completo', icono: '▸', pequeno: true, accion: { tipo: 'verEditorCompleto' } })}
-        ${versionNueva}`,
+          : boton({ etiqueta: 'Ver el editor completo', icono: '▸', pequeno: true, accion: { tipo: 'verEditorCompleto' } })}`,
     })}
   `;
 }
@@ -2468,7 +2488,7 @@ function atender(data) {
       // con todo dentro (decisión 131).
       estado = data.estado ? { ...data.estado } : data.estado;
       if (estado) {
-        for (const campo of ['consejo', 'hayVersionNueva', 'hayProyectos', 'hayAgentes', 'avisoParaExecutiveLab']) {
+        for (const campo of ['consejo', 'hayVersionNueva', 'versionPuesta', 'hayProyectos', 'hayAgentes', 'avisoParaExecutiveLab']) {
           if (data[campo] !== undefined) estado[campo] = data[campo];
         }
       }
