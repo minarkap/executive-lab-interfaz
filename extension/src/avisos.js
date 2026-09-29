@@ -290,11 +290,14 @@ function apuntarUnFallo({ accion, error, lineas = [] }) {
     return preparar({
       tipo: 'falla',
       origen: 'barra',
-      titulo: `Un botón ha fallado por dentro (${accion})`, // diccionario: interno
+      // El título se enseña, y se puede cambiar, antes de mandarlo: nada del
+      // nombre de dentro del botón, que va en los datos (auditoría final).
+      titulo: 'Un botón de la barra ha fallado por dentro',
       texto: '',
       // Lo que la barra iba apuntando justo antes: al enseñarlo, días después,
-      // lo de ese momento ya no estaría.
-      detalle: [`Botón: ${accion}`, pila, ...(lineas.length ? ['', '--- lo último que apuntó la barra ---', ...lineas.slice(-20)] : [])].join('\n'), // diccionario: interno
+      // lo de ese momento ya no estaría. Se enseña tal cual en «Qué más va con
+      // esto», porque es lo que se manda.
+      detalle: [`Botón: ${accion}`, pila, ...(lineas.length ? ['', '--- lo último que apuntó la barra ---', ...lineas.slice(-20)] : [])].join('\n'),
       firma,
     });
   } catch {
@@ -402,8 +405,11 @@ function limpiar(texto, { nombres = losNombres(), otros = [], claves = valoresDe
   limpio = limpio.replace(/(https?:\/\/)[^\s/@:]+(?::[^\s/@]+)?@/g, '$1');
   for (const forma of FORMAS_DE_CLAVE) limpio = limpio.replace(forma, '[clave de acceso]');
 
-  for (const v of variantesDeUnaCarpeta(raiz)) limpio = limpio.split(v).join('<la carpeta>');
-  for (const v of variantesDeUnaCarpeta(casa)) limpio = limpio.split(v).join('~');
+  // Sin distinguir mayúsculas: en Windows, y en un Mac de fábrica, `D:\Clientes`
+  // y `d:\clientes` son la misma carpeta, y el editor y una pila no siempre la
+  // escriben igual (auditoría final).
+  for (const v of variantesDeUnaCarpeta(raiz)) limpio = limpio.replace(new RegExp(escaparRegex(v), 'gi'), '<la carpeta>');
+  for (const v of variantesDeUnaCarpeta(casa)) limpio = limpio.replace(new RegExp(escaparRegex(v), 'gi'), '~');
   // Una carpeta de la red de la oficina: `\\NAS-OFICINA\Ferreteria Soler\…`,
   // con la barra doblada o no. Dice el servidor, el recurso y a veces la empresa.
   limpio = limpio.replace(/\\{2,}[^\\\s'"`]+\\{1,2}[^\\\s'"`]+/g, '<carpeta de red>');
@@ -446,7 +452,7 @@ function datos({ barra = null, editor = null, tipo = 'falla', origen = 'alumno',
 
   const partes = [
     `Barra: ${barra || '?'}`,
-    `Arnés: ${proyecto.versionDelCatalogo() || '(sin montar)'}`, // diccionario: interno
+    `Arnés: ${proyecto.versionDelCatalogo() || '(sin montar)'}`,
     `Sistema: ${process.platform} ${process.arch} · editor ${editor || '?'}`,
     `Asistente: ${asistente}`,
   ];
@@ -469,8 +475,11 @@ function componer({ tipo, origen, titulo, texto, datos: conQue = '', barra = nul
   const cual = TIPOS[tipo] ? tipo : 'falla';
   const de = ORIGENES.includes(origen) ? origen : 'alumno';
   const titular = recortar(unaLinea(limpiar(titulo || tituloDe(texto) || 'Sin título', { otros })), 90);
-  // Tres comillas seguidas cerrarían el bloque de los datos antes de tiempo.
-  const enBloque = String(conQue || '').replace(/```/g, "'''");
+  // Los datos ya llegan limpios de `datos()`, y se enseñaron así; se vuelven a
+  // limpiar por si alguien los arma de otra forma, que limpiar lo limpio lo
+  // deja igual. Era la única barrera para el informe de «Algo va mal»
+  // (auditoría final). Y tres comillas seguidas cerrarían el bloque antes de tiempo.
+  const enBloque = limpiar(String(conQue || ''), { otros }).replace(/```/g, "'''");
   return {
     titulo: `${TIPOS[cual].icono} ${titular}`,
     cuerpo: [

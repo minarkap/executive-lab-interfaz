@@ -1341,7 +1341,7 @@ ${cabecera}
       origen: 'alumno',
       titulo: '',
       texto: '',
-      detalle: hubo ? `Código de incidencia: ${hubo.codigo}\n\n--- informe de «Algo va mal» ---\n${hubo.informe}` : '', // diccionario: interno
+      detalle: hubo ? `Código de incidencia: ${hubo.codigo}\n\n--- informe de «Algo va mal» ---\n${hubo.informe}` : '',
     });
   }
 
@@ -1435,6 +1435,7 @@ ${cabecera}
     if (!avisos.archivar(aviso, avisos.MANDADOS, { enlace: hecho.url })) {
       this.salida.appendLine('[avisos] mandado, pero no he podido apuntarlo como mandado'); // diccionario: interno
     }
+    await this.olvidarElApartado(aviso);
     await this.refrescar(true);
     return this.enviar({
       tipo: 'aviso',
@@ -1453,6 +1454,16 @@ ${cabecera}
     return this.enviar({ tipo: 'aviso', texto: guardado ? porQue : 'No he podido mandarlo. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
   }
 
+  // Un aviso que ya no espera no tiene nada que apartar: su «Ahora no» se
+  // quedaba para siempre en el almacén de la carpeta (auditoría final).
+  async olvidarElApartado(aviso) {
+    const id = aviso && aviso.nombre ? `aviso:${aviso.nombre}` : null;
+    const apartados = this.almacen().get(CLAVE_SILENCIADOS) || {};
+    if (!id || !(id in apartados)) return;
+    const { [id]: _olvidado, ...resto } = apartados;
+    await this.almacen().update(CLAVE_SILENCIADOS, resto);
+  }
+
   async noMandarElAviso() {
     const delante = this.avisoDelante;
     this.avisoDelante = null;
@@ -1462,6 +1473,7 @@ ${cabecera}
     if (estaba && !avisos.archivar(delante, avisos.DESCARTADOS)) {
       this.salida.appendLine('[avisos] no he podido apartarlo'); // diccionario: interno
     }
+    if (estaba) await this.olvidarElApartado(delante);
     await this.refrescar(true);
     if (estaba) this.enviar({ tipo: 'aviso', texto: 'No lo mando, y no te lo vuelvo a proponer.' });
   }

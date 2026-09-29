@@ -4475,6 +4475,30 @@ críticos y cinco importantes, y están todos arreglados con su prueba:
 Dieciséis mutaciones, una por arreglo y por pieza, tumban las pruebas. La que quitaba las formas del
 nombre sobrevivió a la primera, porque el sitio de GitHub llegaba por otro lado, y ahora tiene su caso.
 
+### La auditoría final
+
+Tres revisores más, con las dos ramas ya juntas: el vigía del diccionario, el guardián de las pruebas y un
+refutador de todo el conjunto. Del conjunto no salió nada importante. Lo que salió:
+
+- **Tres huecos por los que se colaba un fallo sin que nada se pusiera rojo.**
+  - Lo que va con el informe de «Algo va mal» podía salir sin limpiar, porque ninguna prueba recorría
+    ese camino.
+  - El clic de verdad en «Mandarlo» no lo probaba nadie: el panel de mentira no tenía clics, y ahora
+    hay uno que sí (`panel-con-clics.js`).
+  - Si faltaba un campo en la lista de lo que la pantalla lee al lado del estado, desaparecía un botón
+    sin avisar.
+
+  Los tres tienen ya su prueba. Y los datos se vuelven a limpiar al armar la incidencia, además de
+  al enseñarlos.
+- **Una carpeta con otra mayúscula** (`D:` frente a `d:`) salía tal cual. Ahora las carpetas se tapan sin
+  distinguir mayúsculas.
+- **El título de un aviso de la barra llevaba el nombre de dentro del botón**, y ahora se enseña y se
+  puede cambiar. Pasa a ser «Un botón de la barra ha fallado por dentro», y el botón va en los datos.
+  Los datos que se enseñan tal cual en «Qué más va con esto» están ya en el diccionario, y no marcados
+  como si no llegaran a la pantalla.
+- Lo apartado con «Ahora no» de un aviso que ya no espera se olvida.
+
+Diez mutaciones más, una por hueco, tumban las pruebas.
 ## 132. La barra se pone al día con un clic
 
 **Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `la-barra-se-pone-al-dia`

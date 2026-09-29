@@ -84,6 +84,11 @@ su nombre de GitHub a la vista de cualquiera. Mandarla sin preguntar sería publ
   de Agentes de la principal no salían nunca. Se reprodujo pintando el mensaje tal cual lo manda la
   extensión (`false false`), y ahora lo prueba `un botón que revienta deja apuntado un aviso…`.
 
+- **Auditoría final** (vigía del diccionario, guardián de las pruebas, refutador del conjunto): tres
+  huecos de prueba cerrados, dos fallos arreglados (carpetas con otra mayúscula, el título de un aviso
+  de la barra) y dos menores. Diez mutaciones más, tumbadas. **343 comprobaciones.** En las máquinas de
+  GitHub, la batería de Windows, el `.exe`, el editor de Windows y el `.dmg`, en verde.
+
 ## Next
 
 - **Publicar una versión** (`/publicar-una-version`) para que llegue a los alumnos: la barra instalada va
