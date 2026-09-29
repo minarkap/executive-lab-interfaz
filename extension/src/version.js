@@ -26,6 +26,21 @@ const github = require('./github');
 
 const REPO = 'minarkap/executive-lab-interfaz';
 const ULTIMA = `https://api.github.com/repos/${REPO}/releases/latest`;
+// Las de prueba no salen en `latest`: para quien se ofrece a probarlas, se mira
+// la lista entera, y de ahí la más nueva, sea o no de prueba (decisión 134).
+const TODAS = `https://api.github.com/repos/${REPO}/releases?per_page=15`;
+const DE_UNA = (version) => `https://api.github.com/repos/${REPO}/releases/tags/v${version}`;
+
+// «Probar las versiones nuevas antes», en Ayuda. Es de la persona, no de la
+// carpeta: se guarda para todo el editor.
+const AJUSTE_PROBAR_ANTES = 'executiveLab.probarAntes';
+const probarAntes = () => {
+  try {
+    return vscode.workspace.getConfiguration().get(AJUSTE_PROBAR_ANTES) === true;
+  } catch {
+    return false;
+  }
+};
 
 // Una vez al día basta y sobra. La respuesta se recuerda en el almacén global
 // del editor, así que abrir cinco ventanas no son cinco preguntas.
@@ -67,7 +82,16 @@ function deUnaRelease(release) {
   const nombre = nombreDelPaquete(version);
   const suyo = ((release && release.assets) || []).find((a) => a && a.name === nombre);
   const candidato = suyo ? { nombre, url: suyo.browser_download_url, tamano: suyo.size, huella: suyo.digest } : null;
-  return { version, paquete: paqueteDeFiar(candidato, version) ? candidato : null };
+  return { version, paquete: paqueteDeFiar(candidato, version) ? candidato : null, deprueba: Boolean(release.prerelease) };
+}
+
+// De la lista, la más nueva que no sea un borrador.
+function laMasNueva(releases) {
+  return (Array.isArray(releases) ? releases : [])
+    .filter((r) => r && !r.draft)
+    .map(deUnaRelease)
+    .filter(Boolean)
+    .reduce((mejor, r) => (!mejor || esMasNueva(r.version, mejor.version) ? r : mejor), null);
 }
 
 // Solo de nuestro sitio, de esa versión, y con huella. Lo que no cumpla las
@@ -81,24 +105,43 @@ function paqueteDeFiar(paquete, version) {
 }
 
 // La última publicada, recordada un día. Nunca lanza: sin red no se avisa, y
-// que esto falle no puede estropearle la pantalla a nadie.
-async function laUltima(contexto, { fresca = false } = {}) {
+// que esto falle no puede estropearle la pantalla a nadie. Con «Probar las
+// versiones nuevas antes», también las de prueba; lo recordado de un canal no
+// vale para el otro.
+async function laUltima(contexto, { fresca = false, deprueba = probarAntes() } = {}) {
   try {
     const almacen = contexto.globalState;
+    const canal = deprueba ? 'pruebas' : 'estable';
     const mirado = almacen.get(CLAVE) || { cuando: 0, version: null };
-    if (!fresca && Date.now() - mirado.cuando < CADA) return mirado.version ? { version: mirado.version, paquete: mirado.paquete || null } : null;
+    const delMismoCanal = (mirado.canal || 'estable') === canal;
+    if (!fresca && delMismoCanal && Date.now() - mirado.cuando < CADA) {
+      return mirado.version ? { version: mirado.version, paquete: mirado.paquete || null, deprueba: Boolean(mirado.deprueba) } : null;
+    }
 
     // Con reloj, como todo lo que sale a la red desde aquí: la barra no puede
     // quedarse esperando a GitHub para pintarse.
-    const respuesta = await github.conReloj(fetch(ULTIMA, { headers: { Accept: 'application/vnd.github+json' } }), null, 5000);
+    const respuesta = await github.conReloj(fetch(deprueba ? TODAS : ULTIMA, { headers: { Accept: 'application/vnd.github+json' } }), null, 5000);
     if (!respuesta || !respuesta.ok) return null;
 
-    const ultima = deUnaRelease(await respuesta.json());
-    await almacen.update(CLAVE, { cuando: Date.now(), version: ultima ? ultima.version : null, paquete: ultima ? ultima.paquete : null });
+    const datos = await respuesta.json();
+    const ultima = deprueba ? laMasNueva(datos) : deUnaRelease(datos);
+    await almacen.update(CLAVE, {
+      cuando: Date.now(),
+      canal,
+      version: ultima ? ultima.version : null,
+      paquete: ultima ? ultima.paquete : null,
+      deprueba: Boolean(ultima && ultima.deprueba),
+    });
     return ultima;
   } catch {
     return null;
   }
+}
+
+// La nueva, con si es de prueba, o null.
+async function laNuevaSiHay(contexto, actual) {
+  const ultima = await laUltima(contexto);
+  return ultima && esMasNueva(ultima.version, actual) ? { version: ultima.version, deprueba: Boolean(ultima.deprueba) } : null;
 }
 
 // Devuelve la versión nueva, o null.
@@ -163,7 +206,58 @@ async function ponerLaNueva(contexto, actual, { esperar = ESPERA_AL_BAJAR } = {}
   return { ok: true, version: ultima.version };
 }
 
+// ── Qué trae ─────────────────────────────────────────────────────────────
+//
+// Lo de «## Qué trae» de la release, en frases: es lo que se le enseña a quien
+// acaba de ponerla (decisión 134). Lo escribe quien publica
+// (`/publicar-una-version`), pensando en el alumno. Se quitan las marcas de
+// markdown, porque la pantalla lo pinta como texto; y lo que va entre
+// paréntesis al empezar es una nota para quien publica, no para el alumno.
+function loQueTrae(cuerpo) {
+  const lineas = String(cuerpo || '').split(/\r?\n/);
+  const desde = lineas.findIndex((l) => /^##\s+qu[ée]\s+trae\b/i.test(l.trim()));
+  if (desde < 0) return [];
+  const cosas = [];
+  for (const linea of lineas.slice(desde + 1)) {
+    if (/^#{1,2}\s/.test(linea.trim())) break;
+    const punto = linea.match(/^\s*[-*]\s+(.+)$/);
+    if (!punto) continue;
+    const limpia = punto[1]
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+      .replace(/[*_`]+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!limpia || limpia.startsWith('(')) continue;
+    cosas.push(limpia.length > 280 ? `${limpia.slice(0, 279).trimEnd()}…` : limpia);
+    if (cosas.length === 6) break;
+  }
+  return cosas;
+}
+
+// Lo que trae una versión, recordado para no preguntarlo en cada repintado.
+// Sin red, nada: la tarjeta se enseña igual, sin la lista.
+const CLAVE_QUE_TRAE = 'executiveLab.queTrae';
+async function queTrae(contexto, version) {
+  try {
+    const recordado = contexto.globalState.get(CLAVE_QUE_TRAE);
+    if (recordado && recordado.version === version) return recordado.cosas;
+    const respuesta = await github.conReloj(fetch(DE_UNA(version), { headers: { Accept: 'application/vnd.github+json' } }), null, 5000);
+    if (!respuesta || !respuesta.ok) return [];
+    const cosas = loQueTrae((await respuesta.json()).body);
+    await contexto.globalState.update(CLAVE_QUE_TRAE, { version, cosas });
+    return cosas;
+  } catch {
+    return [];
+  }
+}
+
 // La página de la última versión, para cuando no se puede ponerla sola.
 const dondeBajarla = () => vscode.Uri.parse(`https://github.com/${REPO}/releases/latest`);
 
-module.exports = { hayUnaNueva, laUltima, ponerLaNueva, esMasNueva, deUnaRelease, paqueteDeFiar, dondeBajarla, REPO, CLAVE, TAMANO_MAXIMO };
+// La de una versión en concreto, para «Ver qué trae» cuando no hay lista.
+const dondeVerla = (version) => vscode.Uri.parse(`https://github.com/${REPO}/releases/tag/v${version}`);
+
+module.exports = {
+  hayUnaNueva, laNuevaSiHay, laUltima, ponerLaNueva, esMasNueva, deUnaRelease, laMasNueva, paqueteDeFiar, loQueTrae, queTrae,
+  dondeBajarla, dondeVerla, probarAntes, REPO, CLAVE, CLAVE_QUE_TRAE, AJUSTE_PROBAR_ANTES, TAMANO_MAXIMO,
+};

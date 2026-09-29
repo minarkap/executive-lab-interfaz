@@ -4640,3 +4640,57 @@ Al abrir este proyecto con la 0.43.0, la barra le puso al día los raíles, como
 alumno: la regla 8, la sección de los avisos y el freno. Son idénticos a los de `skills/`, y se guardan en
 git.
 
+## 134. El alumno se entera de lo que pasa con lo que contó y con lo que le llega
+
+**Fecha:** 29 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `el-alumno-se-entera`
+
+Tres ideas para cerrar el círculo de los avisos (decisión 131) y de las actualizaciones (decisión 132).
+Jose: *«perfecto también»*.
+
+### «Lo que contaste ya está arreglado»
+
+Quien manda un aviso no volvía a saber nada de él, y quien no sabe si sirvió de algo deja de contar
+cosas.
+
+- **Una vez al día por carpeta**, sin que nadie espere, la barra mira en GitHub si se ha cerrado la
+  incidencia de algún aviso de `mandados/`. No hace falta cuenta, porque una incidencia pública se lee
+  sin entrar. Como mucho mira diez, y solo las de nuestro sitio: el enlace está en un fichero de la
+  carpeta, y lo que se abre o se pregunta se construye con su número, no se coge tal cual.
+- **Se apunta en su fichero**: cuándo se cerró y cómo. «Arreglado» si se cerró como hecha, «leído» si
+  se cerró de otra forma.
+- **Se le dice una vez**, en la principal, con «Verlo en GitHub» y «Entendido»:
+  - «Lo que contaste ya está arreglado: «No guarda». Te llega con la próxima versión de la barra, si no
+    la tienes ya.»
+  - «Executive Lab ha leído lo que contaste: «…». De momento se queda como está.»
+
+Para Jose, cerrar una incidencia como hecha («Close as completed») es lo que le dice al alumno que está
+arreglado. Cerrarla de otra forma le dice que se ha leído.
+
+### «Qué trae esta versión»
+
+Al abrir una versión más nueva que la última que vio, una tarjeta con la lista «Qué trae» de su release,
+en frases y sin marcas de markdown, con «Entendido». Se enseña una vez, y se recuerda para no preguntar
+a GitHub en cada repintado. Sin red, la tarjeta sale igual, con «Ver qué trae».
+
+En una instalación nueva no hay nada que comparar, y se calla. Quien viene de la 0.43.0 no tiene apuntada
+la última que vio, pero sí cuándo miró si había versión nueva, y por eso se sabe que viene de una más
+vieja.
+
+Esa lista la escribe quien publica, pensando en el alumno. `publicar.sh` deja su hueco en las notas, y
+`/publicar-una-version` lo recuerda. Lo que empieza por paréntesis es una nota para quien publica, y no
+se enseña.
+
+### «Probar las versiones nuevas antes»
+
+La prerelease frena una versión sin probar (decisión 132), pero entonces no la prueba nadie. En Ayuda
+(*Esta barra*), «Probar las versiones nuevas antes» pone `executiveLab.probarAntes` para todo el editor,
+y desde entonces:
+- la barra mira la lista entera de releases, no solo `latest`, y coge la más nueva que no sea un
+  borrador;
+- la tarjeta dice «Hay una versión de prueba de la barra: la 0.44.0.»;
+- lo que se instala se comprueba igual.
+
+Lo recordado de un canal no vale para el otro. «Dejar de probarlas antes» lo quita.
+
+Jose le dice a quien quiera que lo ponga. No se elige desde fuera.
+

@@ -137,6 +137,11 @@ function leer(fichero) {
     firma: unaLinea(campos.firma) || null,
     veces: Math.max(1, parseInt(campos.veces, 10) || 1),
     enlace: unaLinea(campos.enlace) || null,
+    // Lo que se apunta de uno mandado: cuándo, y si se cerró y se le dijo.
+    cuando: unaLinea(campos.cuando) || null,
+    cerrado: unaLinea(campos.cerrado) || null,
+    como: ['arreglado', 'leido'].includes(campos.como) ? campos.como : null,
+    avisado: campos.avisado === 'si',
   };
 }
 
@@ -255,6 +260,76 @@ function archivar(aviso, a, extra = {}) {
   } catch {
     return null;
   }
+}
+
+// ── Lo que pasa con lo que se contó ──────────────────────────────────────
+//
+// Quien manda un aviso no volvía a saber nada de él, y quien no sabe si sirvió
+// de algo deja de contar cosas (decisión 134). Una vez al día se mira en GitHub
+// si la incidencia de alguno de `mandados/` se ha cerrado —sin cuenta: una
+// incidencia pública se lee sin entrar—, se apunta en su fichero, y se le dice
+// una vez: arreglado, si se cerró como hecho; leído, si se cerró de otra forma.
+
+// El número, solo de una incidencia de nuestro sitio: el enlace está en un
+// fichero de la carpeta, y lo que se abre o se pregunta sale de aquí, no de él.
+function numeroDe(enlace) {
+  const m = String(enlace || '').match(new RegExp(`^https://github\\.com/${escaparRegex(REPO)}/issues/(\\d+)$`));
+  return m ? Number(m[1]) : null;
+}
+const enlaceDe = (numero) => `https://github.com/${REPO}/issues/${numero}`;
+
+function mandados() {
+  const donde = carpeta();
+  return donde ? enUnaCarpeta(path.join(donde, MANDADOS)) : [];
+}
+
+function apuntarEnElMandado(aviso, campos) {
+  try {
+    fs.writeFileSync(aviso.fichero, serializar(aviso, {
+      enlace: aviso.enlace,
+      cuando: aviso.cuando,
+      cerrado: aviso.cerrado,
+      como: aviso.como,
+      avisado: aviso.avisado ? 'si' : null,
+      ...campos,
+    }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Devuelve cuántos se han cerrado desde la última vez. Nunca lanza: sin red,
+// se mira mañana.
+async function mirarSiEstanArreglados({ cuantos = 10, esperar = 5000 } = {}) {
+  const { conReloj } = require('./github');
+  let cerrados = 0;
+  const porMirar = mandados().filter((a) => !a.cerrado && numeroDe(a.enlace)).slice(0, cuantos);
+  for (const aviso of porMirar) {
+    try {
+      const respuesta = await conReloj(fetch(`https://api.github.com/repos/${REPO}/issues/${numeroDe(aviso.enlace)}`,
+        { headers: { Accept: 'application/vnd.github+json' } }), null, esperar);
+      if (!respuesta || !respuesta.ok) continue;
+      const incidencia = await respuesta.json();
+      if (!incidencia || incidencia.state !== 'closed') continue;
+      const como = incidencia.state_reason === 'completed' ? 'arreglado' : 'leido';
+      if (apuntarEnElMandado(aviso, { cerrado: new Date().toISOString().slice(0, 10), como })) cerrados += 1;
+    } catch { /* se mira mañana */ }
+  }
+  return cerrados;
+}
+
+// El que toca decir en la pantalla principal, o null: uno cerrado que todavía
+// no se le ha dicho.
+function arregladoQueToca() {
+  const cual = mandados().find((a) => a.cerrado && a.como && !a.avisado && numeroDe(a.enlace));
+  return cual ? { fichero: cual.fichero, titulo: cual.titulo, como: cual.como, enlace: enlaceDe(numeroDe(cual.enlace)) } : null;
+}
+
+// Ya se le ha dicho: no se vuelve a decir.
+function yaLoSabe(fichero) {
+  const cual = mandados().find((a) => a.fichero === fichero);
+  return cual ? apuntarEnElMandado(cual, { avisado: 'si' }) : false;
 }
 
 // ── Lo que revienta por dentro ───────────────────────────────────────────
@@ -533,5 +608,6 @@ async function mandar({ titulo, cuerpo }, clave, { esperar = 10000 } = {}) {
 module.exports = {
   REPO, CARPETA, MANDADOS, DESCARTADOS, MARCA, TIPOS, ORIGENES, DEBAJO, APARTADO_DURANTE,
   dondeSinArnes, carpeta, leer, pendientes, elQueToca, preparar, reescribir, archivar,
+  mandados, mirarSiEstanArreglados, arregladoQueToca, yaLoSabe, numeroDe,
   apuntarUnFallo, firmaDe, limpiar, datos, componer, mandar, tituloDe,
 };

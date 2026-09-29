@@ -590,6 +590,9 @@ mark {
 
 .consejo .que { margin: 0 0 12px; font-size: 15px; line-height: 1.5; }
 .consejo button { margin-bottom: 8px; }
+/* Lo nuevo de una versión: unas pocas frases, con aire. */
+.consejo .lo-nuevo { margin: 0 0 12px; padding-left: 20px; }
+.consejo .lo-nuevo li { margin-bottom: 6px; line-height: 1.45; }
 
 /* Los pasos de la copia de fuera. Numerados y con el hecho marcado: quien no
    sabe qué es esto necesita ver en qué punto está, no un botón suelto. */
