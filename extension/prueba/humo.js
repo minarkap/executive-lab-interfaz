@@ -6460,6 +6460,110 @@ exec git "$@"
     return 'cuenta de servicio · .pem · lo que está en su sitio no molesta · nada del contenido sale';
   });
 
+  await comprobar('las claves de una aplicación están en su sitio, y siguen sin salir de este ordenador', async () => {
+    // Jose, 29-09-2026, con una captura de nexus-presupuestos: «Hay 9 claves
+    // fuera de sitio» — Resend, Supabase, y NEXUS y USE «por montar», que no
+    // son nadie. Estaban en el `.env.local` de `03-APP`, que es donde las lee
+    // la aplicación de esa carpeta. Para RSC eso es un subproyecto y lo de
+    // dentro no se mueve (decisión 135).
+    const fs2 = require('node:fs');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'con-app-'));
+    const escribir = (relativa, texto) => {
+      fs2.mkdirSync(path.dirname(path.join(carpeta, relativa)), { recursive: true });
+      fs2.writeFileSync(path.join(carpeta, relativa), texto);
+    };
+    escribir('.rsc.json', JSON.stringify({ version: 1, targets: ['claude'] }));
+    escribir('03-APP/package.json', JSON.stringify({ name: 'presupuestos', private: true, dependencies: { next: '15.0.0' } }));
+    escribir('03-APP/.env.local', [
+      'RESEND_API_KEY=re_secreto_de_la_app',
+      'RESEND_FROM_EMAIL=hola@ejemplo.com',
+      'NEXT_PUBLIC_SUPABASE_URL=https://abc.supabase.co',
+      'NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJanon',
+      'SUPABASE_SERVICE_ROLE_KEY=eyJservicio_secreto',
+      'SUPABASE_DB_PASSWORD=otra_secreta',
+      'SUPABASE_PROJECT_ID=abc',
+      'NEXUS_ADMIN_EMAIL=jefe@ejemplo.com',
+      'USE_MOCK_DATA=false',
+    ].join('\n'));
+    // Un fichero de acceso de la app también es suyo: Firebase lo lee de ahí.
+    escribir('03-APP/firebase-adminsdk.json', JSON.stringify({
+      type: 'service_account', private_key: '-----BEGIN PRIVATE KEY-----\\nsecreto_de_firebase\\n-----END PRIVATE KEY-----\\n',
+      client_email: 'robot@presupuestos.iam.gserviceaccount.com',
+    }));
+    // Y una herramienta del asistente que espera una clave que la app tiene.
+    escribir('01-TOOLS/RESEND/.env.example', 'RESEND_API_KEY=\n');
+
+    vscode.guion.raiz = carpeta;
+    try {
+      const sueltasM = cargar('sueltas');
+      // La captura: con solo la app, no hay nada fuera de sitio.
+      assert.equal(sueltasM.resumen(), null, `las claves de la app no son desorden: ${JSON.stringify((sueltasM.resumen() || {}).ficheros)}`);
+      assert.deepEqual(sueltasM.ficherosDeAcceso().map((f) => f.donde), [], 'ni su fichero de acceso');
+
+      // RESEND no tiene su clave «fuera de sitio»: la de la app es de la app.
+      const conexionesM = cargar('conexiones');
+      const resend = conexionesM.proveedores().find((x) => x.id === 'RESEND');
+      assert.equal(resend.fueraDeSitio, 0, 'la clave de la app no cuenta como la de la herramienta mal puesta');
+      assert.equal(resend.faltan, 1, 'a la herramienta le falta la suya');
+
+      // Siguen siendo claves: sus valores se tapan en lo que se enseña…
+      const tapadas = conexionesM.valoresDeClaves();
+      assert.ok(tapadas.includes('eyJservicio_secreto') && tapadas.includes('re_secreto_de_la_app'), 'los valores de la app se tapan');
+      assert.ok(tapadas.some((v) => v.includes('secreto_de_firebase')), 'y los de su fichero de acceso');
+
+      // …y no entran en una copia.
+      const guardarM = cargar('guardar');
+      if (await guardarM.hayGit()) {
+        const historial = require(path.join(RAIZ, '..', 'instalador', 'comun', 'historial.js'));
+        const cp = require('node:child_process');
+        const casa = fs2.mkdtempSync(path.join(os.tmpdir(), 'casa-'));
+        const antes = process.env.GIT_CONFIG_GLOBAL;
+        process.env.GIT_CONFIG_GLOBAL = path.join(casa, '.gitconfig');
+        try {
+          assert.ok((await historial.iniciar(carpeta)).ok);
+          escribir('03-APP/src/page.tsx', 'export default function Page() { return null; }\n');
+          const hecho = await guardarM.guardar('Con la app');
+          assert.equal(hecho.ok, true, hecho.mensaje);
+          const enLaCopia = cp.execFileSync('git', ['-C', carpeta, 'ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean);
+          assert.ok(!enLaCopia.includes('03-APP/.env.local') && !enLaCopia.includes('03-APP/firebase-adminsdk.json'),
+            `las claves de la app entran en la copia: ${enLaCopia.join(', ')}`);
+          assert.ok(enLaCopia.includes('03-APP/package.json') && enLaCopia.includes('03-APP/src/page.tsx'), 'lo demás de la app sí entra');
+        } finally {
+          if (antes === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+          else process.env.GIT_CONFIG_GLOBAL = antes;
+        }
+      }
+
+      // Lo que sí es desorden sigue contando: una carpeta sin aplicación, y
+      // una con solo `requirements.txt`, que para el protocolo de `harness` es
+      // un guion, y los guiones van en 01-TOOLS.
+      escribir('auto/.env', 'BUFFER_API_KEY=buffer_secreto\n');
+      escribir('scripts/requirements.txt', 'requests\n');
+      escribir('scripts/.env', 'PEXELS_API_KEY=pexels_secreto\n');
+      const hay = sueltasM.resumen();
+      assert.deepEqual(hay.ficheros.sort(), ['auto/.env', 'scripts/.env'], 'lo de fuera de la app sí se cuenta');
+      assert.deepEqual(hay.reparto.map((g) => g.herramienta).sort(), ['BUFFER', 'PEXELS'], 'y nada de la app se reparte');
+      assert.ok(!hay.prompt.includes('03-APP'), 'ni se le manda al asistente a moverla');
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return 'nada fuera de sitio · tapadas · fuera de la copia · lo de fuera sigue contando';
+  });
+
+  await comprobar('una aplicación es lo mismo que para RSC', () => {
+    // La lista de lo que hace de una carpeta una aplicación es de RSC
+    // (`skills/harness`, fase 1: «Subprojects»). Si una versión nueva del arnés
+    // la cambia, esto se pone rojo antes de que la barra diga otra cosa.
+    const fs2 = require('node:fs');
+    const habilidad = path.join(RAIZ, 'media', 'harness', 'node_modules', '@ericrisco', 'rsc', 'skills', 'harness', 'SKILL.md');
+    if (!fs2.existsSync(habilidad)) return 'SALTADA: sin el arnés dentro';
+    const linea = fs2.readFileSync(habilidad, 'utf8').split('\n').find((l) => /\*\*Subprojects\*\*/.test(l));
+    assert.ok(linea, 'la habilidad harness ya no define los subproyectos');
+    const deRsc = [...linea.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+    assert.deepEqual([...cargar('sueltas').DE_UNA_APP].sort(), [...deRsc].sort());
+    return deRsc.join(', ');
+  });
+
   await comprobar('las pruebas no corren contra una copia vieja de lo común', () => {
     // `instalador/comun/` es la fuente; `extension/media/comun/` la genera
     // `preparar-paquete.js` al empaquetar, y está ignorada a propósito para no
