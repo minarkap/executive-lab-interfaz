@@ -91,9 +91,10 @@ su nombre de GitHub a la vista de cualquiera. Mandarla sin preguntar sería publ
 
 ## Next
 
-- **Publicar una versión** (`/publicar-una-version`) para que llegue a los alumnos: la barra instalada va
-  por detrás del código. Con ella, también empezarán a ver el consejo, la versión nueva, «En qué estamos»
-  y el botón de Agentes, que no salían.
+- ~~Publicar una versión~~ **Hecho el 29-09-2026: la 0.43.0** (PR #5, release `v0.43.0`). Con ella
+  empiezan a verse también el consejo, la versión nueva, «En qué estamos» y el botón de Agentes.
+- El primer aviso de verdad, de un alumno, confirmará el camino entero contra GitHub: aquí se probó
+  con GitHub fingido, para no abrir incidencias de prueba en un sitio público.
 - Las carpetas montadas antes verán «Puesto, pero de una versión anterior de la barra» hasta que se
   pongan al día los raíles (regla 8 y el bloque de lo que no entra en git).
 - El flujo `avisos.yml` actúa desde que esté en `main`.

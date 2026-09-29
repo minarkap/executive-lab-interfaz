@@ -68,8 +68,12 @@ Lo que había:
 
 ## Next
 
-- **Publicar una versión** para que llegue. Ojo: quien tenga la 0.42.0 **no verá el aviso**, porque en
-  esa versión no se pintaba (decisión 131). Esa vez hay que pasarles la nueva como siempre, a mano o con
-  el instalador; a partir de ahí, se ponen al día solos.
+- ~~Publicar una versión~~ **Hecho el 29-09-2026: la 0.43.0** (PR #6, release `v0.43.0`). Comprobado
+  contra el GitHub de verdad y sin cuenta: la última es la 0.43.0, su paquete es de fiar, la huella
+  publicada es la del `.vsix` hecho aquí (`sha256:5999ed78…`), y desde la 0.42.0 se bajaría, se
+  comprobaría y se le daría al editor; con la 0.43.0 puesta, «Ya tienes la última».
+- Quien tenga la 0.42.0 **no verá el aviso**, porque en esa versión no se pintaba (decisión 131): esta vez
+  hay que pasarles la 0.43.0 como siempre, a mano o con el instalador. A partir de ahí, se ponen al día
+  solos. La primera actualización de verdad, de la 0.43.0 a la siguiente, confirmará el clic en el editor.
 - Lo que no se ha probado en un ordenador de verdad, como prerelease primero (decisión 132).
 - Si el repositorio pasa a privado, esto y los avisos necesitan un sitio público (decisión 132).
