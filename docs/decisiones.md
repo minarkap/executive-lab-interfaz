@@ -4499,6 +4499,7 @@ refutador de todo el conjunto. Del conjunto no salió nada importante. Lo que sa
 - Lo apartado con «Ahora no» de un aviso que ya no espera se olvida.
 
 Diez mutaciones más, una por hueco, tumban las pruebas.
+
 ## 132. La barra se pone al día con un clic
 
 **Fecha:** 28 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `la-barra-se-pone-al-dia`
@@ -4571,6 +4572,13 @@ Ahora, si no llega al final, falla y dice después de cuántas se paró. Se comp
 a propósito. `contrato.js` y `empresas-distintas.js` no lo llevan todavía.
 
 Trece mutaciones tumban las pruebas nuevas.
+
+### La auditoría final
+
+El guardián de las pruebas encontró un fallo de verdad. Si la descarga llegaba **sin decir cuánto mide**
+(un proxy, una descarga por trozos), `null` como número es 0, y «Actualizar ahora» la rechazaba siempre
+como cortada. Ahora, si no lo dice, se mide al llegar. Y dos pruebas más cubren cosas que se podían
+romper sin que nadie lo viera: «Ya tienes la última», y que la apartada siga fuera a los dos días.
 
 ### Si el repositorio pasa a privado
 

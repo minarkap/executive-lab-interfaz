@@ -62,6 +62,10 @@ Lo que había:
   `humo.js` terminaba a medias con código 0: ahora la batería falla si no llega al final (probado con una
   colgada a propósito). **342 comprobaciones**, y contrato, diccionario y PowerShell en verde.
 
+- **Auditoría final**: un fallo de verdad, arreglado. Una descarga que no dice cuánto mide se rechazaba
+  siempre, porque `null` como número es 0. Y dos pruebas más: «Ya tienes la última», y los tres días.
+  Tres mutaciones más, tumbadas. **346 comprobaciones**, con las de los avisos.
+
 ## Next
 
 - **Publicar una versión** para que llegue. Ojo: quien tenga la 0.42.0 **no verá el aviso**, porque en

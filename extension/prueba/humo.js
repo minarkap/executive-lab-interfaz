@@ -11008,6 +11008,13 @@ exec git "$@"
       ]);
       assert.equal(colgada.motivo, 'sinRespuesta', 'una descarga colgada no se corta');
       assert.ok(cortada, 'una descarga colgada sigue bajando por detrás');
+      // Sin decir cuánto mide, se mide al llegar: antes `null` contaba como 0 y
+      // se rechazaba siempre (auditoría final).
+      instalados.length = 0;
+      conGitHub(unPaquete(bytes), () => ({ ...entero(), headers: { get: () => null } }));
+      assert.equal((await versionM.ponerLaNueva(ctx, '0.42.0')).ok, true, 'sin decir cuánto mide, no se pone nunca');
+      conGitHub(unPaquete(bytes), () => ({ ...entero(), headers: { get: (h) => (h === 'content-length' ? String(bytes.length) : null) } }));
+      assert.equal((await versionM.ponerLaNueva(ctx, '0.42.0')).ok, true, 'diciendo lo que mide, no se pone');
       // Y si anuncia que mide otra cosa, ni se baja.
       let leida = false;
       await noSeInstala('aMedias', unPaquete(bytes), () => ({ ok: true, headers: { get: (h) => (h === 'content-length' ? String(bytes.length * 1000) : null) }, arrayBuffer: async () => { leida = true; return bytes; } }));
@@ -11070,12 +11077,20 @@ exec git "$@"
       // «Ahora no»: fuera de la principal tres días, y en Ayuda sigue.
       await proveedor.ahoraNo('version:0.43.0');
       assert.equal(ultimo('estado').hayVersionNueva, null, '«Ahora no» no la aparta');
+      await contexto.workspaceState.update('executiveLab.consejosApartados', { 'version:0.43.0': Date.now() - 2 * 86400000 });
+      await proveedor.refrescar(true);
+      assert.equal(ultimo('estado').hayVersionNueva, null, 'a los dos días ya vuelve');
       await proveedor.verAyuda();
       assert.match(pintar(ultimo('ayuda')), /Tienes la 0\.42\.0\. Hay una más nueva: la 0\.43\.0\..*Actualizar ahora/s, 'en Ayuda no sale');
       await contexto.workspaceState.update('executiveLab.consejosApartados', { 'version:0.43.0': Date.now() - 4 * 86400000 });
       await proveedor.refrescar(true);
       assert.equal(ultimo('estado').hayVersionNueva, '0.43.0', 'a los tres días no vuelve');
-      return 'arriba · un clic · recargar · de repuesto su página · tres días apartada';
+      // Con la última ya puesta, se le dice, y no «No he podido ponerla».
+      contexto.extension = { packageJSON: { version: '0.43.0' } };
+      vscode.commands.executeCommand = async () => {};
+      await proveedor.manejar({ tipo: 'ponerLaNueva' });
+      assert.equal(ultimo('aviso').texto, 'Ya tienes la última.');
+      return 'arriba · un clic · recargar · de repuesto su página · tres días apartada · y al día';
     } finally {
       proveedor.enviar = antes.enviar;
       global.fetch = antes.fetch;

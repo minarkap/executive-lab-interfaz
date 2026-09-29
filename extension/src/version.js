@@ -130,8 +130,11 @@ async function ponerLaNueva(contexto, actual, { esperar = ESPERA_AL_BAJAR } = {}
   try {
     const respuesta = await fetch(paquete.url, { signal: cortar.signal });
     if (!respuesta || !respuesta.ok) return { ok: false, motivo: 'sinRespuesta', version: ultima.version };
-    // Si dice de antemano que no mide lo que tiene que medir, ni se baja.
-    const anunciado = Number(respuesta.headers && respuesta.headers.get ? respuesta.headers.get('content-length') : NaN);
+    // Si dice de antemano que no mide lo que tiene que medir, ni se baja. Si no
+    // lo dice —un proxy, o una descarga por trozos—, se mide al llegar: `null`
+    // como número es 0, y así se rechazaba siempre (auditoría final).
+    const cabecera = respuesta.headers && respuesta.headers.get ? respuesta.headers.get('content-length') : null;
+    const anunciado = cabecera === null || cabecera === undefined || String(cabecera).trim() === '' ? NaN : Number(cabecera);
     if (Number.isFinite(anunciado) && anunciado !== paquete.tamano) {
       cortar.abort();
       return { ok: false, motivo: 'aMedias', version: ultima.version };
