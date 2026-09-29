@@ -1735,15 +1735,20 @@ function pantallaPrincipal() {
   // Y lo que pasó con algo que contó: quien no sabe si sirvió de algo, deja de
   // contar cosas (decisión 134).
   const contado = estado.arreglado;
-  const QUE_PASO = {
-    arreglado: (t) => `Lo que contaste ya está arreglado: «${t}». Te llega con la próxima versión de la barra, si no la tienes ya.`,
-    leido: (t) => `Executive Lab ha leído lo que contaste: «${t}». De momento se queda como está.`,
+  // Lo que se dice depende de lo que se contó: una pregunta contestada no «está
+  // arreglada» ni «llega con la próxima versión» (revisión).
+  const HECHO = {
+    falla: (t) => `Lo que contaste ya está arreglado: «${t}». Te llega con la próxima versión de la barra, si no la tienes ya.`,
+    mejora: (t) => `Lo que propusiste ya está hecho: «${t}». Te llega con la próxima versión de la barra, si no la tienes ya.`,
+    'no-se-entiende': (t) => `Executive Lab ha contestado a lo que contaste: «${t}». Lo tienes en GitHub.`,
   };
+  const leido = (t) => `Executive Lab ha leído lo que contaste: «${t}». De momento se queda como está.`;
+  const queLePaso = contado ? (contado.como === 'hecho' ? (HECHO[contado.tipo] || HECHO.falla) : leido)(contado.titulo) : '';
   const loQueContaste = contado ? `
     <div class="consejo">
-      <p class="que">${texto((QUE_PASO[contado.como] || QUE_PASO.leido)(contado.titulo))}</p>
+      <p class="que">${texto(queLePaso)}</p>
       ${boton({ etiqueta: 'Verlo en GitHub', icono: '↗', pequeno: true, accion: { tipo: 'abrir', url: contado.enlace } })}
-      ${boton({ etiqueta: 'Entendido', discreto: true, accion: { tipo: 'yaLoSe', fichero: contado.fichero } })}
+      ${boton({ etiqueta: 'Entendido', discreto: true, accion: { tipo: 'yaLoSe', numero: contado.numero } })}
     </div>` : '';
 
   const documentos = estado.esperando

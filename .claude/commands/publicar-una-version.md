@@ -21,8 +21,10 @@ Después:
    una frase por punto, pensando en el alumno, porque es lo que le enseña la barra al ponerla (decisión
    134). Lo que empiece por paréntesis no lo enseña.
    Si la versión no se ha probado en un ordenador de verdad, pregúntame si va como `--prerelease`: así
-   no se le ofrece a nadie hasta que la marque como la última (`gh release edit v<version>
-   --prerelease=false --latest`). La barra solo ofrece la última, y una prerelease nunca lo es
-   (decisión 132).
+   solo les llega a quienes tengan puesto «Probar las versiones nuevas antes», hasta que la marque como
+   la última (`gh release edit v<version> --prerelease=false --latest`). A los demás, la barra solo les
+   ofrece la última, y una prerelease nunca lo es (decisiones 132 y 134).
+   La release tiene que publicarla la cuenta dueña del repositorio (`minarkap`): la barra no ofrece las de
+   nadie más.
 
 Si alguna comprobación falla, **para** y dímelo. No publiques nada a medias.

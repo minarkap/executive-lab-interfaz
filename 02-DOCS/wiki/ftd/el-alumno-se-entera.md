@@ -2,7 +2,7 @@
 type: ftd
 title: El alumno se entera de lo que pasa con lo que contó y con lo que le llega
 date: 2026-09-29
-status: en-curso
+status: hecho
 ---
 
 # El alumno se entera de lo que pasa con lo que contó y con lo que le llega
@@ -23,9 +23,9 @@ avisos (decisión 131) y de las actualizaciones (decisión 132):
 
 **Dentro**
 
-- Una vez al día, la barra mira en GitHub si se ha cerrado la incidencia de algún aviso de `mandados/`, y
-  se lo dice una vez, con «Verlo en GitHub» y «Entendido». Sin cuenta: una incidencia pública se lee sin
-  entrar.
+- Una vez al día, con una sola pregunta y sin cuenta, la barra mira en GitHub si se ha cerrado la
+  incidencia de algún aviso que mandó (lo recuerda ella, no un fichero de la carpeta), y se lo dice hasta
+  que pulsa «Entendido», con «Verlo en GitHub».
 - Al abrir una versión más nueva que la última que vio, una tarjeta con lo de «Qué trae» de su release, y
   «Entendido». En una instalación nueva, nada: no hay nada que comparar.
 - Un ajuste, «Probar las versiones nuevas antes», en Ayuda (*Esta barra*). Con él, la barra mira también
@@ -39,16 +39,24 @@ avisos (decisión 131) y de las actualizaciones (decisión 132):
 
 ## Checklist
 
-- [ ] 1. «Lo que contaste ya está arreglado»: mirar, apuntar, decirlo una vez.
-- [ ] 2. «Qué trae esta versión»: tras actualizar, una vez, con lo de la release.
-- [ ] 3. «Probar las versiones nuevas antes»: el ajuste, las prereleases y su tarjeta.
-- [ ] 4. Diccionario, decisión 134 y todas las comprobaciones en verde.
-- [ ] 5. Revisión adversaria.
+- [x] 1. «Lo que contaste ya está arreglado»: mirar, apuntar, decirlo — una pregunta al día por carpeta, se para sin cupo, cuatro frases según lo que era, ni lo viejo ni un fichero de mentira.
+- [x] 2. «Qué trae esta versión»: tras actualizar, con lo de la release — callada en una instalación nueva, recordada, y sin volver a preguntar tras un fallo.
+- [x] 3. «Probar las versiones nuevas antes»: el ajuste, las prereleases y su tarjeta — sin borradores ni releases de otra persona, y dicho si no se puede guardar.
+- [x] 4. Diccionario, decisión 134 y todas las comprobaciones en verde.
+- [x] 5. Revisión adversaria — seguridad y corrección: nada crítico; tres importantes y varios menores, arreglados.
 
 ## Evidence
 
-(según se vaya haciendo)
+- `humo.js`: **351 comprobaciones pasadas**, cinco nuevas. `contrato.js` 14, las tres empresas, diccionario y
+  PowerShell, en verde. En el VS Code de verdad, todo bien, con la instalación de «Actualizar ahora».
+- **Veinticuatro mutaciones, las veinticuatro tumbadas**: once de las funcionalidades y trece de los
+  arreglos de la revisión (cualquier autor, un fallo vuelto a preguntar en la versión o en «Qué trae», lo
+  viejo anunciado, la misma frase para todo, la instalación nueva por lo apuntado después, el título
+  cortado, lo sangrado, los guiones bajos, pintar sin mirar lo mandado, una pregunta por aviso, el ajuste
+  roto sin decirlo, lo mandado sin recordar).
+- Decisión 134, con «Lo que encontró la revisión».
 
 ## Next
 
-(al cerrar)
+- Publicar la 0.44.0. Será **la primera actualización de verdad con el clic**: tu barra 0.43.0 dirá «Hay una
+  versión nueva de la barra» y la pondrá. Y, al recargar, «Ya tienes la 0.44.0. Esto es lo nuevo:».

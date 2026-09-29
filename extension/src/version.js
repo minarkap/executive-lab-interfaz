@@ -31,6 +31,18 @@ const ULTIMA = `https://api.github.com/repos/${REPO}/releases/latest`;
 const TODAS = `https://api.github.com/repos/${REPO}/releases?per_page=15`;
 const DE_UNA = (version) => `https://api.github.com/repos/${REPO}/releases/tags/v${version}`;
 
+// Solo lo que publica la dueña del sitio. Una etiqueta que crea otra persona con
+// permiso, o una tarea mal hecha, no se ofrece a nadie (revisión de seguridad
+// de la decisión 134). Hoy todas las releases las publica `minarkap`.
+const DUENA = REPO.split('/')[0];
+const deLaDuena = (release) => Boolean(release && release.author && release.author.login === DUENA);
+
+// En un aula todos salen a internet por la misma dirección, y GitHub deja 60
+// preguntas por hora sin cuenta para todos juntos. Si una falla —sin red, o sin
+// cupo—, no se vuelve a preguntar en un rato: se repinta muchas veces por hora,
+// y cada repintado sería otra pregunta que gasta el cupo de la clase.
+const TRAS_UN_FALLO = 60 * 60 * 1000;
+
 // «Probar las versiones nuevas antes», en Ayuda. Es de la persona, no de la
 // carpeta: se guarda para todo el editor.
 const AJUSTE_PROBAR_ANTES = 'executiveLab.probarAntes';
@@ -78,7 +90,7 @@ const nombreDelPaquete = (version) => `executive-lab-${version}.vsix`;
 // null y solo se puede avisar.
 function deUnaRelease(release) {
   const version = String((release && release.tag_name) || '').replace(/^v/, '');
-  if (!/^\d+\.\d+\.\d+$/.test(version)) return null;
+  if (!/^\d+\.\d+\.\d+$/.test(version) || !deLaDuena(release)) return null;
   const nombre = nombreDelPaquete(version);
   const suyo = ((release && release.assets) || []).find((a) => a && a.name === nombre);
   const candidato = suyo ? { nombre, url: suyo.browser_download_url, tamano: suyo.size, huella: suyo.digest } : null;
@@ -114,14 +126,19 @@ async function laUltima(contexto, { fresca = false, deprueba = probarAntes() } =
     const canal = deprueba ? 'pruebas' : 'estable';
     const mirado = almacen.get(CLAVE) || { cuando: 0, version: null };
     const delMismoCanal = (mirado.canal || 'estable') === canal;
-    if (!fresca && delMismoCanal && Date.now() - mirado.cuando < CADA) {
-      return mirado.version ? { version: mirado.version, paquete: mirado.paquete || null, deprueba: Boolean(mirado.deprueba) } : null;
-    }
+    const lo = () => (mirado.version && delMismoCanal ? { version: mirado.version, paquete: mirado.paquete || null, deprueba: Boolean(mirado.deprueba) } : null);
+    if (!fresca && delMismoCanal && Date.now() - mirado.cuando < CADA) return lo();
+    // Falló hace poco: con lo que se sabía, y sin volver a preguntar. El botón
+    // (`fresca`) sí pregunta: es una persona pidiéndolo, no un repintado.
+    if (!fresca && mirado.fallo && Date.now() - mirado.fallo < TRAS_UN_FALLO) return lo();
 
     // Con reloj, como todo lo que sale a la red desde aquí: la barra no puede
     // quedarse esperando a GitHub para pintarse.
     const respuesta = await github.conReloj(fetch(deprueba ? TODAS : ULTIMA, { headers: { Accept: 'application/vnd.github+json' } }), null, 5000);
-    if (!respuesta || !respuesta.ok) return null;
+    if (!respuesta || !respuesta.ok) {
+      await almacen.update(CLAVE, { ...mirado, fallo: Date.now() });
+      return lo();
+    }
 
     const datos = await respuesta.json();
     const ultima = deprueba ? laMasNueva(datos) : deUnaRelease(datos);
@@ -220,11 +237,16 @@ function loQueTrae(cuerpo) {
   const cosas = [];
   for (const linea of lineas.slice(desde + 1)) {
     if (/^#{1,2}\s/.test(linea.trim())) break;
-    const punto = linea.match(/^\s*[-*]\s+(.+)$/);
+    // Solo los de primer nivel: lo sangrado es el detalle de uno de ellos.
+    const punto = linea.match(/^[-*]\s+(.+)$/);
     if (!punto) continue;
+    // Las marcas, fuera; pero un guion bajo dentro de una palabra
+    // (`mi_archivo`) es parte de ella (revisión).
     const limpia = punto[1]
       .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-      .replace(/[*_`]+/g, '')
+      .replace(/\*\*|__|`/g, '')
+      .replace(/(^|\s)[*_](\S)/g, '$1$2')
+      .replace(/(\S)[*_](?=\s|[.,;:!?]|$)/g, '$1')
       .replace(/\s+/g, ' ')
       .trim();
     if (!limpia || limpia.startsWith('(')) continue;
@@ -240,9 +262,14 @@ const CLAVE_QUE_TRAE = 'executiveLab.queTrae';
 async function queTrae(contexto, version) {
   try {
     const recordado = contexto.globalState.get(CLAVE_QUE_TRAE);
-    if (recordado && recordado.version === version) return recordado.cosas;
+    if (recordado && recordado.version === version && !recordado.fallo) return recordado.cosas;
+    // Si falló hace poco, sin la lista y sin volver a preguntar en cada repintado.
+    if (recordado && recordado.version === version && Date.now() - recordado.fallo < TRAS_UN_FALLO) return [];
     const respuesta = await github.conReloj(fetch(DE_UNA(version), { headers: { Accept: 'application/vnd.github+json' } }), null, 5000);
-    if (!respuesta || !respuesta.ok) return [];
+    if (!respuesta || !respuesta.ok) {
+      await contexto.globalState.update(CLAVE_QUE_TRAE, { version, cosas: [], fallo: Date.now() });
+      return [];
+    }
     const cosas = loQueTrae((await respuesta.json()).body);
     await contexto.globalState.update(CLAVE_QUE_TRAE, { version, cosas });
     return cosas;
@@ -259,5 +286,5 @@ const dondeVerla = (version) => vscode.Uri.parse(`https://github.com/${REPO}/rel
 
 module.exports = {
   hayUnaNueva, laNuevaSiHay, laUltima, ponerLaNueva, esMasNueva, deUnaRelease, laMasNueva, paqueteDeFiar, loQueTrae, queTrae,
-  dondeBajarla, dondeVerla, probarAntes, REPO, CLAVE, CLAVE_QUE_TRAE, AJUSTE_PROBAR_ANTES, TAMANO_MAXIMO,
+  dondeBajarla, dondeVerla, probarAntes, REPO, DUENA, CLAVE, CLAVE_QUE_TRAE, AJUSTE_PROBAR_ANTES, TAMANO_MAXIMO, TRAS_UN_FALLO,
 };

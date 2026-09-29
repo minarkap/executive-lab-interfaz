@@ -126,22 +126,23 @@ function leer(fichero) {
   const texto = (corte >= 0 ? cuerpo.slice(0, corte) : cuerpo).trim();
   const detalle = corte >= 0 ? cuerpo.slice(corte + separador[0].length).trim() : '';
 
+  // El título, de su línea tal cual: el lector de cabeceras quita una comilla
+  // de cada punta aunque no se cierre, y lee como lista lo que va entre
+  // corchetes, y «No va "Guardar"» salía «No va "Guardar» (revisión).
+  const deSuLinea = (bruto.match(/^---\r?\n[\s\S]*?^titulo:[ \t]*(.*?)[ \t]*\r?$/m) || [])[1];
+  const titulo = deSuLinea !== undefined ? deSuLinea.replace(/^(["'])(.*)\1$/, '$2') : unaLinea(campos.titulo);
+
   return {
     fichero,
     nombre: path.basename(fichero),
     tipo: TIPOS[campos.tipo] ? campos.tipo : 'falla',
     origen,
-    titulo: recortar(unaLinea(campos.titulo) || tituloDe(texto) || 'Sin título', 120),
+    titulo: recortar(unaLinea(titulo) || tituloDe(texto) || 'Sin título', 120),
     texto,
     detalle,
     firma: unaLinea(campos.firma) || null,
     veces: Math.max(1, parseInt(campos.veces, 10) || 1),
     enlace: unaLinea(campos.enlace) || null,
-    // Lo que se apunta de uno mandado: cuándo, y si se cerró y se le dijo.
-    cuando: unaLinea(campos.cuando) || null,
-    cerrado: unaLinea(campos.cerrado) || null,
-    como: ['arreglado', 'leido'].includes(campos.como) ? campos.como : null,
-    avisado: campos.avisado === 'si',
   };
 }
 
@@ -265,71 +266,51 @@ function archivar(aviso, a, extra = {}) {
 // ── Lo que pasa con lo que se contó ──────────────────────────────────────
 //
 // Quien manda un aviso no volvía a saber nada de él, y quien no sabe si sirvió
-// de algo deja de contar cosas (decisión 134). Una vez al día se mira en GitHub
-// si la incidencia de alguno de `mandados/` se ha cerrado —sin cuenta: una
-// incidencia pública se lee sin entrar—, se apunta en su fichero, y se le dice
-// una vez: arreglado, si se cerró como hecho; leído, si se cerró de otra forma.
+// de algo deja de contar cosas (decisión 134). Lo que se mandó lo recuerda la
+// barra en su almacén, no un fichero de la carpeta: ahí puede escribir
+// cualquiera, también un asistente al que le hayan colado algo, y una tarjeta
+// «Lo que contaste ya está arreglado: «…»» con cualquier cosa dentro sería un
+// mensaje con la cara de Executive Lab (revisión de seguridad).
 
-// El número, solo de una incidencia de nuestro sitio: el enlace está en un
-// fichero de la carpeta, y lo que se abre o se pregunta sale de aquí, no de él.
+// El número, solo de una incidencia de nuestro sitio; y el enlace se hace con
+// el número, no se coge de ningún sitio.
 function numeroDe(enlace) {
   const m = String(enlace || '').match(new RegExp(`^https://github\\.com/${escaparRegex(REPO)}/issues/(\\d+)$`));
   return m ? Number(m[1]) : null;
 }
-const enlaceDe = (numero) => `https://github.com/${REPO}/issues/${numero}`;
+const enlaceDe = (numero) => `https://github.com/${REPO}/issues/${Number(numero)}`;
 
-function mandados() {
-  const donde = carpeta();
-  return donde ? enUnaCarpeta(path.join(donde, MANDADOS)) : [];
-}
-
-function apuntarEnElMandado(aviso, campos) {
-  try {
-    fs.writeFileSync(aviso.fichero, serializar(aviso, {
-      enlace: aviso.enlace,
-      cuando: aviso.cuando,
-      cerrado: aviso.cerrado,
-      como: aviso.como,
-      avisado: aviso.avisado ? 'si' : null,
-      ...campos,
-    }));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// Devuelve cuántos se han cerrado desde la última vez. Nunca lanza: sin red,
-// se mira mañana.
-async function mirarSiEstanArreglados({ cuantos = 10, esperar = 5000 } = {}) {
+// Cuáles de estas están cerradas, con **una sola pregunta**: las cerradas del
+// sitio desde la más vieja que espera. En un aula todos salen por la misma
+// dirección, y GitHub deja 60 preguntas por hora sin cuenta para todos juntos:
+// una por aviso eran diez por alumno y día (revisión). Sin respuesta, o sin
+// cupo, devuelve null y no pregunta más.
+async function lasCerradas(numeros, { desde, esperar = 5000, paginas = 3 } = {}) {
   const { conReloj } = require('./github');
-  let cerrados = 0;
-  const porMirar = mandados().filter((a) => !a.cerrado && numeroDe(a.enlace)).slice(0, cuantos);
-  for (const aviso of porMirar) {
+  const buscados = new Set(numeros.map(Number));
+  const cerradas = {};
+  for (let pagina = 1; pagina <= paginas; pagina += 1) {
+    const url = `https://api.github.com/repos/${REPO}/issues?state=closed&since=${encodeURIComponent(desde)}&per_page=100&page=${pagina}`;
+    let respuesta = null;
     try {
-      const respuesta = await conReloj(fetch(`https://api.github.com/repos/${REPO}/issues/${numeroDe(aviso.enlace)}`,
-        { headers: { Accept: 'application/vnd.github+json' } }), null, esperar);
-      if (!respuesta || !respuesta.ok) continue;
-      const incidencia = await respuesta.json();
-      if (!incidencia || incidencia.state !== 'closed') continue;
-      const como = incidencia.state_reason === 'completed' ? 'arreglado' : 'leido';
-      if (apuntarEnElMandado(aviso, { cerrado: new Date().toISOString().slice(0, 10), como })) cerrados += 1;
-    } catch { /* se mira mañana */ }
+      respuesta = await conReloj(fetch(url, { headers: { Accept: 'application/vnd.github+json' } }), null, esperar);
+    } catch {
+      respuesta = null;
+    }
+    if (!respuesta || !respuesta.ok) return pagina === 1 ? null : cerradas;
+    let lista;
+    try {
+      lista = await respuesta.json();
+    } catch {
+      return pagina === 1 ? null : cerradas;
+    }
+    for (const incidencia of Array.isArray(lista) ? lista : []) {
+      if (!incidencia || !buscados.has(incidencia.number) || incidencia.state !== 'closed') continue;
+      cerradas[incidencia.number] = { como: incidencia.state_reason === 'completed' ? 'hecho' : 'leido', cuando: incidencia.closed_at || null };
+    }
+    if (!Array.isArray(lista) || lista.length < 100) break;
   }
-  return cerrados;
-}
-
-// El que toca decir en la pantalla principal, o null: uno cerrado que todavía
-// no se le ha dicho.
-function arregladoQueToca() {
-  const cual = mandados().find((a) => a.cerrado && a.como && !a.avisado && numeroDe(a.enlace));
-  return cual ? { fichero: cual.fichero, titulo: cual.titulo, como: cual.como, enlace: enlaceDe(numeroDe(cual.enlace)) } : null;
-}
-
-// Ya se le ha dicho: no se vuelve a decir.
-function yaLoSabe(fichero) {
-  const cual = mandados().find((a) => a.fichero === fichero);
-  return cual ? apuntarEnElMandado(cual, { avisado: 'si' }) : false;
+  return cerradas;
 }
 
 // ── Lo que revienta por dentro ───────────────────────────────────────────
@@ -608,6 +589,6 @@ async function mandar({ titulo, cuerpo }, clave, { esperar = 10000 } = {}) {
 module.exports = {
   REPO, CARPETA, MANDADOS, DESCARTADOS, MARCA, TIPOS, ORIGENES, DEBAJO, APARTADO_DURANTE,
   dondeSinArnes, carpeta, leer, pendientes, elQueToca, preparar, reescribir, archivar,
-  mandados, mirarSiEstanArreglados, arregladoQueToca, yaLoSabe, numeroDe,
+  lasCerradas, numeroDe, enlaceDe,
   apuntarUnFallo, firmaDe, limpiar, datos, componer, mandar, tituloDe,
 };

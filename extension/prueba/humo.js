@@ -1565,6 +1565,11 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.equal(leido.tipo, 'falla');
     assert.equal(leido.origen, 'asistente');
     assert.match(leido.titulo, /«Guardar en git» dice que no hay nada nuevo/);
+    // Con comillas o corchetes, entero (revisión de la decisión 134).
+    const conComillas = path.join(carpetaDeAvisos(), '2026-09-28-comillas.md');
+    fs.writeFileSync(conComillas, '---\ntipo: falla\norigen: asistente\ntitulo: [Urgente] No va el botón "Guardar"\n---\n\nx\n');
+    assert.equal(avisosM.leer(conComillas).titulo, '[Urgente] No va el botón "Guardar"', 'el título se lee cortado');
+    fs.rmSync(conComillas);
     assert.match(leido.texto, /^Le pidió guardar/);
     assert.equal(leido.detalle, '', 'lo del asistente no tiene parte de la barra');
 
@@ -10797,6 +10802,8 @@ exec git "$@"
       const dicho = ultimo('aviso');
       assert.match(dicho.texto, /^Mandado\./);
       assert.equal(dicho.boton.accion.url, 'https://github.com/minarkap/executive-lab-interfaz/issues/9');
+      // Y lo recuerda la barra, para decirle lo que pase con él (decisión 134).
+      assert.equal((contexto.workspaceState.get('executiveLab.avisosMandados') || {})[9].titulo, 'Me vendría bien ver aquí lo último que le pedí, en <su nombre>', 'no se recuerda lo mandado');
 
       // 3. El título que puso su asistente se enseña, y sale el que ella deja.
       fs.writeFileSync(path.join(carpeta, '2026-09-28-su-titulo.md'),
@@ -10927,6 +10934,7 @@ exec git "$@"
   const versionM = cargar('version');
   const unPaquete = (bytes, version = '0.43.0', cambios = {}) => ({
     tag_name: `v${version}`,
+    author: { login: 'minarkap' },
     assets: [{
       name: `executive-lab-${version}.vsix`,
       browser_download_url: `https://github.com/minarkap/executive-lab-interfaz/releases/download/v${version}/executive-lab-${version}.vsix`,
@@ -10954,7 +10962,10 @@ exec git "$@"
       assert.equal(versionM.deUnaRelease(unPaquete(bytes, '0.43.0', cambios)).paquete, null, `se da por bueno uno con ${porQue}`);
     }
     assert.equal(versionM.deUnaRelease({ tag_name: 'nocturna', assets: [] }), null, 'una etiqueta que no es una versión');
-    assert.equal(versionM.deUnaRelease({ tag_name: 'v0.43.0', assets: [] }).paquete, null, 'sin fichero, solo se avisa');
+    // Solo lo que publica la dueña del sitio (revisión de la decisión 134).
+    assert.equal(versionM.deUnaRelease({ ...unPaquete(bytes), author: { login: 'otra-persona' } }), null, 'cuenta una release de otra persona');
+    assert.equal(versionM.deUnaRelease({ ...unPaquete(bytes), author: null }), null, 'cuenta una release sin autor');
+    assert.equal(versionM.deUnaRelease({ tag_name: 'v0.43.0', author: { login: 'minarkap' }, assets: [] }).paquete, null, 'sin fichero, solo se avisa');
     return 'ocho formas de no ser de fiar';
   });
 
@@ -11129,6 +11140,9 @@ exec git "$@"
     assert.equal(cosas.length, 6, 'más de seis, o se pierde alguna');
     assert.ok(!cosas.some((c) => /otro apartado/.test(c)), 'se sale de «Qué trae»');
     assert.deepEqual(versionM.loQueTrae('# Sin ese apartado\n- nada'), []);
+    // Un guion bajo dentro de una palabra es parte de ella, y lo sangrado es el
+    // detalle de otro punto (revisión de la decisión 134).
+    assert.deepEqual(versionM.loQueTrae('## Qué trae\n- Guarda _mi_archivo_ entero\n  - un detalle sangrado'), ['Guarda mi_archivo entero']);
     // Y las notas de verdad de la 0.43.0, con su forma.
     assert.equal(versionM.loQueTrae('## Qué trae\n\n- **La barra se pone al día con un clic.** Cuando haya una versión nueva, sale arriba.').length, 1);
     return `${cosas.length} frases`;
@@ -11153,18 +11167,22 @@ exec git "$@"
     const pintar = (m) => require('./panel-falso').montarPanel().mandar(m);
     try {
       contexto.extension = { packageJSON: { version: '0.44.0' } };
-      // Nueva: nada que comparar, y se calla.
+      // Nueva: nada que comparar, y se calla. Lo que cuenta es lo visto al
+      // arrancar, no lo que Ayuda o la principal hayan apuntado después.
+      const yaSeUsaba = proveedor.yaSeUsaba;
+      proveedor.yaSeUsaba = false;
       await contexto.globalState.update('executiveLab.versionVista', undefined);
-      await contexto.globalState.update(versionM.CLAVE, undefined);
+      await contexto.globalState.update(versionM.CLAVE, { cuando: Date.now(), version: '0.44.0' });
       await contexto.globalState.update(versionM.CLAVE_QUE_TRAE, undefined);
       await proveedor.refrescar(true);
       assert.equal(ultimo('estado').queTrae, null, 'en una instalación nueva dice qué trae');
       assert.equal(contexto.globalState.get('executiveLab.versionVista'), '0.44.0');
 
       // Viene de una de antes, que dejó apuntado cuándo miró si había otra.
+      proveedor.yaSeUsaba = true;
       await contexto.globalState.update('executiveLab.versionVista', undefined);
-      await contexto.globalState.update(versionM.CLAVE, { cuando: Date.now(), version: '0.44.0' });
       await proveedor.refrescar(true);
+      proveedor.yaSeUsaba = yaSeUsaba;
       assert.deepEqual(ultimo('estado').queTrae, { version: '0.44.0', cosas: ['Una cosa nueva.', 'Otra.'] });
       const conLista = pintar(ultimo('estado'));
       assert.match(conLista, /Ya tienes la 0\.44\.0\. Esto es lo nuevo:.*<li>Una cosa nueva\.<\/li>.*yaLoHeVisto/s);
@@ -11181,6 +11199,11 @@ exec git "$@"
       await proveedor.refrescar(true);
       assert.deepEqual(ultimo('estado').queTrae, { version: '0.45.0', cosas: [] });
       assert.match(pintar(ultimo('estado')), /Ya tienes la 0\.45\.0\..*Ver qué trae/s);
+      // Y no se vuelve a preguntar en cada repintado: en un aula, eso gasta el cupo de todos.
+      const trasElFallo = pedidas.filter((u) => u.endsWith('/tags/v0.45.0')).length;
+      await proveedor.refrescar(true);
+      await proveedor.refrescar(true);
+      assert.equal(pedidas.filter((u) => u.endsWith('/tags/v0.45.0')).length, trasElFallo, 'si falla, lo pregunta en cada repintado');
       return 'una vez, con lo de la release · nueva, callada · sin red, con su página';
     } finally {
       proveedor.enviar = antes.enviar;
@@ -11195,6 +11218,7 @@ exec git "$@"
   await comprobar('quien se ofrece recibe las de prueba, igual de comprobadas; quien no, solo la última', async () => {
     const bytes = Buffer.from('PK un vsix de prueba');
     const lista = [
+      { ...unPaquete(bytes, '0.46.0'), prerelease: true, author: { login: 'otra-persona' } },
       { ...unPaquete(bytes, '0.45.0'), draft: true },
       { ...unPaquete(bytes, '0.44.0'), prerelease: true },
       unPaquete(bytes, '0.43.0'),
@@ -11204,20 +11228,32 @@ exec git "$@"
     const pedidas = [];
     global.fetch = async (url) => {
       pedidas.push(String(url));
-      return { ok: true, status: 200, json: async () => (String(url).endsWith('/releases/latest') ? lista[2] : lista) };
+      return { ok: true, status: 200, json: async () => (String(url).endsWith('/releases/latest') ? lista[3] : lista) };
     };
     try {
       const estable = await versionM.laUltima(ctx, { deprueba: false });
       assert.equal(estable.version, '0.43.0');
       assert.equal(estable.deprueba, false);
       const deprueba = await versionM.laUltima(ctx, { deprueba: true });
-      assert.equal(deprueba.version, '0.44.0', 'no coge la de prueba, o coge un borrador');
+      assert.equal(deprueba.version, '0.44.0', 'no coge la de prueba, coge un borrador, o una de otra persona');
       assert.equal(deprueba.deprueba, true);
       assert.ok(deprueba.paquete, 'la de prueba se comprueba de otra forma');
       assert.equal(pedidas.length, 2, 'lo recordado de un canal vale para el otro');
       // Sin ofrecerse (el ajuste, apagado), con la 0.43.0 puesta: nada nuevo.
       assert.equal(await versionM.laNuevaSiHay(ctx, '0.43.0'), null, 'sin ofrecerse, le llega la de prueba');
-      return 'la 0.44.0 de prueba, sin el borrador';
+
+      // Si GitHub no contesta —sin red, o sin cupo en un aula—, con lo que se
+      // sabía y sin volver a preguntar en una hora. El botón sí pregunta.
+      await ctx.globalState.update(versionM.CLAVE, { cuando: 0, canal: 'estable', version: '0.43.0' });
+      pedidas.length = 0;
+      global.fetch = async (url) => { pedidas.push(String(url)); return { ok: false, status: 403 }; };
+      assert.equal((await versionM.laUltima(ctx, { deprueba: false })).version, '0.43.0', 'sin respuesta, se olvida lo que se sabía');
+      await versionM.laUltima(ctx, { deprueba: false });
+      await versionM.laUltima(ctx, { deprueba: false });
+      assert.equal(pedidas.length, 1, 'si falla, lo pregunta en cada repintado');
+      await versionM.laUltima(ctx, { deprueba: false, fresca: true });
+      assert.equal(pedidas.length, 2, 'el botón no vuelve a preguntar');
+      return 'la 0.44.0 de prueba, sin el borrador ni la de otra persona · un fallo, una pregunta por hora';
     } finally {
       global.fetch = antes;
     }
@@ -11240,6 +11276,16 @@ exec git "$@"
       await proveedor.refrescar(true);
       assert.equal(ultimo('estado').hayVersionNueva, null, 'sin ofrecerse, le llega la de prueba');
 
+      // Unos ajustes que no se dejan escribir: se dice, y no «Algo no ha ido bien».
+      const rechazaba = vscode.guion.rechazaAjuste;
+      vscode.guion.rechazaAjuste = (clave) => clave === 'executiveLab.probarAntes';
+      try {
+        await proveedor.manejar({ tipo: 'probarAntes', cual: true });
+        assert.match(ultimo('aviso').texto, /^No he podido guardar el ajuste\./);
+      } finally {
+        vscode.guion.rechazaAjuste = rechazaba;
+      }
+
       await proveedor.manejar({ tipo: 'probarAntes', cual: true });
       assert.equal(vscode.registrado.ajustes.global['executiveLab.probarAntes'], true, 'no se guarda para todo el editor');
       assert.match(pintar(ultimo('ayuda')), /Hay una de prueba más nueva: la 0\.44\.0\..*Te llegan las versiones de prueba antes que a nadie\..*Dejar de probarlas antes/s);
@@ -11257,68 +11303,91 @@ exec git "$@"
     }
   });
 
-  await comprobar('lo que contó y se cerró se le dice una vez: arreglado, o leído', async () => {
+  await comprobar('lo que contó y se cerró se le dice: con una pregunta al día, según lo que era, y sin fiarse de la carpeta', async () => {
     const proveedor = vscode.registrado.proveedor;
     const avisos = cargar('avisos');
     const carpeta = path.join(empresa, ...avisos.CARPETA);
     fs.rmSync(carpeta, { recursive: true, force: true });
-    const mandados = path.join(carpeta, avisos.MANDADOS);
-    fs.mkdirSync(mandados, { recursive: true });
-    const escribir = (nombre, enlace, titulo) => fs.writeFileSync(path.join(mandados, nombre),
-      `---\ntipo: falla\norigen: alumno\ntitulo: ${titulo}\nenlace: ${enlace}\ncuando: 2026-09-29T10:00:00.000Z\n---\n\nLo que contó.\n`);
-    escribir('2026-09-29-a.md', 'https://github.com/minarkap/executive-lab-interfaz/issues/42', 'No guarda');
-    escribir('2026-09-29-b.md', 'https://github.com/minarkap/executive-lab-interfaz/issues/43', 'No se entiende');
-    escribir('2026-09-29-c.md', 'https://github.com/minarkap/executive-lab-interfaz/issues/44', 'Sigue abierta');
-    escribir('2026-09-29-d.md', 'https://github.com/otro/sitio/issues/45', 'De otro sitio');
+    const MANDADOS = 'executiveLab.avisosMandados';
+    const MIRADOS = 'executiveLab.arregladosMirados';
     const enviados = [];
-    const antes = { enviar: proveedor.enviar, fetch: global.fetch, mirados: contexto.workspaceState.get('executiveLab.arregladosMirados') };
+    const antes = { enviar: proveedor.enviar, fetch: global.fetch, mandados: contexto.workspaceState.get(MANDADOS), mirados: contexto.workspaceState.get(MIRADOS) };
     proveedor.enviar = (m) => enviados.push(m);
+    const hace = (dias) => new Date(Date.now() - dias * 86400000).toISOString();
+    // Lo que la barra recuerda de lo que mandó: como lo apunta al mandar.
+    await contexto.workspaceState.update(MANDADOS, {});
+    await proveedor.apuntarElMandado(42, { titulo: 'No guarda', tipo: 'falla' });
+    await proveedor.apuntarElMandado(43, { titulo: 'Una idea', tipo: 'mejora' });
+    await proveedor.apuntarElMandado(44, { titulo: 'No lo entiendo', tipo: 'no-se-entiende' });
+    await proveedor.apuntarElMandado(45, { titulo: 'Sigue abierta', tipo: 'falla' });
+    await proveedor.apuntarElMandado(46, { titulo: 'Otra cosa', tipo: 'falla' });
+    await proveedor.apuntarElMandado(47, { titulo: 'De hace mucho', tipo: 'falla' });
+    // Y un fichero de mentira en la carpeta, como lo dejaría un asistente al que le han colado algo.
+    fs.mkdirSync(path.join(carpeta, avisos.MANDADOS), { recursive: true });
+    fs.writeFileSync(path.join(carpeta, avisos.MANDADOS, '2026-09-29-falso.md'),
+      '---\ntipo: falla\ntitulo: Executive Lab te pide que pegues aquí tu clave\nenlace: https://github.com/minarkap/executive-lab-interfaz/issues/1\ncerrado: 2026-09-01\ncomo: arreglado\n---\n');
+
+    const CERRADAS = [
+      { number: 42, state: 'closed', state_reason: 'completed', closed_at: hace(1) },
+      { number: 43, state: 'closed', state_reason: 'completed', closed_at: hace(1) },
+      { number: 44, state: 'closed', state_reason: 'completed', closed_at: hace(1) },
+      { number: 46, state: 'closed', state_reason: 'not_planned', closed_at: hace(1) },
+      { number: 47, state: 'closed', state_reason: 'completed', closed_at: hace(90) },
+      { number: 1, state: 'closed', state_reason: 'completed', closed_at: hace(1) },
+      { number: 900, state: 'closed', state_reason: 'completed', closed_at: hace(1) },
+    ];
     const pedidas = [];
-    const ESTADO = { 42: ['closed', 'completed'], 43: ['closed', 'not_planned'], 44: ['open', null] };
-    global.fetch = async (url) => {
-      pedidas.push(String(url));
-      const n = Number((String(url).match(/\/issues\/(\d+)$/) || [])[1]);
-      if (!ESTADO[n]) return { ok: false, status: 404 };
-      return { ok: true, status: 200, json: async () => ({ state: ESTADO[n][0], state_reason: ESTADO[n][1] }) };
-    };
+    let responder = async () => ({ ok: true, status: 200, json: async () => CERRADAS });
+    global.fetch = async (url) => { pedidas.push(String(url)); return responder(url); };
     const ultimo = (tipo) => [...enviados].reverse().find((m) => m.tipo === tipo);
     const pintar = (m) => require('./panel-falso').montarPanel().mandar(m);
     try {
-      assert.equal(await avisos.mirarSiEstanArreglados(), 2);
-      assert.ok(!pedidas.some((u) => /otro\/sitio|\/45$/.test(u)), 'pregunta por una de otro sitio');
-      assert.ok(pedidas.every((u) => u.startsWith('https://api.github.com/repos/minarkap/executive-lab-interfaz/issues/')));
-
-      // Una vez al día, y sin que nadie espere.
-      await contexto.workspaceState.update('executiveLab.arregladosMirados', Date.now());
-      pedidas.length = 0;
+      // Sin cupo en el aula: una pregunta, se para, y no se dice nada.
+      responder = async () => ({ ok: false, status: 403 });
+      await contexto.workspaceState.update(MIRADOS, 0);
+      await proveedor.mirarLosArregladosSiToca();
+      assert.equal(pedidas.length, 1, 'sin cupo, sigue preguntando');
       await proveedor.refrescar(true);
-      await new Promise((listo) => setImmediate(listo));
-      assert.equal(pedidas.filter((u) => /\/issues\/\d+$/.test(u)).length, 0, 'mira en cada repintado');
+      assert.equal(ultimo('estado').arreglado, null, 'sin respuesta, se dice algo');
 
-      // De uno en uno, el más nuevo primero; cada uno con lo que le pasó.
-      const dichos = [];
-      for (let i = 0; i < 2; i += 1) {
-        const toca = ultimo('estado').arreglado;
-        assert.ok(toca, 'no se le dice');
-        dichos.push(pintar(ultimo('estado')));
-        await proveedor.manejar({ tipo: 'yaLoSe', fichero: toca.fichero });
-      }
-      const arreglada = dichos.find((d) => /«No guarda»/.test(d));
-      const leida = dichos.find((d) => /«No se entiende»/.test(d));
-      assert.ok(arreglada && leida, 'se le dice dos veces lo mismo');
-      assert.match(arreglada, /Lo que contaste ya está arreglado: «No guarda»\. Te llega con la próxima versión de la barra, si no la tienes ya\./);
-      assert.match(arreglada, /issues\/42.*yaLoSe/s);
-      assert.match(leida, /Executive Lab ha leído lo que contaste: «No se entiende»\. De momento se queda como está\./);
-      assert.equal(ultimo('estado').arreglado, null, 'la que sigue abierta, o la de otro sitio, se le dice');
-      // Lo dicho queda apuntado en su fichero, y no se vuelve a preguntar.
+      // Con respuesta: una sola pregunta para todos, desde la más vieja que espera.
+      responder = async () => ({ ok: true, status: 200, json: async () => CERRADAS });
       pedidas.length = 0;
-      await avisos.mirarSiEstanArreglados();
-      assert.deepEqual(pedidas.map((u) => u.split('/').pop()), ['44'], 'vuelve a preguntar por las cerradas');
-      return 'arreglado · leído · una vez · una al día';
+      await contexto.workspaceState.update(MIRADOS, 0);
+      await proveedor.refrescar(true);
+      for (let i = 0; i < 20 && !pedidas.length; i += 1) await new Promise((listo) => setTimeout(listo, 10));
+      await new Promise((listo) => setTimeout(listo, 50));
+      assert.equal(pedidas.length, 1, `una pregunta por aviso, o ninguna al pintar: ${pedidas.length}`);
+      assert.match(pedidas[0], /^https:\/\/api\.github\.com\/repos\/minarkap\/executive-lab-interfaz\/issues\?state=closed&since=/);
+
+      // Una vez al día.
+      await proveedor.refrescar(true);
+      await new Promise((listo) => setTimeout(listo, 50));
+      assert.equal(pedidas.length, 1, 'mira en cada repintado');
+
+      // Uno a uno, cada uno con lo que le pasó; ni el viejo, ni el falso, ni el de otro.
+      const dichos = [];
+      for (let i = 0; i < 6; i += 1) {
+        const toca = ultimo('estado').arreglado;
+        if (!toca) break;
+        dichos.push(pintar(ultimo('estado')));
+        await proveedor.manejar({ tipo: 'yaLoSe', numero: toca.numero });
+      }
+      const texto = dichos.join('\n');
+      assert.equal(dichos.length, 4, `se le dicen ${dichos.length}, y son cuatro`);
+      assert.match(texto, /Lo que contaste ya está arreglado: «No guarda»\. Te llega con la próxima versión de la barra, si no la tienes ya\./);
+      assert.match(texto, /Lo que propusiste ya está hecho: «Una idea»\. Te llega con la próxima versión de la barra, si no la tienes ya\./);
+      assert.match(texto, /Executive Lab ha contestado a lo que contaste: «No lo entiendo»\. Lo tienes en GitHub\./);
+      assert.match(texto, /Executive Lab ha leído lo que contaste: «Otra cosa»\. De momento se queda como está\./);
+      assert.match(texto, /issues\/42/);
+      assert.ok(!/De hace mucho|Sigue abierta|pegues aquí tu clave/.test(texto), 'dice una vieja, una abierta, o la del fichero de mentira');
+      assert.equal(ultimo('estado').arreglado, null);
+      return 'una pregunta al día · se para sin cupo · cuatro frases · ni la vieja ni la falsa';
     } finally {
       proveedor.enviar = antes.enviar;
       global.fetch = antes.fetch;
-      await contexto.workspaceState.update('executiveLab.arregladosMirados', antes.mirados);
+      await contexto.workspaceState.update(MANDADOS, antes.mandados);
+      await contexto.workspaceState.update(MIRADOS, antes.mirados);
       fs.rmSync(carpeta, { recursive: true, force: true });
     }
   });

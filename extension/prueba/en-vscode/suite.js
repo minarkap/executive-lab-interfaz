@@ -221,6 +221,7 @@ async function run() {
     const bytes = fs.readFileSync(paquete);
     const release = {
       tag_name: 'v99.0.0',
+      author: { login: version.DUENA },
       assets: [{
         name: 'executive-lab-99.0.0.vsix',
         browser_download_url: `https://github.com/${version.REPO}/releases/download/v99.0.0/executive-lab-99.0.0.vsix`,

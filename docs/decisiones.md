@@ -4652,29 +4652,40 @@ Jose: *«perfecto también»*.
 Quien manda un aviso no volvía a saber nada de él, y quien no sabe si sirvió de algo deja de contar
 cosas.
 
-- **Una vez al día por carpeta**, sin que nadie espere, la barra mira en GitHub si se ha cerrado la
-  incidencia de algún aviso de `mandados/`. No hace falta cuenta, porque una incidencia pública se lee
-  sin entrar. Como mucho mira diez, y solo las de nuestro sitio: el enlace está en un fichero de la
-  carpeta, y lo que se abre o se pregunta se construye con su número, no se coge tal cual.
-- **Se apunta en su fichero**: cuándo se cerró y cómo. «Arreglado» si se cerró como hecha, «leído» si
-  se cerró de otra forma.
-- **Se le dice una vez**, en la principal, con «Verlo en GitHub» y «Entendido»:
-  - «Lo que contaste ya está arreglado: «No guarda». Te llega con la próxima versión de la barra, si no
-    la tienes ya.»
-  - «Executive Lab ha leído lo que contaste: «…». De momento se queda como está.»
+- **Lo que se manda lo recuerda la barra**, en el almacén de esa carpeta: el número de la incidencia, el
+  título que vio y de qué tipo era. No se apunta en un fichero de la carpeta, porque ahí puede escribir
+  cualquiera. Un asistente al que le hayan colado algo podría fabricar una tarjeta «Lo que contaste ya
+  está arreglado: «…»» con lo que quisiera dentro, y con la cara de Executive Lab.
+- **Una vez al día por carpeta**, sin que nadie espere y solo si hay alguno esperando, se hace **una
+  pregunta**: las incidencias cerradas del sitio desde la más vieja que espera. No hace falta cuenta.
+  En un aula todos salen por la misma dirección, y GitHub deja 60 preguntas por hora sin cuenta para
+  todos juntos; una pregunta por aviso eran hasta diez por alumno y día. Si no hay respuesta o no queda
+  cupo, se para y se mira al día siguiente.
+- **Se le dice en la principal hasta que pulsa «Entendido»**, con «Verlo en GitHub». La frase depende de
+  lo que contó y de cómo se cerró:
+  - algo que fallaba, cerrado como hecho: «Lo que contaste ya está arreglado: «No guarda». Te llega con
+    la próxima versión de la barra, si no la tienes ya.»;
+  - una mejora, cerrada como hecha: «Lo que propusiste ya está hecho: «…». Te llega con la próxima
+    versión de la barra, si no la tienes ya.»;
+  - algo que no se entendía, cerrado como hecho: «Executive Lab ha contestado a lo que contaste: «…».
+    Lo tienes en GitHub.»;
+  - cerrado de otra forma: «Executive Lab ha leído lo que contaste: «…». De momento se queda como está.»
 
-Para Jose, cerrar una incidencia como hecha («Close as completed») es lo que le dice al alumno que está
-arreglado. Cerrarla de otra forma le dice que se ha leído.
+  Uno cerrado hace más de dos meses ya no es noticia, y se apunta sin decirlo.
+
+Para Jose: cerrar una incidencia como hecha («Close as completed») es lo que le dice al alumno que está
+hecho. Cerrarla de otra forma le dice que se ha leído.
 
 ### «Qué trae esta versión»
 
 Al abrir una versión más nueva que la última que vio, una tarjeta con la lista «Qué trae» de su release,
-en frases y sin marcas de markdown, con «Entendido». Se enseña una vez, y se recuerda para no preguntar
-a GitHub en cada repintado. Sin red, la tarjeta sale igual, con «Ver qué trae».
+en frases y sin marcas de markdown, hasta que pulsa «Entendido». Lo bajado se recuerda para no preguntar
+a GitHub en cada repintado, y si falla no se vuelve a preguntar en una hora. Sin red, la tarjeta sale
+igual, con «Ver qué trae».
 
 En una instalación nueva no hay nada que comparar, y se calla. Quien viene de la 0.43.0 no tiene apuntada
 la última que vio, pero sí cuándo miró si había versión nueva, y por eso se sabe que viene de una más
-vieja.
+vieja. Eso se mira al arrancar la barra, antes de que Ayuda o la principal lo apunten.
 
 Esa lista la escribe quien publica, pensando en el alumno. `publicar.sh` deja su hueco en las notas, y
 `/publicar-una-version` lo recuerda. Lo que empieza por paréntesis es una nota para quien publica, y no
@@ -4693,4 +4704,25 @@ y desde entonces:
 Lo recordado de un canal no vale para el otro. «Dejar de probarlas antes» lo quita.
 
 Jose le dice a quien quiera que lo ponga. No se elige desde fuera.
+
+### Lo que encontró la revisión
+
+Un refutador de seguridad y otro de corrección. No encontraron nada crítico. Lo arreglado:
+
+- **Las preguntas a GitHub en un aula.** Mirar los avisos se queda en una pregunta al día por carpeta.
+  Si una pregunta falla, ni la versión nueva ni «Qué trae» vuelven a preguntar en una hora, porque antes
+  preguntaban en cada repintado y cada uno podía esperar cinco segundos. El botón «Actualizar ahora» sí
+  pregunta siempre, porque lo pide una persona.
+- **Una tarjeta falsificable**: lo mandado lo recuerda la barra y no un fichero, como se cuenta arriba. Y
+  con eso deja de reescribirse ningún fichero de la carpeta.
+- **Solo lo que publica la dueña del sitio.** En los dos canales se descarta una release que no haya
+  publicado `minarkap`, que es quien publica todas. Con el canal de prueba, la barra coge la del número
+  más alto, y sin esto una etiqueta mal puesta por cualquiera con permiso se le ofrecería a quien
+  prueba.
+- **Una pregunta contestada no «está arreglada»**: la frase depende de lo que se contó.
+- **Una instalación nueva ya no se toma por una actualización**, aunque se abra Ayuda antes que la
+  principal.
+- **Un título con comillas o corchetes** se leía cortado. «Qué trae» ya no se come los guiones bajos
+  dentro de una palabra, y solo coge los puntos de primer nivel.
+- Si no se puede guardar el ajuste, se dice.
 
