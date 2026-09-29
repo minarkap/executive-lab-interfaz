@@ -14,4 +14,4 @@ Dile tres cosas, en este orden y en tres frases cortas:
 3. Dos o tres cosas concretas que puede hacer ahora, como opciones, no como lista de tareas.
 
 Si lo que pasa es que algo está roto, no se lo expliques: dile que pulse **Algo va mal** en la barra de
-la izquierda y que te dé el código que le salga.
+la izquierda y que le pase a su tutor el código que le salga.
