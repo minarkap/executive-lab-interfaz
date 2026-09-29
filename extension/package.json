@@ -194,6 +194,12 @@
           "default": false,
           "scope": "resource",
           "description": "Esconde las barras, las pestañas y los ficheros de esta carpeta y la deja con el aspecto de Executive Lab. Se enciende y se apaga por carpeta: las demás ventanas no se enteran."
+        },
+        "executiveLab.probarAntes": {
+          "type": "boolean",
+          "default": false,
+          "scope": "application",
+          "description": "Las versiones nuevas de la barra te llegan antes que a nadie, para ver si van bien. Alguna puede fallar."
         }
       }
     }

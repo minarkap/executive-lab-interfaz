@@ -126,12 +126,18 @@ function leer(fichero) {
   const texto = (corte >= 0 ? cuerpo.slice(0, corte) : cuerpo).trim();
   const detalle = corte >= 0 ? cuerpo.slice(corte + separador[0].length).trim() : '';
 
+  // El título, de su línea tal cual: el lector de cabeceras quita una comilla
+  // de cada punta aunque no se cierre, y lee como lista lo que va entre
+  // corchetes, y «No va "Guardar"» salía «No va "Guardar» (revisión).
+  const deSuLinea = (bruto.match(/^---\r?\n[\s\S]*?^titulo:[ \t]*(.*?)[ \t]*\r?$/m) || [])[1];
+  const titulo = deSuLinea !== undefined ? deSuLinea.replace(/^(["'])(.*)\1$/, '$2') : unaLinea(campos.titulo);
+
   return {
     fichero,
     nombre: path.basename(fichero),
     tipo: TIPOS[campos.tipo] ? campos.tipo : 'falla',
     origen,
-    titulo: recortar(unaLinea(campos.titulo) || tituloDe(texto) || 'Sin título', 120),
+    titulo: recortar(unaLinea(titulo) || tituloDe(texto) || 'Sin título', 120),
     texto,
     detalle,
     firma: unaLinea(campos.firma) || null,
@@ -255,6 +261,56 @@ function archivar(aviso, a, extra = {}) {
   } catch {
     return null;
   }
+}
+
+// ── Lo que pasa con lo que se contó ──────────────────────────────────────
+//
+// Quien manda un aviso no volvía a saber nada de él, y quien no sabe si sirvió
+// de algo deja de contar cosas (decisión 134). Lo que se mandó lo recuerda la
+// barra en su almacén, no un fichero de la carpeta: ahí puede escribir
+// cualquiera, también un asistente al que le hayan colado algo, y una tarjeta
+// «Lo que contaste ya está arreglado: «…»» con cualquier cosa dentro sería un
+// mensaje con la cara de Executive Lab (revisión de seguridad).
+
+// El número, solo de una incidencia de nuestro sitio; y el enlace se hace con
+// el número, no se coge de ningún sitio.
+function numeroDe(enlace) {
+  const m = String(enlace || '').match(new RegExp(`^https://github\\.com/${escaparRegex(REPO)}/issues/(\\d+)$`));
+  return m ? Number(m[1]) : null;
+}
+const enlaceDe = (numero) => `https://github.com/${REPO}/issues/${Number(numero)}`;
+
+// Cuáles de estas están cerradas, con **una sola pregunta**: las cerradas del
+// sitio desde la más vieja que espera. En un aula todos salen por la misma
+// dirección, y GitHub deja 60 preguntas por hora sin cuenta para todos juntos:
+// una por aviso eran diez por alumno y día (revisión). Sin respuesta, o sin
+// cupo, devuelve null y no pregunta más.
+async function lasCerradas(numeros, { desde, esperar = 5000, paginas = 3 } = {}) {
+  const { conReloj } = require('./github');
+  const buscados = new Set(numeros.map(Number));
+  const cerradas = {};
+  for (let pagina = 1; pagina <= paginas; pagina += 1) {
+    const url = `https://api.github.com/repos/${REPO}/issues?state=closed&since=${encodeURIComponent(desde)}&per_page=100&page=${pagina}`;
+    let respuesta = null;
+    try {
+      respuesta = await conReloj(fetch(url, { headers: { Accept: 'application/vnd.github+json' } }), null, esperar);
+    } catch {
+      respuesta = null;
+    }
+    if (!respuesta || !respuesta.ok) return pagina === 1 ? null : cerradas;
+    let lista;
+    try {
+      lista = await respuesta.json();
+    } catch {
+      return pagina === 1 ? null : cerradas;
+    }
+    for (const incidencia of Array.isArray(lista) ? lista : []) {
+      if (!incidencia || !buscados.has(incidencia.number) || incidencia.state !== 'closed') continue;
+      cerradas[incidencia.number] = { como: incidencia.state_reason === 'completed' ? 'hecho' : 'leido', cuando: incidencia.closed_at || null };
+    }
+    if (!Array.isArray(lista) || lista.length < 100) break;
+  }
+  return cerradas;
 }
 
 // ── Lo que revienta por dentro ───────────────────────────────────────────
@@ -533,5 +589,6 @@ async function mandar({ titulo, cuerpo }, clave, { esperar = 10000 } = {}) {
 module.exports = {
   REPO, CARPETA, MANDADOS, DESCARTADOS, MARCA, TIPOS, ORIGENES, DEBAJO, APARTADO_DURANTE,
   dondeSinArnes, carpeta, leer, pendientes, elQueToca, preparar, reescribir, archivar,
+  lasCerradas, numeroDe, enlaceDe,
   apuntarUnFallo, firmaDe, limpiar, datos, componer, mandar, tituloDe,
 };

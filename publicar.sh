@@ -71,6 +71,10 @@ cp executive-lab.vsix "$DESTINO/executive-lab-$VERSION.vsix"
 cat > "$DESTINO/NOTAS.md" <<NOTAS
 # Executive Lab $VERSION
 
+## Qué trae
+
+- (Escribe aquí lo nuevo de esta versión, una frase por punto, pensando en el alumno: es lo que le enseña la barra al ponerla. Lo que empieza por paréntesis, como esto, no lo enseña.)
+
 Una sola pantalla sencilla sobre VS Code para trabajar con un arnés de IA.
 
 ## Instalar

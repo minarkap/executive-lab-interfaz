@@ -447,7 +447,18 @@ async function main() {
 
   vscode.guion.raiz = null;
   console.log(`\n${pasadas} comprobaciones pasadas${process.exitCode ? ' — y alguna ha fallado' : ''}`);
+  terminada = true;
 }
+
+// Como en `humo.js` (decisión 132): si una prueba se queda esperando algo que
+// no llega, Node sale con 0 a medias y sin decir nada. Una batería que no llega
+// al final ha fallado.
+let terminada = false;
+process.on('exit', () => {
+  if (terminada) return;
+  console.error(`\n  ✗ la batería se ha parado a medias, después de ${pasadas} comprobaciones: una prueba se ha quedado esperando algo que no llega`);
+  process.exitCode = 1;
+});
 
 main()
   .catch((e) => {

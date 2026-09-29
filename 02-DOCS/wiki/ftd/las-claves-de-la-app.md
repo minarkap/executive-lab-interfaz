@@ -69,6 +69,9 @@ copia aparte (`.claude/worktrees/`), porque otra sesión trabajaba en el árbol 
   Para correrlas en la copia aparte hizo falta `node preparar-paquete.js` y enlazar
   `media/harness/node_modules` del árbol principal, que es el mismo `package-lock.json`: sin eso
   fallan 19 que no tienen que ver con esto.
+- Con `main` al día (`89f7dad`, con la 133 y la 134 dentro): `humo.js` → **353 comprobaciones
+  pasadas**, y las otras tres suites igual. Lo nuevo de `main` que tapa claves —los avisos a
+  Executive Lab— pasa por `valoresDeClaves`, así que también tapa las de las aplicaciones.
 
 ## Next
 
