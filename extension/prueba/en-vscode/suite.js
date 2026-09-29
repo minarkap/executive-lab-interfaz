@@ -34,10 +34,18 @@ const PIDEN_ALGO = new Set([
 // dice "este se queda colgado" que una prueba que no termina nunca.
 const PACIENCIA = 8000;
 
-const conReloj = (promesa, comando) => Promise.race([
+const conReloj = (promesa, comando, ms = PACIENCIA) => Promise.race([
   Promise.resolve(promesa),
-  new Promise((_, mal) => setTimeout(() => mal(new Error(`${comando} se queda esperando a alguien`)), PACIENCIA)),
+  new Promise((_, mal) => setTimeout(() => mal(new Error(`${comando} se queda esperando a alguien`)), ms)),
 ]);
+
+// La misma copia de un módulo que cargó la extensión: en Windows la unidad
+// puede llegar en otra caja, y un `require` con otra ruta da otra copia.
+function elQueCargo(raiz, modulo) {
+  const ruta = path.join(raiz, 'src', modulo);
+  const cargado = Object.keys(require.cache).find((k) => k.toLowerCase() === ruta.toLowerCase());
+  return cargado ? require.cache[cargado].exports : require(ruta);
+}
 
 const esperar = (ms) => new Promise((listo) => setTimeout(listo, ms));
 
@@ -195,6 +203,49 @@ async function run() {
     assert.doesNotMatch(pasar('ls -la').stdout, /"deny"/, 'y frena también lo que no es peligroso');
     fs.rmSync(carpeta, { recursive: true, force: true });
     return `el relevo lanza ${deQuien}, y el freno deniega`;
+  });
+
+  // «Actualizar ahora» (decisión 132). Lo que solo se sabe con un editor de
+  // verdad: que `workbench.extensions.installExtension` instala el `.vsix` que
+  // baja la barra. GitHub se finge dentro del editor —la release y la
+  // descarga—, con un paquete de verdad que hace `correr.js`, y se mira que el
+  // editor lo ha dejado en su carpeta de extensiones.
+  await comprobar('«Actualizar ahora» baja el paquete y el editor lo instala de verdad', async () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const crypto = require('node:crypto');
+    const paquete = process.env.EXECUTIVE_LAB_PRUEBA_PAQUETE;
+    const dondeVan = process.env.EXECUTIVE_LAB_PRUEBA_EXTENSIONES;
+    assert.ok(paquete && fs.existsSync(paquete), 'correr.js no ha hecho el paquete de prueba');
+    const version = elQueCargo(vscode.extensions.getExtension(ID).extensionPath, 'version.js');
+    const bytes = fs.readFileSync(paquete);
+    const release = {
+      tag_name: 'v99.0.0',
+      assets: [{
+        name: 'executive-lab-99.0.0.vsix',
+        browser_download_url: `https://github.com/${version.REPO}/releases/download/v99.0.0/executive-lab-99.0.0.vsix`,
+        size: bytes.length,
+        digest: `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`,
+      }],
+    };
+    // Con las `Response` de verdad del editor, que son las que le llegan a la
+    // barra: sin decir cuánto mide, como una descarga por trozos.
+    const antes = globalThis.fetch;
+    globalThis.fetch = async (url) => (String(url).endsWith('/releases/latest')
+      ? new Response(JSON.stringify(release), { status: 200, headers: { 'content-type': 'application/json' } })
+      : new Response(bytes, { status: 200 }));
+    const almacen = fs.mkdtempSync(path.join(os.tmpdir(), 'almacen-'));
+    const ctx = { globalStorageUri: vscode.Uri.file(almacen), globalState: { d: new Map(), get(k) { return this.d.get(k); }, async update(k, v) { this.d.set(k, v); } } };
+    let hecho;
+    try {
+      hecho = await conReloj(version.ponerLaNueva(ctx, '0.43.0'), 'instalar el paquete', 90000);
+    } finally {
+      globalThis.fetch = antes;
+    }
+    assert.deepEqual(hecho, { ok: true, version: '99.0.0' }, `no se ha puesto: ${JSON.stringify(hecho)}`);
+    const puestas = fs.readdirSync(dondeVan).filter((n) => n.toLowerCase().startsWith('executivelab.prueba-de-actualizar-99.0.0'));
+    assert.ok(puestas.length, `el editor dice que sí, y en sus extensiones no está: ${fs.readdirSync(dondeVan).join(', ')}`);
+    return `instalada: ${puestas[0]}`;
   });
 
   console.log(`\n${fallos.length ? `${fallos.length} fallos` : 'todo bien'}\n`);

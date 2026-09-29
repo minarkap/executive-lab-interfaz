@@ -4592,3 +4592,51 @@ intermedio.
 
 - **Instalarla sin preguntar**, por lo mismo que siempre.
 - **La tienda del editor**: `publicar-tiendas.sh` sigue ahí si algún día se quiere.
+
+## 133. Lo que solo se había probado de mentira, probado de verdad
+
+**Fecha:** 29 de septiembre de 2026 · **Estado:** hecho · **Vía rápida** `pruebas-de-verdad`
+
+Tres cosas de la 0.43.0 no se habían visto funcionar de verdad. Jose: *«haz las pruebas»*.
+
+### Un aviso de verdad
+
+`extension/prueba/aviso-de-verdad.js` arma un aviso con el mismo código que la barra y lo manda con la
+cuenta de quien lo corre. Después espera a que `.github/workflows/avisos.yml` le ponga las etiquetas, lo
+comprueba y lo cierra. La primera vez, la **#7**: salió, llegó con `aviso de alumno · por revisar ·
+falla`, se cerró sola, y en el cuerpo no había ni una carpeta de este ordenador.
+
+Se corre **a mano**, y nunca en las máquinas de GitHub: abre una incidencia pública cada vez.
+
+```
+GITHUB_TOKEN=$(gh auth token) node prueba/aviso-de-verdad.js
+```
+
+### «Actualizar ahora» instala de verdad
+
+En `humo.js` el editor es de mentira y dice que sí a todo, así que instalar solo se había fingido. Ahora la
+prueba del VS Code de verdad (`npm run probar-en-vscode`, también en la máquina Windows de GitHub) hace
+esto:
+
+- `correr.js` hace un `.vsix` de verdad con `vsce`, de una extensión de prueba que no hace nada, y lo
+  llama como los de las releases;
+- dentro del editor se finge GitHub, la release y la descarga, con las `Response` de verdad del editor y
+  sin decir cuánto mide lo que baja;
+- la barra lo baja, lo comprueba y se lo da al editor;
+- la prueba mira que el editor lo ha dejado en su carpeta de extensiones.
+
+En este Mac: «instalada: `executivelab.prueba-de-actualizar-99.0.0`». Quitándole a la barra la orden de
+instalar, la prueba se pone roja: «el editor dice que sí, y en sus extensiones no está».
+
+### `contrato.js`, sin terminar a medias
+
+Lleva el mismo guardián que `humo.js`: si no llega al final, falla y dice después de cuántas se paró. Se
+comprobó con una colgada a propósito. `empresas-distintas.js` no lo necesita, porque va de un tirón sin
+esperar a nada.
+
+### Y los raíles de esta carpeta
+
+Al abrir este proyecto con la 0.43.0, la barra le puso al día los raíles, como en la carpeta de cualquier
+alumno: la regla 8, la sección de los avisos y el freno. Son idénticos a los de `skills/`, y se guardan en
+git.
+
