@@ -24,13 +24,50 @@ técnicos»*.
 
 ## Lo que hay hoy
 
+Medido en el código el 05-10-2026 (`panel.js`, `extension.js` y los módulos que deciden qué sale):
+
 | | Hoy |
 |---|---|
-| Pantallas | 34 |
-| Botones distintos en la principal | unos 40 |
-| Grupos plegables en la principal | 7 (Documentos, Conocimiento, Histórico, En qué estamos, Acciones, Ayuda, Ajustes) y «Acciones rápidas» |
-| Tarjetas que se pueden apilar arriba | hasta 6 (lo nuevo de la versión, el consejo, lo que contó, un aviso, la versión nueva, documentos sin leer), además de los avisos de montaje |
-| Ayuda | 5 apartados y 14 botones, tres de ellos para «algo no funciona» |
+| Pantallas | 34, más 33 órdenes en la paleta del editor, que son otra puerta |
+| Lo normal en la principal, todo plegado | 4-8 botones: los tres comandos de los raíles en «Acciones rápidas», «Elegir cuáles» y alguna tarjeta, más 6 rótulos plegados |
+| El peor caso en la principal | **53 cosas que se pueden pulsar**: hasta 8 cajas de aviso y tarjetas antes de «Acciones rápidas», y 25 botones dentro de 7 grupos |
+| Tarjetas que se apilan arriba | **hasta 5 a la vez**: lo nuevo, el consejo, lo que contó, un aviso y la versión, cada una con su «Ahora no» y su plazo (14, 7 y 3 días) |
+| Ayuda | 5 apartados y 13 botones fijos |
+| Poner la clave de una conexión | **4 clics**: Acciones › Conexiones › la conexión › Guardar |
+| Contárselo a Executive Lab desde Ayuda | 5 clics |
+
+Lo que más se repite:
+
+- **«Qué hago ahora»**, desde cuatro sitios:
+  - «No sé qué hacer ahora», el comando que los raíles fijan arriba;
+  - el apartado del mismo nombre en Ayuda, con «Dime por dónde seguir», que pide casi lo mismo;
+  - «Seguir donde lo dejé»;
+  - «Estoy atascado», que solo abre Ayuda.
+- **«Algo falla»**, por cuatro caminos, cada uno con su nombre: «Resolver una incidencia» y sus tres
+  atajos, «Algo va mal», «Contárselo a Executive Lab» y «Qué falta por montar». Además, el apartado
+  «Algo no funciona» de Ayuda y el tipo «Algo no funciona como debería» de los avisos casi se llaman
+  igual y llevan a sitios distintos.
+- **Ideas**: ocho botones que le piden propuestas al asistente, y la tarjeta del consejo, que sale a la
+  vez en la principal y en Sugerencias.
+- **Configurar al asistente**, en siete pantallas: Comandos, Habilidades, Agentes, Las reglas, Cómo quieres
+  que trabaje, Cómo te habla y Tu asistente. Dentro hay cinco botones para que recuerde una preferencia y
+  cinco para crear algo.
+- **«Documentos sin leer»**, hasta tres veces en la principal: en la línea de arriba, en el consejo y en
+  un botón. Y ese botón lleva a Conocimiento, no a la lista de los que esperan.
+
+Y lo que ya choca con decisiones tomadas:
+
+- **La 25** dice «una tarjeta como mucho», y hoy salen cinco: la 131, la 132 y la 134 añadieron cada una
+  la suya «como el consejo».
+- **La 31** dice que cada fila plegada cuenta lo que lleva dentro, y solo lo hacen 2 de 7.
+- **La 101** pide un nombre por pantalla, y en 8 el botón y el título no coinciden: por ejemplo, «Estoy
+  atascado» abre «Ayuda», y «Ver las copias guardadas» abre «Volver atrás».
+- **La 54 y la 70** se contradicen sobre qué sale en «Acciones rápidas» sin elegir nada.
+- **«Volver»** lleva a la principal aunque se haya llegado desde otra pantalla. En tres pantallas está
+  abajo, no arriba (decisión 56).
+- **«Díselo a tu tutor»** sale en tres sitios sin ningún botón.
+- **Un fallo de la 0.43.0**: tras «Actualizar ahora», lo más probable es que salgan a la vez el aviso y
+  la tarjeta, los dos con «Ya está puesta… Recargar ahora». Se arregla en F2.
 
 Cada pieza tiene su porqué en `docs/decisiones.md`, y casi todas resolvieron algo que pasó de verdad.
 El problema no es ninguna en concreto. Es que, juntas, ponen delante de una persona que no es técnica
@@ -259,10 +296,13 @@ lado:
 - **En la principal, 6 botones como mucho**, en cualquier carpeta. `humo.js` lo mide en las tres
   empresas de mentira.
 - **Clics hasta lo frecuente**:
-  - poner una clave: 2 (Conexiones → la conexión);
+  - poner una clave: de 4 a 2 (Conexiones → la conexión);
   - darle un documento: 0 (arrastrarlo encima);
   - pedir ayuda: 1;
+  - contárselo a Executive Lab: de 5 a 2;
   - cualquier otra cosa: 2 como mucho (Más → lo que sea).
+- **Una tarjeta, no cinco**, en cualquier situación; y **un nombre por pantalla**: el botón dice lo mismo
+  que el título que abre.
 - **Con personas**: la misma tarea —«conecta tu Holded»— con dos o tres alumnos o tutores, antes y
   después, cronometrada, apuntando dónde se paran.
 
@@ -303,7 +343,9 @@ Cada fase pasa por revisión adversaria y por las máquinas de GitHub, como hast
    es la adecuada en el momento adecuado. En clase se sigue viendo la palabra, en «Más».
 2. **Guardar en git**: recomiendo **la tarjeta cuando hay cambios sin guardar de hace más de un día, y en
    «Más»**. El asistente ya ofrece guardar al terminar algo, y existe «Cada cuánto guarda solo».
-3. **«Tus botones»**: recomiendo que **se queden bajo las tres puertas, solo si tiene alguno**. Son suyos
-   y los usa a diario.
+3. **«Tus botones»**: recomiendo que **se queden bajo las tres puertas, solo si tiene alguno**, y que
+   sean **los que ha creado o ha elegido**, no los tres que hoy fijan los raíles por defecto. «No sé qué
+   hacer ahora» ya es «Estoy atascado» en Ayuda, y «Seguir donde lo dejé» lo hace la brújula al abrir la
+   conversación. Esto zanja de paso el choque entre la decisión 54 y la 70.
 4. **¿Un prototipo antes de construir?** Una página con las pantallas nuevas de mentira, para verlas y
    tocarlas en el móvil o en el ordenador. Media hora, y evita construir algo que no convence.
