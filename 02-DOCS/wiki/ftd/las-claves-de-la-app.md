@@ -25,7 +25,11 @@ distinguir si esa carpeta es una aplicación.
   subproyectos en `skills/harness`, fase 1. Sus claves y sus ficheros de acceso no son desorden.
 - La protección no pierde nada: `paraProteger()` las sigue dando a quien las deja fuera de las
   copias (`guardar.js`) y a quien tapa valores en lo que se enseña (`conexiones.js`).
-- El raíl `executive-lab` (las dos copias): lo de una aplicación no se mueve.
+- El raíl `executive-lab` (las dos copias): lo de una aplicación no se mueve, y si ya está en git
+  se saca de las copias sin borrarla.
+- Las que ya estaban en las copias (añadido el 05-10-2026, a petición de Jose): `deLasAppsEnLasCopias()`,
+  su tarjeta en Conexiones (tools) con **Que deje de guardarlas**, la línea del informe de «Algo va
+  mal» y la fila del diccionario.
 - Decisión 135.
 
 **Fuera, a propósito**
@@ -34,7 +38,8 @@ distinguir si esa carpeta es una aplicación.
   trabajo, no un subproyecto.
 - `requirements.txt` solo no hace una aplicación: el protocolo de `harness` no lo cuenta, y una
   carpeta así suele ser un guion.
-- Un aviso propio para el `.env.local` de una aplicación que ya esté en git (ver Next).
+- Parar «Subir a GitHub» si hay claves de una aplicación en las copias: el sitio es privado, y se
+  dice igual que con las de fuera de sitio, sin bloquear.
 
 ## Checklist
 
@@ -47,6 +52,11 @@ distinguir si esa carpeta es una aplicación.
 - [x] Las pruebas de antes de claves y ficheros de acceso siguen en verde.
 - [x] Ocho mutaciones tumban las pruebas nuevas.
 - [x] Las dos copias del raíl, iguales.
+- [x] Una clave de una aplicación guardada en git se ve; sin git, nada; la suelta sigue en su tarjeta: comprobación nueva.
+- [x] El encargo nombra el fichero, `git rm --cached`, el `.gitignore` y los nombres de las claves, dice «No las muevas» y no lleva ningún valor: comprobación nueva.
+- [x] La tarjeta se pinta sin ficheros ni órdenes a la vista, y sin nada en git no sale: comprobación nueva.
+- [x] La extensión se lo manda a Conexiones y el informe de «Algo va mal» lo dice: comprobación nueva.
+- [x] Seis mutaciones tumban la prueba nueva.
 - [x] Las suites en verde.
 
 ## Evidence
@@ -72,16 +82,18 @@ copia aparte (`.claude/worktrees/`), porque otra sesión trabajaba en el árbol 
 - Con `main` al día (`89f7dad`, con la 133 y la 134 dentro): `humo.js` → **353 comprobaciones
   pasadas**, y las otras tres suites igual. Lo nuevo de `main` que tapa claves —los avisos a
   Executive Lab— pasa por `valoresDeClaves`, así que también tapa las de las aplicaciones.
+- 05-10-2026, el aviso de las que ya estaban en las copias, sobre la misma rama (con `main` en
+  `89f7dad`): `✓ las claves de una aplicación que ya están en las copias se dicen — se ven · la suelta
+  sigue en lo suyo · encargo sin valores · tarjeta sin jerga`. Mutaciones, las seis muertas: nunca
+  hay nada en las copias · se cuelan las de fuera de sitio · el encargo no dice que no se muevan ·
+  sin tarjeta cuando no hay conexiones · Conexiones no lo recibe · el informe no lo dice. Suites:
+  `humo.js` → **354 comprobaciones pasadas** · `contrato.js` · `empresas-distintas.js` ·
+  `comprobar-diccionario.js`, todas en verde.
 
 ## Next
 
-Un aviso propio cuando el `.env.local` de una aplicación ya está en el historial de git. Hoy ese
-aviso solo va en la tarjeta de «fuera de sitio», y la aplicación ya no sale ahí. Es raro (la
-plantilla de Next.js lo deja fuera de git), pero si pasa es grave: «Subir a GitHub» se lo llevaría
-sin que nada lo dijera. Lo encontró también el revisor de seguridad.
-
-Un hueco que ya había y no abre esto, apuntado por el mismo revisor: la protección solo mira el
-primer nivel. Un monorepo con `03-APP/apps/web/.env.local` no se deja fuera de las copias por la
-barra; lo cubre el `.gitignore` de la aplicación, si lo tiene.
+Un hueco que ya había y no abre esto, apuntado por el revisor de seguridad: la barra solo mira el
+primer nivel. Un monorepo con `03-APP/apps/web/.env.local` no se deja fuera de las copias ni se
+avisa; lo cubre el `.gitignore` de la aplicación, si lo tiene.
 
 Y publicar, que es decisión de Jose: hasta entonces, nexus-presupuestos sigue viendo el aviso.

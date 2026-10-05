@@ -116,7 +116,10 @@ verás tú—:
 `.env`, o su cuenta de servicio— está donde ella lo lee: Next.js, por ejemplo, solo carga los de su
 propia carpeta. Para RSC es un subproyecto y lo de dentro no se toca, y el panel no lo cuenta como
 fuera de sitio. Si una herramienta de `01-TOOLS` necesita esa misma clave, pónsela también en
-su `.env`, sin quitársela a la aplicación: son dos sitios que la leen, no una clave mal guardada.
+su `.env`, sin quitársela a la aplicación: son dos sitios que la leen, no una clave mal guardada. Y si
+ya estaban guardadas en git, sácalas de las copias sin borrarlas —el `.gitignore` de la aplicación
+y `git rm --cached`— y recomienda cambiarlas donde se sacaron: es lo único que deja inservibles las
+que ya están en el historial.
 
 **Las credenciales que no son variables** —una cuenta de servicio de Google, un `.pem`, un `.p12`—
 son ficheros enteros, no líneas, y van a **`01-TOOLS/<HERRAMIENTA>/keys/`**, que la plantilla ya

@@ -6550,6 +6550,88 @@ exec git "$@"
     return 'nada fuera de sitio · tapadas · fuera de la copia · lo de fuera sigue contando';
   });
 
+  await comprobar('las claves de una aplicación que ya están en las copias se dicen', async () => {
+    // El hueco que dejó la 135: el aviso de «ya están en tus copias» iba en la
+    // tarjeta de fuera de sitio, y las de una aplicación ya no salen ahí. Un
+    // `.env.local` guardado en git viaja con cada copia y con «Subir a GitHub».
+    const fs2 = require('node:fs');
+    const cp = require('node:child_process');
+    const carpeta = fs2.mkdtempSync(path.join(os.tmpdir(), 'app-en-git-'));
+    const escribir = (relativa, texto) => {
+      fs2.mkdirSync(path.dirname(path.join(carpeta, relativa)), { recursive: true });
+      fs2.writeFileSync(path.join(carpeta, relativa), texto);
+    };
+    escribir('.rsc.json', JSON.stringify({ version: 1, targets: ['claude'] }));
+    escribir('03-APP/package.json', JSON.stringify({ name: 'presupuestos', private: true }));
+    escribir('03-APP/.env.local', 'RESEND_API_KEY=re_secreto_de_la_app\nSUPABASE_SERVICE_ROLE_KEY=eyJservicio_secreto\nUSE_MOCK_DATA=false\n');
+    escribir('03-APP/firebase-adminsdk.json', JSON.stringify({
+      type: 'service_account', private_key: '-----BEGIN PRIVATE KEY-----\\nsecreto_de_firebase\\n-----END PRIVATE KEY-----\\n',
+      client_email: 'robot@presupuestos.iam.gserviceaccount.com',
+    }));
+    // Y una suelta de verdad, también en git: esa sigue en su tarjeta, no en esta.
+    escribir('auto/.env', 'BUFFER_API_KEY=buffer_secreto\n');
+
+    vscode.guion.raiz = carpeta;
+    try {
+      const sueltasM = cargar('sueltas');
+      const git = (...args) => cp.spawnSync('git', args, { cwd: carpeta, encoding: 'utf8' });
+      if (git('init', '-q').status !== 0) return 'SALTADA: sin git';
+      assert.equal(sueltasM.deLasAppsEnLasCopias(), null, 'sin nada en git no hay nada que decir');
+
+      git('add', '-f', '03-APP/.env.local', '03-APP/firebase-adminsdk.json', 'auto/.env');
+      const hay = sueltasM.deLasAppsEnLasCopias();
+      assert.ok(hay, 'las de la aplicación guardadas en git se ven');
+      assert.deepEqual(hay.ficheros.sort(), ['03-APP/.env.local', '03-APP/firebase-adminsdk.json']);
+      assert.deepEqual(hay.carpetas, ['03-APP']);
+      assert.equal(hay.claves, 3, 'las tres claves del .env.local');
+      assert.equal(hay.deAcceso, 1, 'y su fichero de acceso');
+      // La suelta sigue en lo suyo: fuera de sitio, y subida.
+      const suelta = sueltasM.resumen();
+      assert.deepEqual(suelta.ficheros, ['auto/.env']);
+      assert.equal(suelta.subidas, 1);
+
+      // El encargo: no se mueven, se dejan de guardar, y nada de valores.
+      assert.match(hay.prompt, /03-APP\/\.env\.local/);
+      assert.match(hay.prompt, /git rm --cached/);
+      assert.match(hay.prompt, /\.gitignore/);
+      assert.match(hay.prompt, /No las muevas/);
+      assert.match(hay.prompt, /RESEND_API_KEY/, 'los nombres sí, para recomendar cuáles cambiar');
+      assert.ok(!/secreto|eyJ|BEGIN/.test(hay.prompt), 'ningún valor ni contenido viaja al asistente');
+      assert.ok(!hay.prompt.includes('auto/.env'), 'la suelta no se cuela en este encargo');
+
+      // Y la pantalla lo pinta sin jerga, con su botón.
+      const p = require('./panel-falso').montarPanel();
+      const pintado = p.mandar({ tipo: 'conexiones', proveedores: [], sueltas: null, enLasCopias: hay });
+      assert.match(pintado, /Hay 3 claves y 1 fichero de acceso de tu aplicación dentro de tus copias/);
+      assert.match(pintado, /la carpeta 03-APP/);
+      assert.match(pintado, /Que deje de guardarlas/);
+      const aLaVista = pintado.replace(/data-accion="[^"]*"/g, '');
+      assert.ok(!/\.env|\.json|gitignore|rm --cached/i.test(aLaVista), 'sin ficheros ni órdenes a la vista');
+      const sinNada = p.mandar({ tipo: 'conexiones', proveedores: [], sueltas: null, enLasCopias: null });
+      assert.ok(!/dentro de tus copias/.test(sinNada), 'sin nada en git, no hay tarjeta');
+
+      // Y la extensión lo manda de verdad, y el informe de «Algo va mal» lo dice.
+      const proveedor = vscode.registrado.proveedor;
+      assert.ok(proveedor, 'la vista tiene que estar registrada');
+      const antes = proveedor.enviar;
+      const enviados = [];
+      proveedor.enviar = (m) => enviados.push(m);
+      try {
+        proveedor.verConexiones();
+      } finally {
+        proveedor.enviar = antes;
+      }
+      const conexionesMandadas = enviados.find((m) => m.tipo === 'conexiones');
+      assert.deepEqual(conexionesMandadas && conexionesMandadas.enLasCopias && conexionesMandadas.enLasCopias.ficheros.sort(),
+        ['03-APP/.env.local', '03-APP/firebase-adminsdk.json'], 'Conexiones recibe lo que hay en las copias');
+      const visto = await proveedor.loQueNoCuadra();
+      assert.ok(visto.some((l) => /aplicación guardadas en git/.test(l) && l.includes('03-APP/.env.local')), `el informe no lo dice: ${visto.join(' | ')}`);
+    } finally {
+      vscode.guion.raiz = empresa;
+    }
+    return 'se ven · la suelta sigue en lo suyo · encargo sin valores · tarjeta sin jerga';
+  });
+
   await comprobar('una aplicación es lo mismo que para RSC', () => {
     // La lista de lo que hace de una carpeta una aplicación es de RSC
     // (`skills/harness`, fase 1: «Subprojects»). Si una versión nueva del arnés

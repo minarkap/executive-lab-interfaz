@@ -564,7 +564,47 @@ function resumen() {
   };
 }
 
+// ── Las de una aplicación que ya están en las copias ─────────────────────
+//
+// Lo que dejó a medias la decisión 135: el aviso de «ya están en tus copias»
+// va en la tarjeta de fuera de sitio, y las de una aplicación ya no salen ahí.
+// Un `.env.local` guardado en git viaja con cada copia y con «Subir a GitHub»,
+// así que se dice aparte. No se mueven: se dejan de guardar.
+function deLasAppsEnLasCopias() {
+  const fuera = new Set([...buscar(), ...ficherosDeAcceso()].map((s) => s.donde));
+  const { claves, ficheros } = paraProteger();
+  const deApps = [...claves, ...ficheros].filter((s) => !fuera.has(s.donde));
+  const subidas = estanSubidas(deApps);
+  if (!subidas.length) return null;
+
+  const enGit = (s) => subidas.includes(s.donde);
+  const nombres = [...new Set(claves.filter(enGit).flatMap((s) => s.nombres))];
+  const deAcceso = ficheros.filter(enGit).length;
+  const carpetas = [...new Set(subidas.map((d) => d.split('/')[0]))].sort();
+  return {
+    ficheros: subidas,
+    carpetas,
+    claves: nombres.length,
+    deAcceso,
+    // Los nombres van al asistente para que diga cuáles cambiar; los valores, nunca.
+    prompt: [
+      `En esta carpeta hay una aplicación con credenciales que ya están guardadas en el historial de git: ${subidas.join(', ')}.`,
+      'Están en su sitio: es donde las lee la aplicación, y para el protocolo de harness lo de dentro de un subproyecto no se mueve. No las muevas.',
+      '',
+      'Lo que hay que hacer:',
+      '1. Explícame en cristiano qué significa que estén en el historial: cada copia guardada se las lleva, y si las copias se suben a GitHub, van con ellas.',
+      '2. Que dejen de guardarse a partir de ahora: añádelas al .gitignore de la aplicación y sácalas del índice con git rm --cached, sin borrarlas del disco. Comprueba después que la aplicación sigue leyéndolas.',
+      '3. Recomiéndame cambiarlas donde se sacaron, que es lo único que deja inservibles las que ya están en el historial'
+        + `${nombres.length ? `: ${nombres.join(', ')}` : ''}.`
+        + `${deAcceso ? ' Un fichero de acceso se anula donde se sacó (una cuenta de servicio, en Google) y se saca otro.' : ''}`,
+      '',
+      'No imprimas ni me pegues ningún valor ni el contenido de ningún fichero. No reescribas el historial de git sin que te lo pida.',
+    ].join('\n'),
+  };
+}
+
 module.exports = {
+  deLasAppsEnLasCopias,
   buscar, resumen, reparto, aQuien, prefijoDe, herramientas, enCristiano, enElOrdenador, nombresDeClaves, nombresEsperados,
   ficherosDeAcceso, tieneSuFichero, queEs, paraProteger, DE_UNA_APP,
 };

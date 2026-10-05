@@ -4777,10 +4777,29 @@ de sitio, a RESEND le falta la suya, los valores de la aplicación se tapan y un
 se los lleva. Al lado, `auto/.env` y `scripts/.env` (con `requirements.txt`) siguen contando. Ocho
 mutaciones tumban las pruebas nuevas.
 
+### Y las que ya estaban en las copias
+
+Al dejar de contarlas como desorden se perdía un aviso: el de «ya están dentro de tus copias», que
+iba en la tarjeta de fuera de sitio. Si el `.env.local` de una aplicación ya estaba en git, nada lo
+decía, y «Subir a GitHub» se lo llevaba. Lo vio también el revisor de seguridad, que no encontró
+ninguna forma de que una clave de una aplicación entre en una copia nueva o salga sin tapar.
+
+Ahora tiene su tarjeta en Conexiones (tools): *«Hay 3 claves de tu aplicación dentro de tus
+copias»*, que están bien donde están pero se guardaron en git, y **Que deje de guardarlas**. El
+encargo al asistente no las mueve: las saca de las copias con el `.gitignore` de la aplicación y
+`git rm --cached`, sin borrarlas del disco, comprueba que la aplicación sigue leyéndolas y
+recomienda cambiarlas donde se sacaron, con sus nombres y sin un solo valor. No reescribe el
+historial sin que se lo pidan. El informe de «Algo va mal» lo dice también, y el raíl
+`executive-lab` lleva lo mismo.
+
+No para «Subir a GitHub», igual que no lo para con las claves de fuera de sitio: el sitio que crea es
+siempre privado, y sacarlas del historial lo decide la persona. Se dice; no se bloquea.
+
+Seis mutaciones tumban la prueba nueva, también las que desconectan la tarjeta de la extensión y la
+línea del informe.
+
 ### Lo que queda
 
-Si el `.env.local` de una aplicación ya está en el historial de git, la barra no lo dice: ese aviso
-va en la tarjeta de «fuera de sitio», y la aplicación ya no sale ahí. Next.js lo deja fuera de git
-desde su plantilla, así que es raro, pero si pasa es grave: «Subir a GitHub» se lo llevaría sin que
-nada lo dijera. Hace falta un aviso propio. Lo vio también el revisor de seguridad, que no encontró
-ninguna forma de que una clave de una aplicación entre en una copia o salga sin tapar.
+Un hueco que ya había y no abre esto: la barra solo mira el primer nivel. En un monorepo, un
+`03-APP/apps/web/.env.local` no lo deja fuera de las copias ni lo avisa; lo cubre el `.gitignore`
+de la aplicación, si lo tiene.

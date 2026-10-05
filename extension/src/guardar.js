@@ -92,8 +92,8 @@ async function iniciar() {
 // sueltas, ficheros de claves y ficheros de acceso, también las de una
 // aplicación, que están en su sitio pero son claves igual. `historial` deja fuera
 // las que git todavía no seguía; una que ya estaba en git sigue ahí, porque
-// sacarla lo decide la persona, y la barra lo avisa aparte. Las de una aplicación
-// todavía no: ese aviso va con las de fuera de sitio (decisión 135, pendiente).
+// sacarla lo decide la persona, y la barra lo avisa aparte: en la tarjeta de
+// fuera de sitio, o en la suya si es de una aplicación (decisión 135).
 // Por aquí pasan el botón y el guardado solo.
 function loQueNoEntra() {
   const { claves, ficheros } = require('./sueltas').paraProteger();

@@ -643,6 +643,9 @@ ${cabecera}
       // Si el arnés se montó sobre un proyecto que ya existía, puede haber
       // claves guardadas donde estuvieran. Aquí no se leen: se avisa.
       sueltas: sueltas.resumen(),
+      // Las de una aplicación están en su sitio, pero si ya se guardaron en git
+      // viajan con cada copia: eso se dice aparte (decisión 135).
+      enLasCopias: sueltas.deLasAppsEnLasCopias(),
     });
   }
 
@@ -945,6 +948,8 @@ ${cabecera}
           visto.push(`${f.donde} es ${f.queEs.toLowerCase()} y está fuera de su sitio${f.herramienta ? `; parece de ${f.herramienta}` : ', y no se sabe de quién'}.`);
         }
       }
+      const enLasCopias = sueltas.deLasAppsEnLasCopias();
+      if (enLasCopias) visto.push(`Hay claves de una aplicación guardadas en git, en su sitio pero dentro de cada copia: ${enLasCopias.ficheros.join(', ')}.`);
       for (const g of reglas.losGuardianes()) {
         if (g.estado === 'apagado') visto.push(`El freno "${g.nombre}" está apagado.`);
       }
