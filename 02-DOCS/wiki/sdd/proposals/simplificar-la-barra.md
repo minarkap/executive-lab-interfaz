@@ -141,16 +141,20 @@ seis tarjetas que se apilan:
 |---|---|---|---|
 | 1 | Falta el asistente, o la carpeta está sin preparar o a medias | lo de hoy (`primerPaso`, `sinAjustar`) | lo de hoy |
 | 2 | Algo está roto (una pieza en «no» de Qué falta por montar) | «Hay algo que no funciona y lo puedo arreglar.» | Arreglarlo |
-| 3 | Acaba de ponerse una versión nueva | «Ya tienes la 0.45.0. Esto es lo nuevo: …» | Entendido |
-| 4 | Una conexión a medias: le faltan claves, o falla al probarla | «A Holded le falta una clave.» | Ponerla |
-| 5 | Documentos sin leer desde hace más de un día | «Tienes 2 documentos sin leer.» | Que los lea |
-| 6 | Cambios sin guardar desde hace más de un día | «Tienes cambios sin guardar desde ayer.» | Guardar en git |
-| 7 | Un aviso para Executive Lab esperando | lo de hoy | Verlo antes de mandarlo |
-| 8 | Lo que contó, cerrado | lo de hoy | Entendido |
-| 9 | Hay una versión nueva | lo de hoy | Actualizar ahora |
-| 10 | Una idea (ver «Se adapta y da ideas») | «Por lo que hay aquí, te vendría bien …» | Hacerlo |
+| 3 | Claves dentro de las copias: las de una aplicación ya guardadas en git (PR #10, `sueltas.deLasAppsEnLasCopias()`) | «Hay 3 claves de tu aplicación dentro de tus copias.» | Que deje de guardarlas |
+| 4 | Claves fuera de sitio (`sueltas.resumen()`, decisión 104) | «Hay 5 claves fuera de sitio.» | Que las ordene |
+| 5 | Acaba de ponerse una versión nueva | «Ya tienes la 0.45.0. Esto es lo nuevo: …» | Entendido |
+| 6 | Una conexión a medias: le faltan claves, o falla al probarla | «A Holded le falta una clave.» | Ponerla |
+| 7 | Documentos sin leer desde hace más de un día | «Tienes 2 documentos sin leer.» | Que los lea |
+| 8 | Cambios sin guardar desde hace más de un día | «Tienes cambios sin guardar desde ayer.» | Guardar en git |
+| 9 | Un aviso para Executive Lab esperando | lo de hoy | Verlo antes de mandarlo |
+| 10 | Lo que contó, cerrado | lo de hoy | Entendido |
+| 11 | Hay una versión nueva | lo de hoy | Actualizar ahora |
+| 12 | Una idea (ver «Se adapta y da ideas») | «Por lo que hay aquí, te vendría bien …» | Hacerlo |
 
-El orden se puede discutir; lo que no se discute es que salga **una**. Lo apartado con «Ahora no» vuelve
+Lo de las claves va arriba porque es lo único de la lista que puede costar dinero si se deja: una clave
+dentro de las copias sube a GitHub con ellas. El orden se puede discutir; lo que no se discute es que salga
+**una**. Lo apartado con «Ahora no» vuelve
 según sus plazos de hoy.
 
 ## Conexiones: lo primero, porque es lo que más cuesta
