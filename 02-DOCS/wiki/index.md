@@ -21,6 +21,7 @@ timestamp: 2026-09-24T15:50:00Z
 | Configuración de la cadena | [sdd/config.yaml](sdd/config.yaml) |
 | Decisiones tomadas construyendo | [sdd/decisions.md](sdd/decisions.md) |
 | Propuesta · todo-cuadra | [sdd/proposals/todo-cuadra.md](sdd/proposals/todo-cuadra.md) |
+| Propuesta · simplificar la barra | [sdd/proposals/simplificar-la-barra.md](sdd/proposals/simplificar-la-barra.md) |
 | Spec · todo-cuadra | [sdd/specs/todo-cuadra.md](sdd/specs/todo-cuadra.md) |
 | Plan y tareas · todo-cuadra | [sdd/plans/todo-cuadra.md](sdd/plans/todo-cuadra.md) |
 | Gate de consistencia · todo-cuadra | [sdd/analysis/todo-cuadra.md](sdd/analysis/todo-cuadra.md) |
