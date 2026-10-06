@@ -1,7 +1,7 @@
 ---
 type: proposal
 title: Propuesta — Simplificar la barra
-description: Cómo pasar de un panel de mandos con 40 botones a tres puertas y una tarjeta con lo que toca, con Conexiones como lo primero porque es lo que más cuesta.
+description: Cómo pasar de un panel de mandos con 40 botones a dos puertas, una tarjeta con lo que toca y una línea que dice que todo está guardado, con Conexiones como lo primero porque es lo que más cuesta. Lo demás se apaga, sin borrar nada, y se puede volver a encender.
 timestamp: 2026-10-05T17:00:00Z
 topic: sdd
 slug: simplificar-la-barra
@@ -12,15 +12,48 @@ status: propuesta, sin aprobar
 
 ## En una frase
 
-La barra deja de ser un panel de mandos y pasa a ser un acompañante. Arriba solo lo que de verdad cuesta
-—**conectar sus herramientas, darle documentos y pedir ayuda**— y **una sola tarjeta con lo que toca
-ahora**. Lo demás lo hace la conversación, o queda plegado en «Más».
+La barra deja de ser un panel de mandos y pasa a ser un acompañante que no da miedo. Arriba solo lo que de
+verdad cuesta —**conectar sus herramientas y darle documentos**—, **una sola tarjeta con lo que toca
+ahora** y una línea que dice que **todo está guardado**. Lo demás se pide con palabras, o se apaga **sin
+borrarlo**, para poder encenderlo otro día.
 
 Jose, 05-10-2026: *«que solo las cosas de más fricción estén […] mantener documentos, conexiones y lo de
 ayuda pero hacerla más simple […] que sea inteligente e interactiva y que solo ponga lo necesario según el
 caso, y en brownfield se adapte y dé ideas»*. Y: *«lo que más fricción da es conectar las conexiones y
 tools […] las guías para sacar api keys […] y que se pueda saber qué preguntar a informáticos y
 técnicos»*.
+
+## Lo que queda, decidido
+
+Jose, 06-10-2026: *«simplificar para que no dé miedo, dejando solo lo esencial para que no se sature. Yo
+guardaría conexiones, documentos, algo de git y no sé si skills y comandos, y ya está»*.
+
+| Pieza | Cómo queda | Por qué |
+|---|---|---|
+| **Conexiones** | Una puerta | Es lo que más cuesta, y lo que la conversación no puede hacer: los secretos |
+| **Documentos** | Una puerta | Arrastrar es más fácil que describir |
+| **Git** | Una línea abajo, «✓ Todo guardado, hace 5 minutos»; al pulsarla, las copias, «Volver a como estaba» y «Subir a GitHub». Se guarda solo por defecto. | Ver que todo está guardado quita el miedo; un botón de «Guardar en git» lo da |
+| **Comandos** | «Tus botones», solo si tiene alguno | Sus tareas repetidas, a un clic; más rápido que escribirlas |
+| **Habilidades (skills)** | Ninguna puerta: salen en la tarjeta cuando sirven, y la lista en «Más» | Añadirlas es de lo poco que el asistente no puede hacer, pero nadie entra a curiosear el catálogo |
+| **Ayuda** | Un enlace pequeño abajo, «¿Algo no va?», con los tres caminos dentro | Hace falta cuando algo se rompe, pero no tiene que estar a la vista siempre |
+| Todo lo demás | Apagado, no borrado: «Más» enseña lo que esté encendido, y `executiveLab.barraCompleta` lo enciende todo | Se pide mejor con palabras, y a futuro se quiere mantener |
+
+## No se borra nada: se apaga
+
+Jose, 06-10-2026: *«no borres los mapeos, solo desactívalo […] simplifícalo desactivando cosas, no borres
+nada, porque me interesa y a futuro quiero mantenerlo»*.
+
+- **Ni una pantalla, ni un botón, ni un mapeo se quita del código.** `nombres.json`, `capacidades.json`,
+  el diccionario, las 34 pantallas y sus encargos se quedan como están.
+- **Lo que no está a la vista está apagado**, en un solo sitio: una tabla de piezas (`media/piezas.json`)
+  con cada una y si se enseña o no. Encender una es cambiar una línea, sin tocar la pantalla.
+- **Un ajuste lo enciende todo**: `executiveLab.barraCompleta`, apagado de fábrica y sin botón en la
+  barra. Es para Jose, para un tutor que necesite verlo todo, o para probar. Con él puesto, la barra es la
+  de hoy.
+- **Lo apagado sigue probado.** `humo.js` pinta todas las pantallas y despacha todas las acciones, estén
+  encendidas o no. Así lo que se apaga no se pudre, y el día que se encienda funciona.
+- **En la principal y en «Más», lo apagado no sale.** La decisión 98 («lo instalado se ve») se sigue
+  cumpliendo en «Más» con lo que está encendido; lo demás, con el ajuste.
 
 ## El criterio
 
@@ -42,11 +75,12 @@ mal:
    porque se saldría de la versión de la clase.
 6. **Lo que pasa fuera de la conversación**: que se ha arreglado algo que contó.
 
-**Lo que se va**: hoy hay **34 botones que solo le mandan una frase hecha al asistente** («Dime por dónde
-seguir», «Pensemos ideas juntos», «Crear un comando», «Explícame cómo funciona esto», los tres atajos de
-«Resolver una incidencia»…). Casi todos sobran. Solo se quedan los que llevan dentro algo que la barra sabe
-del disco y el alumno no sabría decir con sus palabras, como «Que las ordene», que manda el reparto exacto de
-las claves sueltas. Y se quedan como botón de la tarjeta, cuando toca, no a la vista siempre.
+**Lo que se apaga**: hoy hay **34 botones que solo le mandan una frase hecha al asistente** («Dime por
+dónde seguir», «Pensemos ideas juntos», «Crear un comando», «Explícame cómo funciona esto», los tres atajos
+de «Resolver una incidencia»…). Casi todos se apagan, sin borrarlos. Solo siguen a la vista los que llevan
+dentro algo que la barra sabe del disco y el alumno no sabría decir con sus palabras, como «Que las ordene»,
+que manda el reparto exacto de las claves sueltas. Y siguen como botón de la tarjeta, cuando toca, no
+siempre.
 
 ## Lo que hay hoy
 
@@ -108,12 +142,12 @@ la cuenta mejor cuando se le pregunta.
 
 ## Principios
 
-1. **Tres puertas fijas**: Conexiones, Documentos y Ayuda. Siempre en el mismo sitio y con el mismo
-   nombre.
+1. **Dos puertas fijas**: Conexiones y Documentos, siempre en el mismo sitio y con el mismo nombre. Debajo,
+   lo suyo («Tus botones»), la línea de las copias y, pequeños, «¿Algo no va?» y «Más».
 2. **Una tarjeta, la que toca.** De una en una y decidida por reglas, no adivinada (P5). Con «Ahora no»
    pasa a la siguiente.
-3. **Lo demás, en «Más», plegado y nunca escondido.** «Esconder no es simplificar: es mentir sobre lo que
-   hay» (decisión 98). Todo sigue a dos clics.
+3. **Lo demás, apagado y no borrado.** Lo encendido que no está arriba va en «Más», a dos clics. Lo
+   apagado sigue en el código y probado, y se enciende con una línea o con un ajuste.
 4. **Cada pantalla, una acción principal.** Lo secundario va en la (i) o detrás de un «Más».
 5. **Las cosas se llaman por lo que son** (decisión 98) y **ninguna pantalla sin salida** (P1).
 6. **Nada predefinido**: ni una lista de herramientas ni de tareas en el código. Lo que se ofrece sale de
@@ -129,24 +163,25 @@ la cuenta mejor cuando se le pregunta.
 │  │ [ Ponerla ]          Ahora no     │  │
 │  └───────────────────────────────────┘  │
 │                                         │
-│  🔌 Conexiones          1 por terminar  │
-│  📄 Documentos          2 sin leer      │
-│  🆘 Ayuda                               │
+│  🔌 Conexiones    2 conectadas · 1 a medias │
+│  📄 Documentos    2 sin leer            │
 │                                         │
 │  Tus botones                            │
 │  · Resumen del mes                      │
 │                                         │
-│  Más ▸                                  │
+│  ✓ Todo guardado, hace 5 minutos        │
+│  ¿Algo no va? · Más                     │
 └─────────────────────────────────────────┘
 ```
 
-- **La tarjeta** dice una cosa, con un botón que la resuelve y «Ahora no».
-- **Las tres puertas** llevan al lado su estado en dos palabras, nunca un número a secas.
-- **«Tus botones»** solo sale si el alumno tiene alguno: los comandos que le ha dejado el asistente
-  (pregunta 3).
-- **«Más»** abre todo lo demás.
+- **La tarjeta** dice una cosa, con un botón que la resuelve y «Ahora no». Cuando no hay nada que decir, no
+  sale.
+- **Las dos puertas** llevan al lado su estado en palabras, nunca un número a secas.
+- **«Tus botones»** solo sale si el alumno tiene alguno.
+- **La línea de las copias** dice que todo está guardado. Si no lo está, dice desde cuándo y deja guardarlo.
+- **«¿Algo no va?» y «Más»**, pequeños, abajo.
 
-De unos 40 botones posibles a **6 como mucho**.
+De unos 40 botones posibles a **5 como mucho**, sin contar «Tus botones».
 
 ## La tarjeta que toca
 
@@ -265,7 +300,10 @@ Una pantalla con tres cosas:
 
 Conocimiento (wiki) pasa a «Más»: es lo que ha aprendido, y se le pregunta mejor al asistente.
 
-## Ayuda, en tres
+## «¿Algo no va?»: la ayuda, en tres
+
+Deja de ser una puerta grande y pasa a un enlace pequeño abajo. Lo que se rompe también lo anuncia la
+tarjeta sola (fila 2), así que casi nunca hace falta buscarlo.
 
 | Hoy (14 botones) | Después |
 |---|---|
@@ -326,7 +364,7 @@ una sola pantalla con apartados y su recuento al lado:
 
 ## Cómo se sabe que ha salido bien
 
-- **En la principal, 6 botones como mucho**, en cualquier carpeta. `humo.js` lo mide en las tres
+- **En la principal, 5 botones como mucho** sin contar «Tus botones», en cualquier carpeta. `humo.js` lo mide en las tres
   empresas de mentira.
 - **Clics hasta lo frecuente**:
   - poner una clave: de 4 a 2 (Conexiones → la conexión);
@@ -343,8 +381,9 @@ una sola pantalla con apartados y su recuento al lado:
 
 | Fase | Qué | Tamaño |
 |---|---|---|
+| F0 | La tabla de piezas y el ajuste `barraCompleta`: todo encendido, como hoy, y las pruebas que pintan lo apagado. No cambia nada a la vista. | S |
 | F1 | El módulo de la tarjeta que toca, puro y probado. Todavía no cambia la pantalla. | S-M |
-| F2 | La principal nueva: tres puertas, la tarjeta y «Más» | M |
+| F2 | La principal nueva: dos puertas, la tarjeta, «Tus botones», la línea de las copias, «¿Algo no va?» y «Más». Se apaga lo demás en la tabla. | M |
 | F3 | Ayuda en tres | S |
 | F4 | Conexiones I: el estado en la lista, la guía de un paso cada vez y probar al guardar | M |
 | F5 | Conexiones II: las clases de acceso, «Pídeselo a tu informático» y el raíl | M-L |
@@ -361,26 +400,21 @@ Cada fase pasa por revisión adversaria y por las máquinas de GitHub, como hast
 
 ## Riesgos
 
-- **Quien ya usa la barra no encuentra un botón.** Nada desaparece: está en «Más» con el mismo nombre, y
-  el «Qué trae» de esa versión lo cuenta.
+- **Quien ya usa la barra no encuentra un botón.** El «Qué trae» de esa versión lo cuenta, lo que sigue
+  encendido está en «Más» con el mismo nombre, y si un tutor lo necesita todo, `executiveLab.barraCompleta`
+  lo devuelve tal cual.
+- **Lo apagado se pudre sin que nadie lo vea.** Por eso `humo.js` lo sigue pintando y despachando entero.
 - **La tarjeta esconde algo importante detrás de otra cosa.** El orden se prueba situación por situación,
   y «Ahora no» siempre deja ver la siguiente.
 - **El mensaje para el informático da un consejo de seguridad equivocado.** Va escrito una vez, revisado,
   y el contenido de cada herramienta lo pone el asistente con su investigación, no la barra.
 - **Con Codex no hay comandos**: «Tus botones» simplemente no sale, como hoy.
 
-## Lo que tiene que decidir Jose antes de F2
+## Lo decidido con Jose
 
-1. **Habilidades (skills)**: recomiendo **«Más», y que aparezcan en la tarjeta cuando sirvan** («Para
-   esto te vendría bien Facturación — Añadirla»). Es de lo poco que no se puede pedir con una frase: el
-   asistente no debe añadirlas él (regla 7). Pero nadie entra a curiosear el catálogo: lo que hace falta es
-   la adecuada en el momento adecuado. En clase se sigue viendo la palabra, en «Más».
-2. **Guardar en git**: recomiendo que **se guarde solo por defecto, cada hora**, y que el botón quede en
-   «Más»; con la tarjeta cuando haya cambios sin guardar de hace más de un día (si se apagó el guardado
-   solo). Guardar se pide con una frase, y el asistente ya lo ofrece al terminar algo.
-3. **«Tus botones»**: recomiendo que **se queden bajo las tres puertas, solo si tiene alguno**, y que
-   sean **los que ha creado o ha elegido**, no los tres que hoy fijan los raíles por defecto. «No sé qué
-   hacer ahora» ya es «Estoy atascado» en Ayuda, y «Seguir donde lo dejé» lo hace la brújula al abrir la
-   conversación. Esto zanja de paso el choque entre la decisión 54 y la 70.
-4. **¿Un prototipo antes de construir?** Una página con las pantallas nuevas de mentira, para verlas y
-   tocarlas en el móvil o en el ordenador. Media hora, y evita construir algo que no convence.
+1. **Habilidades (skills)**: ninguna puerta. Salen en la tarjeta cuando sirven, y la lista queda en «Más».
+2. **Git**: se guarda solo por defecto. Una línea dice que todo está guardado, y al pulsarla salen las
+   copias, «Volver a como estaba» y «Subir a GitHub».
+3. **Comandos**: «Tus botones», solo con los que el alumno haya creado o elegido, no los tres que hoy
+   fijan los raíles. Esto zanja de paso el choque entre la decisión 54 y la 70.
+4. **¿Un prototipo antes de construir?** Pendiente.
