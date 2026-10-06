@@ -22,6 +22,32 @@ caso, y en brownfield se adapte y dé ideas»*. Y: *«lo que más fricción da e
 tools […] las guías para sacar api keys […] y que se pueda saber qué preguntar a informáticos y
 técnicos»*.
 
+## El criterio
+
+Jose, 06-10-2026: *«la idea es quitar todo lo que sea más fácil hacer con lenguaje natural […] por eso lo
+de las conexiones es tan importante»*.
+
+Para cada botón, una pregunta: **¿se puede pedir con una frase, y el asistente lo hace igual o mejor?** Si
+la respuesta es sí, el botón sobra. En la barra se queda solo lo que la conversación no puede hacer, o hace
+mal:
+
+1. **Meter secretos**: claves y ficheros de acceso. No deben pasar nunca por el chat, y muchas veces los
+   tiene otra persona. **Por eso Conexiones es lo primero.**
+2. **Meter ficheros**: arrastrar un documento es más fácil que describirlo.
+3. **El estado de este ordenador**: si el asistente está puesto, si la carpeta está preparada, si algo se ha
+   roto, si hay una versión nueva. El asistente no ve fuera de su conversación, y no puede arreglarse a sí
+   mismo si es él lo que falla.
+4. **Dar permiso**: mandar un aviso o poner una versión nueva los decide la persona, con un clic.
+5. **Añadir una habilidad del catálogo**: el asistente tiene prohibido hacerlo él (regla 7 de los raíles),
+   porque se saldría de la versión de la clase.
+6. **Lo que pasa fuera de la conversación**: que se ha arreglado algo que contó.
+
+**Lo que se va**: hoy hay **34 botones que solo le mandan una frase hecha al asistente** («Dime por dónde
+seguir», «Pensemos ideas juntos», «Crear un comando», «Explícame cómo funciona esto», los tres atajos de
+«Resolver una incidencia»…). Casi todos sobran. Solo se quedan los que llevan dentro algo que la barra sabe
+del disco y el alumno no sabría decir con sus palabras, como «Que las ordene», que manda el reparto exacto de
+las claves sueltas. Y se quedan como botón de la tarjeta, cuando toca, no a la vista siempre.
+
 ## Lo que hay hoy
 
 Medido en el código el 05-10-2026 (`panel.js`, `extension.js` y los módulos que deciden qué sale):
@@ -75,19 +101,10 @@ lo mismo que vería quien hizo la barra.
 
 ## Por qué sobra
 
-**La conversación ya hace casi todo.** La brújula (`orient`) cuenta dónde estás y qué sigue; pedir cosas
-es escribirlas. Cada botón que solo manda un encargo al asistente compite con la caja de la conversación,
-y la pierde.
-
-**Lo que la barra hace mejor que la conversación** son cuatro cosas, y en eso se queda:
-
-1. **Meter secretos sin pegarlos en el chat**, y guiar a sacarlos: las claves de cada herramienta.
-2. **Meter ficheros**: arrastrar documentos.
-3. **Ver de un vistazo si algo está roto**, arreglarlo y pedir ayuda.
-4. **Ponerse al día** sola.
-
-Lo demás —leer la wiki, el diario, las copias, las reglas, las habilidades— es información. El asistente
-la cuenta mejor cuando hace falta, y la barra la puede enseñar sin que esté a la vista.
+**La conversación ya hace casi todo.** La brújula (`orient`) cuenta dónde estás y qué sigue, y pedir cosas
+es escribirlas. Cada botón que solo manda un encargo al asistente compite con la caja de la conversación, y
+la pierde. Lo demás —leer la wiki, el diario, las reglas, las habilidades— es información, y el asistente
+la cuenta mejor cuando se le pregunta.
 
 ## Principios
 
@@ -257,6 +274,17 @@ Conocimiento (wiki) pasa a «Más»: es lo que ha aprendido, y se le pregunta me
 | Contárselo a Executive Lab | **Contárselo a Executive Lab**, igual |
 | Explícame cómo funciona esto · Esta barra | Abajo y pequeño: la versión, «Actualizar ahora», «Probar las versiones nuevas antes» y «Explícame cómo funciona esto» |
 
+## Nada se pierde
+
+Para alguien que no es técnico, el miedo a romper algo paraliza más que cualquier dificultad de verdad. Así
+que:
+
+- **Las copias se guardan solas por defecto**, cada hora mientras la ventana está abierta y haya algo
+  nuevo («Cada cuánto guarda solo», que hoy viene apagado).
+- **«Volver a como estaba»** vive dentro de «Algo no funciona», que es donde se busca cuando algo ha
+  salido mal. Antes de mover nada se guarda una copia de lo de ahora, como hoy.
+- Guardar a mano se le pide al asistente, que ya lo ofrece al terminar algo. El botón queda en «Más».
+
 ## Se adapta y da ideas
 
 **En una carpeta que ya tenía cosas** (brownfield), la primera vez:
@@ -274,8 +302,9 @@ No es un menú de ideas, es la tarjeta de siempre. Si quiere más: «Pensemos id
 
 ## «Más»
 
-Todo lo que hoy está a la vista y deja de estarlo, en una sola pantalla con apartados y su recuento al
-lado:
+Para **ver** lo que hay, no para pedir cosas: sin los botones de crear o de cambiar, que se piden con una
+frase («hazme un comando para el resumen del mes»). Todo lo que hoy está a la vista y deja de estarlo, en
+una sola pantalla con apartados y su recuento al lado:
 
 - **Lo que sabe**: Conocimiento (wiki) · Preguntas sin contestar · El diario.
 - **Copias**: Guardar en git · Subir a GitHub · Ver las copias guardadas.
@@ -343,10 +372,12 @@ Cada fase pasa por revisión adversaria y por las máquinas de GitHub, como hast
 ## Lo que tiene que decidir Jose antes de F2
 
 1. **Habilidades (skills)**: recomiendo **«Más», y que aparezcan en la tarjeta cuando sirvan** («Para
-   esto te vendría bien Facturación — Añadirla»). Nadie entra a curiosear el catálogo; lo que hace falta
-   es la adecuada en el momento adecuado. En clase se sigue viendo la palabra, en «Más».
-2. **Guardar en git**: recomiendo **la tarjeta cuando hay cambios sin guardar de hace más de un día, y en
-   «Más»**. El asistente ya ofrece guardar al terminar algo, y existe «Cada cuánto guarda solo».
+   esto te vendría bien Facturación — Añadirla»). Es de lo poco que no se puede pedir con una frase: el
+   asistente no debe añadirlas él (regla 7). Pero nadie entra a curiosear el catálogo: lo que hace falta es
+   la adecuada en el momento adecuado. En clase se sigue viendo la palabra, en «Más».
+2. **Guardar en git**: recomiendo que **se guarde solo por defecto, cada hora**, y que el botón quede en
+   «Más»; con la tarjeta cuando haya cambios sin guardar de hace más de un día (si se apagó el guardado
+   solo). Guardar se pide con una frase, y el asistente ya lo ofrece al terminar algo.
 3. **«Tus botones»**: recomiendo que **se queden bajo las tres puertas, solo si tiene alguno**, y que
    sean **los que ha creado o ha elegido**, no los tres que hoy fijan los raíles por defecto. «No sé qué
    hacer ahora» ya es «Estoy atascado» en Ayuda, y «Seguir donde lo dejé» lo hace la brújula al abrir la
