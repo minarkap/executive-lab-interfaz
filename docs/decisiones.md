@@ -4726,3 +4726,46 @@ Un refutador de seguridad y otro de corrección. No encontraron nada crítico. L
   dentro de una palabra, y solo coge los puntos de primer nivel.
 - Si no se puede guardar el ajuste, se dice.
 
+## 136. La barra se pone al día sola
+
+**Fecha:** 6 de octubre de 2026 · **Estado:** hecho · **Vía rápida** `se-pone-al-dia-sola`
+
+Jose: *«haremos el proyecto opensource y en github público, así que podemos hacer que se actualice solo o
+con un botón. De hecho, si quieres, hazlo ya»*.
+
+### Lo que cambia de la 132
+
+La 132 decía que sin el clic de la persona no se instalaba nada. Pero con el botón, quien no lo pulsa se
+queda atrás, y los arreglos no le llegan. Ahora:
+
+- **Se pone sola, de fábrica** (`executiveLab.actualizarSola`). Al pintar la principal, si hay una versión
+  más nueva, se baja, se comprueba y se pone, sin esperar a nadie y sin pantalla de espera.
+- **No es a sus espaldas.** La tarjeta dice «Ya está puesta la 0.45.0. Recarga la ventana para empezar a
+  usarla: no se pierde nada», con «Recargar ahora». La ventana no se recarga sola, porque cortaría lo que
+  esté haciendo: se usa al recargar o la próxima vez que se abra el editor.
+- **Si no se puede**, se queda el botón de siempre, y no se vuelve a intentar sola hasta la próxima vez que
+  se abra el editor.
+- **Quien quiera, que pregunte antes**: en Ayuda › Esta barra, «Que me pregunte antes» la apaga y «Que se
+  ponga al día sola» la vuelve a encender, para todo el editor.
+
+### Lo que no cambia, y lo que pesa más
+
+Lo que se instala se comprueba igual. Solo cuenta lo que publica la dueña del sitio, con la dirección de
+esa release, su huella `sha256` y su tamaño (decisiones 132 y 134).
+
+Pero ahora una versión mala llega **a todos y sin un clic**. Así que el freno de la prerelease pasa de
+conveniente a necesario: lo que no se haya probado en un ordenador de verdad se publica primero como
+prerelease. Les llega solo a quienes tengan «Probar las versiones nuevas antes», y después se marca como la
+última.
+
+### Para que llegue
+
+Quien tenga la 0.44.0 recibe la siguiente con «Actualizar ahora», que esa versión ya trae. Desde la
+siguiente, se ponen solos.
+
+### Público no es abierto
+
+El repositorio ya es público, pero no tiene licencia, y la extensión dice `UNLICENSED`. Sin licencia, nadie
+puede usar el código legalmente, aunque lo vea. RSC, que viaja dentro, es MIT, y su aviso de licencia ya va
+con el freno (`LICENCIA-RSC.txt`). Qué licencia lleva es decisión de Jose.
+

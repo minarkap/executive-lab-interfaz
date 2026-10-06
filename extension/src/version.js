@@ -6,12 +6,15 @@
 // uno se queda con la versión que le tocó el día que se la dieron, para
 // siempre, y los arreglos no le llegan nunca.
 //
-// Lo mira una vez al día. Y la pone, pero **solo cuando la persona pulsa
-// «Actualizar ahora»**: se baja el `.vsix` de esa release, se comprueba que es
-// el de nuestro sitio y el de esa versión, y que ha llegado entero —la huella
-// `sha256` que publica GitHub con cada fichero—, y se le pasa al editor para que
-// lo instale. Una extensión que se cambia sola a espaldas de quien la usa es
-// exactamente el tipo de cosa que este proyecto no hace.
+// Lo mira una vez al día. Para ponerla, se baja el `.vsix` de esa release, se
+// comprueba que es el de nuestro sitio y el de esa versión, y que ha llegado
+// entero —la huella `sha256` que publica GitHub con cada fichero—, y se le pasa
+// al editor para que lo instale.
+//
+// Al principio solo se ponía cuando la persona pulsaba «Actualizar ahora»
+// (decisión 132). Desde la decisión 136 se pone sola, porque el proyecto pasa a
+// ser abierto y quien no pulsa se queda atrás. No es a sus espaldas: la tarjeta
+// dice que ya está puesta, y en Ayuda se puede pedir que pregunte antes.
 //
 // Antes esto solo abría la página de la release (decisión 132). Bajar un
 // `.vsix` e instalarlo a mano es de lo más difícil que se le puede pedir a
@@ -42,6 +45,18 @@ const deLaDuena = (release) => Boolean(release && release.author && release.auth
 // cupo—, no se vuelve a preguntar en un rato: se repinta muchas veces por hora,
 // y cada repintado sería otra pregunta que gasta el cupo de la clase.
 const TRAS_UN_FALLO = 60 * 60 * 1000;
+
+// «Que se ponga al día sola», en Ayuda: encendido de fábrica (lo pone el
+// manifiesto). Se mira `=== true` a propósito: un editor que no sepa el valor
+// de fábrica no instala nada solo.
+const AJUSTE_SOLA = 'executiveLab.actualizarSola';
+const actualizarSola = () => {
+  try {
+    return vscode.workspace.getConfiguration().get(AJUSTE_SOLA) === true;
+  } catch {
+    return false;
+  }
+};
 
 // «Probar las versiones nuevas antes», en Ayuda. Es de la persona, no de la
 // carpeta: se guarda para todo el editor.
@@ -286,5 +301,6 @@ const dondeVerla = (version) => vscode.Uri.parse(`https://github.com/${REPO}/rel
 
 module.exports = {
   hayUnaNueva, laNuevaSiHay, laUltima, ponerLaNueva, esMasNueva, deUnaRelease, laMasNueva, paqueteDeFiar, loQueTrae, queTrae,
-  dondeBajarla, dondeVerla, probarAntes, REPO, DUENA, CLAVE, CLAVE_QUE_TRAE, AJUSTE_PROBAR_ANTES, TAMANO_MAXIMO, TRAS_UN_FALLO,
+  dondeBajarla, dondeVerla, probarAntes, actualizarSola, REPO, DUENA, CLAVE, CLAVE_QUE_TRAE, AJUSTE_PROBAR_ANTES, AJUSTE_SOLA,
+  TAMANO_MAXIMO, TRAS_UN_FALLO,
 };
