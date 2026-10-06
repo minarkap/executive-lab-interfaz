@@ -11392,6 +11392,94 @@ exec git "$@"
     }
   });
 
+  await comprobar('se pone al día sola, sin pantalla de espera; si no puede, queda el botón y no insiste', async () => {
+    // Decisión 136: encendido de fábrica, y en Ayuda se puede pedir que pregunte antes.
+    const proveedor = vscode.registrado.proveedor;
+    const bytes = Buffer.from('PK un vsix que se pone solo');
+    const almacen = fs.mkdtempSync(path.join(os.tmpdir(), 'almacen-'));
+    const AJUSTE = 'executiveLab.actualizarSola';
+    const enviados = [];
+    const antes = {
+      enviar: proveedor.enviar, fetch: global.fetch, ejecutar: vscode.commands.executeCommand,
+      almacen: contexto.globalStorageUri, extension: contexto.extension, mirado: contexto.globalState.get(versionM.CLAVE),
+      puesta: proveedor.versionPuesta, noPudo: proveedor.solaNoPudo, sola: vscode.registrado.ajustes.global[AJUSTE],
+    };
+    proveedor.enviar = (m) => enviados.push(m);
+    contexto.globalStorageUri = { fsPath: almacen };
+    contexto.extension = { packageJSON: { version: '0.44.0' } };
+    const release = unPaquete(bytes, '0.45.0');
+    await contexto.globalState.update(versionM.CLAVE, { cuando: Date.now(), ...versionM.deUnaRelease(release) });
+    global.fetch = async (url) => (String(url).endsWith('/releases/latest')
+      ? { ok: true, status: 200, json: async () => release }
+      : { ok: true, status: 200, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length) });
+    const instalados = [];
+    let falla = false;
+    vscode.commands.executeCommand = async (id, ...args) => {
+      if (id !== 'workbench.extensions.installExtension') return;
+      instalados.push(args[0]);
+      if (falla) throw new Error('el editor no la acepta');
+    };
+    const ultimo = (tipo) => [...enviados].reverse().find((m) => m.tipo === tipo);
+    const pintar = (m) => require('./panel-falso').montarPanel().mandar(m);
+    try {
+      proveedor.versionPuesta = null;
+      proveedor.solaNoPudo = null;
+      // Apagado: no se pone sola.
+      vscode.registrado.ajustes.global[AJUSTE] = false;
+      await proveedor.ponerLaNuevaSolaSiToca();
+      assert.equal(instalados.length, 0, 'apagado, se pone sola');
+
+      // Encendido: sin clic y sin pantalla de espera, y la tarjeta dice que está puesta.
+      vscode.registrado.ajustes.global[AJUSTE] = true;
+      await proveedor.ponerLaNuevaSolaSiToca();
+      assert.equal(instalados.length, 1, 'encendido, no se pone sola');
+      assert.ok(!enviados.some((m) => m.tipo === 'esperando'), 'se pone sola con pantalla de espera, a media tarea');
+      assert.equal(proveedor.versionPuesta, '0.45.0');
+      await proveedor.refrescar(true);
+      assert.match(pintar(ultimo('estado')), /Ya está puesta la 0\.45\.0\. Recarga la ventana.*Recargar ahora/s);
+      await proveedor.ponerLaNuevaSolaSiToca();
+      assert.equal(instalados.length, 1, 'puesta, la vuelve a poner');
+
+      // Si no puede: queda el botón de siempre, y no insiste hasta otro día.
+      proveedor.versionPuesta = null;
+      falla = true;
+      await proveedor.ponerLaNuevaSolaSiToca();
+      await proveedor.ponerLaNuevaSolaSiToca();
+      assert.equal(instalados.length, 2, 'si falla, insiste');
+      await proveedor.refrescar(true);
+      await new Promise((listo) => setTimeout(listo, 50));
+      assert.equal(instalados.length, 2, 'si falla, insiste en cada repintado');
+      assert.match(pintar(ultimo('estado')), /Hay una versión nueva de la barra: la 0\.45\.0\..*Actualizar ahora/s, 'si falla, no queda el botón');
+
+      // El interruptor, en Ayuda.
+      await proveedor.manejar({ tipo: 'actualizarSola', cual: false });
+      assert.equal(vscode.registrado.ajustes.global[AJUSTE], false);
+      assert.match(pintar(ultimo('ayuda')), /Que se ponga al día sola/);
+      await proveedor.manejar({ tipo: 'actualizarSola', cual: true });
+      assert.equal(vscode.registrado.ajustes.global[AJUSTE], true, 'no se guarda para todo el editor');
+      assert.match(pintar(ultimo('ayuda')), /Se pone al día sola: cuando hay una versión nueva, la baja, la comprueba y la deja puesta\..*Que me pregunte antes/s);
+
+      // Y pintar la principal la pone sola, sin esperar a nadie.
+      proveedor.solaNoPudo = null;
+      falla = false;
+      await proveedor.refrescar(true);
+      for (let i = 0; i < 50 && instalados.length < 3; i += 1) await new Promise((listo) => setTimeout(listo, 10));
+      assert.equal(instalados.length, 3, 'al pintar, no se pone sola');
+      return 'sola · sin espera · una vez · si falla, el botón · el interruptor';
+    } finally {
+      proveedor.enviar = antes.enviar;
+      global.fetch = antes.fetch;
+      vscode.commands.executeCommand = antes.ejecutar;
+      contexto.globalStorageUri = antes.almacen;
+      contexto.extension = antes.extension;
+      await contexto.globalState.update(versionM.CLAVE, antes.mirado);
+      proveedor.versionPuesta = antes.puesta;
+      proveedor.solaNoPudo = antes.noPudo;
+      if (antes.sola === undefined) delete vscode.registrado.ajustes.global[AJUSTE];
+      else vscode.registrado.ajustes.global[AJUSTE] = antes.sola;
+    }
+  });
+
   await comprobar('todo tipo que manda el panel se despacha sin excepción', async () => {
     // G1 e I2. «Resolver una incidencia» reventaba siempre: `encargos` se usaba y
     // no se importaba, y ninguna prueba pasaba por los manejadores del panel. La

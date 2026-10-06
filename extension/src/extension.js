@@ -296,6 +296,7 @@ ${cabecera}
     });
     // Sin esperar: si hay algo que decir, repinta ella sola.
     this.mirarLosArregladosSiToca().catch((error) => this.salida.appendLine(`[avisos] ${error.stack || error.message}`)); // diccionario: interno
+    this.ponerLaNuevaSolaSiToca().catch((error) => this.salida.appendLine(`[version] sola: ${error.stack || error.message}`)); // diccionario: interno
   }
 
   // ------------------------------------------------------- la versión
@@ -360,7 +361,46 @@ ${cabecera}
     return this.verAyuda();
   }
 
-  // Solo desde el botón: bajarla, comprobarla e instalarla es de `version.js`.
+  // ── Sola (decisión 136) ───────────────────────────────────────────────
+  //
+  // Con «Que se ponga al día sola» encendido, que es como viene: al ver que hay
+  // una más nueva, se baja, se comprueba y se pone, sin esperar a nadie y sin
+  // pantalla de espera. Al terminar, la tarjeta dice que ya está puesta, con
+  // «Recargar ahora». Si no se puede, se queda el botón de siempre y no se
+  // vuelve a intentar sola hasta la próxima vez que se abra el editor.
+  async ponerLaNuevaSolaSiToca() {
+    if (!version.actualizarSola() || this.poniendoLaNueva) return;
+    const actual = this.versionDeLaBarra();
+    if (!actual) return;
+    const laNueva = await version.laNuevaSiHay(this.contexto, actual);
+    if (!laNueva || laNueva.version === this.versionPuesta || laNueva.version === this.solaNoPudo) return;
+    this.poniendoLaNueva = true;
+    let hecho;
+    try {
+      hecho = await version.ponerLaNueva(this.contexto, actual);
+    } finally {
+      this.poniendoLaNueva = false;
+    }
+    this.salida.appendLine(`[version] sola: ${hecho.ok ? `puesta la ${hecho.version}` : `no se ha puesto${hecho.version ? ` la ${hecho.version}` : ''}: ${hecho.motivo}${hecho.detalle ? ` (${hecho.detalle})` : ''}`}`); // diccionario: interno
+    if (hecho.ok) {
+      this.versionPuesta = hecho.version;
+      await this.repintarLoQueHaya();
+    } else if (hecho.motivo !== 'yaEstaAlDia') {
+      this.solaNoPudo = laNueva.version;
+    }
+  }
+
+  async actualizarSola(si) {
+    try {
+      await vscode.workspace.getConfiguration().update(version.AJUSTE_SOLA, si === true, vscode.ConfigurationTarget.Global);
+    } catch (error) {
+      this.salida.appendLine(`[version] no se guarda actualizar sola: ${error.message}`); // diccionario: interno
+      return this.enviar({ tipo: 'aviso', texto: 'No he podido guardar el ajuste. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
+    }
+    return this.verAyuda();
+  }
+
+  // Desde el botón: bajarla, comprobarla e instalarla es de `version.js`.
   async ponerLaNueva() {
     // Un doble clic serían dos descargas escribiendo en el mismo fichero.
     if (this.poniendoLaNueva) return undefined;
@@ -493,6 +533,7 @@ ${cabecera}
       verLaRelease: () => vscode.env.openExternal(version.dondeVerla(this.versionDeLaBarra())),
       yaLoHeVisto: () => this.yaLoHeVisto(),
       probarAntes: () => this.probarAntes(mensaje.cual),
+      actualizarSola: () => this.actualizarSola(mensaje.cual),
       yaLoSe: () => this.yaLoSe(mensaje.numero),
       ponerLaNueva: () => this.ponerLaNueva(),
       recargar: () => vscode.commands.executeCommand('workbench.action.reloadWindow'),
@@ -879,6 +920,7 @@ ${cabecera}
         deprueba: Boolean(laNueva && laNueva.deprueba),
         puesta: this.versionPuesta || null,
         probarAntes: version.probarAntes(),
+        sola: version.actualizarSola(),
       },
     });
   }

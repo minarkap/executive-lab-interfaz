@@ -1147,6 +1147,12 @@ function pantallaAyuda({ github, avisos = [], version = null }) {
         <p class="detalle">${texto(version.deprueba ? `Tienes la ${version.esta}. Hay una de prueba más nueva: la ${version.nueva}.` : `Tienes la ${version.esta}. Hay una más nueva: la ${version.nueva}.`)}</p>
         ${boton({ etiqueta: 'Actualizar ahora', icono: '⬆️', accion: { tipo: 'ponerLaNueva' } })}` : `
         <p class="detalle">${texto(`Tienes la ${version.esta}.`)}</p>`)}
+      ${/* Se pone al día sola, de fábrica; quien quiera, que pregunte antes
+            (decisión 136). */''}
+      ${version.sola ? `
+        <p class="detalle">Se pone al día sola: cuando hay una versión nueva, la baja, la comprueba y la deja puesta.</p>
+        ${boton({ etiqueta: 'Que me pregunte antes', pequeno: true, discreto: true, accion: { tipo: 'actualizarSola', cual: false } })}` : `
+        ${boton({ etiqueta: 'Que se ponga al día sola', icono: '🔄', pequeno: true, discreto: true, accion: { tipo: 'actualizarSola', cual: true } })}`}
       ${/* Quien quiera, recibe también las de prueba: así el freno de la
             prerelease lo prueba alguien antes de llegar a todos (decisión 134). */''}
       ${version.probarAntes ? `
