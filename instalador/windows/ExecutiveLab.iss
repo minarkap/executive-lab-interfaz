@@ -26,7 +26,7 @@
 ;      una pared.
 
 #define Nombre "Executive Lab"
-#define Version "0.44.0"
+#define Version "0.45.0"
 
 [Setup]
 AppName={#Nombre}
