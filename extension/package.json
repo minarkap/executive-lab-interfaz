@@ -200,6 +200,12 @@
           "default": false,
           "scope": "application",
           "description": "Las versiones nuevas de la barra te llegan antes que a nadie, para ver si van bien. Alguna puede fallar."
+        },
+        "executiveLab.actualizarSola": {
+          "type": "boolean",
+          "default": true,
+          "scope": "application",
+          "description": "Cuando hay una versión nueva de la barra, la baja, la comprueba y la deja puesta sola. Se usa al recargar la ventana o la próxima vez que abras el editor."
         }
       }
     }
