@@ -1915,7 +1915,30 @@ function pantallaPrincipal() {
 
 // ------------------------------------------------------------- conexiones
 
-function pantallaConexiones({ proveedores, sueltas }) {
+// Las de una aplicación están en su sitio y no salen en la tarjeta de fuera de
+// sitio (decisión 135). Pero si ya se guardaron en git viajan con cada copia y
+// con «Subir a GitHub». No se mueven: se dejan de guardar, y eso se dice aparte.
+function tarjetaDeLasAppsEnLasCopias(enLasCopias, { principal }) {
+  if (!enLasCopias) return '';
+  const { claves, deAcceso, carpetas, prompt } = enLasCopias;
+  const cuanto = [
+    claves ? plural(claves, '1 clave', '{n} claves') : '',
+    deAcceso ? plural(deAcceso, '1 fichero de acceso', '{n} ficheros de acceso') : '',
+  ].filter(Boolean).join(' y ');
+  const una = carpetas.length < 2;
+  const donde = una
+    ? `la aplicación de la carpeta ${carpetas[0]}`
+    : `cada aplicación de las carpetas ${carpetas.slice(0, -1).join(', ')} y ${carpetas[carpetas.length - 1]}`;
+  return `
+    <div class="conexion">
+      <p class="nombre">${texto(`Hay ${cuanto} de ${una ? 'tu aplicación' : 'tus aplicaciones'} dentro de tus copias`)}</p>
+      <p class="pista">${texto(`Están bien donde están: es donde las lee ${donde}. Pero se guardaron en git, y cada copia se las lleva, también si la subes a GitHub.`)}</p>
+      <p class="pista malo">Lo seguro es dejar de guardarlas y cambiarlas donde las sacaste. Pídeselo y te lo explica.</p>
+      ${boton({ etiqueta: 'Que deje de guardarlas', icono: '🔒', principal, accion: { tipo: 'pedir', prompt } })}
+    </div>`;
+}
+
+function pantallaConexiones({ proveedores, sueltas, enLasCopias = null }) {
   // Caso brownfield: el arnés se montó sobre algo que ya existía y las claves
   // están donde estuvieran. El alumno vería "no hay conexiones" teniendo seis.
   // Y se dice a quién va cada una, que es lo que el inventario ya sabe por el
@@ -2005,13 +2028,16 @@ function pantallaConexiones({ proveedores, sueltas }) {
     ? `<p class="detalle">${texto(plural(todasPorMontar.length - TOPE_POR_MONTAR, 'Y 1 más', 'Y {n} más'))}. Con "Que las ordene" se montan todas de una vez.</p>`
     : ''}` : '';
 
+  const deApps = tarjetaDeLasAppsEnLasCopias(enLasCopias, { principal: !sueltas });
+
   if (!proveedores.length) {
     return `
       <p class="titulo">Conexiones (tools)</p>
       ${desordenadas}
+      ${deApps}
       ${porMontar}
       ${nada('Todavía no hay ninguna puesta en su sitio. Cuando le pidas al asistente que conecte tu correo, tu facturación o lo que uses, aparecerán aquí.')}
-      ${boton({ etiqueta: 'Conectar algo', icono: '▸', principal: !sueltas, accion: { tipo: 'pedir', prompt: 'Quiero conectar una herramienta que uso. Pregúntame cuál y guíame paso a paso.' } })}
+      ${boton({ etiqueta: 'Conectar algo', icono: '▸', principal: !sueltas && !enLasCopias, accion: { tipo: 'pedir', prompt: 'Quiero conectar una herramienta que uso. Pregúntame cuál y guíame paso a paso.' } })}
       ${volver()}`;
   }
 
@@ -2020,6 +2046,7 @@ function pantallaConexiones({ proveedores, sueltas }) {
     ${volver()}
     <p class="titulo">Conexiones (tools)</p>
     ${desordenadas}
+    ${deApps}
     ${proveedores.map((p) => boton({
       // Una que el asistente ha empezado y no ha terminado se dice, no se
       // disfraza de conexión con claves que no se pueden rellenar. Y una cuyas

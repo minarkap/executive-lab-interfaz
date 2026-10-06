@@ -22,7 +22,8 @@
 // 1. Encuentra todos los ficheros de claves: los `.env*` de la raíz, los de
 //    las carpetas de primer nivel, los de `config/`, `credentials/`…, y dentro
 //    de cada herramienta los que NO son su `.env` (un `.env.local` ahí también
-//    está fuera de sitio: la barra y la prueba de conexión leen `.env`).
+//    está fuera de sitio: la barra y la prueba de conexión leen `.env`). Los de
+//    una carpeta que es una aplicación no: esos están en su sitio.
 // 2. Lee los NOMBRES de las claves, nunca los valores. Los valores no salen de
 //    su fichero ni para el asistente.
 // 3. Reparte: a qué herramienta va cada clave. Primero, porque una herramienta
@@ -57,6 +58,26 @@ const PREFIJOS_HUECOS = new Set(['NEXT', 'NEXT_PUBLIC', 'VITE', 'REACT_APP', 'PU
 const SIN_DUENO = /^(API_KEY|API_SECRET|API_URL|API_TOKEN|TOKEN|SECRET|SECRET_KEY|KEY|PASSWORD|DATABASE_URL|DB_[A-Z_]*|PORT|PUERTO|NODE_ENV|ENV|DEBUG|HOST|URL|BASE_URL|LOG_LEVEL|TZ|LANG)$/;
 
 const TOPE = 128 * 1024;
+
+// ── Lo de una aplicación está en su sitio ────────────────────────────────
+//
+// Jose, 29-09-2026, con una captura de nexus-presupuestos: «Hay 9 claves fuera
+// de sitio» — Resend, Supabase, y NEXUS y USE «por montar», que no son nadie.
+// Estaban en `03-APP/.env.local`, que es donde las lee la aplicación de esa
+// carpeta: Next.js carga los `.env*` de su propia carpeta y de ningún otro
+// sitio. Llevarlas a `01-TOOLS` la dejaba sin arrancar.
+//
+// RSC ya lo tiene escrito (`skills/harness`, fase 1): una carpeta de primer
+// nivel con uno de estos ficheros es un subproyecto, y lo de dentro se lee
+// para detectar y NUNCA se mueve, renombra, modifica ni borra. `01-TOOLS` es
+// para las herramientas del asistente; la aplicación lleva su configuración.
+//
+// Lo que no cambia: siguen siendo ficheros de claves. No entran en una copia y
+// sus valores se tapan en lo que se enseña, y para eso está `paraProteger`,
+// que sí los cuenta. Lo que cambia es que no se cuentan como desorden.
+const DE_UNA_APP = ['package.json', 'pyproject.toml', 'pubspec.yaml', 'Cargo.toml', 'go.mod'];
+
+const esUnaApp = (carpetaRelativa) => DE_UNA_APP.some((f) => proyecto.existe(carpetaRelativa, f));
 
 function lineasDe(fichero) {
   try {
@@ -128,8 +149,9 @@ function herramientas() {
 
 // Devuelve los sitios con claves que están fuera de su sitio. Vacío si el
 // proyecto ya está ordenado, que es el caso normal cuando el arnés se montó
-// desde cero.
-function buscar() {
+// desde cero. Con `conLasDeLasApps`, también los de las aplicaciones: están en
+// su sitio, pero son claves igual (lo pide `paraProteger`).
+function buscar({ conLasDeLasApps = false } = {}) {
   const raiz = proyecto.raiz();
   if (!raiz) return [];
 
@@ -145,6 +167,7 @@ function buscar() {
       .map((e) => e.name);
   } catch { /* sin permiso para leer la raíz: se mira lo demás */ }
   for (const carpeta of [...new Set([...primerNivel, ...CARPETAS])]) {
+    if (!conLasDeLasApps && esUnaApp(carpeta)) continue;
     for (const fichero of ficherosDeClavesEn(carpeta)) mirar(fichero, encontradas);
   }
 
@@ -263,7 +286,7 @@ function nombraA(texto, id) {
 const TOPE_POR_CARPETA = 300;
 const TOPE_DE_LECTURAS = 60;
 
-function ficherosDeAcceso(lasHerramientas = herramientas()) {
+function ficherosDeAcceso(lasHerramientas = herramientas(), { conLasDeLasApps = false } = {}) {
   const raiz = proyecto.raiz();
   if (!raiz) return [];
 
@@ -321,14 +344,29 @@ function ficherosDeAcceso(lasHerramientas = herramientas()) {
       .filter((e) => e.isDirectory() && !e.name.startsWith('.') && !NO_SE_MIRA.has(e.name))
       .map((e) => e.name);
   } catch { /* sin permiso: se mira lo demás */ }
-  // Un `keys/` en la raíz es desorden; el de dentro de una herramienta no.
-  for (const carpeta of [...new Set([...primerNivel, ...CARPETAS, 'keys'])]) mirarCarpeta(carpeta);
+  // Un `keys/` en la raíz es desorden; el de dentro de una herramienta no. Y lo
+  // de una aplicación es suyo, como sus claves.
+  for (const carpeta of [...new Set([...primerNivel, ...CARPETAS, 'keys'])]) {
+    if (!conLasDeLasApps && esUnaApp(carpeta)) continue;
+    mirarCarpeta(carpeta);
+  }
 
   // Dentro de cada herramienta, lo que esté FUERA de su `keys/`. Lo que hay en
   // `keys/` está en su casa y no se cuenta como desorden.
   for (const h of lasHerramientas) mirarCarpeta(path.posix.join(HERRAMIENTAS, h.id), h.id);
 
   return encontrados;
+}
+
+// Todo lo que es una credencial, esté en su sitio o no: los ficheros que no
+// entran en una copia y los valores que se tapan en lo que se enseña. Aquí sí
+// cuentan los de las aplicaciones. Los `.env` de las herramientas no vienen:
+// quien protege ya los tiene.
+function paraProteger() {
+  return {
+    claves: buscar({ conLasDeLasApps: true }),
+    ficheros: ficherosDeAcceso(herramientas(), { conLasDeLasApps: true }),
+  };
 }
 
 // Si una herramienta tiene ya su fichero de acceso puesto donde toca. Es lo
@@ -526,7 +564,47 @@ function resumen() {
   };
 }
 
+// ── Las de una aplicación que ya están en las copias ─────────────────────
+//
+// Lo que dejó a medias la decisión 135: el aviso de «ya están en tus copias»
+// va en la tarjeta de fuera de sitio, y las de una aplicación ya no salen ahí.
+// Un `.env.local` guardado en git viaja con cada copia y con «Subir a GitHub»,
+// así que se dice aparte. No se mueven: se dejan de guardar.
+function deLasAppsEnLasCopias() {
+  const fuera = new Set([...buscar(), ...ficherosDeAcceso()].map((s) => s.donde));
+  const { claves, ficheros } = paraProteger();
+  const deApps = [...claves, ...ficheros].filter((s) => !fuera.has(s.donde));
+  const subidas = estanSubidas(deApps);
+  if (!subidas.length) return null;
+
+  const enGit = (s) => subidas.includes(s.donde);
+  const nombres = [...new Set(claves.filter(enGit).flatMap((s) => s.nombres))];
+  const deAcceso = ficheros.filter(enGit).length;
+  const carpetas = [...new Set(subidas.map((d) => d.split('/')[0]))].sort();
+  return {
+    ficheros: subidas,
+    carpetas,
+    claves: nombres.length,
+    deAcceso,
+    // Los nombres van al asistente para que diga cuáles cambiar; los valores, nunca.
+    prompt: [
+      `En esta carpeta hay una aplicación con credenciales que ya están guardadas en el historial de git: ${subidas.join(', ')}.`,
+      'Están en su sitio: es donde las lee la aplicación, y para el protocolo de harness lo de dentro de un subproyecto no se mueve. No las muevas.',
+      '',
+      'Lo que hay que hacer:',
+      '1. Explícame en cristiano qué significa que estén en el historial: cada copia guardada se las lleva, y si las copias se suben a GitHub, van con ellas.',
+      '2. Que dejen de guardarse a partir de ahora: añádelas al .gitignore de la aplicación y sácalas del índice con git rm --cached, sin borrarlas del disco. Comprueba después que la aplicación sigue leyéndolas.',
+      '3. Recomiéndame cambiarlas donde se sacaron, que es lo único que deja inservibles las que ya están en el historial'
+        + `${nombres.length ? `: ${nombres.join(', ')}` : ''}.`
+        + `${deAcceso ? ' Un fichero de acceso se anula donde se sacó (una cuenta de servicio, en Google) y se saca otro.' : ''}`,
+      '',
+      'No imprimas ni me pegues ningún valor ni el contenido de ningún fichero. No reescribas el historial de git sin que te lo pida.',
+    ].join('\n'),
+  };
+}
+
 module.exports = {
+  deLasAppsEnLasCopias,
   buscar, resumen, reparto, aQuien, prefijoDe, herramientas, enCristiano, enElOrdenador, nombresDeClaves, nombresEsperados,
-  ficherosDeAcceso, tieneSuFichero, queEs,
+  ficherosDeAcceso, tieneSuFichero, queEs, paraProteger, DE_UNA_APP,
 };
