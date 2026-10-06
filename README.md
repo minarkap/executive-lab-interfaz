@@ -394,5 +394,8 @@ npx @ericrisco/rsc@2.0.15 sync
 
 ## Licencia
 
-Todos los derechos reservados. El código se publica para poder inspeccionarlo, instalarlo y
-auditarlo; no hay licencia de uso, copia ni distribución. Si quieres usarlo, escribe.
+[MIT](LICENSE), de Executive Lab: se puede usar, copiar, cambiar y repartir, también para vender, siempre
+que vaya con el aviso de la licencia.
+
+El arnés que viaja dentro es [RSC](https://www.npmjs.com/package/@ericrisco/rsc), de Eric Risco, también
+MIT. La copia de su freno que llevan los raíles va con su aviso (`skills/executive-lab/LICENCIA-RSC.txt`).

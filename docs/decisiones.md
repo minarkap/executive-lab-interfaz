@@ -4769,3 +4769,16 @@ El repositorio ya es público, pero no tiene licencia, y la extensión dice `UNL
 puede usar el código legalmente, aunque lo vea. RSC, que viaja dentro, es MIT, y su aviso de licencia ya va
 con el freno (`LICENCIA-RSC.txt`). Qué licencia lleva es decisión de Jose.
 
+## 137. Licencia MIT
+
+**Fecha:** 6 de octubre de 2026 · **Estado:** hecho
+
+Jose: *«haremos el proyecto opensource»*, y *«Licencia MIT»*. El repositorio ya era público, pero sin
+licencia nadie podía usar el código legalmente, aunque lo viera: el README decía «Todos los derechos
+reservados», y la extensión, `UNLICENSED`.
+
+- `LICENSE` en la raíz, MIT, de Executive Lab, y una copia en `extension/LICENSE`, para que viaje dentro del
+  `.vsix`.
+- `extension/package.json` dice `"license": "MIT"`, y el README cuenta qué permite.
+- RSC, que viaja dentro, ya es MIT. Su aviso sigue con la copia de su freno (`LICENCIA-RSC.txt`).
+
