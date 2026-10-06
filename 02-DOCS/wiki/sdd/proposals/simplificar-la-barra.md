@@ -32,17 +32,34 @@ se tienen, y la propia interfaz debe sugerir instalar cosas si se detecta que se
 
 | Pieza | Cómo queda |
 |---|---|
-| **La tarjeta que toca** | Arriba, una sola, cuando hay algo que decir |
+| **La tarjeta que toca** | Una sola, cuando hay algo que decir |
 | **Documentos** (plegable) | Como estaba: Darle documentos (inbox), Documentos entregados, Resultados (out) |
 | **Acciones** (plegable) | Conexiones (tools), Comandos, Habilidades (skills) y Agentes. **Cada uno, solo si hay alguno**, con cuántos al lado. Conexiones sale siempre, porque desde ella se conecta la primera |
-| **Ayuda** (plegable) | Estoy atascado · Algo no funciona · Pedir ayuda a una persona · Sugerencias · y abajo, pequeño, Esta barra (ver «Ayuda») |
-| **✓ Todo guardado, hace 5 minutos** | Una línea abajo. Al pulsarla: Guardar en git, Ver las copias guardadas, Volver a como estaba, Subir a GitHub. Se guarda solo por defecto |
+| **Ayuda** (plegable) | Seguir donde lo dejé · Conversación nueva · Dime qué hago ahora · Pedir ayuda en el foro · Sugerencias |
+| **✓ Todo guardado, hace 5 minutos** | **Solo si la carpeta tiene copias.** Al pulsarla: Guardar en git, Ver las copias guardadas, Volver a como estaba y, si ya sube a GitHub, Subir a GitHub. Se guarda solo por defecto |
+| **Abajo, en pequeño** | La versión, Actualizar ahora, Probar las versiones nuevas antes y **Cambiar de proyecto** |
 | Lo demás | Apagado, no borrado (ver «No se borra nada») |
 
 **Solo sale lo que se tiene.** Una fila vacía no se pinta. Lo que falta y le vendría bien lo propone la barra:
-en la tarjeta, la sugerencia que más pesa, y en Ayuda › Sugerencias, todas. Por ejemplo, «Le pides esto cada
-semana: ¿lo dejo como botón?» crea un comando, y «Para esto te vendría bien Facturación» añade una
-habilidad del catálogo.
+en la tarjeta, la sugerencia que más pesa, y en Ayuda › Sugerencias, todas. Por ejemplo:
+- «Le pides esto cada semana: ¿lo dejo como botón?» crea un comando;
+- «Para esto te vendría bien Facturación» añade una habilidad del catálogo;
+- «Copias de seguridad: Ponerlas», si la carpeta no tiene;
+- «Guardar una copia fuera, en GitHub», si todavía no sube a ningún sitio;
+- «Ponerle la cara de tu empresa», si no dio su web al prepararla (el asistente que la prepara ya la
+  pregunta y saca de ahí los colores).
+
+**El programa git sí es imprescindible**: sin él no se monta nada. Si falta, no es una sugerencia: es la
+tarjeta de arriba, con su botón para instalarlo, como hoy.
+
+**«Contárselo a Executive Lab» no es un botón.** Las incidencias son solo para la barra: cuando falla,
+cuando algo de ella no se entiende o cuando se echa en falta algo en ella; nunca para el trabajo del alumno.
+Ya llegan solas:
+- la barra apunta lo que le falla por dentro (`apuntarUnFallo`);
+- el asistente deja preparado lo que ve que falla o no se entiende (la regla 8 de los raíles);
+- y la tarjeta le pide permiso al alumno antes de mandarlo.
+
+La pantalla de contarlo a mano se apaga, no se borra.
 
 ## No se borra nada: se apaga
 
@@ -176,6 +193,7 @@ la cuenta mejor cuando se le pregunta.
 │  ▸ Ayuda                                │
 │                                         │
 │  ✓ Todo guardado, hace 5 minutos        │
+│  Barra 0.45.0 · Cambiar de proyecto     │
 └─────────────────────────────────────────┘
 ```
 
@@ -183,8 +201,11 @@ la cuenta mejor cuando se le pregunta.
   sale.
 - **Tres filas plegables**, cada una con su estado en palabras al lado. Agentes aparece dentro de Acciones
   el día que haya alguno.
-- **La línea de las copias** dice que todo está guardado. Si no lo está, dice desde cuándo, y al pulsarla
-  deja guardarlo.
+- **La línea de las copias**, si la carpeta tiene copias, dice que todo está guardado. Si no lo está, dice
+  desde cuándo, y al pulsarla deja guardarlo.
+- **Abajo, en pequeño**: la versión (al pulsarla, Actualizar ahora y Probar las versiones nuevas antes) y
+  **Cambiar de proyecto**. Este se deja a la vista a propósito: con el editor en modo sencillo no hay
+  menús, y sin él no habría forma de abrir otra carpeta.
 
 Plegado, son **cinco cosas a la vista** como mucho: la tarjeta, tres rótulos y la línea de las copias.
 
@@ -307,46 +328,36 @@ Conocimiento (wiki) se apaga: es lo que ha aprendido, y se le pregunta mejor al 
 
 ## Ayuda, para cuando no se sabe ni qué escribir
 
-Es justo el momento en que un botón vale más que el lenguaje natural. Cuatro bloques:
+Es justo el momento en que un botón vale más que el lenguaje natural. **Cinco cosas**, nada más:
 
-1. **Estoy atascado**
-   - **Seguir donde lo dejé**: retoma lo de la última vez con la memoria del arnés (el comando `/seguir`).
-   - **Conversación nueva**: cuando una conversación se alarga, se lía o da vueltas, empezar otra es lo que
-     mejor funciona. La barra abre una nueva y la empieza con «seguimos con lo de antes: lee dónde lo
-     dejamos y dime en qué punto estamos». Así no se pierde nada.
-   - **Dime qué hago ahora**: dos o tres opciones concretas.
-2. **Algo no funciona**: un solo camino en lugar de los seis botones de hoy. La barra revisa (lo de «Algo
-   va mal»). Si lo puede arreglar, «Arreglarlo». Si no, se lo pasa al asistente con el diagnóstico (lo de
-   «Resolver una incidencia»). Y si aun así sigue, el código para el tutor. Dentro, **«Volver a como
-   estaba»**.
-3. **Pedir ayuda a una persona**
-   - **Contárselo a Executive Lab**: la incidencia en GitHub, como hasta ahora (decisión 131).
-   - **Pedir ayuda en el foro** (nuevo):
-     - el alumno pega lo que le ha dicho el asistente, por ejemplo un mensaje de error;
-     - la barra le quita las claves, las carpetas y el nombre de su empresa, con el mismo `limpiar` de los
-       avisos, y le añade la versión de la barra, la del arnés y el sistema;
-     - se lo enseña limpio;
-     - con «Copiarlo y abrir el foro», lo deja en el portapapeles y abre el foro para que lo pegue.
+1. **Seguir donde lo dejé**: retoma lo de la última vez con la memoria del arnés (el comando `/seguir`).
+2. **Conversación nueva**: cuando una conversación se alarga, se lía o da vueltas, empezar otra es lo que
+   mejor funciona. La barra abre una nueva y la empieza con «seguimos con lo de antes: lee dónde lo dejamos
+   y dime en qué punto estamos». Así no se pierde nada.
+3. **Dime qué hago ahora**: dos o tres opciones concretas.
+4. **Pedir ayuda en el foro**:
+   - el alumno pega lo que le ha dicho el asistente, por ejemplo un mensaje de error;
+   - la barra le quita las claves, las carpetas y el nombre de su empresa, con el mismo `limpiar` de los
+     avisos, y le añade la versión de la barra, la del arnés y el sistema;
+   - se lo enseña limpio;
+   - con «Copiarlo y abrir el foro», lo deja en el portapapeles y abre el foro para que lo pegue.
 
-     Lo publica él: es un sitio de personas, y la barra no publica nada en su nombre sin que lo vea. **Falta
-     la dirección del foro.**
-4. **Sugerencias**: todo lo que la barra detecta que le vendría bien, cada cosa con su botón:
-   - un comando, cuando pide lo mismo varias veces;
-   - una habilidad del catálogo que encaja;
-   - un agente;
-   - una conexión para las claves que ya tiene;
-   - las ideas de automatización que apuntó el asistente.
+   Lo publica él: es un sitio de personas, y la barra no publica nada en su nombre sin que lo vea. **Falta la
+   dirección del foro.**
+5. **Sugerencias**: todo lo que la barra detecta que le vendría bien, cada cosa con su botón (ver «Solo sale
+   lo que se tiene»). La que más pesa sale también sola en la tarjeta.
 
-   La que más pesa sale también sola en la tarjeta.
-
-Abajo y pequeño, **Esta barra**: la versión, «Actualizar ahora» y «Probar las versiones nuevas antes».
-
-| Hoy (14 botones) | Después |
-|---|---|
-| Dime por dónde seguir · Qué le vendría bien a esto · Pensemos ideas juntos | Estoy atascado (3) y Sugerencias |
-| Resolver una incidencia (y tres atajos) · Qué falta por montar · Algo va mal | Algo no funciona: un camino |
-| Contárselo a Executive Lab | Pedir ayuda a una persona: Executive Lab y el foro |
-| Explícame cómo funciona esto · Esta barra | Esta barra, abajo y pequeño |
+**Lo que sale de Ayuda, y dónde queda:**
+- **Contárselo a Executive Lab**: va solo, con permiso, por la tarjeta.
+- **«Algo va mal»**:
+  - cuando algo se rompe, lo dice la tarjeta;
+  - cada aviso de error que lo nombra («No he podido…, pulsa «Algo va mal»…», 31 en el código) ya trae su
+    propio botón al lado (decisión 74);
+  - sale justo cuando hace falta, no a la vista siempre.
+- **Resolver una incidencia** y sus tres atajos: se apagan. Se le cuenta al asistente con palabras, y la
+  barra le pasa el diagnóstico cuando se llega desde «Algo va mal».
+- **Volver a como estaba**: en la línea de las copias.
+- **Qué falta por montar**: sus arreglos, en la tarjeta.
 
 ## Nada se pierde
 
@@ -355,8 +366,8 @@ que:
 
 - **Las copias se guardan solas por defecto**, cada hora mientras la ventana está abierta y haya algo
   nuevo («Cada cuánto guarda solo», que hoy viene apagado).
-- **«Volver a como estaba»** vive dentro de «Algo no funciona», que es donde se busca cuando algo ha
-  salido mal. Antes de mover nada se guarda una copia de lo de ahora, como hoy.
+- **«Volver a como estaba»** vive en la línea de las copias. Antes de mover nada se guarda una copia de lo
+  de ahora, como hoy.
 - Guardar a mano, en la misma línea de las copias; o se le pide al asistente, que ya lo ofrece al terminar
   algo.
 
@@ -384,11 +395,12 @@ Sin borrar nada, y con `executiveLab.barraCompleta` para volver a verlo todo:
 - **Las reglas**, **Cómo quieres que trabaje**, **Cómo te habla** y **Tu asistente**: se piden con una
   frase («explícame menos», «pregúntame antes de cambiar nada»).
 - **El tema de mi empresa**: lo hace el asistente cuando sabe su web.
-- **Qué falta por montar**, como botón suelto: sus arreglos salen en la tarjeta y en «Algo no funciona».
+- **Qué falta por montar**, como botón suelto: sus arreglos salen en la tarjeta.
+- **Contárselo a Executive Lab**, como botón: los avisos llegan solos y la tarjeta pide permiso.
+- **Resolver una incidencia** y sus atajos.
 - Los botones que solo mandan una frase hecha, salvo los de Ayuda.
 
-Se queda, pequeño, en **Ayuda › Esta barra**: **Cambiar de proyecto**. Con el editor en modo sencillo no
-hay menús, y sin él no habría forma de abrir otra carpeta. **Ver el editor completo** sigue en la barra de
+**Cambiar de proyecto** se queda, abajo y en pequeño. **Ver el editor completo** sigue en la barra de
 estado, como hoy.
 
 ## Lo que se respeta
@@ -423,8 +435,8 @@ estado, como hoy.
 |---|---|---|
 | F0 | La tabla de piezas y el ajuste `barraCompleta`: todo encendido, como hoy, y las pruebas que pintan lo apagado. No cambia nada a la vista. | S |
 | F1 | El módulo de la tarjeta que toca, puro y probado. Todavía no cambia la pantalla. | S-M |
-| F2 | La principal nueva: la tarjeta, Documentos, Acciones (solo lo que hay), Ayuda y la línea de las copias. Se apaga lo demás en la tabla. | M |
-| F3 | Ayuda: Estoy atascado (con «Conversación nueva»), Algo no funciona en un camino, Pedir ayuda (Executive Lab y el foro) y Sugerencias | M |
+| F2 | La principal nueva: la tarjeta, Documentos, Acciones (solo lo que hay), Ayuda, la línea de las copias (si las hay) y, abajo y en pequeño, la versión y Cambiar de proyecto. Se apaga lo demás en la tabla. | M |
+| F3 | Ayuda con sus cinco: Seguir donde lo dejé, Conversación nueva, Dime qué hago ahora, Pedir ayuda en el foro y Sugerencias (con copias, GitHub y la cara de la empresa) | M |
 | F4 | Conexiones I: el estado en la lista, la guía de un paso cada vez y probar al guardar | M |
 | F5 | Conexiones II: las clases de acceso, «Pídeselo a tu informático» y el raíl | M-L |
 | F6 | Se adapta y da ideas | M |
@@ -454,10 +466,14 @@ Cada fase pasa por revisión adversaria y por las máquinas de GitHub, como hast
 
 1. **Documentos**, como estaba.
 2. **Acciones**: Conexiones, Comandos, Habilidades, y Agentes cuando haya alguno. Cada uno, solo si hay algo.
-3. **Ayuda**: Estoy atascado (con «Conversación nueva»), Algo no funciona, Pedir ayuda a una persona (Executive
-   Lab y el foro) y Sugerencias.
-4. **Git**: la línea «✓ Todo guardado», y se guarda solo por defecto.
-5. **Solo sale lo que se tiene**, y la barra sugiere lo que falta.
-6. **Nada se borra**: se apaga y se puede volver a encender.
+3. **Ayuda, con cinco cosas**: Seguir donde lo dejé, Conversación nueva, Dime qué hago ahora, Pedir ayuda en
+   el foro y Sugerencias.
+4. **«Contárselo a Executive Lab» no es un botón**: los avisos de la barra llegan solos, con permiso.
+5. **Git y GitHub, solo si los hay**; si no, en Sugerencias. El programa git sí es imprescindible: si falta,
+   lo dice la tarjeta.
+6. **El tema de la empresa**: en la preparación de la carpeta, como hoy, y en Sugerencias si falta.
+7. **Abajo, en pequeño**: la versión, actualizar, probar antes y **Cambiar de proyecto**.
+8. **Solo sale lo que se tiene**, y la barra sugiere lo que falta.
+9. **Nada se borra**: se apaga y se puede volver a encender.
 
 Pendiente: **la dirección del foro**, y si se hace un prototipo antes de construir.
