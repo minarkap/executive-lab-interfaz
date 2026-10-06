@@ -686,9 +686,12 @@ function valoresDeClaves() {
     const carpeta = carpetaDe(id);
     if (carpeta) deAqui(path.join(carpeta, '.env'));
   }
+  // Los de una aplicación también: están en su sitio, pero son claves igual.
+  let sueltas = { claves: [], ficheros: [] };
   try {
-    for (const sitio of require('./sueltas').buscar()) deAqui(proyecto.ruta(sitio.donde));
+    sueltas = require('./sueltas').paraProteger();
   } catch { /* sin inventario, con las de las herramientas basta */ }
+  for (const sitio of sueltas.claves) deAqui(proyecto.ruta(sitio.donde));
 
   // Y los ficheros de acceso (revisión de F6): una cuenta de servicio o un
   // certificado, en el `keys/` de su herramienta o sueltos. De cada uno, los
@@ -701,9 +704,7 @@ function valoresDeClaves() {
       for (const nombre of fs.readdirSync(llaves)) ficheros.push(path.join(llaves, nombre));
     } catch { /* sin keys/ */ }
   }
-  try {
-    for (const suelto of require('./sueltas').ficherosDeAcceso()) ficheros.push(proyecto.ruta(suelto.donde));
-  } catch { /* sin inventario, con los de las herramientas basta */ }
+  for (const suelto of sueltas.ficheros) ficheros.push(proyecto.ruta(suelto.donde));
   for (const fichero of ficheros) {
     for (const valor of secretosDeUnFichero(fichero)) if (valor.length >= LARGO_DE_UNA_CLAVE) valores.add(valor);
   }

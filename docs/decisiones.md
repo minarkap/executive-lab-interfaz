@@ -4726,6 +4726,84 @@ Un refutador de seguridad y otro de corrección. No encontraron nada crítico. L
   dentro de una palabra, y solo coge los puntos de primer nivel.
 - Si no se puede guardar el ajuste, se dice.
 
+## 135. Las claves de una aplicación están en su sitio
+
+**Fecha:** 29 de septiembre de 2026 · **Estado:** decidido
+
+Jose, con una captura de nexus-presupuestos: *«Hay 9 claves fuera de sitio»*: Resend, Supabase, y
+dos conexiones «por montar» que no eran de nadie, NEXUS y USE. Y su diagnóstico: *«creo que es
+porque al ser una app y tener una app se guarda también ahí en el .env.local»*. Era eso. Estaban en
+`03-APP/.env.local`, que es donde las lee la aplicación de esa carpeta: Next.js carga los `.env*` de
+su propia carpeta y de ningún otro sitio. «Que las ordene» mandaba al asistente a llevarlas a
+`01-TOOLS`, y la aplicación se quedaba sin ellas.
+
+**RSC ya lo tenía escrito**, en `skills/harness`, fase 1: una carpeta de primer nivel con
+`package.json`, `pyproject.toml`, `pubspec.yaml`, `Cargo.toml` o `go.mod` es un subproyecto, y lo
+de dentro se lee para detectar y nunca se mueve, renombra, modifica ni borra. `01-TOOLS` es para las
+herramientas del asistente; la aplicación lleva su propia configuración. La barra no aplicaba esa
+regla.
+
+### Lo que cambia
+
+- `sueltas.js` salta las carpetas de primer nivel que son una aplicación, para las claves y para
+  los ficheros de acceso. En nexus-presupuestos, el aviso desaparece entero.
+- Una herramienta que espera una clave que la aplicación también tiene ya no sale «puesta, pero
+  fuera de su sitio»: le falta la suya. Es la misma clave con dos sitios que la leen, y cada uno la
+  lleva donde la lee.
+- El raíl `executive-lab` se lo dice al asistente, para que no las mueva aunque las vea.
+
+### Lo que no cambia
+
+Siguen siendo claves. Lo que protege, que es no meterlas en una copia y tapar sus valores en lo que
+se enseña, las sigue contando, a través de `paraProteger()`. Separar eso era lo delicado: `buscar()`
+hacía los dos trabajos, y quitarle la aplicación sin más habría metido su `.env.local` en las copias
+de seguridad.
+
+La raíz tampoco cambia: un `.env` en la raíz sigue contando aunque haya un `package.json` al lado.
+Para RSC la raíz es el espacio de trabajo, no un subproyecto.
+
+### Por qué `requirements.txt` no cuenta
+
+El arranque de RSC sí lo trata como manifiesto (`scripts/lib/onboarding.js`), pero el protocolo de
+`harness`, que es el que decide dónde va cada clave, no. Una carpeta con solo `requirements.txt`
+suele ser un guion, y los guiones van en `01-TOOLS`. La lista es la de `harness`, y una prueba la
+compara con la del arnés que va dentro: si una versión nueva la cambia, se pone roja.
+
+### Cómo se sabe
+
+Una prueba calcada de la captura: `03-APP` con su `package.json`, su `.env.local` con las nueve
+claves y una cuenta de servicio, y una herramienta RESEND que espera una de ellas. No hay nada fuera
+de sitio, a RESEND le falta la suya, los valores de la aplicación se tapan y una copia de verdad no
+se los lleva. Al lado, `auto/.env` y `scripts/.env` (con `requirements.txt`) siguen contando. Ocho
+mutaciones tumban las pruebas nuevas.
+
+### Y las que ya estaban en las copias
+
+Al dejar de contarlas como desorden se perdía un aviso: el de «ya están dentro de tus copias», que
+iba en la tarjeta de fuera de sitio. Si el `.env.local` de una aplicación ya estaba en git, nada lo
+decía, y «Subir a GitHub» se lo llevaba. Lo vio también el revisor de seguridad, que no encontró
+ninguna forma de que una clave de una aplicación entre en una copia nueva o salga sin tapar.
+
+Ahora tiene su tarjeta en Conexiones (tools): *«Hay 3 claves de tu aplicación dentro de tus
+copias»*, que están bien donde están pero se guardaron en git, y **Que deje de guardarlas**. El
+encargo al asistente no las mueve: las saca de las copias con el `.gitignore` de la aplicación y
+`git rm --cached`, sin borrarlas del disco, comprueba que la aplicación sigue leyéndolas y
+recomienda cambiarlas donde se sacaron, con sus nombres y sin un solo valor. No reescribe el
+historial sin que se lo pidan. El informe de «Algo va mal» lo dice también, y el raíl
+`executive-lab` lleva lo mismo.
+
+No para «Subir a GitHub», igual que no lo para con las claves de fuera de sitio: el sitio que crea es
+siempre privado, y sacarlas del historial lo decide la persona. Se dice; no se bloquea.
+
+Seis mutaciones tumban la prueba nueva, también las que desconectan la tarjeta de la extensión y la
+línea del informe.
+
+### Lo que queda
+
+Un hueco que ya había y no abre esto: la barra solo mira el primer nivel. En un monorepo, un
+`03-APP/apps/web/.env.local` no lo deja fuera de las copias ni lo avisa; lo cubre el `.gitignore`
+de la aplicación, si lo tiene.
+
 ## 136. La barra se pone al día sola
 
 **Fecha:** 6 de octubre de 2026 · **Estado:** hecho · **Vía rápida** `se-pone-al-dia-sola`
@@ -4781,4 +4859,3 @@ reservados», y la extensión, `UNLICENSED`.
   `.vsix`.
 - `extension/package.json` dice `"license": "MIT"`, y el README cuenta qué permite.
 - RSC, que viaja dentro, ya es MIT. Su aviso sigue con la copia de su freno (`LICENCIA-RSC.txt`).
-
