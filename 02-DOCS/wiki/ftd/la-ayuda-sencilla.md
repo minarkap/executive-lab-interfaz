@@ -2,7 +2,7 @@
 type: ftd
 title: La Ayuda de la barra sencilla
 date: 2026-10-07
-status: en curso
+status: hecho
 ---
 
 # La Ayuda de la barra sencilla
@@ -41,7 +41,8 @@ Decisión 139.
   que no existe; esperar una respuesta que no llega): ahora dicen «Claude no está en este ordenador.
   Díselo a tu tutor.» y no tocan nada. `editor.open` sin sesión no está medido: pasa detrás. 5 mutantes
   más, los 5 tumbados.
-- [ ] 6. Todas las baterías, el VS Code de verdad y las máquinas de GitHub.
+- [x] 6. Todas las baterías, el VS Code de verdad y las máquinas de GitHub — humo 357, contrato 14, empresas,
+  diccionario, «todo bien»; el-dmg, windows, vscode-de-verdad y el-exe en verde; PR #16 fusionada.
 
 ## Evidence
 
