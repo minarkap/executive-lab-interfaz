@@ -4883,3 +4883,23 @@ hasta cinco tarjetas a la vez y siete filas plegadas. El plan está en
 - **Un solo «Recargar ahora».** Tras «Actualizar ahora» salían el aviso y la tarjeta diciendo lo mismo (el
   fallo de la 0.43.0 que apunta el plan). En la sencilla, si la tarjeta ya lo dice, el aviso no sale.
 - Lo que queda (Ayuda con sus cinco, Conexiones paso a paso, el foro) va en las fases siguientes.
+
+## 139. La Ayuda de la barra sencilla, con sus cinco
+
+**Fecha:** 7 de octubre de 2026 · **Estado:** hecho (fase F3 del plan)
+
+En la barra sencilla, Ayuda lleva lo que más se necesita cuando uno no sabe seguir: **Seguir donde lo
+dejé**, **Conversación nueva**, **Dime qué hago ahora**, **Pedir ayuda en el foro** y **Sugerencias**.
+«Más ayuda», pequeño, lleva a la Ayuda de siempre.
+
+- **Conversación nueva.** Con Claude, su comando sin texto abre una vacía (medido el 19-09-2026, ver
+  `puente.js`). Con Codex no hay comando para eso: se abre su barra y se dice que pulse el «+».
+- **Pedir ayuda en el foro.** Jose: *«hay muchos enlaces, ese es el principal pero hay más. Es mejor que
+  solo sea copiar el mensaje y decir que hay que ir a Resolver dudas en Circle»*. Así que no se abre
+  ninguna página: el asistente escribe el mensaje, que se entienda sin estar aquí y sin claves,
+  contraseñas ni datos de clientes; y la barra dice: «Cuando te conteste, copia el mensaje y pégalo en
+  «Resolver dudas», en Circle».
+- «Dime por dónde seguir» pasa a llamarse **«Dime qué hago ahora»** en la sencilla; en la completa sigue
+  como estaba.
+- Lo que el plan ponía también en Sugerencias (las copias, GitHub y la cara de la empresa, para quien no
+  los tenga) queda para otra fase.

@@ -1724,7 +1724,9 @@ function grupoAyudaSencillo() {
     etiqueta: 'Ayuda',
     dentro: `
       ${boton({ etiqueta: 'Seguir donde lo dejé', icono: '↩️', pequeno: true, accion: { tipo: 'pedir', prompt: 'Sigue donde lo dejamos la última vez: mira lo último que hicimos, dime en qué punto estamos y qué sería lo siguiente.' } })}
-      ${boton({ etiqueta: 'Dime por dónde seguir', icono: '🧭', pequeno: true, accion: { tipo: 'pedir', prompt: 'Mira cómo está esto y dime por dónde seguir: qué tengo a medias, qué sería lo siguiente y por qué. Dame dos o tres opciones concretas, no una lista larga.' } })}
+      ${boton({ etiqueta: 'Conversación nueva', icono: '💬', pequeno: true, accion: { tipo: 'conversacionNueva' } })}
+      ${boton({ etiqueta: 'Dime qué hago ahora', icono: '🧭', pequeno: true, accion: { tipo: 'pedir', prompt: 'Mira cómo está esto y dime qué hago ahora: qué tengo a medias, qué sería lo siguiente y por qué. Dame dos o tres opciones concretas, no una lista larga.' } })}
+      ${boton({ etiqueta: 'Pedir ayuda en el foro', icono: '🙋', pequeno: true, accion: { tipo: 'pedirAyudaEnElForo' } })}
       ${boton({ etiqueta: 'Sugerencias', icono: '✨', pequeno: true, accion: { tipo: 'verSugerencias' } })}
       ${boton({ etiqueta: 'Más ayuda', icono: '🆘', pequeno: true, discreto: true, accion: { tipo: 'verAyuda' } })}`,
   });

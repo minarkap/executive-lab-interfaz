@@ -49,6 +49,11 @@ const ASISTENTES = [
     // Cómo se le pasa el texto por el enlace.
     parametro: 'prompt',
     abrir: ['claude-vscode.editor.openLast', 'claude-vscode.sidebar.open'],
+    // Una conversación nueva. `primaryEditor.open` abre siempre una pestaña
+    // nueva (leído en su código el 17-09-2026, arriba); `editor.open` respeta
+    // dónde lo tiene cada uno, pero sin sesión no se ha medido si abre otra o
+    // enseña la que ya está, así que va detrás. Sin texto ninguno de los dos.
+    nueva: ['claude-vscode.primaryEditor.open', 'claude-vscode.editor.open'],
     foco: ['claude-vscode.focus'],
   },
   {
@@ -59,6 +64,8 @@ const ASISTENTES = [
     enlace: null,
     parametro: null,
     abrir: ['chatgpt.openSidebar'],
+    // Ninguno conocido: se abre su barra y se dice dónde está el «+».
+    nueva: [],
     foco: ['chatgpt.openSidebar'],
   },
 ];

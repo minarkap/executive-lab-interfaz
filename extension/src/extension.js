@@ -73,6 +73,9 @@ const LO_QUE_SE_HIZO = {
   ponerAlDia: 'Lo he puesto al día con la versión que trae la barra.',
 };
 
+// Lo que se le pide al asistente para el foro (decisión 139): un mensaje que se
+// entienda sin estar aquí, y nada que no deba salir del ordenador.
+const PEDIR_AYUDA_EN_EL_FORO = 'Quiero pedir ayuda en el foro de Executive Lab. Escríbeme el mensaje para publicarlo: qué intento hacer, qué ha pasado y qué he probado ya, en pocas líneas y en un bloque que pueda copiar de una vez. Que se entienda sin estar aquí, y sin claves, contraseñas ni datos de clientes. Si no sabes qué me pasa, pregúntamelo antes de escribirlo.';
 const CLAVE_PETICIONES = 'executiveLab.peticiones';
 const CLAVE_SILENCIADOS = 'executiveLab.consejosApartados';
 // La última versión de la barra que se abrió aquí, para saber si hay que decir
@@ -571,6 +574,8 @@ ${cabecera}
       refrescar: () => this.refrescar(true),
       volver: () => this.refrescar(),
       pedir: () => this.pedir(mensaje.prompt),
+      conversacionNueva: () => this.conversacionNueva(),
+      pedirAyudaEnElForo: () => this.pedirAyudaEnElForo(),
       abrir: () => vscode.env.openExternal(vscode.Uri.parse(mensaje.url)),
       bajarLaNueva: () => vscode.env.openExternal(version.dondeBajarla()),
       verLaRelease: () => vscode.env.openExternal(version.dondeVerla(this.versionDeLaBarra())),
@@ -706,6 +711,38 @@ ${cabecera}
     // ya se lo hemos pedido dejaba a la persona esperando una respuesta que no
     // iba a llegar hasta que ella misma le diera a enviar.
     if (como === 'directo') this.enviar({ tipo: 'aviso', texto: 'Te lo he dejado escrito en la conversación. Dale a enviar.' });
+  }
+
+  // Ayuda › Conversación nueva. Con Codex no hay comando para eso: se abre su
+  // barra y se dice dónde está el botón.
+  async conversacionNueva() {
+    const quien = asistentes.elDeAhora();
+    if (!asistentes.estaInstalado(quien)) return this.sinAsistente(quien);
+    if (await puente.conversacionNueva()) return this.enviar({ tipo: 'aviso', texto: 'Te he abierto una conversación nueva.' });
+    if (!await puente.abrirConversacion()) {
+      return this.enviar({ tipo: 'aviso', texto: `No he podido abrir ${quien.nombre}. Pulsa «Algo va mal» y pásale el código a tu tutor.`, malo: true });
+    }
+    return this.enviar({ tipo: 'aviso', texto: `Te he abierto ${quien.nombre}. Para empezar una conversación nueva, pulsa el «+» de arriba de su ventana.` });
+  }
+
+  // Sin el asistente no hay con quién hablar: ni se abre nada ni se manda
+  // esperar una respuesta que no va a llegar.
+  sinAsistente(quien) {
+    return this.enviar({ tipo: 'aviso', texto: `${quien.nombre} no está en este ordenador. Díselo a tu tutor.`, malo: true });
+  }
+
+  // Ayuda › Pedir ayuda en el foro. El foro tiene muchas puertas, así que no se
+  // abre ninguna: el asistente escribe el mensaje y se dice dónde pegarlo
+  // (Jose: «solo copiar el mensaje y decir que hay que ir a Resolver dudas en
+  // Circle»).
+  async pedirAyudaEnElForo() {
+    const quien = asistentes.elDeAhora();
+    if (!asistentes.estaInstalado(quien)) return this.sinAsistente(quien);
+    const como = await puente.enviar(PEDIR_AYUDA_EN_EL_FORO, this.salida);
+    const donde = 'Cuando te conteste, copia el mensaje y pégalo en «Resolver dudas», en Circle.';
+    if (como === 'directo') return this.enviar({ tipo: 'aviso', texto: `Te lo he dejado escrito en la conversación: dale a enviar. ${donde}` });
+    if (como === 'copiado') return this.enviar({ tipo: 'aviso', texto: donde });
+    return this.enviar({ tipo: 'aviso', texto: 'No he podido hablar con el asistente. Pulsa «Algo va mal» y pásale el código a tu tutor.', malo: true });
   }
 
   // Se guardan las últimas peticiones para poder ver cuál se repite y ofrecer
