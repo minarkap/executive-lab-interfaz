@@ -11764,7 +11764,8 @@ exec git "$@"
       const quiero = {
         'Darle documentos (inbox)': 'anadirDocumentos', 'Documentos entregados': 'verPapeles', 'Resultados (out)': 'verSalidas',
         'Conexiones (tools)': 'verConexiones', 'Conectar algo nuevo': 'pedir', Comandos: 'verComandos', 'Habilidades (skills)': 'verSaberes', Agentes: 'verAgentes',
-        'Seguir donde lo dejé': 'pedir', 'Dime por dónde seguir': 'pedir', Sugerencias: 'verSugerencias', 'Más ayuda': 'verAyuda',
+        'Seguir donde lo dejé': 'pedir', 'Conversación nueva': 'conversacionNueva', 'Dime qué hago ahora': 'pedir', 'Pedir ayuda en el foro': 'pedirAyudaEnElForo',
+        Sugerencias: 'verSugerencias', 'Más ayuda': 'verAyuda',
         'Guardar en git': 'guardarCopia', 'Ver las copias guardadas': 'verCopias', 'Subir a GitHub': 'verCopiaFuera',
         'Barra 0.46.0': 'verAyuda', 'Cambiar de proyecto': 'elegirCarpeta',
       };
@@ -11842,6 +11843,88 @@ exec git "$@"
     } finally {
       proveedor.enviar = antes.enviar;
       vscode.registrado.ajustes.global['executiveLab.barraCompleta'] = antes.completa;
+    }
+  });
+
+  await comprobar('Ayuda: una conversación nueva, y el mensaje para el foro con dónde pegarlo', async () => {
+    // Decisión 139. El foro tiene muchas puertas: no se abre ninguna, se dice dónde pegarlo.
+    const proveedor = vscode.registrado.proveedor;
+    const asistentes = cargar('asistentes.js');
+    const enviados = [];
+    const antes = { enviar: proveedor.enviar, elDeAhora: asistentes.elDeAhora, comandos: vscode.guion.comandosDeClaude, extensiones: vscode.guion.extensionesInstaladas };
+    proveedor.enviar = (m) => enviados.push(m);
+    vscode.guion.extensionesInstaladas = [...antes.extensiones, 'openai.chatgpt'];
+    const ultimoAviso = () => [...enviados].reverse().find((m) => m.tipo === 'aviso');
+    try {
+      // Claude: su comando, sin texto, abre una vacía.
+      vscode.registrado.ejecutados.length = 0;
+      await proveedor.manejar({ tipo: 'conversacionNueva' });
+      assert.deepEqual(vscode.registrado.ejecutados.map((e) => [e.id, e.args.length]), [['claude-vscode.primaryEditor.open', 0]], 'no abre una pestaña nueva con su comando, o le pasa algo');
+      assert.equal(ultimoAviso().texto, 'Te he abierto una conversación nueva.');
+      // Sin ese, el otro, que respeta dónde lo tiene cada uno.
+      vscode.guion.comandosDeClaude = ['claude-vscode.editor.open', 'claude-vscode.editor.openLast'];
+      vscode.registrado.ejecutados.length = 0;
+      await proveedor.manejar({ tipo: 'conversacionNueva' });
+      assert.deepEqual(vscode.registrado.ejecutados.map((e) => [e.id, e.args.length]), [['claude-vscode.editor.open', 0]], 'sin el primero, no usa el segundo');
+      vscode.guion.comandosDeClaude = antes.comandos;
+
+      // Sin ese comando, o con Codex: su ventana, y dónde está el «+».
+      for (const [quien, preparar] of [
+        ['Claude', () => { vscode.guion.comandosDeClaude = ['claude-vscode.editor.openLast']; }],
+        ['Codex', () => { asistentes.elDeAhora = () => asistentes.porId('codex'); }],
+      ]) {
+        preparar();
+        vscode.registrado.ejecutados.length = 0;
+        await proveedor.manejar({ tipo: 'conversacionNueva' });
+        assert.deepEqual(vscode.registrado.ejecutados.map((e) => e.id), [quien === 'Codex' ? 'chatgpt.openSidebar' : 'claude-vscode.editor.openLast'], `${quien}: no abre su ventana`);
+        assert.equal(ultimoAviso().texto, `Te he abierto ${quien}. Para empezar una conversación nueva, pulsa el «+» de arriba de su ventana.`);
+        vscode.guion.comandosDeClaude = antes.comandos;
+        asistentes.elDeAhora = antes.elDeAhora;
+      }
+
+      // El foro: el encargo llega al asistente, y se dice dónde pegar lo que conteste.
+      vscode.registrado.abiertos.length = 0;
+      await proveedor.manejar({ tipo: 'pedirAyudaEnElForo' });
+      const pedido = decodeURIComponent(vscode.registrado.abiertos.at(-1).split('prompt=')[1] || '');
+      assert.match(pedido, /foro de Executive Lab/, 'no le pide el mensaje para el foro');
+      assert.match(pedido, /sin claves, contraseñas ni datos de clientes/, 'no le dice que no saque nada privado');
+      assert.equal(ultimoAviso().texto, 'Te lo he dejado escrito en la conversación: dale a enviar. Cuando te conteste, copia el mensaje y pégalo en «Resolver dudas», en Circle.');
+      assert.ok(!vscode.registrado.abiertos.some((u) => /^https?:/.test(u)), 'abre una página: el foro tiene muchas puertas y no se abre ninguna');
+
+      // Con Codex va por el portapapeles: se dice igual dónde pegarlo.
+      asistentes.elDeAhora = () => asistentes.porId('codex');
+      vscode.registrado.portapapeles = '';
+      await proveedor.manejar({ tipo: 'pedirAyudaEnElForo' });
+      assert.match(vscode.registrado.portapapeles, /foro de Executive Lab/, 'con Codex no queda en el portapapeles');
+      assert.equal(ultimoAviso().texto, 'Cuando te conteste, copia el mensaje y pégalo en «Resolver dudas», en Circle.');
+      asistentes.elDeAhora = antes.elDeAhora;
+
+      // Sin el asistente en el ordenador: ni se abre nada, ni se manda esperar a nadie.
+      const instaladas = vscode.guion.extensionesInstaladas;
+      try {
+        vscode.guion.extensionesInstaladas = instaladas.filter((id) => id !== 'anthropic.claude-code');
+        for (const tipo of ['conversacionNueva', 'pedirAyudaEnElForo']) {
+          vscode.registrado.ejecutados.length = 0;
+          vscode.registrado.abiertos.length = 0;
+          vscode.registrado.portapapeles = '';
+          await proveedor.manejar({ tipo });
+          assert.deepEqual([vscode.registrado.ejecutados.length, vscode.registrado.abiertos.length, vscode.registrado.portapapeles], [0, 0, ''], `${tipo}: sin asistente, hace algo igual`);
+          assert.deepEqual([ultimoAviso().texto, ultimoAviso().malo], ['Claude no está en este ordenador. Díselo a tu tutor.', true], `${tipo}: sin asistente, no lo dice`);
+        }
+      } finally {
+        vscode.guion.extensionesInstaladas = instaladas;
+      }
+
+      // Si su ventana tampoco se puede abrir, no se manda a buscar un «+».
+      vscode.guion.comandosDeClaude = [];
+      await proveedor.manejar({ tipo: 'conversacionNueva' });
+      assert.equal(ultimoAviso().malo, true, 'sin poder abrir nada, dice que lo ha abierto');
+      return 'Claude con su comando · Codex con el «+» · el foro sin enlace · sin asistente, lo dice';
+    } finally {
+      proveedor.enviar = antes.enviar;
+      asistentes.elDeAhora = antes.elDeAhora;
+      vscode.guion.comandosDeClaude = antes.comandos;
+      vscode.guion.extensionesInstaladas = antes.extensiones;
     }
   });
 

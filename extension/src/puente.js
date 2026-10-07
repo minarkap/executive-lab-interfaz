@@ -46,6 +46,10 @@ const darFoco = () => ejecutarSiExiste(asistentes.elDeAhora().foco);
 // Abre su chat sin texto: al arrancar, para que el alumno lo tenga delante.
 const abrirConversacion = () => ejecutarSiExiste(asistentes.elDeAhora().abrir);
 
+// Una conversación vacía, para empezar otra cosa (decisión 139). Devuelve si se
+// ha podido abrir así; si no, quien llama abre la de siempre y lo explica.
+const conversacionNueva = () => ejecutarSiExiste(asistentes.elDeAhora().nueva);
+
 // Manda un texto. Devuelve 'directo' si ha llegado, 'copiado' si hubo que
 // dejarlo en el portapapeles.
 //
@@ -163,4 +167,4 @@ async function diagnostico(salida) {
   salida.show(true);
 }
 
-module.exports = { enviar, darFoco, abrirConversacion, diagnostico, primeroDisponible, cabeEnElEnlace };
+module.exports = { enviar, darFoco, abrirConversacion, conversacionNueva, diagnostico, primeroDisponible, cabeEnElEnlace };

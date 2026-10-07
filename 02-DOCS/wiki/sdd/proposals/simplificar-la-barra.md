@@ -5,7 +5,7 @@ description: Cómo pasar de un panel de mandos con 40 botones a tres filas (Docu
 timestamp: 2026-10-05T17:00:00Z
 topic: sdd
 slug: simplificar-la-barra
-status: aprobada; F0, F1 y F2 hechas (decisión 138)
+status: aprobada; F0, F1, F2 (decisión 138) y F3 (decisión 139) hechas
 ---
 
 # Propuesta — Simplificar la barra
@@ -436,7 +436,7 @@ estado, como hoy.
 | F0 ✅ | La tabla de piezas y el ajuste `barraCompleta`: todo encendido, como hoy, y las pruebas que pintan lo apagado. No cambia nada a la vista. | S |
 | F1 ✅ | El módulo de la tarjeta que toca, puro y probado. Todavía no cambia la pantalla. | S-M |
 | F2 ✅ | La principal nueva: la tarjeta, Documentos, Acciones (solo lo que hay), Ayuda, la línea de las copias (si las hay) y, abajo y en pequeño, la versión y Cambiar de proyecto. Se apaga lo demás en la tabla. | M |
-| F3 | Ayuda con sus cinco: Seguir donde lo dejé, Conversación nueva, Dime qué hago ahora, Pedir ayuda en el foro y Sugerencias (con copias, GitHub y la cara de la empresa) | M |
+| F3 ✅ | Ayuda con sus cinco: Seguir donde lo dejé, Conversación nueva, Dime qué hago ahora, Pedir ayuda en el foro y Sugerencias (con copias, GitHub y la cara de la empresa) | M |
 | F4 | Conexiones I: el estado en la lista, la guía de un paso cada vez y probar al guardar | M |
 | F5 | Conexiones II: las clases de acceso, «Pídeselo a tu informático» y el raíl | M-L |
 | F6 | Se adapta y da ideas | M |

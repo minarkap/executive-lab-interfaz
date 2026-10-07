@@ -43,7 +43,7 @@ quiero que borres nada, solo apagamos funcionalidades»*. Fases F0, F1 y F2 de
   botones cableados a otro sitio y el orden; la prueba ahora llama a `lasCopias`, `habilidadesSuyas`,
   `lasPiezas` y `versionDeLaBarra`, mira a dónde lleva cada botón y fija la tabla y el ajuste de fábrica.
   Repetidos los 17 que sobrevivían: los 17 tumbados.
-- [ ] 8. Las máquinas de GitHub.
+- [x] 8. Las máquinas de GitHub — el-dmg, windows, vscode-de-verdad y el-exe en verde; PR #15 fusionada.
 
 ## Evidence
 
@@ -52,5 +52,5 @@ quiero que borres nada, solo apagamos funcionalidades»*. Fases F0, F1 y F2 de
 
 ## Next
 
-- F3: Ayuda con sus cinco. Falta la dirección del foro.
+- F3: Ayuda con sus cinco, en [la-ayuda-sencilla](la-ayuda-sencilla.md).
 - F8: publicar la versión con un «Qué trae» que cuente el cambio y diga cómo volver a la de antes.
