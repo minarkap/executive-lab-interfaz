@@ -1622,11 +1622,143 @@ function pantallaSinCarpeta() {
   `;
 }
 
+// ── La principal ────────────────────────────────────────────────────────
+//
+// Dos pantallas (decisión 138). La sencilla, que es la de todos: arriba una sola
+// tarjeta con lo que toca; debajo Documentos, Acciones (solo lo que hay) y
+// Ayuda; la línea de las copias, si las hay; y abajo, en pequeño, la versión y
+// Cambiar de proyecto. Y la completa de antes, entera, con
+// `executiveLab.barraCompleta`. Un estado que no dice cuál —el de una prueba
+// que pinta a mano— es la completa, como hasta ahora.
 function pantallaPrincipal() {
   if (!estado) return pantallaEsperando();
   if (estado.sinCarpeta) return pantallaSinCarpeta();
   if (estado.sinArnes) return pantallaSinArnes();
+  return estado.barraCompleta === false ? pantallaPrincipalSencilla() : pantallaPrincipalCompleta();
+}
 
+// Una pieza sale si la tabla la enciende.
+const encendida = (id) => Boolean(estado && estado.piezas && estado.piezas[id] === true);
+
+function pantallaPrincipalSencilla() {
+  const t = lasTarjetas();
+  // Una sola, la que toca, por este orden: lo que impide trabajar, lo que acaba
+  // de pasar y lo que se puede dejar para luego. Con «Ahora no» o «Entendido»
+  // sale la siguiente. Apagada la pieza, salen todas, como en la completa.
+  const recargar = estado.versionPuesta && estado.versionPuesta === estado.hayVersionNueva;
+  const enOrden = [
+    estado.faltaGit ? bloqueFaltaGit() : '',
+    t.sinAsistente, t.primerPaso, t.sinAjustar,
+    recargar ? t.versionNueva : '',
+    t.loNuevo, t.elConsejo, t.elAvisoQueEspera, t.loQueContaste,
+    recargar ? '' : t.versionNueva,
+  ].filter(Boolean);
+  const tarjeta = encendida('tarjetaUnica') ? (enOrden[0] || '') : enOrden.join('');
+  // Tras «Actualizar ahora» llegan el aviso y la tarjeta, los dos con «Recargar
+  // ahora». Si la tarjeta ya lo dice, el aviso sobra; si delante hay otra que
+  // va antes, el aviso se queda, para que «Recargar ahora» no desaparezca.
+  const seVeLaDeRecargar = Boolean(recargar && t.versionNueva && tarjeta.includes(t.versionNueva));
+  const repetido = seVeLaDeRecargar && aviso && aviso.boton && aviso.boton.accion && aviso.boton.accion.tipo === 'recargar';
+
+  const descubiertos = accionesDescubiertas
+    .map((a, i) => boton({ etiqueta: a.etiqueta, icono: a.icono, principal: i === 0, accion: a.accion }))
+    .join('');
+
+  return `
+    ${repetido ? '' : bloqueAviso()}
+    ${lineaDeVarias()}
+    ${encendida('pulso') && pulso.length ? `<p class="pulso">${texto(pulso.join(' · '))}</p>` : ''}
+    ${tarjeta}
+    ${encendida('accionesRapidas') ? accionesRapidas(descubiertos) : ''}
+    ${encendida('documentos') ? grupoDocumentosSencillo() : ''}
+    ${encendida('conocimiento') ? grupoConocimiento() : ''}
+    ${encendida('acciones') ? grupoAccionesSencillo() : ''}
+    ${encendida('enQueEstamos') ? grupoEnQueEstamos() : ''}
+    ${encendida('ayuda') ? grupoAyudaSencillo() : ''}
+    ${encendida('ajustes') ? grupoAjustes() : ''}
+    ${encendida('copias') ? lineaDeLasCopias() : ''}
+    ${encendida('pie') ? pieDeLaBarra() : ''}
+  `;
+}
+
+// Documentos, como estaba, con cuántos esperan al lado.
+function grupoDocumentosSencillo() {
+  return grupo({
+    id: 'sencilla:documentos',
+    etiqueta: 'Documentos',
+    cuantos: estado.esperando ? plural(estado.esperando, '1 sin leer', '{n} sin leer') : '',
+    abiertoDeEntrada: !estado.sabe && !estado.conectados,
+    dentro: `
+      ${boton({ etiqueta: 'Darle documentos (inbox)', icono: '📎', pequeno: true, accion: { tipo: 'anadirDocumentos' } })}
+      ${boton({ etiqueta: 'Documentos entregados', icono: '📁', pequeno: true, accion: { tipo: 'verPapeles' } })}
+      ${boton({ etiqueta: 'Resultados (out)', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
+  });
+}
+
+// Acciones: solo lo que hay. Conexiones sale siempre, porque desde ella se
+// conecta la primera; lo demás, cuando exista.
+function grupoAccionesSencillo() {
+  return grupo({
+    id: 'sencilla:acciones',
+    etiqueta: 'Acciones',
+    cuantos: estado.conectados ? plural(estado.conectados, '1 programa', '{n} programas') : '',
+    dentro: `
+      ${boton({ etiqueta: 'Conexiones (tools)', icono: '🔌', pequeno: true, accion: { tipo: 'verConexiones' } })}
+      ${boton({
+        etiqueta: 'Conectar algo nuevo',
+        icono: '➕',
+        pequeno: true,
+        accion: { tipo: 'pedir', prompt: 'Quiero conectar un programa nuevo con el que ya trabajo. Pregúntame cuál es, móntame la conexión con lo que haga falta y comprueba que funciona antes de darla por buena.' },
+      })}
+      ${estado.comandos ? boton({ etiqueta: 'Comandos', icono: '🔖', pequeno: true, accion: { tipo: 'verComandos' } }) : ''}
+      ${estado.habilidades ? boton({ etiqueta: 'Habilidades (skills)', icono: '✨', pequeno: true, accion: { tipo: 'verSaberes' } }) : ''}
+      ${estado.hayAgentes ? boton({ etiqueta: 'Agentes', icono: '🤖', pequeno: true, accion: { tipo: 'verAgentes' } }) : ''}`,
+  });
+}
+
+// Ayuda, para cuando no se sabe ni qué escribir. Lo demás de Ayuda sigue entero
+// detrás de «Más ayuda».
+function grupoAyudaSencillo() {
+  return grupo({
+    id: 'sencilla:ayuda',
+    etiqueta: 'Ayuda',
+    dentro: `
+      ${boton({ etiqueta: 'Seguir donde lo dejé', icono: '↩️', pequeno: true, accion: { tipo: 'pedir', prompt: 'Sigue donde lo dejamos la última vez: mira lo último que hicimos, dime en qué punto estamos y qué sería lo siguiente.' } })}
+      ${boton({ etiqueta: 'Dime por dónde seguir', icono: '🧭', pequeno: true, accion: { tipo: 'pedir', prompt: 'Mira cómo está esto y dime por dónde seguir: qué tengo a medias, qué sería lo siguiente y por qué. Dame dos o tres opciones concretas, no una lista larga.' } })}
+      ${boton({ etiqueta: 'Sugerencias', icono: '✨', pequeno: true, accion: { tipo: 'verSugerencias' } })}
+      ${boton({ etiqueta: 'Más ayuda', icono: '🆘', pequeno: true, discreto: true, accion: { tipo: 'verAyuda' } })}`,
+  });
+}
+
+// «✓ Todo guardado»: solo si la carpeta tiene copias. Ver que todo está
+// guardado quita el miedo; dentro, lo de git.
+function lineaDeLasCopias() {
+  const c = estado.copias;
+  if (!c) return '';
+  return grupo({
+    id: 'grupo:copias',
+    etiqueta: c.sinGuardar ? 'Hay cambios sin guardar' : `✓ Todo guardado, ${c.hace}`,
+    dentro: `
+      ${boton({ etiqueta: 'Guardar en git', icono: '💾', pequeno: true, accion: { tipo: 'guardarCopia' } })}
+      ${boton({ etiqueta: 'Ver las copias guardadas', icono: '🕑', pequeno: true, accion: { tipo: 'verCopias' } })}
+      ${c.subir ? boton({ etiqueta: 'Subir a GitHub', icono: '☁️', pequeno: true, accion: { tipo: 'verCopiaFuera' } }) : ''}`,
+  });
+}
+
+// Abajo y en pequeño: qué barra es, y Cambiar de proyecto, que se deja a la
+// vista porque con el editor en modo sencillo no hay menús.
+function pieDeLaBarra() {
+  return `
+    <div class="fila pie">
+      ${estado.versionDeLaBarra ? boton({ etiqueta: `Barra ${estado.versionDeLaBarra}`, pequeno: true, discreto: true, accion: { tipo: 'verAyuda' } }) : ''}
+      ${boton({ etiqueta: 'Cambiar de proyecto', icono: '📂', pequeno: true, discreto: true, accion: { tipo: 'elegirCarpeta' } })}
+    </div>`;
+}
+
+// La de antes, entera: la de `executiveLab.barraCompleta` (decisión 138). No se
+// ha borrado nada; sus tarjetas y sus grupos son ahora piezas que también usa la
+// sencilla.
+function pantallaPrincipalCompleta() {
   // Cuántas conexiones y cuántas cosas sabe ya no se cuentan aquí: van en la
   // fila plegada de cada uno, que es donde se puede hacer algo con ese número.
 
@@ -1643,6 +1775,59 @@ function pantallaPrincipal() {
     .map((a, i) => boton({ etiqueta: a.etiqueta, icono: a.icono, principal: i === 0, accion: a.accion }))
     .join('');
 
+  const {
+    versionNueva, sinAsistente, sinAjustar, primerPaso, elConsejo, elAvisoQueEspera, loNuevo, loQueContaste, documentos,
+  } = lasTarjetas();
+
+  return `
+    ${/* Aquí había un bloque que contaba dónde estabas y qué hiciste lo último.
+          Fuera: `orient`, la habilidad que RSC trae siempre puesta, es
+          exactamente eso y vive en la conversación, donde además puede
+          contestar preguntas. Repetirlo aquí era ocupar lo más alto de la barra
+          con algo que se pregunta mejor hablando. Lo que se queda es lo que no
+          es narración: los avisos y el consejo, que llevan botón. */''}
+    ${bloqueAviso()}
+    ${lineaDeVarias()}
+    ${pulso.length ? `<p class="pulso">${texto(pulso.join(' · '))}</p>` : ''}
+
+    ${sinAsistente}
+    ${sinAjustar}
+    ${primerPaso}
+    ${loNuevo}
+    ${elConsejo}
+    ${loQueContaste}
+    ${elAvisoQueEspera}
+    ${versionNueva}
+    ${documentos}
+    ${accionesRapidas(descubiertos)}
+
+    ${/* Seis apartados, y el criterio es de qué van, no dónde caían: papeles ·
+          lo que ha entendido · lo que ha pasado · actuar · ayuda · configurar.
+          Lo de antes eran cajones —"Tu trabajo", "Ajustes y ayuda"— y por eso
+          las habilidades acabaron flotando arriba sin casa. */''}
+    ${grupoDocumentos()}
+
+    ${grupoConocimiento()}
+
+    ${grupoHistorico()}
+
+    ${grupoEnQueEstamos()}
+
+    ${grupoAccionesCompleto()}
+
+    ${grupoAyudaCompleto()}
+
+    ${grupoAjustes()}
+  `;
+}
+
+// ── Las piezas de la principal ──────────────────────────────────────────
+//
+// Las usan las dos: la completa, todas y en su orden de siempre; la sencilla,
+// las que diga `piezas.json` (decisión 138).
+
+// Las tarjetas que pueden salir arriba, cada una ya pintada o vacía.
+function lasTarjetas() {
   // Recién montado: lo primero es tener cuenta y sesión. Sin eso, el chat no
   // responde y el alumno se queda mirando una caja muda sin saber por qué.
   // Sin el asistente instalado, todo lo demás de esta pantalla es decorado: los
@@ -1765,26 +1950,11 @@ function pantallaPrincipal() {
     })
     : '';
 
-  return `
-    ${/* Aquí había un bloque que contaba dónde estabas y qué hiciste lo último.
-          Fuera: `orient`, la habilidad que RSC trae siempre puesta, es
-          exactamente eso y vive en la conversación, donde además puede
-          contestar preguntas. Repetirlo aquí era ocupar lo más alto de la barra
-          con algo que se pregunta mejor hablando. Lo que se queda es lo que no
-          es narración: los avisos y el consejo, que llevan botón. */''}
-    ${bloqueAviso()}
-    ${lineaDeVarias()}
-    ${pulso.length ? `<p class="pulso">${texto(pulso.join(' · '))}</p>` : ''}
+  return { versionNueva, sinAsistente, sinAjustar, primerPaso, elConsejo, elAvisoQueEspera, loNuevo, loQueContaste, documentos };
+}
 
-    ${sinAsistente}
-    ${sinAjustar}
-    ${primerPaso}
-    ${loNuevo}
-    ${elConsejo}
-    ${loQueContaste}
-    ${elAvisoQueEspera}
-    ${versionNueva}
-    ${documentos}
+function accionesRapidas(descubiertos) {
+  return `
     ${/* Lo más alto de la barra, para lo que esa persona use de verdad. Lo
           elige ella entre sus botones, las consultas de sus programas y sus
           habilidades: nosotros no sabemos cuáles son. */''}
@@ -1800,12 +1970,11 @@ function pantallaPrincipal() {
           botones que haya creado nadie ni habilidades: son los scripts que RSC
           mete dentro de cada herramienta, y aquí competían con lo que sí es un
           botón. Vuelven a su programa, que es donde se entienden. */''}
-    ${descubiertos ? '<hr class="separador">' : ''}
+    ${descubiertos ? '<hr class="separador">' : ''}`;
+}
 
-    ${/* Seis apartados, y el criterio es de qué van, no dónde caían: papeles ·
-          lo que ha entendido · lo que ha pasado · actuar · ayuda · configurar.
-          Lo de antes eran cajones —"Tu trabajo", "Ajustes y ayuda"— y por eso
-          las habilidades acabaron flotando arriba sin casa. */''}
+function grupoDocumentos() {
+  return `
     ${grupo({
       id: 'grupo:documentos',
       etiqueta: 'Documentos',
@@ -1821,8 +1990,11 @@ function pantallaPrincipal() {
         ${boton({ etiqueta: 'Darle documentos (inbox)', icono: '📎', pequeno: true, accion: { tipo: 'anadirDocumentos' } })}
         ${boton({ etiqueta: 'Documentos entregados', icono: '📁', pequeno: true, accion: { tipo: 'verPapeles' } })}
         ${boton({ etiqueta: 'Resultados (out)', icono: '📤', pequeno: true, accion: { tipo: 'verSalidas' } })}`,
-    })}
+    })}`;
+}
 
+function grupoConocimiento() {
+  return `
     ${grupo({
       id: 'grupo:saber',
       etiqueta: 'Conocimiento (wiki)',
@@ -1834,8 +2006,11 @@ function pantallaPrincipal() {
         ${boton({ etiqueta: 'Ver los conceptos', icono: '📚', pequeno: true, accion: { tipo: 'verCerebro' } })}
         ${boton({ etiqueta: 'Preguntas sin contestar', icono: '❓', pequeno: true, accion: { tipo: 'verHuecos' } })}
         ${boton({ etiqueta: 'Cómo te habla', icono: '🗣️', pequeno: true, accion: { tipo: 'verTrato' } })}`,
-    })}
+    })}`;
+}
 
+function grupoHistorico() {
+  return `
     ${estado.faltaGit ? bloqueFaltaGit() : grupo({
       id: 'grupo:historico',
       etiqueta: 'Histórico',
@@ -1850,16 +2025,22 @@ function pantallaPrincipal() {
         ${boton({ etiqueta: 'Ver las copias guardadas', icono: '🕑', pequeno: true, accion: { tipo: 'verCopias' } })}
         ${boton({ etiqueta: 'El diario', icono: '🗓️', pequeno: true, accion: { tipo: 'verDiario' } })}
         ${boton({ etiqueta: 'Apuntar lo de hoy', icono: '✍️', pequeno: true, accion: { tipo: 'pedir', prompt: 'Apunta en el diario lo que hemos hecho hoy: qué hicimos, por qué, qué quedó tocado y cómo quedó. Y si hemos decidido algo que importe, déjalo también en el registro de decisiones con su porqué.' } })}`,
-    })}
+    })}`;
+}
 
+function grupoEnQueEstamos() {
+  return `
     ${/* Aparece solo si esa carpeta construye algo con SDD. Una de contabilidad
           no tendrá specs nunca; una donde se monte una web, sí. */''}
     ${estado.hayProyectos ? grupo({
       id: 'grupo:proyectos',
       etiqueta: 'En qué estamos',
       dentro: boton({ etiqueta: 'Qué queremos y cómo', icono: '🧩', pequeno: true, accion: { tipo: 'verProyectos' } }),
-    }) : ''}
+    }) : ''}`;
+}
 
+function grupoAccionesCompleto() {
+  return `
     ${grupo({
       id: 'grupo:acciones',
       etiqueta: 'Acciones',
@@ -1883,15 +2064,21 @@ function pantallaPrincipal() {
           accion: { tipo: 'pedir', prompt: 'Quiero conectar un programa nuevo con el que ya trabajo. Pregúntame cuál es, móntame la conexión con lo que haga falta y comprueba que funciona antes de darla por buena.' },
         })}
 `,
-    })}
+    })}`;
+}
 
+function grupoAyudaCompleto() {
+  return `
     ${grupo({
       id: 'grupo:ayuda',
       etiqueta: 'Ayuda',
       dentro: boton({ etiqueta: 'Estoy atascado', icono: '🆘', pequeno: true, accion: { tipo: 'verAyuda' } })
         + boton({ etiqueta: 'Qué falta por montar', icono: '🔎', pequeno: true, accion: { tipo: 'verRadiografia' } }),
-    })}
+    })}`;
+}
 
+function grupoAjustes() {
+  return `
     ${grupo({
       id: 'grupo:ajustes',
       etiqueta: 'Ajustes',
@@ -1909,8 +2096,7 @@ function pantallaPrincipal() {
         ${modo === 'avanzado'
           ? boton({ etiqueta: 'Volver al modo sencillo', icono: '◂', pequeno: true, accion: { tipo: 'modoSencillo' } })
           : boton({ etiqueta: 'Ver el editor completo', icono: '▸', pequeno: true, accion: { tipo: 'verEditorCompleto' } })}`,
-    })}
-  `;
+    })}`;
 }
 
 // ------------------------------------------------------------- conexiones
@@ -2560,7 +2746,8 @@ function atender(data) {
       // con todo dentro (decisión 131).
       estado = data.estado ? { ...data.estado } : data.estado;
       if (estado) {
-        for (const campo of ['consejo', 'hayVersionNueva', 'versionPuesta', 'versionDePrueba', 'hayProyectos', 'hayAgentes', 'avisoParaExecutiveLab', 'arreglado', 'queTrae']) {
+        for (const campo of ['consejo', 'hayVersionNueva', 'versionPuesta', 'versionDePrueba', 'hayProyectos', 'hayAgentes', 'avisoParaExecutiveLab', 'arreglado', 'queTrae',
+          'barraCompleta', 'piezas', 'comandos', 'habilidades', 'copias', 'versionDeLaBarra']) {
           if (data[campo] !== undefined) estado[campo] = data[campo];
         }
       }

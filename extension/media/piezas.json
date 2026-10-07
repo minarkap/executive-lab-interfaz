@@ -1,0 +1,14 @@
+{
+  "_": "Qué sale en la pantalla principal sencilla (decisión 138). Nada se borra: lo que está a false está apagado, sigue en el código y probado, y se enciende cambiando la línea. El ajuste executiveLab.barraCompleta enseña la pantalla completa de antes, entera.",
+  "tarjetaUnica": true,
+  "documentos": true,
+  "acciones": true,
+  "ayuda": true,
+  "copias": true,
+  "pie": true,
+  "accionesRapidas": false,
+  "pulso": false,
+  "conocimiento": false,
+  "enQueEstamos": false,
+  "ajustes": false
+}

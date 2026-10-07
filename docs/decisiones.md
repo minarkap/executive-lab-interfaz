@@ -4859,3 +4859,27 @@ reservados», y la extensión, `UNLICENSED`.
   `.vsix`.
 - `extension/package.json` dice `"license": "MIT"`, y el README cuenta qué permite.
 - RSC, que viaja dentro, ya es MIT. Su aviso sigue con la copia de su freno (`LICENCIA-RSC.txt`).
+
+## 138. La barra sencilla: se apaga, no se borra
+
+**Fecha:** 7 de octubre de 2026 · **Estado:** hecho (fases F0, F1 y F2 del plan)
+
+Jose: *«Tenemos que simplificar la interfaz»*, y *«no quiero que borres nada, solo apagamos
+funcionalidades… a futuro igual lo vuelvo a activar»*. La principal se había vuelto un panel de mandos:
+hasta cinco tarjetas a la vez y siete filas plegadas. El plan está en
+`02-DOCS/wiki/sdd/proposals/simplificar-la-barra.md`.
+
+- **La principal sencilla**, la de siempre a partir de ahora: una sola tarjeta, la que toca (lo que impide
+  trabajar, lo que acaba de pasar y lo que puede esperar, por ese orden; con «Ahora no» sale la
+  siguiente); **Documentos**, como estaba; **Acciones**, con Conexiones siempre y Comandos, Habilidades y
+  Agentes solo si los hay; **Ayuda**; la línea **«✓ Todo guardado, hace 5 minutos»**, solo si la carpeta
+  tiene copias, y «Subir a GitHub» solo si hay cuenta o sitio; y abajo, en pequeño, la versión y «Cambiar
+  de proyecto».
+- **Nada se borra.** La pantalla de antes sigue entera como `pantallaPrincipalCompleta()`, y sus trozos son
+  funciones que la sencilla reutiliza. Qué sale en la sencilla lo dice `extension/media/piezas.json`:
+  encender Acciones rápidas, Conocimiento, En qué estamos o Ajustes es cambiar un `false` por `true`.
+- **`executiveLab.barraCompleta`**, apagado de fábrica, devuelve la de antes tal cual, para quien necesite
+  verlo todo.
+- **Un solo «Recargar ahora».** Tras «Actualizar ahora» salían el aviso y la tarjeta diciendo lo mismo (el
+  fallo de la 0.43.0 que apunta el plan). En la sencilla, si la tarjeta ya lo dice, el aviso no sale.
+- Lo que queda (Ayuda con sus cinco, Conexiones paso a paso, el foro) va en las fases siguientes.

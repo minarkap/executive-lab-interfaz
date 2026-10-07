@@ -837,3 +837,7 @@ button.solo-icono .icono { font-size: 15px; }
 }
 .archivo-que { flex: 1; min-width: 0; }
 .archivo-acciones { flex: none; display: flex; gap: 4px; }
+
+/* Abajo y en pequeño: qué barra es y cambiar de proyecto (decisión 138). */
+.fila.pie { margin-top: 18px; gap: 4px; flex-wrap: wrap; opacity: .85; }
+.fila.pie button { width: auto; }
