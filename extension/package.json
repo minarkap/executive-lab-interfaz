@@ -206,6 +206,12 @@
           "default": true,
           "scope": "application",
           "description": "Cuando hay una versión nueva de la barra, la baja, la comprueba y la deja puesta sola. Se usa al recargar la ventana o la próxima vez que abras el editor."
+        },
+        "executiveLab.barraCompleta": {
+          "type": "boolean",
+          "default": false,
+          "scope": "application",
+          "description": "Enseña la barra completa de antes, con todo lo que la sencilla deja apagado. Para quien necesite verlo todo."
         }
       }
     }

@@ -70,6 +70,9 @@ const comprobar = async (titulo, fn) => {
 async function main() {
   const empresa = montar();
   vscode.guion.raiz = empresa;
+  // Las pruebas de siempre miran las tarjetas y los grupos de la pantalla
+  // completa, que no se ha borrado (decisión 138). La sencilla tiene las suyas.
+  vscode.registrado.ajustes.global['executiveLab.barraCompleta'] = true;
   console.log(`Empresa de mentira en ${empresa}\n`);
 
   // ---------------------------------------------------- los módulos cargan
@@ -10825,6 +10828,11 @@ exec git "$@"
     return `${escrito.length} líneas, empezando limpio`;
   });
 
+  // Las pruebas que siguen pintan la principal tal como la manda la extensión, y
+  // miran sus tarjetas: en la completa, que no se ha borrado (decisión 138). Más
+  // arriba, una prueba del disfraz deja los ajustes en blanco.
+  vscode.registrado.ajustes.global['executiveLab.barraCompleta'] = true;
+
   // ── Lo que encontró el guardián de las pruebas en la auditoría final ──
   //
   // Tres huecos por los que se colaba un fallo sin que nada se pusiera rojo: lo
@@ -11663,6 +11671,177 @@ exec git "$@"
       proveedor.solaNoPudo = antes.noPudo;
       if (antes.sola === undefined) delete vscode.registrado.ajustes.global[AJUSTE];
       else vscode.registrado.ajustes.global[AJUSTE] = antes.sola;
+    }
+  });
+
+  await comprobar('la principal sencilla: una tarjeta, solo lo que hay, y lo demás apagado sin borrar', async () => {
+    // Decisión 138: Jose, «no quiero que borres nada, solo apagamos funcionalidades».
+    const proveedor = vscode.registrado.proveedor;
+    const enviados = [];
+    const antes = { enviar: proveedor.enviar, completa: vscode.registrado.ajustes.global['executiveLab.barraCompleta'] };
+    proveedor.enviar = (m) => enviados.push(m);
+    const pintar = (m) => require('./panel-falso').montarPanel().mandar(m);
+    const cuantas = (html, clase) => (html.match(new RegExp(`class="${clase}"`, 'g')) || []).length;
+    try {
+      vscode.registrado.ajustes.global['executiveLab.barraCompleta'] = false;
+      await proveedor.refrescar(true);
+      const base = [...enviados].reverse().find((m) => m.tipo === 'estado');
+      assert.equal(base.barraCompleta, false, 'sin el ajuste, la extensión manda la completa');
+      const tabla = JSON.parse(fs.readFileSync(path.join(RAIZ, 'media', 'piezas.json'), 'utf8'));
+      assert.deepEqual(base.piezas, tabla, 'la extensión no manda la tabla de piezas');
+      // Lo que Jose decidió que sale, y lo que no: cambiarlo es otra decisión.
+      const { _: _porque, ...encendidas } = tabla;
+      assert.deepEqual(encendidas, {
+        tarjetaUnica: true, documentos: true, acciones: true, ayuda: true, copias: true, pie: true,
+        accionesRapidas: false, pulso: false, conocimiento: false, enQueEstamos: false, ajustes: false,
+      }, 'la tabla de piezas ha cambiado');
+      const ajuste = require(path.join(RAIZ, 'package.json')).contributes.configuration.properties['executiveLab.barraCompleta'];
+      assert.equal(ajuste.default, false, 'de fábrica tiene que salir la sencilla');
+      assert.equal(base.versionDeLaBarra, proveedor.versionDeLaBarra(), 'la versión del pie no es la de la barra');
+      const sinExtension = proveedor.contexto.extension;
+      try {
+        proveedor.contexto.extension = { packageJSON: require(path.join(RAIZ, 'package.json')) };
+        assert.equal(proveedor.versionDeLaBarra(), require(path.join(RAIZ, 'package.json')).version, 'la versión del pie no es la de la barra');
+      } finally {
+        proveedor.contexto.extension = sinExtension;
+      }
+
+      // Varias cosas pendientes a la vez: sale una, la que toca.
+      const conTodo = {
+        ...base,
+        consejo: { id: 'x', texto: 'UN CONSEJO', boton: 'Hacerlo', accion: { tipo: 'verCerebro' } },
+        hayVersionNueva: '9.9.9',
+        avisoParaExecutiveLab: { fichero: '/x/a.md', nombre: 'a.md', titulo: 'Un aviso', origen: 'asistente', cuantos: 1 },
+        comandos: 0,
+        habilidades: 0,
+        hayAgentes: false,
+        copias: null,
+        versionDeLaBarra: '0.46.0',
+      };
+      const sencilla = pintar(conTodo);
+      assert.equal(cuantas(sencilla, 'consejo'), 1, 'salen varias tarjetas a la vez');
+      assert.match(sencilla, /UN CONSEJO/, 'no sale la que toca: el consejo va antes que el aviso y la versión');
+      for (const sale of ['Documentos', 'Acciones', 'Conexiones \\(tools\\)', 'Ayuda', 'Seguir donde lo dejé', 'Más ayuda', 'Barra 0\\.46\\.0', 'Cambiar de proyecto']) {
+        assert.match(sencilla, new RegExp(sale), `no sale «${sale}»`);
+      }
+      for (const apagado of ['Acciones rápidas', 'Conocimiento \\(wiki\\)', 'Histórico', 'Ajustes', 'Las reglas', 'Comandos', 'Habilidades \\(skills\\)', 'Agentes', 'Todo guardado']) {
+        assert.doesNotMatch(sencilla, new RegExp(apagado), `sale «${apagado}», que está apagado o no hay`);
+      }
+      // Lo que falta para trabajar va antes que nada.
+      const sinGit = pintar({ ...conTodo, estado: { ...conTodo.estado, faltaGit: true, comoSeInstalaGit: 'x' } });
+      assert.match(sinGit, /Falta una pieza para poder guardar tu trabajo/, 'sin git, no sale lo que falta');
+      assert.doesNotMatch(sinGit, /UN CONSEJO/, 'sin git, sale otra tarjeta además');
+
+      // Acciones, con lo que hay; y la línea de las copias, solo si las hay.
+      const conCosas = pintar({ ...conTodo, comandos: 3, habilidades: 2, hayAgentes: true, copias: { hace: 'hace 5 minutos', sinGuardar: false, subir: false } });
+      for (const sale of ['Comandos', 'Habilidades \\(skills\\)', 'Agentes', '✓ Todo guardado, hace 5 minutos', 'Guardar en git', 'Ver las copias guardadas']) {
+        assert.match(conCosas, new RegExp(sale), `habiéndolo, no sale «${sale}»`);
+      }
+      assert.doesNotMatch(conCosas, /Subir a GitHub/, 'sale Subir a GitHub sin cuenta ni sitio');
+      assert.match(pintar({ ...conTodo, copias: { hace: 'ayer', sinGuardar: true, subir: true } }), /Hay cambios sin guardar.*Subir a GitHub/s);
+
+      // Tras «Actualizar ahora», un solo «Recargar ahora», no dos (fallo de la 0.43.0).
+      const panel = require('./panel-falso').montarPanel();
+      panel.mandar({ ...conTodo, hayVersionNueva: '9.9.9', versionPuesta: '9.9.9' });
+      const tras = panel.mandar({ tipo: 'aviso', texto: 'Ya está puesta la 9.9.9. Recarga la ventana para empezar a usarla: no se pierde nada.', boton: { etiqueta: 'Recargar ahora', accion: { tipo: 'recargar' } } });
+      assert.equal((tras.match(/Recargar ahora/g) || []).length, 1, 'salen el aviso y la tarjeta, los dos con Recargar ahora');
+
+      // …pero si delante va otra tarjeta, el aviso se queda: «Recargar ahora» no desaparece.
+      const conOtraDelante = require('./panel-falso').montarPanel();
+      conOtraDelante.mandar({ ...conTodo, estado: { ...conTodo.estado, faltaGit: true, comoSeInstalaGit: 'x' }, hayVersionNueva: '9.9.9', versionPuesta: '9.9.9' });
+      const tapada = conOtraDelante.mandar({ tipo: 'aviso', texto: 'Ya está puesta la 9.9.9.', boton: { etiqueta: 'Recargar ahora', accion: { tipo: 'recargar' } } });
+      assert.match(tapada, /Recargar ahora/, 'con otra tarjeta delante, no queda ningún «Recargar ahora»');
+      // Y un aviso con otro botón no se esconde nunca.
+      const otro = require('./panel-falso').montarPanel();
+      otro.mandar({ ...conTodo, hayVersionNueva: '9.9.9', versionPuesta: '9.9.9' });
+      assert.match(otro.mandar({ tipo: 'aviso', texto: 'OTRO AVISO', boton: { etiqueta: 'Abrir', accion: { tipo: 'verAyuda' } } }), /OTRO AVISO/, 'se esconde un aviso que no repite nada');
+
+      // Cada botón lleva a donde dice, no solo se llama como debe.
+      const desescapar = (v) => v.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+      const adonde = (html) => Object.fromEntries([...html.matchAll(/data-accion="([^"]*)"[^>]*>([\s\S]*?)<\/button>/g)]
+        .map(([, accion, dentro]) => [dentro.replace(/<span class="icono"[^>]*>[\s\S]*?<\/span>/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(), JSON.parse(desescapar(accion)).tipo]));
+      const botones = adonde(pintar({ ...conTodo, comandos: 3, habilidades: 2, hayAgentes: true, copias: { hace: 'ayer', sinGuardar: false, subir: true } }));
+      const quiero = {
+        'Darle documentos (inbox)': 'anadirDocumentos', 'Documentos entregados': 'verPapeles', 'Resultados (out)': 'verSalidas',
+        'Conexiones (tools)': 'verConexiones', 'Conectar algo nuevo': 'pedir', Comandos: 'verComandos', 'Habilidades (skills)': 'verSaberes', Agentes: 'verAgentes',
+        'Seguir donde lo dejé': 'pedir', 'Dime por dónde seguir': 'pedir', Sugerencias: 'verSugerencias', 'Más ayuda': 'verAyuda',
+        'Guardar en git': 'guardarCopia', 'Ver las copias guardadas': 'verCopias', 'Subir a GitHub': 'verCopiaFuera',
+        'Barra 0.46.0': 'verAyuda', 'Cambiar de proyecto': 'elegirCarpeta',
+      };
+      for (const [etiqueta, tipo] of Object.entries(quiero)) assert.equal(botones[etiqueta], tipo, `«${etiqueta}» lleva a otro sitio`);
+      // Conexiones sale siempre, aunque no haya nada conectado: desde ella se conecta lo primero.
+      assert.equal(adonde(pintar({ ...conTodo, estado: { ...conTodo.estado, conectados: 0 } }))['Conexiones (tools)'], 'verConexiones', 'sin nada conectado, no sale Conexiones');
+
+      // El orden de la tarjeta, situación por situación.
+      assert.match(pintar({ ...conTodo, hayVersionNueva: '9.9.9', versionPuesta: '9.9.9' }), /Ya está puesta la 9\.9\.9/, 'puesta y sin recargar, va antes que el consejo');
+      assert.match(pintar({ ...conTodo, hayVersionNueva: '9.9.9', versionPuesta: '9.8.0' }), /UN CONSEJO/, 'con otra versión puesta, la nueva pasa por delante del consejo');
+      assert.match(pintar({ ...conTodo, queTrae: { version: '9.9.9', cosas: ['LO NUEVO'] } }), /LO NUEVO/, 'lo que trae la versión recién puesta va antes que el consejo');
+      const desajustada = pintar({ ...conTodo, estado: { ...conTodo.estado, sinAjustar: 'ponerAlDia' } });
+      assert.match(desajustada, /Esto se montó con una versión anterior/, 'sin ajustar, no sale');
+      assert.doesNotMatch(desajustada, /UN CONSEJO/, 'sin ajustar, el consejo pasa por delante');
+
+      // Una pieza que falta en la tabla está apagada, no encendida.
+      const sinTabla = pintar({ ...conTodo, piezas: { documentos: true } });
+      assert.match(sinTabla, /Documentos/);
+      assert.doesNotMatch(sinTabla, /Seguir donde lo dejé|Cambiar de proyecto/, 'una pieza que no está en la tabla sale');
+
+      // «Hace cuánto», como lo diría una persona.
+      const { haceUnRato } = require(path.join(RAIZ, 'src', 'guardar.js'));
+      const ahora = Date.parse('2026-10-07T18:00:00');
+      const hace = (min) => haceUnRato(new Date(ahora - min * 60000).toISOString(), ahora);
+      assert.deepEqual([hace(0), hace(1), hace(2), hace(59), hace(60), hace(119), hace(120), hace(11 * 60 + 59), hace(12 * 60)],
+        ['hace un momento', 'hace un momento', 'hace 2 minutos', 'hace 59 minutos', 'hace una hora', 'hace una hora', 'hace 2 horas', 'hace 11 horas', 'hoy'],
+        'el «hace cuánto» de la línea de las copias');
+
+      // Lo que la extensión calcula para la pantalla, con git y RSC de mentira.
+      const guardar = cargar('guardar.js'), github = cargar('github.js'), rsc = cargar('rsc.js'), nombres = cargar('nombres.js');
+      const de = { copias: guardar.copias, puedeSubir: guardar.puedeSubir, cambiosSinGuardar: guardar.cambiosSinGuardar, remoto: github.remoto, enDisco: rsc.habilidadesEnDisco, esFontaneria: nombres.esFontaneria };
+      try {
+        guardar.copias = async () => [];
+        assert.equal(await proveedor.lasCopias(), null, 'sin copias, sale la línea de las copias');
+        guardar.copias = async () => [{ cuando: new Date(Date.now() - 5 * 60000).toISOString() }];
+        guardar.puedeSubir = async () => false; github.remoto = async () => null; guardar.cambiosSinGuardar = async () => false;
+        assert.deepEqual(await proveedor.lasCopias(), { hace: 'hace 5 minutos', sinGuardar: false, subir: false });
+        github.remoto = async () => 'https://github.com/alguien/algo'; guardar.cambiosSinGuardar = async () => true;
+        assert.deepEqual(await proveedor.lasCopias(), { hace: 'hace 5 minutos', sinGuardar: true, subir: true }, 'con sitio en GitHub o cambios, no lo dice');
+        github.remoto = async () => null; guardar.puedeSubir = async () => true;
+        assert.equal((await proveedor.lasCopias()).subir, true, 'con cuenta de GitHub, no ofrece subir');
+        guardar.copias = async () => { throw new Error('git roto'); };
+        assert.equal(await proveedor.lasCopias(), null, 'con git roto, revienta');
+
+        rsc.habilidadesEnDisco = () => ['la-mia', 'de-fontaneria', 'otra-mia'];
+        nombres.esFontaneria = (id) => id === 'de-fontaneria';
+        assert.equal(proveedor.habilidadesSuyas(), 2, 'cuenta las que monta el arnés para funcionar');
+        rsc.habilidadesEnDisco = () => { throw new Error('sin carpeta'); };
+        assert.equal(proveedor.habilidadesSuyas(), 0);
+      } finally {
+        guardar.copias = de.copias; guardar.puedeSubir = de.puedeSubir; guardar.cambiosSinGuardar = de.cambiosSinGuardar;
+        github.remoto = de.remoto; rsc.habilidadesEnDisco = de.enDisco; nombres.esFontaneria = de.esFontaneria;
+      }
+      // Sin la tabla, las seis de la sencilla, no una pantalla en blanco.
+      const dondeEsta = proveedor.contexto.extensionPath;
+      try {
+        proveedor.contexto.extensionPath = path.join(os.tmpdir(), 'no-existe-esta-barra');
+        const reserva = proveedor.lasPiezas();
+        for (const pieza of ['tarjetaUnica', 'documentos', 'acciones', 'ayuda', 'copias', 'pie']) assert.equal(reserva[pieza], true, `sin la tabla, «${pieza}» no sale`);
+      } finally {
+        proveedor.contexto.extensionPath = dondeEsta;
+      }
+
+      // Encender una pieza es cambiar una línea de la tabla.
+      assert.match(pintar({ ...conTodo, piezas: { ...tabla, conocimiento: true } }), /Conocimiento \(wiki\)/, 'encendida en la tabla, no sale');
+      assert.equal(cuantas(pintar({ ...conTodo, piezas: { ...tabla, tarjetaUnica: false } }), 'consejo'), 3, 'con la tarjeta única apagada, no salen todas');
+
+      // Y con el ajuste, la completa de siempre, entera.
+      const completa = pintar({ ...conTodo, barraCompleta: true, pulso: ['EL PULSO'] });
+      assert.match(completa, /data-abrir="grupo:documentos"/, 'la completa ha perdido Documentos');
+      for (const sale of ['EL PULSO', 'Acciones rápidas', 'Conocimiento \\(wiki\\)', 'Histórico', 'Ajustes', 'Las reglas', 'UN CONSEJO', 'Hay una versión nueva de la barra']) {
+        assert.match(completa, new RegExp(sale), `la completa ha perdido «${sale}»`);
+      }
+      return 'una tarjeta · solo lo que hay · apagado sin borrar · y la completa entera';
+    } finally {
+      proveedor.enviar = antes.enviar;
+      vscode.registrado.ajustes.global['executiveLab.barraCompleta'] = antes.completa;
     }
   });
 

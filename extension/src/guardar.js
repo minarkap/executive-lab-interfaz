@@ -59,6 +59,17 @@ function haceCuanto(iso) {
   return `el ${new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' }).format(entonces)}`;
 }
 
+// Para la línea de las copias de la principal: en el mismo día, en minutos u
+// horas; más atrás, como `haceCuanto` (decisión 138).
+function haceUnRato(iso, ahora = Date.now()) {
+  const minutos = Math.floor((ahora - new Date(iso).getTime()) / 60000);
+  if (minutos < 2) return 'hace un momento';
+  if (minutos < 60) return `hace ${minutos} minutos`;
+  const horas = Math.floor(minutos / 60);
+  if (horas < 12) return horas === 1 ? 'hace una hora' : `hace ${horas} horas`;
+  return haceCuanto(iso);
+}
+
 const NO_PUEDO = 'No puedo guardar copias en este ordenador. Pulsa «Algo va mal» y pásale el código a tu tutor.';
 const SIN_PIEZA = 'Falta una pieza para poder guardar. Puedo ponerla yo.';
 
@@ -312,4 +323,4 @@ async function cambiosSinGuardar() {
   return h.cuantosCambios(donde, comoLlamar());
 }
 
-module.exports = { iniciar, guardar, copias, volverA, cambiosSinGuardar, subirCopia, puedeSubir, comoEntrar, fechaLarga, haceCuanto, hayGit, olvidarSiHayGit };
+module.exports = { iniciar, guardar, copias, volverA, cambiosSinGuardar, subirCopia, puedeSubir, comoEntrar, fechaLarga, haceCuanto, haceUnRato, hayGit, olvidarSiHayGit };

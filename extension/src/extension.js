@@ -262,8 +262,6 @@ ${cabecera}
       puedeTenerBotones: donde.puedeTenerBotones(),
       // Cuántos hay de cada cosa, para que el rótulo de su fila lo diga.
       comandos: acciones.todos().length,
-      // Las que hay en disco, como en Habilidades (G4).
-      habilidades: rsc.habilidadesEnDisco().length,
       // El apartado de SDD sale solo si esa carpeta construye algo.
       hayProyectos: proyectos.hayAlgo(),
       // Los ayudantes tampoco salen hasta que hay uno.
@@ -282,6 +280,14 @@ ${cabecera}
       avisoParaExecutiveLab: this.elAvisoQueToca(),
       // Y lo que pasó con uno que ya mandó: arreglado, o leído (decisión 134).
       arreglado: this.elArregladoQueToca(),
+      // La sencilla o la completa de antes, y qué piezas salen en la sencilla
+      // (decisión 138). Nada se ha borrado: está apagado.
+      barraCompleta: vscode.workspace.getConfiguration().get('executiveLab.barraCompleta') === true,
+      piezas: this.lasPiezas(),
+      // Para la sencilla: lo que hay en Acciones, la línea de las copias y la versión.
+      habilidades: this.habilidadesSuyas(),
+      copias: await this.lasCopias(),
+      versionDeLaBarra: this.versionDeLaBarra(),
       // Lo nuevo de la versión que acaba de poner. Antes de mirar si hay otra:
       // mirar deja escrito en el almacén que esta barra ya se usaba.
       queTrae: await this.queTraeLaDeAhora(),
@@ -297,6 +303,43 @@ ${cabecera}
     // Sin esperar: si hay algo que decir, repinta ella sola.
     this.mirarLosArregladosSiToca().catch((error) => this.salida.appendLine(`[avisos] ${error.stack || error.message}`)); // diccionario: interno
     this.ponerLaNuevaSolaSiToca().catch((error) => this.salida.appendLine(`[version] sola: ${error.stack || error.message}`)); // diccionario: interno
+  }
+
+  // ── La barra sencilla (decisión 138) ─────────────────────────────────
+
+  // Qué sale en la sencilla. La tabla viaja con la barra; si no se puede leer,
+  // todo lo de la sencilla sale y lo demás no: mejor de más que una pantalla vacía.
+  lasPiezas() {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(this.contexto.extensionPath, 'media', 'piezas.json'), 'utf8'));
+    } catch (error) {
+      this.salida.appendLine(`[piezas] ${error.message}`); // diccionario: interno
+      return { tarjetaUnica: true, documentos: true, acciones: true, ayuda: true, copias: true, pie: true };
+    }
+  }
+
+  // Las suyas: las del catálogo que ha añadido y las que ha escrito; no las
+  // que el arnés monta para funcionar.
+  habilidadesSuyas() {
+    try {
+      return rsc.habilidadesEnDisco().filter((id) => !nombres.esFontaneria(id)).length;
+    } catch {
+      return 0;
+    }
+  }
+
+  // La línea de las copias: solo si la carpeta las tiene.
+  async lasCopias() {
+    try {
+      const [ultima] = await copias.copias(1);
+      if (!ultima) return null;
+      const hace = copias.haceUnRato(ultima.cuando);
+      const subir = Boolean(await copias.puedeSubir()) || Boolean(await github.remoto());
+      return { hace, sinGuardar: Boolean(await copias.cambiosSinGuardar()), subir };
+    } catch (error) {
+      this.salida.appendLine(`[copias] ${error.message}`); // diccionario: interno
+      return null;
+    }
   }
 
   // ------------------------------------------------------- la versión
