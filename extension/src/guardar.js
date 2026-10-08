@@ -49,10 +49,10 @@ function fechaLarga(cuando = new Date()) {
 
 // Cuánto hace, en palabras y por días de calendario: a las 00:10, lo de las
 // 23:50 es "ayer", no "hoy". El "el martes" del nombre del botón sale de aquí.
-function haceCuanto(iso) {
+function haceCuanto(iso, ahora = Date.now()) {
   const entonces = new Date(iso);
   const dia = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const dias = Math.round((dia(new Date()) - dia(entonces)) / 86400000);
+  const dias = Math.round((dia(new Date(ahora)) - dia(entonces)) / 86400000);
   if (dias <= 0) return 'hoy';
   if (dias === 1) return 'ayer';
   if (dias < 7) return `el ${new Intl.DateTimeFormat('es-ES', { weekday: 'long' }).format(entonces)}`;
@@ -67,7 +67,7 @@ function haceUnRato(iso, ahora = Date.now()) {
   if (minutos < 60) return `hace ${minutos} minutos`;
   const horas = Math.floor(minutos / 60);
   if (horas < 12) return horas === 1 ? 'hace una hora' : `hace ${horas} horas`;
-  return haceCuanto(iso);
+  return haceCuanto(iso, ahora);
 }
 
 const NO_PUEDO = 'No puedo guardar copias en este ordenador. Pulsa «Algo va mal» y pásale el código a tu tutor.';
