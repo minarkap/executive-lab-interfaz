@@ -1538,6 +1538,17 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.match(limpio, /no encuentro <la carpeta>\/02-DOCS\/inbox\/contrato\.pdf/);
     assert.match(limpio, /at leer \(~\/\.vscode\/extensions\/executivelab\.arnes-ui-0\.42\.0\/src\/extension\.js:455:12\)/);
     assert.match(limpio, /github\.com\/<su sitio>/);
+    // El nuestro se queda, antes y después del traslado (decisión 140); el de
+    // cualquier otro, aunque se le parezca, se tapa.
+    assert.equal(avisosM.limpiar('está en github.com/Executive-Lab/executive-lab-interfaz.'), 'está en github.com/Executive-Lab/executive-lab-interfaz.', 'con un punto detrás, tapa nuestro sitio');
+    for (const nuestro of ['github.com/minarkap/executive-lab-interfaz/issues/3', 'github.com/Executive-Lab/executive-lab-interfaz/releases', 'git@github.com:minarkap/executive-lab-interfaz.git']) {
+      assert.match(avisosM.limpiar(`mira ${nuestro}`), /executive-lab-interfaz/, `tapa nuestro sitio: ${nuestro}`);
+    }
+    for (const suyo of ['github.com/Executive-Lab/ferreteria-soler', 'github.com/minarkap/executive-lab-interfaz-de-maria', 'github.com/maria/executive-lab-interfaz']) {
+      assert.match(avisosM.limpiar(`mira ${suyo}`), /^mira github\.com\/<su sitio>/, `deja ver uno que no es el nuestro: ${suyo}`);
+    }
+    // Y una incidencia del sitio nuevo cuenta como nuestra.
+    assert.deepEqual(['https://github.com/minarkap/executive-lab-interfaz/issues/4', 'https://github.com/Executive-Lab/executive-lab-interfaz/issues/5', 'https://github.com/otra/executive-lab-interfaz/issues/6'].map(avisosM.numeroDe), [4, 5, null]);
     return 'limpio y se entiende';
   });
 
@@ -11131,6 +11142,7 @@ exec git "$@"
     author: { login: 'minarkap' },
     assets: [{
       name: `executive-lab-${version}.vsix`,
+      uploader: { login: 'minarkap' },
       browser_download_url: `https://github.com/minarkap/executive-lab-interfaz/releases/download/v${version}/executive-lab-${version}.vsix`,
       size: bytes.length,
       digest: `sha256:${require('node:crypto').createHash('sha256').update(bytes).digest('hex')}`,
@@ -11152,6 +11164,8 @@ exec git "$@"
       ['con otra clase de huella', { digest: 'md5:abc' }],
       ['vacío', { size: 0 }],
       ['de más de 64 MB', { size: versionM.TAMANO_MAXIMO + 1 }],
+      ['subido por otra persona', { uploader: { login: 'alguien-de-la-organizacion' } }],
+      ['sin saber quién lo subió', { uploader: null }],
     ]) {
       assert.equal(versionM.deUnaRelease(unPaquete(bytes, '0.43.0', cambios)).paquete, null, `se da por bueno uno con ${porQue}`);
     }
@@ -11160,7 +11174,17 @@ exec git "$@"
     assert.equal(versionM.deUnaRelease({ ...unPaquete(bytes), author: { login: 'otra-persona' } }), null, 'cuenta una release de otra persona');
     assert.equal(versionM.deUnaRelease({ ...unPaquete(bytes), author: null }), null, 'cuenta una release sin autor');
     assert.equal(versionM.deUnaRelease({ tag_name: 'v0.43.0', author: { login: 'minarkap' }, assets: [] }).paquete, null, 'sin fichero, solo se avisa');
-    return 'ocho formas de no ser de fiar';
+    // El traslado a la organización (decisión 140): GitHub contesta con la
+    // dirección nueva, y la barra tiene que seguir poniéndose al día sola.
+    const enLaOrganizacion = (v = '0.43.0', duena = 'Executive-Lab') => ({ browser_download_url: `https://github.com/${duena}/executive-lab-interfaz/releases/download/v${v}/executive-lab-${v}.vsix` });
+    assert.ok(versionM.deUnaRelease(unPaquete(bytes, '0.43.0', enLaOrganizacion())).paquete, 'desde la organización no se pone sola');
+    assert.ok(versionM.deUnaRelease(unPaquete(bytes, '0.43.0', enLaOrganizacion('0.43.0', 'executive-lab'))).paquete, 'con otras mayúsculas, que en GitHub es el mismo sitio, no se pone');
+    assert.equal(versionM.deUnaRelease(unPaquete(bytes, '0.43.0', enLaOrganizacion('0.43.0', 'Executive-Lab-falsa'))).paquete, null, 'se da por buena una organización que no es la nuestra');
+    assert.equal(versionM.deUnaRelease(unPaquete(bytes, '0.43.0', { browser_download_url: 'https://github.com/Executive-Lab/executive-lab-interfaz/releases/download/v0.40.0/executive-lab-0.43.0.vsix' })).paquete, null, 'en la organización, otra versión en la dirección');
+    // Quien publica no sale de la dirección: en la organización sigue siendo minarkap.
+    assert.equal(versionM.DUENA, 'minarkap');
+    assert.equal(versionM.deUnaRelease({ ...unPaquete(bytes, '0.43.0', enLaOrganizacion()), author: { login: 'Executive-Lab' } }), null, 'cuenta una release que no publica minarkap');
+    return 'ocho formas de no ser de fiar, y el traslado a la organización';
   });
 
   await comprobar('ponerla baja, comprueba e instala; y lo cortado, lo cambiado o lo viejo no se instala', async () => {

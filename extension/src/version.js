@@ -27,7 +27,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const github = require('./github');
 
-const REPO = 'minarkap/executive-lab-interfaz';
+const { REPO, QUIEN_PUBLICA, esNuestro } = require('./sitio');
 const ULTIMA = `https://api.github.com/repos/${REPO}/releases/latest`;
 // Las de prueba no salen en `latest`: para quien se ofrece a probarlas, se mira
 // la lista entera, y de ahí la más nueva, sea o no de prueba (decisión 134).
@@ -36,8 +36,9 @@ const DE_UNA = (version) => `https://api.github.com/repos/${REPO}/releases/tags/
 
 // Solo lo que publica la dueña del sitio. Una etiqueta que crea otra persona con
 // permiso, o una tarea mal hecha, no se ofrece a nadie (revisión de seguridad
-// de la decisión 134). Hoy todas las releases las publica `minarkap`.
-const DUENA = REPO.split('/')[0];
+// de la decisión 134). La publica `minarkap`, también con el repositorio en la
+// organización: ver `sitio.js` (decisión 140).
+const DUENA = QUIEN_PUBLICA;
 const deLaDuena = (release) => Boolean(release && release.author && release.author.login === DUENA);
 
 // En un aula todos salen a internet por la misma dirección, y GitHub deja 60
@@ -107,7 +108,10 @@ function deUnaRelease(release) {
   const version = String((release && release.tag_name) || '').replace(/^v/, '');
   if (!/^\d+\.\d+\.\d+$/.test(version) || !deLaDuena(release)) return null;
   const nombre = nombreDelPaquete(version);
-  const suyo = ((release && release.assets) || []).find((a) => a && a.name === nombre);
+  // Y el fichero, subido por quien publica: en la organización hay más gente,
+  // y tareas, que podrían cambiar el paquete de una versión que publicó otra
+  // persona; GitHub daría la huella del cambiado (revisión de la decisión 140).
+  const suyo = ((release && release.assets) || []).find((a) => a && a.name === nombre && a.uploader && a.uploader.login === DUENA);
   const candidato = suyo ? { nombre, url: suyo.browser_download_url, tamano: suyo.size, huella: suyo.digest } : null;
   return { version, paquete: paqueteDeFiar(candidato, version) ? candidato : null, deprueba: Boolean(release.prerelease) };
 }
@@ -122,11 +126,17 @@ function laMasNueva(releases) {
 }
 
 // Solo de nuestro sitio, de esa versión, y con huella. Lo que no cumpla las
-// tres no se baja: se ofrece la página.
+// tres no se baja: se ofrece la página. «Nuestro sitio» es cualquiera de los
+// dos, el de antes y el de después del traslado (decisión 140).
+function delPaqueteEnNuestroSitio(url, version) {
+  const m = String(url || '').match(/^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/releases\/download\/v([^/]+)\/([^/]+)$/);
+  return Boolean(m) && esNuestro(m[1]) && m[2] === version && m[3] === nombreDelPaquete(version);
+}
+
 function paqueteDeFiar(paquete, version) {
   return Boolean(paquete)
     && paquete.nombre === nombreDelPaquete(version)
-    && paquete.url === `https://github.com/${REPO}/releases/download/v${version}/${nombreDelPaquete(version)}`
+    && delPaqueteEnNuestroSitio(paquete.url, version)
     && /^sha256:[0-9a-f]{64}$/.test(String(paquete.huella || ''))
     && Number.isInteger(paquete.tamano) && paquete.tamano > 0 && paquete.tamano <= TAMANO_MAXIMO;
 }

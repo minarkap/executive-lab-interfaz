@@ -224,6 +224,7 @@ async function run() {
       author: { login: version.DUENA },
       assets: [{
         name: 'executive-lab-99.0.0.vsix',
+        uploader: { login: version.DUENA },
         browser_download_url: `https://github.com/${version.REPO}/releases/download/v99.0.0/executive-lab-99.0.0.vsix`,
         size: bytes.length,
         digest: `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`,
