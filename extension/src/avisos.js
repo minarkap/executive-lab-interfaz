@@ -40,7 +40,7 @@ const proyecto = require('./proyecto');
 const frontmatter = require('./frontmatter');
 
 // A dónde van. Es el mismo sitio del que la barra mira si hay versión nueva.
-const REPO = 'minarkap/executive-lab-interfaz';
+const { REPO, esNuestro } = require('./sitio');
 const CARPETA = ['02-DOCS', 'raw', 'avisos'];
 const MANDADOS = 'mandados';
 const DESCARTADOS = 'descartados';
@@ -272,11 +272,12 @@ function archivar(aviso, a, extra = {}) {
 // «Lo que contaste ya está arreglado: «…»» con cualquier cosa dentro sería un
 // mensaje con la cara de Executive Lab (revisión de seguridad).
 
-// El número, solo de una incidencia de nuestro sitio; y el enlace se hace con
-// el número, no se coge de ningún sitio.
+// El número, solo de una incidencia de nuestro sitio, el de antes o el de
+// después del traslado (decisión 140); y el enlace se hace con el número, no se
+// coge de ningún sitio.
 function numeroDe(enlace) {
-  const m = String(enlace || '').match(new RegExp(`^https://github\\.com/${escaparRegex(REPO)}/issues/(\\d+)$`));
-  return m ? Number(m[1]) : null;
+  const m = String(enlace || '').match(/^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/issues\/(\d+)$/);
+  return m && esNuestro(m[1]) ? Number(m[2]) : null;
 }
 const enlaceDe = (numero) => `https://github.com/${REPO}/issues/${Number(numero)}`;
 
@@ -476,7 +477,7 @@ function limpiar(texto, { nombres = losNombres(), otros = [], claves = valoresDe
     .replace(/\b[A-Za-z]:(?:\\{1,2}|\/)(?:Users|Documents and Settings)(?:\\{1,2}|\/)[^\\/\s'"`)]+/gi, '~');
 
   // Su sitio en GitHub, que lleva su nombre de usuario y el de su proyecto.
-  limpio = limpio.replace(/\bgithub\.com[/:](?!minarkap\/executive-lab-interfaz\b)[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/g, 'github.com/<su sitio>');
+  limpio = limpio.replace(/\bgithub\.com[/:]([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/g, (todo, sitio) => (esNuestro(sitio.replace(/\.git$/, '')) ? todo : 'github.com/<su sitio>'));
   limpio = limpio.replace(/\bgit@github\.com\b/g, 'github.com');
 
   // Los correos antes que los nombres: con el de la empresa tapado dentro,
