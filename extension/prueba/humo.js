@@ -1540,6 +1540,7 @@ contraseña de entrar: es una llave aparte que se puede anular sin tocar la cuen
     assert.match(limpio, /github\.com\/<su sitio>/);
     // El nuestro se queda, antes y después del traslado (decisión 140); el de
     // cualquier otro, aunque se le parezca, se tapa.
+    assert.equal(avisosM.limpiar('está en github.com/Executive-Lab/executive-lab-interfaz.'), 'está en github.com/Executive-Lab/executive-lab-interfaz.', 'con un punto detrás, tapa nuestro sitio');
     for (const nuestro of ['github.com/minarkap/executive-lab-interfaz/issues/3', 'github.com/Executive-Lab/executive-lab-interfaz/releases', 'git@github.com:minarkap/executive-lab-interfaz.git']) {
       assert.match(avisosM.limpiar(`mira ${nuestro}`), /executive-lab-interfaz/, `tapa nuestro sitio: ${nuestro}`);
     }
@@ -11141,6 +11142,7 @@ exec git "$@"
     author: { login: 'minarkap' },
     assets: [{
       name: `executive-lab-${version}.vsix`,
+      uploader: { login: 'minarkap' },
       browser_download_url: `https://github.com/minarkap/executive-lab-interfaz/releases/download/v${version}/executive-lab-${version}.vsix`,
       size: bytes.length,
       digest: `sha256:${require('node:crypto').createHash('sha256').update(bytes).digest('hex')}`,
@@ -11162,6 +11164,8 @@ exec git "$@"
       ['con otra clase de huella', { digest: 'md5:abc' }],
       ['vacío', { size: 0 }],
       ['de más de 64 MB', { size: versionM.TAMANO_MAXIMO + 1 }],
+      ['subido por otra persona', { uploader: { login: 'alguien-de-la-organizacion' } }],
+      ['sin saber quién lo subió', { uploader: null }],
     ]) {
       assert.equal(versionM.deUnaRelease(unPaquete(bytes, '0.43.0', cambios)).paquete, null, `se da por bueno uno con ${porQue}`);
     }

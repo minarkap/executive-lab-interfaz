@@ -477,7 +477,7 @@ function limpiar(texto, { nombres = losNombres(), otros = [], claves = valoresDe
     .replace(/\b[A-Za-z]:(?:\\{1,2}|\/)(?:Users|Documents and Settings)(?:\\{1,2}|\/)[^\\/\s'"`)]+/gi, '~');
 
   // Su sitio en GitHub, que lleva su nombre de usuario y el de su proyecto.
-  limpio = limpio.replace(/\bgithub\.com[/:]([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/g, (todo, sitio) => (esNuestro(sitio.replace(/\.git$/, '')) ? todo : 'github.com/<su sitio>'));
+  limpio = limpio.replace(/\bgithub\.com[/:]([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/g, (todo, sitio) => (esNuestro(sitio.replace(/\.+$/, '').replace(/\.git$/, '')) ? todo : 'github.com/<su sitio>'));
   limpio = limpio.replace(/\bgit@github\.com\b/g, 'github.com');
 
   // Los correos antes que los nombres: con el de la empresa tapado dentro,

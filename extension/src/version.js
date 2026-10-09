@@ -108,7 +108,10 @@ function deUnaRelease(release) {
   const version = String((release && release.tag_name) || '').replace(/^v/, '');
   if (!/^\d+\.\d+\.\d+$/.test(version) || !deLaDuena(release)) return null;
   const nombre = nombreDelPaquete(version);
-  const suyo = ((release && release.assets) || []).find((a) => a && a.name === nombre);
+  // Y el fichero, subido por quien publica: en la organización hay más gente,
+  // y tareas, que podrían cambiar el paquete de una versión que publicó otra
+  // persona; GitHub daría la huella del cambiado (revisión de la decisión 140).
+  const suyo = ((release && release.assets) || []).find((a) => a && a.name === nombre && a.uploader && a.uploader.login === DUENA);
   const candidato = suyo ? { nombre, url: suyo.browser_download_url, tamano: suyo.size, huella: suyo.digest } : null;
   return { version, paquete: paqueteDeFiar(candidato, version) ? candidato : null, deprueba: Boolean(release.prerelease) };
 }

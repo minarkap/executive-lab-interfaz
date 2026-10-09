@@ -4903,3 +4903,29 @@ dejé**, **Conversación nueva**, **Dime qué hago ahora**, **Pedir ayuda en el 
   como estaba.
 - Lo que el plan ponía también en Sugerencias (las copias, GitHub y la cara de la empresa, para quien no
   los tenga) queda para otra fase.
+
+## 140. La barra se va a la organización Executive-Lab
+
+**Fecha:** 9 de octubre de 2026 · **Estado:** en curso (la barra ya lo acepta; falta el traslado)
+
+Jose: *«el proyecto está en Executive-Lab, no? la org»*. No lo estaba: vivía en su cuenta,
+`minarkap/executive-lab-interfaz`. Se traslada a `Executive-Lab/executive-lab-interfaz`.
+
+Trasladarlo sin más rompía lo más delicado: la barra que se pone al día sola (decisión 136).
+
+- **Quién publica salía de la dirección.** La barra solo acepta versiones de la dueña del repositorio, y
+  la sacaba de `minarkap/…`. En la organización la dueña sería `Executive-Lab`, que no es una persona y no
+  publica nada: no habría cuadrado ninguna versión, y nadie habría recibido la siguiente.
+- **El paquete tenía que venir de `github.com/minarkap/…`.** GitHub redirige la dirección vieja, pero
+  contesta con la nueva: las barras instaladas habrían visto que había versión nueva sin poder ponérsela.
+
+Así que va en dos pasos:
+
+1. **La 0.47.0, el puente.** `extension/src/sitio.js` dice dónde vive la barra y quién publica: se sigue
+   preguntando a la dirección de antes, pero se dan por nuestras las dos (paquete, incidencias de los
+   alumnos y la limpieza de los avisos), y publica `minarkap` esté donde esté. Y, por la revisión de
+   seguridad: el paquete también lo tiene que haber subido `minarkap`. En una organización hay más gente y
+   tareas con permiso para cambiar el fichero de una versión, y GitHub daría la huella del cambiado.
+2. **El traslado, cuando la 0.47.0 haya llegado a casi todos.** Se pone sola al abrir el editor, así que
+   basta con unos días de clase. Quien se quede en la 0.46.0 o antes verá que hay una versión nueva y
+   tendrá que bajarla de la página una vez. Después, otra versión pasa a preguntar a la dirección nueva.
